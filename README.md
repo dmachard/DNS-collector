@@ -150,3 +150,12 @@ A [build-in](./docs/dashboards/grafana_exporter.json) dashboard is available for
 ## Contributing
 
 See the [development guide](./docs/development.md) for more information on how to build it yourself.
+
+
+## More DNS tools ?
+
+Monitoring DNS server availability and comparing response times across multiple DNS providers 
+
+<a href="https://github.com/dmachard/DNS-tester" target="_blank">
+  <img src="https://github.com/dmachard/DNS-tester/blob/main/docs/logo-dns-tester.png" alt="DNS-tester"/>
+</a>
