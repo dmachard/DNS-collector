@@ -154,8 +154,7 @@ See the [development guide](./docs/development.md) for more information on how t
 
 ## More DNS tools ?
 
-Monitoring DNS server availability and comparing response times across multiple DNS providers 
-
-<a href="https://github.com/dmachard/DNS-tester" target="_blank">
-  <img src="https://github.com/dmachard/DNS-tester/blob/main/docs/logo-dns-tester.png" alt="DNS-tester"/>
-</a>
+| | |
+|:--:|------------|
+| <a href="https://github.com/dmachard/DNS-collector" target="_blank"><img src="https://github.com/dmachard/DNS-collector/blob/main/docs/dns-collector_logo.png?raw=true" alt="DNS-collector" width="200"/></a> | Ingesting, pipelining, and enhancing your DNS logs with usage indicators, security analysis, and additional metadata. |
+| <a href="https://github.com/dmachard/DNS-tester" target="_blank"><img src="https://github.com/dmachard/DNS-tester/blob/main/docs/logo-dns-tester.png?raw=true" alt="DNS-collector" width="200"/></a> | Monitoring DNS server availability and comparing response times across multiple DNS providers. |
