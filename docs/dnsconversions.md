@@ -7,6 +7,7 @@ All DNStap messages or network-captured data are first transformed into the [DNS
 - [Text Format Inline](#text-format-inline)
 - [JSON Enconding](#json-encoding)
 - [Jinja templating](#jinja-templating)
+- [PCAP](#pcap)
 
 ## Text format inline
 
@@ -50,7 +51,7 @@ The text format can be customized using the following directives.
 - `arcount`: the number of additionnal answer
 - `nscount`: the number of nameserver
 - `ttl`: answer ttl, only the first one
-- `answer`: rdata answer, only the first one, prefer to use the JSON format if you wamt all answers
+- `answer`: rdata answer, only the first one, prefer to use the JSON format if you want all answers
 - `malformed`: malformed dns packet, integer value 1/0
 - `qr`: Query or reply flag, indicating the type of message. Possible values: `Q` (query) or `R` (reply).
 - `tc`: Truncated response flag, indicates whether the response was truncated. Value is `TC` for enabled, `-` for disabled.
