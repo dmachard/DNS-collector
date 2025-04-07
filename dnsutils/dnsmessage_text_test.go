@@ -270,7 +270,7 @@ func TestDnsMessage_TextFormat_DefaultDirectives(t *testing.T) {
 						Answers: []DNSAnswer{
 							{
 								Name:      "dnscollector.fr",
-								Rdatatype: "AAAA",
+								Rdatatype: Rdatatypes[28],
 								Class:     "IN",
 								Rdata:     "::1",
 							},

@@ -581,7 +581,7 @@ func ParseRdata(rdatatype string, rdata []byte, payload []byte, rdataOffset int)
 	switch rdatatype {
 	case "A":
 		ret, err = ParseA(rdata)
-	case "AAAA":
+	case Rdatatypes[28]:
 		ret, err = ParseAAAA(rdata)
 	case "CNAME":
 		ret, err = ParseCNAME(rdataOffset, payload)

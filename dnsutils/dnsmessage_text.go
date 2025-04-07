@@ -541,39 +541,39 @@ func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBo
 			}
 
 		case directive == "answer-a":
-			ans_found := false
+			ansFound := false
 			for _, answer := range an {
 				if answer.Rdatatype == "A" {
 					s.WriteString(answer.Rdata)
-					ans_found = true
+					ansFound = true
 					break
 				}
 			}
-			if !ans_found {
+			if !ansFound {
 				s.WriteByte('-')
 			}
 		case directive == "answer-aaaa":
-			ans_found := false
+			ansFound := false
 			for _, answer := range an {
-				if answer.Rdatatype == "AAAA" {
+				if answer.Rdatatype == Rdatatypes[28] {
 					s.WriteString(answer.Rdata)
-					ans_found = true
+					ansFound = true
 					break
 				}
 			}
-			if !ans_found {
+			if !ansFound {
 				s.WriteByte('-')
 			}
 		case directive == "answer-ip":
-			ans_found := false
+			ansFound := false
 			for _, answer := range an {
-				if answer.Rdatatype == "A" || answer.Rdatatype == "AAAA" {
+				if answer.Rdatatype == "A" || answer.Rdatatype == Rdatatypes[28] {
 					s.WriteString(answer.Rdata)
-					ans_found = true
+					ansFound = true
 					break
 				}
 			}
-			if !ans_found {
+			if !ansFound {
 				s.WriteByte('-')
 			}
 
