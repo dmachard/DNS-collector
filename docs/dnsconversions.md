@@ -52,6 +52,9 @@ The text format can be customized using the following directives.
 - `nscount`: the number of nameserver
 - `ttl`: answer ttl, only the first one
 - `answer`: rdata answer, only the first one, prefer to use the JSON format if you want all answers
+- `answer-ip`: get A or AAAA answer
+- `answer-a`: get A answer
+- `answer-aaaa`: get AAAA answer
 - `malformed`: malformed dns packet, integer value 1/0
 - `qr`: Query or reply flag, indicating the type of message. Possible values: `Q` (query) or `R` (reply).
 - `tc`: Truncated response flag, indicates whether the response was truncated. Value is `TC` for enabled, `-` for disabled.

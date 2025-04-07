@@ -540,6 +540,43 @@ func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBo
 				s.WriteByte('-')
 			}
 
+		case directive == "answer-a":
+			ans_found := false
+			for _, answer := range an {
+				if answer.Rdatatype == "A" {
+					s.WriteString(answer.Rdata)
+					ans_found = true
+					break
+				}
+			}
+			if !ans_found {
+				s.WriteByte('-')
+			}
+		case directive == "answer-aaaa":
+			ans_found := false
+			for _, answer := range an {
+				if answer.Rdatatype == "AAAA" {
+					s.WriteString(answer.Rdata)
+					ans_found = true
+					break
+				}
+			}
+			if !ans_found {
+				s.WriteByte('-')
+			}
+		case directive == "answer-ip":
+			ans_found := false
+			for _, answer := range an {
+				if answer.Rdatatype == "A" || answer.Rdatatype == "AAAA" {
+					s.WriteString(answer.Rdata)
+					ans_found = true
+					break
+				}
+			}
+			if !ans_found {
+				s.WriteByte('-')
+			}
+
 		case directive == "questionscount" || directive == "qdcount":
 			s.WriteString(strconv.Itoa(dm.DNS.QdCount))
 		case directive == "answercount" || directive == "ancount":

@@ -244,6 +244,42 @@ func TestDnsMessage_TextFormat_DefaultDirectives(t *testing.T) {
 			dm:       DNSMessage{DNS: DNS{AnCount: 1, ArCount: 2, NsCount: 3}},
 			expected: "1 3 2",
 		},
+		{
+			format: "answer-ip answer-a",
+			dm: DNSMessage{
+				DNS: DNS{
+					DNSRRs: DNSRRs{
+						Answers: []DNSAnswer{
+							{
+								Name:      "dnscollector.fr",
+								Rdatatype: "A",
+								Class:     "IN",
+								Rdata:     "127.0.0.1",
+							},
+						},
+					},
+				},
+			},
+			expected: "127.0.0.1 127.0.0.1",
+		},
+		{
+			format: "answer-aaaa",
+			dm: DNSMessage{
+				DNS: DNS{
+					DNSRRs: DNSRRs{
+						Answers: []DNSAnswer{
+							{
+								Name:      "dnscollector.fr",
+								Rdatatype: "AAAA",
+								Class:     "IN",
+								Rdata:     "::1",
+							},
+						},
+					},
+				},
+			},
+			expected: "::1",
+		},
 	}
 
 	for _, tc := range testcases {
