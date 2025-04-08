@@ -19,7 +19,7 @@ permissions:
 
 env:
   PYTHON_VERSION: "3.13"
-  GO_VERSION: "1.23"
+  GO_VERSION: "1.24"
 
 jobs:
   build:
@@ -50,6 +50,7 @@ jobs:
           - { name: 'dnsdist', version: '18' }
           - { name: 'dnsdist', version: '19' }
           - { name: 'recursor', version: '51' }
+          - { name: 'recursor', version: '52' }
 
     steps:
       - uses: actions/checkout@v4
