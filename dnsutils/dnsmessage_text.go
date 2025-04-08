@@ -29,8 +29,8 @@ func (dm *DNSMessage) handleOpenTelemetryDirectives(directive string, s *strings
 	if dm.OpenTelemetry == nil {
 		s.WriteString("-")
 	} else {
-		switch {
-		case directive == "otel-trace-id":
+		switch directive {
+		case "otel-trace-id":
 			s.WriteString(dm.OpenTelemetry.TraceID)
 		default:
 			return errors.New(ErrorUnexpectedDirective + directive)
@@ -43,16 +43,16 @@ func (dm *DNSMessage) handleGeoIPDirectives(directive string, s *strings.Builder
 	if dm.Geo == nil {
 		s.WriteString("-")
 	} else {
-		switch {
-		case directive == "geoip-continent":
+		switch directive {
+		case "geoip-continent":
 			s.WriteString(dm.Geo.Continent)
-		case directive == "geoip-country":
+		case "geoip-country":
 			s.WriteString(dm.Geo.CountryIsoCode)
-		case directive == "geoip-city":
+		case "geoip-city":
 			s.WriteString(dm.Geo.City)
-		case directive == "geoip-as-number":
+		case "geoip-as-number":
 			s.WriteString(dm.Geo.AutonomousSystemNumber)
-		case directive == "geoip-as-owner":
+		case "geoip-as-owner":
 			s.WriteString(dm.Geo.AutonomousSystemOrg)
 		default:
 			return errors.New(ErrorUnexpectedDirective + directive)
@@ -72,8 +72,9 @@ func (dm *DNSMessage) handlePdnsDirectives(directive string, s *strings.Builder)
 			directives = []string{directive[:i], directive[i+1:]}
 		}
 
-		switch directive := directives[0]; {
-		case directive == "powerdns-tags":
+		directive = directives[0]
+		switch directive {
+		case "powerdns-tags":
 			if dm.PowerDNS.Tags == nil {
 				s.WriteString("-")
 			} else {
@@ -101,73 +102,73 @@ func (dm *DNSMessage) handlePdnsDirectives(directive string, s *strings.Builder)
 					s.WriteString("-")
 				}
 			}
-		case directive == "powerdns-applied-policy":
+		case "powerdns-applied-policy":
 			if len(dm.PowerDNS.AppliedPolicy) > 0 {
 				s.WriteString(dm.PowerDNS.AppliedPolicy)
 			} else {
 				s.WriteString("-")
 			}
-		case directive == "powerdns-applied-policy-hit":
+		case "powerdns-applied-policy-hit":
 			if len(dm.PowerDNS.AppliedPolicyHit) > 0 {
 				s.WriteString(dm.PowerDNS.AppliedPolicyHit)
 			} else {
 				s.WriteString("-")
 			}
-		case directive == "powerdns-applied-policy-kind":
+		case "powerdns-applied-policy-kind":
 			if len(dm.PowerDNS.AppliedPolicyKind) > 0 {
 				s.WriteString(dm.PowerDNS.AppliedPolicyKind)
 			} else {
 				s.WriteString("-")
 			}
-		case directive == "powerdns-applied-policy-trigger":
+		case "powerdns-applied-policy-trigger":
 			if len(dm.PowerDNS.AppliedPolicyTrigger) > 0 {
 				s.WriteString(dm.PowerDNS.AppliedPolicyTrigger)
 			} else {
 				s.WriteString("-")
 			}
-		case directive == "powerdns-applied-policy-type":
+		case "powerdns-applied-policy-type":
 			if len(dm.PowerDNS.AppliedPolicyType) > 0 {
 				s.WriteString(dm.PowerDNS.AppliedPolicyType)
 			} else {
 				s.WriteString("-")
 			}
-		case directive == "powerdns-requestor-id":
+		case "powerdns-requestor-id":
 			if len(dm.PowerDNS.RequestorID) > 0 {
 				s.WriteString(dm.PowerDNS.RequestorID)
 			} else {
 				s.WriteString("-")
 			}
-		case directive == "powerdns-device-id":
+		case "powerdns-device-id":
 			if len(dm.PowerDNS.DeviceID) > 0 {
 				s.WriteString(dm.PowerDNS.DeviceID)
 			} else {
 				s.WriteString("-")
 			}
-		case directive == "powerdns-device-name":
+		case "powerdns-device-name":
 			if len(dm.PowerDNS.DeviceName) > 0 {
 				s.WriteString(dm.PowerDNS.DeviceName)
 			} else {
 				s.WriteString("-")
 			}
-		case directive == "powerdns-message-id":
+		case "powerdns-message-id":
 			if len(dm.PowerDNS.MessageID) > 0 {
 				s.WriteString(dm.PowerDNS.MessageID)
 			} else {
 				s.WriteString("-")
 			}
-		case directive == "powerdns-initial-requestor-id":
+		case "powerdns-initial-requestor-id":
 			if len(dm.PowerDNS.InitialRequestorID) > 0 {
 				s.WriteString(dm.PowerDNS.InitialRequestorID)
 			} else {
 				s.WriteString("-")
 			}
-		case directive == "powerdns-original-request-subnet":
+		case "powerdns-original-request-subnet":
 			if len(dm.PowerDNS.OriginalRequestSubnet) > 0 {
 				s.WriteString(dm.PowerDNS.OriginalRequestSubnet)
 			} else {
 				s.WriteString("-")
 			}
-		case directive == "powerdns-metadata":
+		case "powerdns-metadata":
 			if dm.PowerDNS.Metadata == nil {
 				s.WriteString("-")
 			} else {
@@ -185,7 +186,7 @@ func (dm *DNSMessage) handlePdnsDirectives(directive string, s *strings.Builder)
 					s.WriteString("-")
 				}
 			}
-		case directive == "powerdns-http-version":
+		case "powerdns-http-version":
 			if len(dm.PowerDNS.HTTPVersion) > 0 {
 				s.WriteString(dm.PowerDNS.HTTPVersion)
 			} else {
@@ -209,8 +210,9 @@ func (dm *DNSMessage) handleATagsDirectives(directive string, s *strings.Builder
 			directives = []string{directive[:i], directive[i+1:]}
 		}
 
-		switch directive := directives[0]; {
-		case directive == "atags":
+		directive = directives[0]
+		switch directive {
+		case "atags":
 			if len(dm.ATags.Tags) > 0 {
 				if len(directives) == 2 {
 					tagIndex, err := strconv.Atoi(directives[1])
@@ -245,8 +247,8 @@ func (dm *DNSMessage) handleSuspiciousDirectives(directive string, s *strings.Bu
 	if dm.Suspicious == nil {
 		s.WriteString("-")
 	} else {
-		switch {
-		case directive == "suspicious-score":
+		switch directive {
+		case "suspicious-score":
 			s.WriteString(strconv.Itoa(int(dm.Suspicious.Score)))
 		default:
 			return errors.New(ErrorUnexpectedDirective + directive)
@@ -259,12 +261,12 @@ func (dm *DNSMessage) handlePublicSuffixDirectives(directive string, s *strings.
 	if dm.PublicSuffix == nil {
 		s.WriteString("-")
 	} else {
-		switch {
-		case directive == "publixsuffix-tld":
+		switch directive {
+		case "publixsuffix-tld":
 			s.WriteString(dm.PublicSuffix.QnamePublicSuffix)
-		case directive == "publixsuffix-etld+1":
+		case "publixsuffix-etld+1":
 			s.WriteString(dm.PublicSuffix.QnameEffectiveTLDPlusOne)
-		case directive == "publixsuffix-managed-icann":
+		case "publixsuffix-managed-icann":
 			if dm.PublicSuffix.ManagedByICANN {
 				s.WriteString("managed")
 			} else {
@@ -282,8 +284,8 @@ func (dm *DNSMessage) handleExtractedDirectives(directive string, s *strings.Bui
 		s.WriteString("-")
 		return nil
 	}
-	switch {
-	case directive == "extracted-dns-payload":
+	switch directive {
+	case "extracted-dns-payload":
 		if len(dm.DNS.Payload) > 0 {
 			dst := make([]byte, base64.StdEncoding.EncodedLen(len(dm.DNS.Payload)))
 			base64.StdEncoding.Encode(dst, dm.DNS.Payload)
@@ -301,8 +303,8 @@ func (dm *DNSMessage) handleFilteringDirectives(directive string, s *strings.Bui
 	if dm.Filtering == nil {
 		s.WriteString("-")
 	} else {
-		switch {
-		case directive == "filtering-sample-rate":
+		switch directive {
+		case "filtering-sample-rate":
 			s.WriteString(strconv.Itoa(dm.Filtering.SampleRate))
 		default:
 			return errors.New(ErrorUnexpectedDirective + directive)
@@ -315,10 +317,10 @@ func (dm *DNSMessage) handleReducerDirectives(directive string, s *strings.Build
 	if dm.Reducer == nil {
 		s.WriteString("-")
 	} else {
-		switch {
-		case directive == "reducer-occurrences":
+		switch directive {
+		case "reducer-occurrences":
 			s.WriteString(strconv.Itoa(dm.Reducer.Occurrences))
-		case directive == "reducer-cumulative-length":
+		case "reducer-cumulative-length":
 			s.WriteString(strconv.Itoa(dm.Reducer.CumulativeLength))
 		default:
 			return errors.New(ErrorUnexpectedDirective + directive)
@@ -331,44 +333,44 @@ func (dm *DNSMessage) handleMachineLearningDirectives(directive string, s *strin
 	if dm.MachineLearning == nil {
 		s.WriteString("-")
 	} else {
-		switch {
-		case directive == "ml-entropy":
+		switch directive {
+		case "ml-entropy":
 			s.WriteString(strconv.FormatFloat(dm.MachineLearning.Entropy, 'f', -1, 64))
-		case directive == "ml-length":
+		case "ml-length":
 			s.WriteString(strconv.Itoa(dm.MachineLearning.Length))
-		case directive == "ml-digits":
+		case "ml-digits":
 			s.WriteString(strconv.Itoa(dm.MachineLearning.Digits))
-		case directive == "ml-lowers":
+		case "ml-lowers":
 			s.WriteString(strconv.Itoa(dm.MachineLearning.Lowers))
-		case directive == "ml-uppers":
+		case "ml-uppers":
 			s.WriteString(strconv.Itoa(dm.MachineLearning.Uppers))
-		case directive == "ml-specials":
+		case "ml-specials":
 			s.WriteString(strconv.Itoa(dm.MachineLearning.Specials))
-		case directive == "ml-others":
+		case "ml-others":
 			s.WriteString(strconv.Itoa(dm.MachineLearning.Others))
-		case directive == "ml-labels":
+		case "ml-labels":
 			s.WriteString(strconv.Itoa(dm.MachineLearning.Labels))
-		case directive == "ml-ratio-digits":
+		case "ml-ratio-digits":
 			s.WriteString(strconv.FormatFloat(dm.MachineLearning.RatioDigits, 'f', 3, 64))
-		case directive == "ml-ratio-letters":
+		case "ml-ratio-letters":
 			s.WriteString(strconv.FormatFloat(dm.MachineLearning.RatioLetters, 'f', 3, 64))
-		case directive == "ml-ratio-specials":
+		case "ml-ratio-specials":
 			s.WriteString(strconv.FormatFloat(dm.MachineLearning.RatioSpecials, 'f', 3, 64))
-		case directive == "ml-ratio-others":
+		case "ml-ratio-others":
 			s.WriteString(strconv.FormatFloat(dm.MachineLearning.RatioOthers, 'f', 3, 64))
-		case directive == "ml-consecutive-chars":
+		case "ml-consecutive-chars":
 			s.WriteString(strconv.Itoa(dm.MachineLearning.ConsecutiveChars))
-		case directive == "ml-consecutive-vowels":
+		case "ml-consecutive-vowels":
 			s.WriteString(strconv.Itoa(dm.MachineLearning.ConsecutiveVowels))
-		case directive == "ml-consecutive-digits":
+		case "ml-consecutive-digits":
 			s.WriteString(strconv.Itoa(dm.MachineLearning.ConsecutiveDigits))
-		case directive == "ml-consecutive-consonants":
+		case "ml-consecutive-consonants":
 			s.WriteString(strconv.Itoa(dm.MachineLearning.ConsecutiveConsonants))
-		case directive == "ml-size":
+		case "ml-size":
 			s.WriteString(strconv.Itoa(dm.MachineLearning.Size))
-		case directive == "ml-occurrences":
+		case "ml-occurrences":
 			s.WriteString(strconv.Itoa(dm.MachineLearning.Occurrences))
-		case directive == "ml-uncommon-qtypes":
+		case "ml-uncommon-qtypes":
 			s.WriteString(strconv.Itoa(dm.MachineLearning.UncommonQtypes))
 		default:
 			return errors.New(ErrorUnexpectedDirective + directive)
