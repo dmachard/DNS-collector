@@ -52,9 +52,10 @@ The text format can be customized using the following directives.
 - `nscount`: the number of nameserver
 - `ttl`: answer ttl, only the first one
 - `answer`: rdata answer, only the first one, prefer to use the JSON format if you want all answers
-- `answer-ip`: get A or AAAA answer
-- `answer-a`: get A answer
-- `answer-aaaa`: get AAAA answer
+- `answer-ip`: Returns the first answer of type A (IPv4) or AAAA (IPv6).
+- `answer-ips`: Returns all answers of type A and AAAA, separated by commas (,) Example output: 192.0.2.1,192.0.2.2
+- `answer-a`: Returns the first answer of type A (IPv4).
+- `answer-aaaa`: Returns the first answer of type AAAA (IPv6).
 - `malformed`: malformed dns packet, integer value 1/0
 - `qr`: Query or reply flag, indicating the type of message. Possible values: `Q` (query) or `R` (reply).
 - `tc`: Truncated response flag, indicates whether the response was truncated. Value is `TC` for enabled, `-` for disabled.

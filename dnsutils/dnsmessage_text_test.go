@@ -280,6 +280,30 @@ func TestDnsMessage_TextFormat_DefaultDirectives(t *testing.T) {
 			},
 			expected: "::1",
 		},
+		{
+			format: "answer-ips",
+			dm: DNSMessage{
+				DNS: DNS{
+					DNSRRs: DNSRRs{
+						Answers: []DNSAnswer{
+							{
+								Name:      "dnscollector.fr",
+								Rdatatype: "A",
+								Class:     "IN",
+								Rdata:     "127.0.0.1",
+							},
+							{
+								Name:      "dnscollector.fr",
+								Rdatatype: "A",
+								Class:     "IN",
+								Rdata:     "127.0.0.2",
+							},
+						},
+					},
+				},
+			},
+			expected: "127.0.0.1;127.0.0.2",
+		},
 	}
 
 	for _, tc := range testcases {

@@ -579,6 +579,19 @@ func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBo
 				s.WriteByte('-')
 			}
 
+		case directive == "answer-ips":
+			var ips []string
+			for _, answer := range an {
+				if answer.Rdatatype == "A" || answer.Rdatatype == Rdatatypes[28] {
+					ips = append(ips, answer.Rdata)
+				}
+			}
+			if len(ips) > 0 {
+				QuoteStringAndWrite(&s, strings.Join(ips, ";"), fieldDelimiter, fieldBoundary)
+			} else {
+				s.WriteByte('-')
+			}
+
 		case directive == "questionscount" || directive == "qdcount":
 			s.WriteString(strconv.Itoa(dm.DNS.QdCount))
 		case directive == "answercount" || directive == "ancount":
