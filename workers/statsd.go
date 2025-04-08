@@ -275,34 +275,34 @@ func (w *StatsdClient) StartLogging() {
 
 				prefix := w.GetConfig().Loggers.Statsd.Prefix
 				for streamID, stream := range w.Stats.Streams {
-					b.WriteString(fmt.Sprintf("%s_%s_total_bytes_received:%d|c\n", prefix, streamID, stream.TotalReceivedBytes))
-					b.WriteString(fmt.Sprintf("%s_%s_total_bytes_sent:%d|c\n", prefix, streamID, stream.TotalSentBytes))
+					fmt.Fprintf(b, "%s_%s_total_bytes_received:%d|c\n", prefix, streamID, stream.TotalReceivedBytes)
+					fmt.Fprintf(b, "%s_%s_total_bytes_sent:%d|c\n", prefix, streamID, stream.TotalSentBytes)
 
-					b.WriteString(fmt.Sprintf("%s_%s_total_requesters:%d|c\n", prefix, streamID, len(stream.Clients)))
+					fmt.Fprintf(b, "%s_%s_total_requesters:%d|c\n", prefix, streamID, len(stream.Clients))
 
-					b.WriteString(fmt.Sprintf("%s_%s_total_domains:%d|c\n", prefix, streamID, len(stream.Domains)))
-					b.WriteString(fmt.Sprintf("%s_%s_total_domains_nx:%d|c\n", prefix, streamID, len(stream.Nxdomains)))
+					fmt.Fprintf(b, "%s_%s_total_domains:%d|c\n", prefix, streamID, len(stream.Domains))
+					fmt.Fprintf(b, "%s_%s_total_domains_nx:%d|c\n", prefix, streamID, len(stream.Nxdomains))
 
-					b.WriteString(fmt.Sprintf("%s_%s_total_packets:%d|c\n", prefix, streamID, stream.TotalPackets))
+					fmt.Fprintf(b, "%s_%s_total_packets:%d|c\n", prefix, streamID, stream.TotalPackets)
 
 					// transport repartition
 					for _, v := range stream.TopTransport.Get() {
-						b.WriteString(fmt.Sprintf("%s_%s_total_packets_%s:%d|c\n", prefix, streamID, v.Name, v.Hit))
+						fmt.Fprintf(b, "%s_%s_total_packets_%s:%d|c\n", prefix, streamID, v.Name, v.Hit)
 					}
 
 					// ip proto repartition
 					for _, v := range stream.TopIPproto.Get() {
-						b.WriteString(fmt.Sprintf("%s_%s_total_packets_%s:%d|c\n", prefix, streamID, v.Name, v.Hit))
+						fmt.Fprintf(b, "%s_%s_total_packets_%s:%d|c\n", prefix, streamID, v.Name, v.Hit)
 					}
 
 					// qtypes repartition
 					for _, v := range stream.TopRRtypes.Get() {
-						b.WriteString(fmt.Sprintf("%s_%s_total_replies_rrtype_%s:%d|c\n", prefix, streamID, v.Name, v.Hit))
+						fmt.Fprintf(b, "%s_%s_total_replies_rrtype_%s:%d|c\n", prefix, streamID, v.Name, v.Hit)
 					}
 
 					// top rcodes
 					for _, v := range stream.TopRcodes.Get() {
-						b.WriteString(fmt.Sprintf("%s_%s_total_replies_rcode_%s:%d|c\n", prefix, streamID, v.Name, v.Hit))
+						fmt.Fprintf(b, "%s_%s_total_replies_rcode_%s:%d|c\n", prefix, streamID, v.Name, v.Hit)
 					}
 				}
 

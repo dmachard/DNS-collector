@@ -68,10 +68,7 @@ func (w *AfpacketSniffer) Listen() error {
 	}
 
 	var filter []bpf.Instruction
-	isEthernet := true
-	if w.GetConfig().Collectors.AfpacketLiveCapture.RawIPSupport {
-		isEthernet = false
-	}
+	isEthernet := !w.GetConfig().Collectors.AfpacketLiveCapture.RawIPSupport
 	filter, err = netutils.GetBpfDnsFilterPort(w.GetConfig().Collectors.AfpacketLiveCapture.Port, isEthernet)
 
 	if w.GetConfig().Collectors.AfpacketLiveCapture.GreSupport {

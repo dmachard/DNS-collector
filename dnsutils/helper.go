@@ -136,7 +136,7 @@ func ConvertToString(value interface{}) string {
 func QuoteStringAndWrite(s *strings.Builder, fieldString, fieldDelimiter, fieldBoundary string) {
 	// Handle the case where the field string is empty and boundaries are specified
 	if fieldString == "" && len(fieldBoundary) > 0 {
-		s.WriteString(fmt.Sprintf("%s%s%s", fieldBoundary, fieldString, fieldBoundary))
+		fmt.Fprintf(s, "%s%s%s", fieldBoundary, fieldString, fieldBoundary)
 		return
 	}
 
@@ -147,12 +147,12 @@ func QuoteStringAndWrite(s *strings.Builder, fieldString, fieldDelimiter, fieldB
 		if len(fieldBoundary) > 0 && strings.Contains(fieldEscaped, fieldBoundary) {
 			fieldEscaped = strings.ReplaceAll(fieldEscaped, fieldBoundary, "\\"+fieldBoundary)
 		}
-		s.WriteString(fmt.Sprintf("%s%s%s", fieldBoundary, fieldEscaped, fieldBoundary))
+		fmt.Fprintf(s, "%s%s%s", fieldBoundary, fieldEscaped, fieldBoundary)
 
 	case len(fieldBoundary) > 0 && strings.Contains(fieldString, fieldBoundary):
 		// Case where the field string contains the boundary character
 		fieldEscaped := strings.ReplaceAll(fieldString, fieldBoundary, "\\"+fieldBoundary)
-		s.WriteString(fmt.Sprintf("%s%s%s", fieldBoundary, fieldEscaped, fieldBoundary))
+		fmt.Fprintf(s, "%s%s%s", fieldBoundary, fieldEscaped, fieldBoundary)
 
 	default:
 		// Default case: simply write the field string as is

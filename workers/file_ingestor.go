@@ -112,7 +112,7 @@ func (w *FileIngestor) ProcessPcap(filePath string) {
 	fragIP6Chan := make(chan gopacket.Packet)
 
 	packetSource := gopacket.NewPacketSource(pcapHandler, pcapHandler.LinkType())
-	packetSource.DecodeOptions.Lazy = true
+	packetSource.Lazy = true
 	packetSource.NoCopy = true
 
 	// defrag ipv4
