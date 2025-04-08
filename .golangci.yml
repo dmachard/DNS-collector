@@ -1,28 +1,33 @@
-# https://golangci-lint.run/usage/linters/
+version: "2"
 linters:
-  disable-all: true
+  default: none
   enable:
-  # gofmt checks whether code was gofmt-ed.
-  - gofmt
-  # bet examines Go source code and reports suspicious constructs
-  - govet
-  # finds repeated strings that could be replaced by a constant
-  - goconst
-  # checks Go code for unused constants, variables, functions and types
-  - unused
-  # remove unnecessary type conversions
-  - unconvert
-  # check errors wrapping scheme
-  - errorlint
-  # set of rules from staticcheck.
-  - staticcheck
-  # checks for 'suspisious' constructs like wrong Printf calls
-  - govet
-  - goimports
-  - gosimple
-  - ineffassign
-  - stylecheck
-  - gocritic
-  
-  # list of linters to use in the future:
-  #- gosec
+    - errorlint
+    - goconst
+    - gocritic
+    - govet
+    - ineffassign
+    - staticcheck
+    - unconvert
+    - unused
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
