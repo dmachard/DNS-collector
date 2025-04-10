@@ -4,7 +4,7 @@ ARG VERSION
 
 WORKDIR /build
 COPY . .
-RUN apk add git \s && \ 
+RUN apk add git && \ 
     CGO_ENABLED=0 go build -ldflags="-s -w -X 'github.com/prometheus/common/version.Version=$VERSION'"
 
 FROM alpine:3.21.3
