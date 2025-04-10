@@ -1,8 +1,6 @@
 module github.com/dmachard/go-dnscollector
 
-go 1.23
-
-toolchain go1.23.0
+go 1.24
 
 require (
 	github.com/IBM/fluent-forward-go v0.2.2
