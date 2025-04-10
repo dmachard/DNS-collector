@@ -1,4 +1,4 @@
-BINARY_NAME := go-dnscollector
+BINARY_NAME := dnscollector
 
 GO_VERSION := $(shell go env GOVERSION | sed -n 's/go\([0-9]\+\.[0-9]\+\).*/\1/p')
 
