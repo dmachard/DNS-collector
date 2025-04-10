@@ -2,7 +2,7 @@
 services:
   dnscollector:
     container_name: dnscollector
-    image: dmachard/go-dnscollector:${DNSCOLLECTOR_VERSION:-latest}
+    image: dmachard/dnscollector:${DNSCOLLECTOR_VERSION:-latest}
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ${DNSCOLLECTOR_DATA}/:/var/dnscollector/
