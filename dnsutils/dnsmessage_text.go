@@ -476,7 +476,11 @@ func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBo
 		case directive == "qclass":
 			s.WriteString(dm.DNS.Qclass)
 		case directive == "latency":
-			s.WriteString(fmt.Sprintf("%.9f", dm.DNSTap.Latency))
+			if dm.DNS.Type == DNSQuery {
+				s.WriteByte('-')
+			} else {
+				s.WriteString(fmt.Sprintf("%.9f", dm.DNSTap.Latency))
+			}
 		case directive == "malformed":
 			if dm.DNS.MalformedPacket {
 				s.WriteString("PKTERR")
