@@ -1,13 +1,13 @@
 module github.com/dmachard/go-dnscollector
 
-go 1.23.0
+go 1.24
 
 toolchain go1.24.2
 
 require (
 	github.com/IBM/fluent-forward-go v0.2.2
 	github.com/IBM/sarama v1.43.3
-	github.com/cilium/ebpf v0.18.0
+	github.com/cilium/ebpf v0.17.1
 	github.com/creasty/defaults v1.8.0
 	github.com/dmachard/go-clientsyslog v1.0.1
 	github.com/dmachard/go-dnstap-protobuf v1.3.0
