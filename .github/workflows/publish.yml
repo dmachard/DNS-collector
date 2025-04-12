@@ -22,9 +22,13 @@ jobs:
       run: |
         docker tag dnscollector dmachard/dnscollector:${{ github.event.release.tag_name }}
         docker tag dnscollector dmachard/dnscollector:latest
+        docker tag dnscollector dmachard/go-dnscollector:${{ github.event.release.tag_name }}
+        docker tag dnscollector dmachard/go-dnscollector:latest
 
     - name: Upload to DockerHub
       run: |
         docker login -u ${{ secrets.DOCKERHUB_LOGIN }} -p ${{ secrets.DOCKERHUB_PASSWORD }}
         docker push dmachard/dnscollector:latest
         docker push dmachard/dnscollector:${{ github.event.release.tag_name }}
+        docker push dmachard/go-dnscollector:latest
+        docker push dmachard/go-dnscollector:${{ github.event.release.tag_name }}
