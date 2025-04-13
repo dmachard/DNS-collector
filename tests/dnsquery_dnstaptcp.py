@@ -9,8 +9,9 @@ my_resolver.timeout = 20
 my_resolver.lifetime = 20
 
 class ProcessProtocol(asyncio.SubprocessProtocol):
-    def __init__(self, is_ready, is_clientresponse):
+    def __init__(self, is_ready, is_clientquery, is_clientresponse):
         self.is_ready = is_ready
+        self.is_clientquery = is_clientquery
         self.is_clientresponse = is_clientresponse
         self.transport = None
         self.proc = None
@@ -24,7 +25,12 @@ class ProcessProtocol(asyncio.SubprocessProtocol):
 
         if b"receiver framestream initialized" in data:
             self.is_ready.set_result(True)
-        
+
+        if not self.is_clientquery.done():
+            if b"CLIENT_QUERY -" in data:
+                self.is_clientquery.set_result(True)
+                self.kill()
+
         if not self.is_clientresponse.done():
             if b"CLIENT_RESPONSE NOERROR" in data:
                 self.is_clientresponse.set_result(True)
@@ -45,9 +51,10 @@ class TestDnstap(unittest.TestCase):
         async def run():
             # run collector
             is_ready = asyncio.Future()
+            is_clientquery = asyncio.Future()
             is_clientresponse = asyncio.Future()
             args = ( "./dnscollector", "-config", "./tests/testsdata/config_stdout_dnstaptcp.yml",)
-            transport_collector, protocol_collector =  await self.loop.subprocess_exec(lambda: ProcessProtocol(is_ready, is_clientresponse),
+            transport_collector, protocol_collector =  await self.loop.subprocess_exec(lambda: ProcessProtocol(is_ready, is_clientquery, is_clientresponse),
                                                                                        *args, stdout=asyncio.subprocess.PIPE)
 
             # make some dns queries to force the dns server to connect to the collector
@@ -70,7 +77,15 @@ class TestDnstap(unittest.TestCase):
                 try:
                     my_resolver.resolve('www.github.com', 'a')
                 except: pass
-                
+
+            # wait client query on collector
+            try:
+                await asyncio.wait_for(is_clientquery, timeout=30.0)
+            except asyncio.TimeoutError:
+                protocol_collector.kill()
+                transport_collector.close()
+                self.fail("dnstap client query expected")
+  
             # wait client response on collector
             try:
                 await asyncio.wait_for(is_clientresponse, timeout=30.0)
