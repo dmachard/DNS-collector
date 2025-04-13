@@ -1,0 +1,50 @@
+binds:
+  - listen_address: "0.0.0.0:5553"
+    protocol: Do53
+
+backends:
+  - address: "8.8.8.8:53"
+    protocol: Do53
+    pools:
+      - default
+
+remote_logging:
+  dnstap_loggers:
+    - name: dnstap_logging
+      transport: tcp
+      address: "127.0.0.1:6000"
+      connection_count: 2
+
+query_rules:
+  - name: "log all queries with dnstap"
+    selector:
+      type: All
+    action:
+      type: DnstapLog
+      identity: dnsdist2
+      logger_name: dnstap_logging
+
+  - name: "default rule"
+    selector:
+      type: All
+    action:
+      type: Pool
+      pool_name: default
+
+response_rules:
+  - name: "log all responses with dnstap"
+    selector:
+      type: All
+    action:
+      type: DnstapLog
+      identity: dnsdist2
+      logger_name: dnstap_logging
+
+cache_hit_response_rules:
+  - name: "log all responses from cache with dnstap"
+    selector:
+      type: All
+    action:
+      type: DnstapLog
+      identity: dnsdist
+      logger_name: dnstap_logging

@@ -52,9 +52,13 @@ jobs:
           - { service: "unbound", version: "1.21.0", mode: "tcp" }
           - { service: "coredns", version: "1.11.1", mode: "tcp" }
           - { service: "coredns", version: "1.11.1", mode: "tls" }
+          - { service: "coredns", version: "1.12.1", mode: "tcp" }
+          - { service: "coredns", version: "1.12.1", mode: "tls" }
           - { service: "dnsdist", version: "19", mode: "tcp" }
           - { service: "dnsdist", version: "19", mode: "unix" }
           - { service: "dnsdist", version: "19", mode: "doq" }
+          - { service: "dnsdist2", version: "20", mode: "tcp" }
+          - { service: "dnsdist2", version: "20", mode: "doq" }
 
     steps:
       - uses: actions/checkout@v4
@@ -103,6 +107,9 @@ jobs:
               ;;
             "dnsdist")
               sudo docker run -d --network="host" --name=dnsdist --volume=$PWD/tests/testsdata/powerdns/dnsdist_${{ matrix.config.mode }}.conf:/etc/dnsdist/conf.d/dnsdist.conf:z --volume=$PWD/tests/testsdata/dnscollector.key:/etc/dnsdist/conf.d/server.key:z --volume=$PWD/tests/testsdata/dnscollector.crt:/etc/dnsdist/conf.d/server.crt:z -v /tmp/:/tmp/ powerdns/dnsdist-${{ matrix.config.version }}
+              ;;
+            "dnsdist2")
+              sudo docker run -d --network="host" --name=dnsdist --volume=$PWD/tests/testsdata/powerdns/dnsdist2_${{ matrix.config.mode }}.yml:/etc/dnsdist/dnsdist.yml:z --volume=$PWD/tests/testsdata/dnscollector.key:/etc/dnsdist/server.key:z --volume=$PWD/tests/testsdata/dnscollector.crt:/etc/dnsdist/server.crt:z -v /tmp/:/tmp/ powerdns/dnsdist-${{ matrix.config.version }} -C /etc/dnsdist/dnsdist.yml
               ;;
           esac
           until (dig -p 5553 www.github.com @127.0.0.1 | grep NOERROR); do sleep 5.0; done
