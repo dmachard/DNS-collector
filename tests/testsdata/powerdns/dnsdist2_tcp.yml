@@ -13,7 +13,7 @@ remote_logging:
     - name: dnstap_logging
       transport: tcp
       address: "127.0.0.1:6000"
-      connection_count: 2
+      connection_count: 1
 
 query_rules:
   - name: "log all queries with dnstap"
