@@ -20,7 +20,7 @@ query_rules:
       type: All
     action:
       type: RemoteLog
-      identity: dnsdist2
+      identity: dnsdist
       logger_name: protobuf_logging
 
   - name: "default rule"
