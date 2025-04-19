@@ -78,21 +78,21 @@ class TestDnstap(unittest.TestCase):
                     my_resolver.resolve('www.github.com', 'a')
                 except: pass
 
-            # wait client query on collector
             try:
-                await asyncio.wait_for(is_clientquery, timeout=30.0)
+                await asyncio.wait_for(
+                    asyncio.gather(is_clientquery, is_clientresponse),
+                    timeout=30.0
+                )
             except asyncio.TimeoutError:
                 protocol_collector.kill()
                 transport_collector.close()
-                self.fail("dnstap client query expected")
-  
-            # wait client response on collector
-            try:
-                await asyncio.wait_for(is_clientresponse, timeout=30.0)
-            except asyncio.TimeoutError:
-                protocol_collector.kill()
-                transport_collector.close()
-                self.fail("dnstap client response expected")
+
+                errors = []
+                if not is_clientquery.done():
+                    errors.append("dnstap client query expected")
+                if not is_clientresponse.done():
+                    errors.append("dnstap client response expected")
+                self.fail(" / ".join(errors))
 
             # Shutdown all
             protocol_collector.kill()

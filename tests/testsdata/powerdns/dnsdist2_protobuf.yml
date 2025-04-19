@@ -1,0 +1,49 @@
+binds:
+  - listen_address: "0.0.0.0:5553"
+    protocol: Do53
+
+backends:
+  - address: "8.8.8.8:53"
+    protocol: Do53
+    pools:
+      - default
+
+remote_logging:
+  protobuf_loggers:
+    - name: protobuf_logging
+      address: "127.0.0.1:6000"
+      connection_count: 1
+
+query_rules:
+  - name: "log all queries"
+    selector:
+      type: All
+    action:
+      type: RemoteLog
+      identity: dnsdist2
+      logger_name: protobuf_logging
+
+  - name: "default rule"
+    selector:
+      type: All
+    action:
+      type: Pool
+      pool_name: default
+
+response_rules:
+  - name: "log all responses"
+    selector:
+      type: All
+    action:
+      type: RemoteLog
+      identity: dnsdist
+      logger_name: protobuf_logging
+
+cache_hit_response_rules:
+  - name: "log all responses from cache"
+    selector:
+      type: All
+    action:
+      type: RemoteLog
+      identity: dnsdist
+      logger_name: protobuf_logging

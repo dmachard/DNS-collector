@@ -49,6 +49,7 @@ jobs:
         component: 
           - { name: 'dnsdist', version: '18' }
           - { name: 'dnsdist', version: '19' }
+          - { name: 'dnsdist2', version: '20' }
           - { name: 'recursor', version: '51' }
           - { name: 'recursor', version: '52' }
 
@@ -72,6 +73,9 @@ jobs:
           case ${{ matrix.component.name }} in
             "dnsdist")
               sudo docker run -d --network="host" --name=dnsdist --volume=$PWD/tests/testsdata/powerdns/dnsdist_protobuf.conf:/etc/dnsdist/conf.d/dnsdist.conf:z -v /tmp/:/tmp/ powerdns/dnsdist-${{ matrix.component.version }}
+              ;;
+            "dnsdist2")
+              sudo docker run -d --network="host" --name=dnsdist --volume=$PWD/tests/testsdata/powerdns/dnsdist2_protobuf.yml:/etc/dnsdist/dnsdist.yml:z powerdns/dnsdist-${{ matrix.component.version }}  -C /etc/dnsdist/dnsdist.yml
               ;;
             "recursor")
               sudo docker run -d --network="host" --name=recursor --volume=$PWD/tests/testsdata/powerdns/pdns_recursor.yml:/etc/powerdns/recursor.yml:z powerdns/pdns-recursor-${{ matrix.component.version }}
