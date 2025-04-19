@@ -11,7 +11,7 @@ backends:
 remote_logging:
   protobuf_loggers:
     - name: protobuf_logging
-      address: "127.0.0.1:6000"
+      address: "127.0.0.1:6001"
       connection_count: 1
 
 query_rules:
