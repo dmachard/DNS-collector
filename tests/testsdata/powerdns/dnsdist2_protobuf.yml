@@ -20,7 +20,7 @@ query_rules:
       type: All
     action:
       type: RemoteLog
-      srever_id: dnsdist
+      server_id: dnsdist
       logger_name: pb_logging
 
   - name: "default rule"
@@ -36,7 +36,7 @@ response_rules:
       type: All
     action:
       type: RemoteLog
-      srever_id: dnsdist
+      server_id: dnsdist
       logger_name: pb_logging
 
 cache_hit_response_rules:
@@ -45,5 +45,5 @@ cache_hit_response_rules:
       type: All
     action:
       type: RemoteLog
-      srever_id: dnsdist
+      server_id: dnsdist
       logger_name: pb_logging
