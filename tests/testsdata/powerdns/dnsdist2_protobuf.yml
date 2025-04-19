@@ -10,7 +10,7 @@ backends:
 
 remote_logging:
   protobuf_loggers:
-    - name: protobuf_logging
+    - name: pb_logging
       address: "127.0.0.1:6001"
       connection_count: 1
 
@@ -20,8 +20,8 @@ query_rules:
       type: All
     action:
       type: RemoteLog
-      identity: dnsdist
-      logger_name: protobuf_logging
+      srever_id: dnsdist
+      logger_name: pb_logging
 
   - name: "default rule"
     selector:
@@ -36,8 +36,8 @@ response_rules:
       type: All
     action:
       type: RemoteLog
-      identity: dnsdist
-      logger_name: protobuf_logging
+      srever_id: dnsdist
+      logger_name: pb_logging
 
 cache_hit_response_rules:
   - name: "log all responses from cache"
@@ -45,5 +45,5 @@ cache_hit_response_rules:
       type: All
     action:
       type: RemoteLog
-      identity: dnsdist
-      logger_name: protobuf_logging
+      srever_id: dnsdist
+      logger_name: pb_logging
