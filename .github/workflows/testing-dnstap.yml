@@ -126,7 +126,9 @@ jobs:
           until (dig -p 5553 www.github.com @127.0.0.1 | grep NOERROR); do sleep 5.0; done
 
       - name: Show Docker logs
-        run: sudo docker logs dnsserver
+        run: 
+          sudo docker logs dnsserver
+          sudo docker exec dnsserver id
         
       - name: Run Tests for ${{ matrix.config.service }} - ${{ matrix.config.mode }}
         run: |
