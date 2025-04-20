@@ -59,8 +59,8 @@ class TestDnstap(unittest.TestCase):
             # in some products (dnsdist), connection is after  incoming dns traffic
             for i in range(20):
                 try:
-                    res = my_resolver.resolve('www.github.com', 'a')
-                    print(res)
+                    records = my_resolver.resolve('www.github.com', 'a')
+                    print("answers: ", len(records))
                 except Exception as e:
                     print("Resolv error: ", e)
 
