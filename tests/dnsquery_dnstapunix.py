@@ -44,6 +44,7 @@ class ProcessProtocol(asyncio.SubprocessProtocol):
 class TestDnstap(unittest.TestCase):
     def setUp(self):
         self.loop = asyncio.get_event_loop()
+        asyncio.set_event_loop(self.loop)
 
     def test_stdout_recv(self):
         """test to receive dnstap response in stdout"""
@@ -59,14 +60,10 @@ class TestDnstap(unittest.TestCase):
             print("Restarting DNS server container...")
             subprocess.run(["sudo", "docker", "restart", "dnsserver"], check=True)
 
-            print("Listing /tmp/dnstap-socket/ contents...")
-            subprocess.run(["ls", "-l", "/tmp/dnstap-socket/"], check=False)
-
             # Trigger first batch of DNS queries
             for i in range(20):
                 try:
-                    records = my_resolver.resolve('www.github.com', 'a')
-                    print("answers: ", len(records))
+                    my_resolver.resolve('www.github.com', 'a')
                 except Exception as e:
                     print("Resolv error: ", e)
 
