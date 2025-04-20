@@ -147,6 +147,17 @@ A [build-in](./docs/dashboards/grafana_exporter.json) dashboard is available for
 
 ![dashboard](docs/_images/dashboard_global.png)
 
+### Tested Configurations
+
+The following configurations are automatically tested in CI to verify `DNS-collector` compatibility with various DNS servers using **dnstap**.
+
+| DNS Server     | Versions Tested     | Modes Tested        |
+|----------------|---------------------|---------------------|
+| **Unbound**     | 1.22.0, 1.21.0     | TCP                 |
+| **CoreDNS**     | 1.11.1, 1.12.1     | TCP, TLS            |
+| **DNSdist**     | 1.9, 2.0           | TCP, Unix           |
+| **Knot Resolver** | 6.0.11           | Unix                |
+
 ## Contributing
 
 See the [development guide](./docs/development.md) for more information on how to build it yourself.
