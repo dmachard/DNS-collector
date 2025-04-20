@@ -2,6 +2,7 @@ import unittest
 import asyncio
 import dns.resolver
 import os
+import subprocess
 
 COLLECTOR_USER = os.getenv('COLLECTOR_USER')
 if COLLECTOR_USER is None:
@@ -55,8 +56,13 @@ class TestDnstap(unittest.TestCase):
             transport_collector, protocol_collector =  await self.loop.subprocess_exec(lambda: ProcessProtocol(is_ready, is_clientresponse),
                                                                                        *args, stdout=asyncio.subprocess.PIPE)
 
-            # make some dns queries to force the dns server to connect to the collector
-            # in some products (dnsdist), connection is after  incoming dns traffic
+            print("Restarting DNS server container...")
+            subprocess.run(["sudo", "docker", "restart", "dnsserver"], check=True)
+
+            print("Listing /tmp/dnstap-socket/ contents...")
+            subprocess.run(["ls", "-l", "/tmp/dnstap-socket/"], check=False)
+
+            # Trigger first batch of DNS queries
             for i in range(20):
                 try:
                     records = my_resolver.resolve('www.github.com', 'a')
@@ -64,7 +70,7 @@ class TestDnstap(unittest.TestCase):
                 except Exception as e:
                     print("Resolv error: ", e)
 
-            # waiting for connection between collector and dns server is ok
+            # Wait for the collector to be ready
             try:
                 await asyncio.wait_for(is_ready, timeout=30.0)
             except asyncio.TimeoutError:
@@ -72,13 +78,13 @@ class TestDnstap(unittest.TestCase):
                 transport_collector.close()
                 self.fail("collector framestream timeout")
 
-            # make some dns queries again
+            # Trigger second batch of DNS queries
             for i in range(20):
                 try:
                     my_resolver.resolve('www.github.com', 'a')
                 except: pass
                 
-            # wait client response on collector
+            # Wait for dnstap client response
             try:
                 await asyncio.wait_for(is_clientresponse, timeout=30.0)
             except asyncio.TimeoutError:
