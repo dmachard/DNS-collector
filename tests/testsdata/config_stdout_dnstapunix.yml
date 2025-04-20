@@ -5,7 +5,7 @@ global:
 pipelines:
   - name: tap
     dnstap:
-      sock-path: /tmp/dnstap.sock
+      sock-path: /tmp/dnstap-socket/dnstap.sock
     routing-policy:
       forward: [ console ]
       dropped: []
