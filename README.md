@@ -153,9 +153,9 @@ The following configurations are automatically tested in CI to verify `DNS-colle
 
 | DNS Server     | Versions Tested     | Modes Tested        |
 |----------------|---------------------|---------------------|
-| **Unbound**     | 1.22.0, 1.21.0     | TCP                 |
+| **Unbound**     | 1.22.x, 1.21.x     | TCP                 |
 | **CoreDNS**     | 1.11.1, 1.12.1     | TCP, TLS            |
-| **DNSdist**     | 1.9, 2.0           | TCP, Unix           |
+| **DNSdist**     | 1.7.x, 1.8.x, 1.9.x, 2.0.x           | TCP, Unix           |
 | **Knot Resolver** | 6.0.11           | Unix                |
 
 ## Contributing
