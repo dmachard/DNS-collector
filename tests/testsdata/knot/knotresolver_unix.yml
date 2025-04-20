@@ -1,0 +1,17 @@
+logging:
+  dnstap:
+    unix-socket: "/tmp/dnstap.sock"
+    log-queries: true
+    log-responses: true
+
+network:
+  listen:
+    - interface: 
+      - 0.0.0.0
+      port: 5553
+
+forward:
+  - subtree: "."
+    servers:
+      - address:
+        - 8.8.8.8
