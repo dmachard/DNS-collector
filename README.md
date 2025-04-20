@@ -147,7 +147,7 @@ A [build-in](./docs/dashboards/grafana_exporter.json) dashboard is available for
 
 ![dashboard](docs/_images/dashboard_global.png)
 
-### Tested Configurations
+## Tested Configurations
 
 The following configurations are automatically tested in CI to verify `DNS-collector` compatibility with various DNS servers using **dnstap**.
 
