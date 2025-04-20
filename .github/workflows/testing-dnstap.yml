@@ -128,6 +128,10 @@ jobs:
       - name: Show Docker logs
         run: |
           sudo docker logs dnsserver
+
+      - name: Show Docker ID
+        if: ${{ matrix.config.service == 'knotresolver' }}
+        run: |
           sudo docker exec dnsserver id
         
       - name: Run Tests for ${{ matrix.config.service }} - ${{ matrix.config.mode }}
