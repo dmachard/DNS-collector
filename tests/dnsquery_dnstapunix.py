@@ -60,7 +60,8 @@ class TestDnstap(unittest.TestCase):
             for i in range(20):
                 try:
                     my_resolver.resolve('www.github.com', 'a')
-                except: pass
+                except Exception as e:
+                    print("Resolv error: ", e)
 
             # waiting for connection between collector and dns server is ok
             try:
