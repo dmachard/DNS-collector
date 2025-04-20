@@ -92,6 +92,11 @@ jobs:
           mv dnscollector.key ./tests/testsdata/
           mv dnscollector.crt ./tests/testsdata/
 
+
+      - name: Set environment variable for knotresolver
+        if: ${{ matrix.config.service == 'knotresolver' }}
+        run: echo "COLLECTOR_USER=root" >> $GITHUB_ENV
+
       - name: Add pdns user for unix socket test
         run: |
           sudo addgroup --system --gid 953 pdns
