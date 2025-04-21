@@ -6,7 +6,7 @@ toolchain go1.24.2
 
 require (
 	github.com/IBM/fluent-forward-go v0.2.2
-	github.com/IBM/sarama v1.43.3
+	github.com/IBM/sarama v1.45.1
 	github.com/cilium/ebpf v0.17.1
 	github.com/creasty/defaults v1.8.0
 	github.com/dmachard/go-clientsyslog v1.0.1
@@ -129,7 +129,7 @@ require (
 	github.com/opentracing-contrib/go-stdlib v1.0.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b // indirect
 	github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c // indirect
-	github.com/pierrec/lz4/v4 v4.1.21 // indirect
+	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/pires/go-proxyproto v0.7.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/exporter-toolkit v0.13.2 // indirect
