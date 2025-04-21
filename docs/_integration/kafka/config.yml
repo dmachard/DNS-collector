@@ -8,7 +8,6 @@ pipelines:
     dnstap:
       listen-ip: 0.0.0.0
       listen-port: 6000
-      chan-buffer-size: 4096
     routing-policy:
       forward: [ kafka ]
       dropped: []
@@ -27,8 +26,7 @@ pipelines:
       sasl-username: false
       sasl-password: false
       mode: flat-json
-      buffer-size: 100
+      batch-size: 100
       topic: "dnscollector"
       partition: null
-      chan-buffer-size: 4096
       compression: none
