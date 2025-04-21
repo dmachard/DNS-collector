@@ -114,6 +114,8 @@ github.com/dmachard/go-dnstap-protobuf v1.3.0 h1:Tvxnb22Y9gibwlIzBQ0qWBQ6BNynVzH
 github.com/dmachard/go-dnstap-protobuf v1.3.0/go.mod h1:AlVew99KX/IX+NG1O4vJf/Wl4+K+TdakOujRuBjc+1E=
 github.com/dmachard/go-framestream v1.0.1 h1:/v93w0No5g+CTdwhlbiLbopvnKUdc9kDscKy+xPT4wU=
 github.com/dmachard/go-framestream v1.0.1/go.mod h1:p0gyuQSA4IfiyyhSy2grFc1oR8Tk5ewNvTMcQHzcnGs=
+github.com/dmachard/go-framestream v1.2.0 h1:EbGcW6FbTAOIQbLR9WuwPaPFEnod80I4gIRTC7Xv3PA=
+github.com/dmachard/go-framestream v1.2.0/go.mod h1:tbKZ8qdeW+q5J1PjDPRaIoRdgWM/6th0ysE2J6rrtsU=
 github.com/dmachard/go-logger v1.1.1 h1:H4mQAAyhZ6u1E8kFezz7o6PsDqhsdFbO5pZGnoNuRYI=
 github.com/dmachard/go-logger v1.1.1/go.mod h1:vg6cMQBmx+SgH45XsqEyqScXp9eJhS6yuvvJZOgBbvU=
 github.com/dmachard/go-netutils v1.5.0 h1:JVDz3g0JhTGMf7iTrMQh0CcMI/sJK88JSWT2KnXBAdw=
