@@ -59,8 +59,8 @@ Options:
 * `text-format` (string)
   > output text format, please refer to the default text format to see all available [text directives](../dnsconversions.md#text-format-inline), use this parameter if you want a specific format
 
-* `buffer-size` (integer)
-  > Specifies the size of the bulk for DNS messages before they are sent to Kafka.
+* `batch-size` (integer)
+  > Specifies the size of the batch for DNS messages before they are sent to Kafka.
 
 * `topic` (integer)
   > Specifies the Kafka topic to which messages will be forwarded.
@@ -69,7 +69,7 @@ Options:
   > Specifies the Kafka partition to which messages will be sent.
   > If partition parameter is null, then use `round-robin` partitioner for kafka (default behavior)
 
-* `chan-buffer-size` (int)
+* `chan-buffer-size` (int) - advanced setting, will be remove in future version
   > Specifies the maximum number of packets that can be buffered before discard additional packets.
   > Set to zero to use the default global value.
 
@@ -94,7 +94,7 @@ kafkaproducer:
   sasl-password: false
   mode: flat-json
   text-format: ""
-  buffer-size: 100
+  batch-size: 100
   topic: "dnscollector"
   partition: null
   chan-buffer-size: 0

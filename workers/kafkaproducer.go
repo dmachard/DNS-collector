@@ -389,7 +389,7 @@ func (w *KafkaProducer) StartLogging() {
 			bufferDm = append(bufferDm, dm)
 
 			// buffer is full ?
-			if len(bufferDm) >= w.GetConfig().Loggers.KafkaProducer.BufferSize {
+			if len(bufferDm) >= w.GetConfig().Loggers.KafkaProducer.BatchSize {
 				w.FlushBuffer(&bufferDm)
 			}
 

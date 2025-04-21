@@ -49,7 +49,7 @@ func Test_KafkaProducer(t *testing.T) {
 
 			// init logger
 			cfg := pkgconfig.GetDefaultConfig()
-			cfg.Loggers.KafkaProducer.BufferSize = 0
+			cfg.Loggers.KafkaProducer.BatchSize = 0
 			cfg.Loggers.KafkaProducer.RemotePort = 9092
 			cfg.Loggers.KafkaProducer.Topic = tc.topic
 			cfg.Loggers.KafkaProducer.Compression = tc.compress

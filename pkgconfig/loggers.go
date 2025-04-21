@@ -301,7 +301,7 @@ type ConfigLoggers struct {
 		SaslMechanism     string `yaml:"sasl-mechanism" default:"PLAIN"`
 		Mode              string `yaml:"mode" default:"flat-json"`
 		TextFormat        string `yaml:"text-format" default:""`
-		BufferSize        int    `yaml:"buffer-size" default:"100"`
+		BatchSize         int    `yaml:"batch-size" default:"100"`
 		FlushInterval     int    `yaml:"flush-interval" default:"10"`
 		ConnectTimeout    int    `yaml:"connect-timeout" default:"5"`
 		Topic             string `yaml:"topic" default:"dnscollector"`
