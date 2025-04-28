@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.24.2
 
 require (
-	github.com/IBM/fluent-forward-go v0.2.2
+	github.com/IBM/fluent-forward-go v0.3.0
 	github.com/IBM/sarama v1.45.1
 	github.com/cilium/ebpf v0.17.1
 	github.com/creasty/defaults v1.8.0
