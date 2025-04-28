@@ -112,8 +112,6 @@ github.com/dmachard/go-clientsyslog v1.0.1 h1:Ph9YBUiAWeyH7048qGyJrYOBrpAge9o3t8
 github.com/dmachard/go-clientsyslog v1.0.1/go.mod h1:lDVvlzEcEnOPq8DavCoWMdQrZQRE8OMMiYm02MGkA70=
 github.com/dmachard/go-dnstap-protobuf v1.3.0 h1:Tvxnb22Y9gibwlIzBQ0qWBQ6BNynVzHBYAPebrvAECM=
 github.com/dmachard/go-dnstap-protobuf v1.3.0/go.mod h1:AlVew99KX/IX+NG1O4vJf/Wl4+K+TdakOujRuBjc+1E=
-github.com/dmachard/go-framestream v1.2.0 h1:EbGcW6FbTAOIQbLR9WuwPaPFEnod80I4gIRTC7Xv3PA=
-github.com/dmachard/go-framestream v1.2.0/go.mod h1:tbKZ8qdeW+q5J1PjDPRaIoRdgWM/6th0ysE2J6rrtsU=
 github.com/dmachard/go-framestream v1.3.0 h1:KUxMOTOuf1LZgZU6Zm9sVOJcEW2p+72bjOR5S++7JeU=
 github.com/dmachard/go-framestream v1.3.0/go.mod h1:tbKZ8qdeW+q5J1PjDPRaIoRdgWM/6th0ysE2J6rrtsU=
 github.com/dmachard/go-logger v1.1.1 h1:H4mQAAyhZ6u1E8kFezz7o6PsDqhsdFbO5pZGnoNuRYI=
@@ -159,8 +157,8 @@ github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8
 github.com/fortytw2/leaktest v1.3.0/go.mod h1:jDsjWgpAGjm2CA7WthBh/CdZYEPF31XHquHwclZch5g=
 github.com/frankban/quicktest v1.14.3 h1:FJKSZTDHjyhriyC81FLQ0LY93eSai0ZyR/ZIkd3ZUKE=
 github.com/frankban/quicktest v1.14.3/go.mod h1:mgiwOwqx65TmIk1wJ6Q7wvnVMocbUorkibMOrVTHZps=
-github.com/fsnotify/fsnotify v1.8.0 h1:dAwr6QBTBZIkG8roQaJjGof0pp0EeF+tNV7YBP3F/8M=
-github.com/fsnotify/fsnotify v1.8.0/go.mod h1:8jBTzvmWwFyi3Pb8djgCCO5IBqzKJ/Jwo8TRcHyHii0=
+github.com/fsnotify/fsnotify v1.9.0 h1:2Ml+OJNzbYCTzsxtv8vKSFD9PbJjmhYF14k/jKC7S9k=
+github.com/fsnotify/fsnotify v1.9.0/go.mod h1:8jBTzvmWwFyi3Pb8djgCCO5IBqzKJ/Jwo8TRcHyHii0=
 github.com/getkin/kin-openapi v0.2.0/go.mod h1:V1z9xl9oF5Wt7v32ne4FmiF1alpS4dM6mNzoywPOXlk=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/go-chi/chi v4.0.2+incompatible/go.mod h1:eB3wogJHnLi3x/kFX2A+IbTBlXxmMeXJVKy9tTv1XzQ=
