@@ -7,7 +7,7 @@ toolchain go1.24.2
 require (
 	github.com/IBM/fluent-forward-go v0.3.0
 	github.com/IBM/sarama v1.45.1
-	github.com/cilium/ebpf v0.17.1
+	github.com/cilium/ebpf v0.18.0
 	github.com/creasty/defaults v1.8.0
 	github.com/dmachard/go-clientsyslog v1.0.1
 	github.com/dmachard/go-dnstap-protobuf v1.3.0
