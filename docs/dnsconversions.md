@@ -181,6 +181,7 @@ Here's a flat JSON output formatted using `jq`:
   "dnstap.policy-match": "-",
   "dnstap.policy-value": "-",
   "dnstap.query-zone": "-",
+  "dnstap.http-protocol": "-",
   "edns.dnssec-ok": 0,
   "edns.options.0.code": 10,
   "edns.options.0.data": "-",
@@ -279,6 +280,7 @@ Here's a flat JSON output formatted using `jq`:
     "policy-match": "-",
     "policy-value": "-",
     "query-zone": "-",
+    "http-protocol": "-"
   }
 }
 ```

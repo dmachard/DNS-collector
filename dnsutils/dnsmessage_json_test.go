@@ -71,7 +71,8 @@ func TestDnsMessage_Json_Reference(t *testing.T) {
 				  "policy-value": "-",
 				  "policy-rule": "-",
 				  "peer-name": "-",
-				  "query-zone": "-"
+				  "query-zone": "-",
+				  "http-protocol": "-"
 				}
 			}
 			`

@@ -242,6 +242,7 @@ func (dm *DNSMessage) Init() {
 		PolicyValue:      "-",
 		PeerName:         "-",
 		QueryZone:        "-",
+		HttpProtocol:     "-",
 	}
 
 	dm.DNS = DNS{
