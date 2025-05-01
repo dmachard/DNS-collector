@@ -28,7 +28,6 @@
 
 > The following DNS servers are automatically tested in CI to verify `DNS-collector` compatibility 
 > with various DNS servers using **[dnstap](https://dnstap.info/)**.
-
 > | DNS Server     | Versions Tested     | Modes Tested        |
 > |----------------|---------------------|---------------------|
 > | ✅ **Unbound**     | 1.22.x, 1.21.x     | TCP                 |
