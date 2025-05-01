@@ -98,9 +98,9 @@ func (w *KafkaProducer) ConnectToKafka(ctx context.Context, readyTimer *time.Tim
 		}
 
 		if partition == nil {
-			w.LogInfo("connecting to one of kafka=%s on port=%s partition=all topic=%s", w.GetConfig().Loggers.KafkaProducer.RemoteAddress, w.GetConfig().Loggers.KafkaProducer.RemotePort, topic)
+			w.LogInfo("connecting to one of kafka=%s on port=%d partition=all topic=%s", w.GetConfig().Loggers.KafkaProducer.RemoteAddress, w.GetConfig().Loggers.KafkaProducer.RemotePort, topic)
 		} else {
-			w.LogInfo("connecting to one of kafka=%s on port=%s partition=%d topic=%s", w.GetConfig().Loggers.KafkaProducer.RemoteAddress, w.GetConfig().Loggers.KafkaProducer.RemotePort, *partition, topic)
+			w.LogInfo("connecting to one of kafka=%s on port=%d partition=%d topic=%s", w.GetConfig().Loggers.KafkaProducer.RemoteAddress, w.GetConfig().Loggers.KafkaProducer.RemotePort, *partition, topic)
 		}
 
 		dialer := &kafka.Dialer{
@@ -158,9 +158,10 @@ func (w *KafkaProducer) ConnectToKafka(ctx context.Context, readyTimer *time.Tim
 			address := ""
 			// dial all the given brokers
 			for _, curAddress := range dialAddresses {
+				w.LogInfo("[bootstrap broker] lookup partitions on %s", curAddress)
 				partitions, err = dialer.LookupPartitions(ctx, "tcp", curAddress, topic)
 				if err != nil {
-					w.LogError("failed to lookup partitions on bootstrap broker %s :%s", curAddress, err)
+					w.LogError("[bootstrap broker] failed to lookup partitions %s :%s", curAddress, err)
 					continue
 				}
 				// select only the reachable broker
@@ -168,21 +169,23 @@ func (w *KafkaProducer) ConnectToKafka(ctx context.Context, readyTimer *time.Tim
 				break
 			}
 			if address == "" {
-				w.LogInfo("retry to connect in %d seconds", w.GetConfig().Loggers.KafkaProducer.RetryInterval)
+				w.LogInfo("retry to re-connect in %d seconds", w.GetConfig().Loggers.KafkaProducer.RetryInterval)
 				time.Sleep(time.Duration(w.GetConfig().Loggers.KafkaProducer.RetryInterval) * time.Second)
 				continue
 			}
-			w.LogInfo("successfully connected to %s", address)
+			w.LogInfo("[bootstrap broker] %d partitions detected from %s", len(partitions), address)
 
 			for _, p := range partitions {
+				w.LogInfo("[partition=%d] connecting to tcp://%s and topic=%s", p.ID, address, p.Topic)
 				conn, err = dialer.DialLeader(ctx, "tcp", address, p.Topic, p.ID)
 				if err != nil {
-					w.LogError("failed to dial leader for partition %d: %s", p.ID, err)
-					w.LogInfo("retry to connect in %d seconds", w.GetConfig().Loggers.KafkaProducer.RetryInterval)
+					w.LogError("[partition=%d] failed to dial leader: %s", p.ID, err)
+					w.LogInfo("retry to re-connect in %d seconds", w.GetConfig().Loggers.KafkaProducer.RetryInterval)
 					time.Sleep(time.Duration(w.GetConfig().Loggers.KafkaProducer.RetryInterval) * time.Second)
 					continue
 				}
 				w.kafkaConns[p.ID] = conn
+				w.LogInfo("[partition=%d] connected with success to tcp://%s and topic=%s", p.ID, address, p.Topic)
 			}
 		} else {
 			// DialLeader directly for a specific partition
@@ -246,7 +249,7 @@ func (w *KafkaProducer) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 	var err error
 	if partition == nil {
 		if w.lastPartitionIndex == nil {
-			w.lastPartitionIndex = new(int) // Initialiser l'index la première fois
+			w.lastPartitionIndex = new(int)
 		}
 		numPartitions := len(w.kafkaConns)
 		conn := w.kafkaConns[*w.lastPartitionIndex]
@@ -256,8 +259,9 @@ func (w *KafkaProducer) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 			_, err = conn.WriteCompressedMessages(w.compressCodec, msgs...)
 		}
 		if err != nil {
-			w.LogError("unable to write message", err.Error())
+			w.LogError("[partition=%d] unable to write message: %v", *w.lastPartitionIndex, err.Error())
 			w.kafkaConnected = false
+			w.LogWarning("retry to re-connect")
 			<-w.kafkaReconnect
 		}
 
@@ -271,7 +275,7 @@ func (w *KafkaProducer) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 			_, err = conn.WriteCompressedMessages(w.compressCodec, msgs...)
 		}
 		if err != nil {
-			w.LogError("unable to write message", err.Error())
+			w.LogError("[partition=%d] unable to write message: %v", *partition, err.Error())
 			w.kafkaConnected = false
 			<-w.kafkaReconnect
 		}
@@ -368,7 +372,7 @@ func (w *KafkaProducer) StartLogging() {
 			cancelKafka()
 
 		case <-w.kafkaReady:
-			w.LogInfo("connected with success")
+			w.LogInfo("producer connected with success to your kafka instance(s)")
 			readyTimer.Stop()
 			w.kafkaConnected = true
 
