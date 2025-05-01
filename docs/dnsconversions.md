@@ -31,6 +31,7 @@ The text format can be customized using the following directives.
 - `policy-match`: dnstap policy match
 - `policy-value`: dnstap policy value
 - `query-zone`: dnstap query zone
+- `http-protocol`: dnstap HTTP protocol (HTTP2 or HTTP3), can be useful with DoH
 - `opcode`: dns opcode (integer)
 - `rcode`: dns return code
 - `queryip`: dns query ip

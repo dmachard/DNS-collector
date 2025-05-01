@@ -479,6 +479,12 @@ func (w *DNSTapProcessor) StartCollect() {
 				dm.DNSTap.PolicyValue = policyValue
 			}
 
+			// get http protocol
+			httpProtocol := dt.GetMessage().GetHttpProtocol().String()
+			if len(httpProtocol) > 0 {
+				dm.DNSTap.HttpProtocol = httpProtocol
+			}
+
 			// decode query zone if provided
 			queryZone := dt.GetMessage().GetQueryZone()
 			if len(queryZone) > 0 {

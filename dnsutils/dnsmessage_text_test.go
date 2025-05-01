@@ -304,6 +304,11 @@ func TestDnsMessage_TextFormat_DefaultDirectives(t *testing.T) {
 			},
 			expected: "127.0.0.1;127.0.0.2",
 		},
+		{
+			format:   "http-protocol",
+			dm:       DNSMessage{DNSTap: DNSTap{HttpProtocol: "HTTP3"}},
+			expected: "HTTP3",
+		},
 	}
 
 	for _, tc := range testcases {

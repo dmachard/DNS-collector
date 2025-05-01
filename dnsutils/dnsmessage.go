@@ -100,6 +100,7 @@ type DNSTap struct {
 	PolicyValue      string  `json:"policy-value"`
 	PeerName         string  `json:"peer-name"`
 	QueryZone        string  `json:"query-zone"`
+	HttpProtocol     string  `json:"http-protocol"`
 }
 
 type CollectorPowerDNS struct {

@@ -449,6 +449,8 @@ func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBo
 			s.WriteString(dm.DNSTap.PolicyValue)
 		case directive == "query-zone":
 			s.WriteString(dm.DNSTap.QueryZone)
+		case directive == "http-protocol":
+			s.WriteString(dm.DNSTap.HttpProtocol)
 		case directive == "operation":
 			s.WriteString(dm.DNSTap.Operation)
 		case directive == "rcode":
