@@ -12,6 +12,12 @@ import (
 	sarama "github.com/IBM/sarama"
 )
 
+const (
+	testAddress = "127.0.0.1"
+	testPort    = "9092"
+	testTopic   = "dnscollector"
+)
+
 func createMockBroker(t *testing.T, brokerID int, address, topic string) (net.Listener, *sarama.MockBroker) {
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
@@ -71,15 +77,11 @@ func Test_KafkaProducer_Send(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			address := "127.0.0.1"
-			port := "9092"
-			topic := "dnscollector"
-
-			listener, broker := createMockBroker(t, 1, address+":"+port, topic)
+			listener, broker := createMockBroker(t, 1, testAddress+":"+testPort, testTopic)
 			defer listener.Close()
 			defer broker.Close()
 
-			cfg := setupKafkaProducerConfig(address, topic, tc.compress)
+			cfg := setupKafkaProducerConfig(testAddress, testTopic, tc.compress)
 			producer := NewKafkaProducer(cfg, logger.New(true), "test")
 			go producer.StartCollect()
 			defer producer.StopLogger()
@@ -97,16 +99,14 @@ func Test_KafkaProducer_Send(t *testing.T) {
 
 func Test_KafkaProducer_MultipleAddresses(t *testing.T) {
 	addresses := []string{"localhost", "127.0.0.1"}
-	port := "9092"
-	topic := "dnscollector"
 
 	// Start a mock broker on 127.0.0.1:9092
-	listener, broker := createMockBroker(t, 1, addresses[0]+":"+port, topic)
+	listener, broker := createMockBroker(t, 1, addresses[0]+":"+testPort, testTopic)
 	defer listener.Close()
 	defer broker.Close()
 
 	// Set RemoteAddress to multiple addresses
-	cfg := setupKafkaProducerConfig(addresses[0]+","+addresses[1], topic, "none")
+	cfg := setupKafkaProducerConfig(addresses[0]+","+addresses[1], testTopic, "none")
 	producer := NewKafkaProducer(cfg, logger.New(true), "test")
 	go producer.StartCollect()
 	defer producer.StopLogger()
@@ -123,15 +123,11 @@ func Test_KafkaProducer_MultipleAddresses(t *testing.T) {
 }
 
 func Test_KafkaProducer_Reconnect(t *testing.T) {
-	address := "127.0.0.1"
-	port := "9092"
-	topic := "dnscollector"
-
 	// Initial broker setup
-	listener1, broker1 := createMockBroker(t, 1, address+":"+port, topic)
+	listener1, broker1 := createMockBroker(t, 1, testAddress+":"+testPort, testTopic)
 	time.Sleep(1 * time.Second)
 
-	cfg := setupKafkaProducerConfig(address, topic, "none")
+	cfg := setupKafkaProducerConfig(testAddress, testTopic, "none")
 	producer := NewKafkaProducer(cfg, logger.New(true), "test")
 	go producer.StartCollect()
 	defer producer.StopLogger()
@@ -151,7 +147,7 @@ func Test_KafkaProducer_Reconnect(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	// Restart broker
-	listener2, broker2 := createMockBroker(t, 2, address+":"+port, topic)
+	listener2, broker2 := createMockBroker(t, 2, testAddress+":"+testPort, testTopic)
 	defer listener2.Close()
 	defer broker2.Close()
 
