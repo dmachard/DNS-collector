@@ -27,12 +27,12 @@
 > - Nanoseconds in timestamps
 
 > The following DNS servers are automatically tested in CI to verify `DNS-collector` compatibility 
-> with various DNS servers using **[dnstap](https://dnstap.info/)**.
+> with various DNS servers using [dnstap](https://dnstap.info/).
 > | DNS Server     | Versions Tested     | Modes Tested        |
 > |----------------|---------------------|---------------------|
 > | ✅ **Unbound**     | 1.22.x, 1.21.x     | TCP                 |
 > | ✅ **CoreDNS**     | 1.12.1, 1.11.1  | TCP, TLS            |
-> | ✅ **DNSdist**     | 2.0.x, 1.9.x, 1.8.x, 1.7.x       | TCP, Unix           |
+> | ✅ **PowerDNS DNSdist**     | 2.0.x, 1.9.x, 1.8.x, 1.7.x       | TCP, Unix           |
 > | ✅ **Knot Resolver** | 6.0.11           | Unix                |
 > | ✅ **Bind** | 9.18.33          | Unix                |
 
