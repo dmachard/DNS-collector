@@ -99,7 +99,8 @@ jobs:
         run: echo "COLLECTOR_USER=root" >> $GITHUB_ENV
       - name: Set environment variable for bind9
         if: ${{ matrix.config.service == 'bind9' }}
-        run: echo "COLLECTOR_USER=root" >> $GITHUB_ENV
+        run: echo "COLLECTOR_USER=runneradmin" >> $GITHUB_ENV
+        
       - name: Add pdns user for unix socket test
         run: |
           sudo addgroup --system --gid 953 pdns
