@@ -100,17 +100,13 @@ jobs:
       - name: Set environment variable for bind9
         if: ${{ matrix.config.service == 'bind9' }}
         run: echo "COLLECTOR_USER=runneradmin" >> $GITHUB_ENV
-        
+
       - name: Add pdns user for unix socket test
         run: |
           sudo addgroup --system --gid 953 pdns
           sudo adduser --system --disabled-password --no-create-home -uid 953 --gid 953 pdns
           sudo mkdir -p /tmp/dnstap-socket
           sudo chmod 777 /tmp/dnstap-socket
-    
-      - name: Add bind user for unix socket test
-        run: |
-          sudo cat /etc/passwd
 
       - name: Deploy docker image for "${{ matrix.config.service }}"
         run: |
