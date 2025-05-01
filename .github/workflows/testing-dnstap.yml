@@ -109,8 +109,8 @@ jobs:
     
       - name: Add bind user for unix socket test
         run: |
-          sudo addgroup --system --gid 1000 bind
-          sudo adduser --system --disabled-password --no-create-home -uid 1000 --gid 1000 bind
+          id
+          
       - name: Deploy docker image for "${{ matrix.config.service }}"
         run: |
           case ${{ matrix.config.service }} in
