@@ -1,9 +1,9 @@
 <p align="center">
   <img src="https://goreportcard.com/badge/github.com/dmachard/DNS-collector" alt="Go Report"/>
   <img src="https://img.shields.io/badge/go%20version-min%201.23-green" alt="Go version"/>
-  <img src="https://img.shields.io/badge/go%20tests-533-green" alt="Go tests"/>
+  <img src="https://img.shields.io/badge/go%20tests-534-green" alt="Go tests"/>
   <img src="https://img.shields.io/badge/go%20bench-21-green" alt="Go bench"/>
-  <img src="https://img.shields.io/badge/go%20lines-33689-green" alt="Go lines"/>
+  <img src="https://img.shields.io/badge/go%20lines-33707-green" alt="Go lines"/>
 </p>
 
 <p align="center">
@@ -154,8 +154,8 @@ The following configurations are automatically tested in CI to verify `DNS-colle
 | DNS Server     | Versions Tested     | Modes Tested        |
 |----------------|---------------------|---------------------|
 | **Unbound**     | 1.22.x, 1.21.x     | TCP                 |
-| **CoreDNS**     | 1.11.1, 1.12.1     | TCP, TLS            |
-| **DNSdist**     | 1.7.x, 1.8.x, 1.9.x, 2.0.x           | TCP, Unix           |
+| **CoreDNS**     | 1.12.1, 1.11.1  | TCP, TLS            |
+| **DNSdist**     | 2.0.x, 1.9.x, 1.8.x, 1.7.x       | TCP, Unix           |
 | **Knot Resolver** | 6.0.11           | Unix                |
 
 ## Contributing
