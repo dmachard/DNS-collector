@@ -23,7 +23,7 @@ The File Logger allows you to log DNS traffic to a file in various formats, with
   > output logfile name
 
 * `mode` (string)
-  > output format: `text`, `jinja`, `json` and `flat json`, `pcap` or `dnstap`
+  > output format: `text`, `jinja`, `json` and `flat-json`, `pcap` or `dnstap`
 
 * `max-size`: (integer)
   > maximum size in megabytes of the file before rotation, 
