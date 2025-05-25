@@ -37,7 +37,7 @@
 > | ✅ **Bind** | 9.18.33          | Unix                |
 
 
-## Features
+## 🔧 Features
 
 - **[Pipelining](./docs/running_mode.md)**
 
@@ -103,7 +103,7 @@
   - Help to train your machine learning models with the [Prediction](docs/transformers/transform_trafficprediction.md) transformer
   - [Reordering](docs/transformers/transform_reordering.md) DNS messages based on timestamps
 
-## Get Started
+## 🚀 Get Started
 
 Download the latest [`release`](https://github.com/dmachard/DNS-collector/releases) binary and start the DNS-collector with the provided configuration file. The default configuration listens on `tcp/6000` for a DNSTap stream and DNS logs are printed on standard output.
 
@@ -115,7 +115,7 @@ Download the latest [`release`](https://github.com/dmachard/DNS-collector/releas
 
 If you prefer run it from docker, follow this [guide](./docs/docker.md).
 
-## Configuration
+## ⚙️ Configuration
 
 The configuration of DNS-collector is done through a file named [`config.yml`](config.yml). 
 When the DNS-collector starts, it will look for the config.yml from the current working directory.
@@ -135,14 +135,14 @@ for integrating DNS-collector with popular tools:
 - [Prometheus](./docs/_integration/prometheus/README.md)
 - [Loki](./docs/_integration/loki/README.md)
 
-## DNS Telemetry
+## 📊 DNS Telemetry
 
 `DNS-collector` provides telemetry capabilities with the Prometheus logger, 
 you can easily monitor key performance indicators and detect anomalies in real-time.
 
 ![dashboard](docs/_images/dashboard_prometheus.png)
 
-## Performance
+## ⚡ Performance
 
 Tuning may be necessary to deal with a large traffic loads.
 Please refer to the [performance tuning](./docs/performance.md) guide if needed.
@@ -158,11 +158,11 @@ A [build-in](./docs/dashboards/grafana_exporter.json) dashboard is available for
 
 ![dashboard](docs/_images/dashboard_global.png)
 
-## Contributing
+## ❤️ Contributing
 
 See the [development guide](./docs/development.md) for more information on how to build it yourself.
 
-## More DNS tools ?
+## 🧰 More DNS tools ?
 
 | | |
 |:--:|------------|
