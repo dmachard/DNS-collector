@@ -13,9 +13,9 @@
 
 <p align="center">
   <img src="docs/dns-collector_logo.png" alt="DNS-collector"/>
+  Grab your DNS logs, detect anomalies, and finally understand what's happening on your network.
 </p>
 
-Grab your DNS logs, detect anomalies, and finally understand what's happening on your network.
 
 # DNS-collector
 
@@ -23,9 +23,13 @@ Grab your DNS logs, detect anomalies, and finally understand what's happening on
 
 ## Why DNS-collector?
 
+The missing piece between DNS servers and your data stack
+
+- **DNS-native processing**: Understands DNS protocol, EDNS, query types natively
+- **Process at the edge**: Clean, filter and enrich DNS data before storage - not after
 - **Multiple input sources**: DNStap streams, live network capture, log files
-- **Smart filtering & transformation**: Traffic filtering, anomaly detection, user privacy
-- **Flexible outputs**: Files, syslog, databases, monitoring tools
+- **DNS-aware transformations**: Filtering noise upstream, user privacy
+- **Flexible outputs**: Files, syslog, databases, monitoring tools and more...
 - **Production ready**: Used in real networks, tested with major DNS servers
 
 ## Quick Start
@@ -44,25 +48,3 @@ wget https://github.com/dmachard/DNS-collector/releases/latest
 Default setup listens on tcp/6000 for DNStap streams and outputs to stdout.
 
 ![run](docs/_images/terminal.gif)
-
-## Core Features
-
-### 📥 Input Sources (Collectors)
-- **DNStap streams**: TCP, TLS, Unix sockets with compression support
-- **Network capture**: Live packet capture with IPv4/v6 defragmentation
-- **Log files**: Plain text, PCAP files, directory watching
-- and more ...
-
-### 🔄 Transform & Filter
-- **Traffic filtering**: Block/allow based on domains, IPs, query types
-- **Security analysis**: Suspicious traffic detection, newly observed domains
-- **Privacy**: User anonymization, data normalization  
-- **Performance**: Traffic reduction, message reordering
-- and more ...
-
-### 📤 Output Destinations (Loggers)
-- **Files & Syslog**: Text, JSON, PCAP, DNStap, local/remote syslog
-- **Databases**: InfluxDB, ElasticSearch, Loki
-- **Message queues**: Kafka, Redis
-- **Monitoring**: Prometheus
-- and more ...
