@@ -13,7 +13,7 @@
 
 <p align="center">
   <img src="docs/dns-collector_logo.png" alt="DNS-collector"/>
-  <p>
+  <p align="center">
   Grab your DNS logs, detect anomalies, and finally understand what's happening on your network.
   </p>
 </p>
