@@ -13,13 +13,10 @@
 
 <p align="center">
   <img src="docs/dns-collector_logo.png" alt="DNS-collector"/>
+  <p>
   Grab your DNS logs, detect anomalies, and finally understand what's happening on your network.
+  </p>
 </p>
-
-
-# DNS-collector
-
-`DNS-collector` is a high-performance DNS traffic processor written in Go. It ingests DNS logs from multiple sources (DNStap streams, network capture, log files), transforms them with security analysis and metadata enrichment, then outputs to your favorite monitoring tools.
 
 ## Why DNS-collector?
 
@@ -38,10 +35,9 @@ The missing piece between DNS servers and your data stack
 2. Run with default config:
 
 ```bash
-# Download latest release
-wget https://github.com/dmachard/DNS-collector/releases/latest
+# Download the latest release binary for your platform
+# https://github.com/dmachard/DNS-collector/releases/latest
 
-# Run with default config
 ./dnscollector -config config.yml
 ```
 
