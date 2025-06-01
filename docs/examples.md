@@ -1,7 +1,7 @@
 
 # DNS-collector - Configuration examples
 
-This  documentation contains a number of various configurations to get you started with the DNS-collector in different ways.
+Get started quickly with these ready-to-use configuration examples covering common use cases and deployment scenarios.
 
 - **Pipelines running mode with DNS Message filters**
   - [x] [Advanced example with DNSmessage collector](./_examples/use-case-24.yml)

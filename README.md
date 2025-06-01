@@ -12,15 +12,13 @@
 </p>
 
 <p align="center">
-  Grab your DNS logs, detect anomalies, and finally understand what's happening on your network.
-</p>
-<p align="center">
   <img src="docs/dns-collector_logo.png" alt="DNS-collector"/>
 </p>
 
 ## 🔧 Why DNS-collector?
 
-The missing piece between DNS servers and your data stack
+Grab your DNS logs, detect anomalies, and finally understand what's happening on your network.
+The missing piece between DNS servers and your data stack.
 
 - **DNS-native processing**: Understands DNS protocol, EDNS, query types natively
 - **Process at the edge**: Clean, filter and enrich DNS data before storage - not after
@@ -56,9 +54,11 @@ To get started quickly, you can use this default [`config.yml`](config.yml).
 
 ## 🤝 Contributing
 
-Contributions are welcome! Check out:
-- [Architecture](docs/architecture.md)
-- [Development](docs/development.md)
+Contributions are welcome!
+Check out:
+- [Contribution Guide](CONTRIBUTING.md)
+- [Architecture Guide](docs/architecture.md)
+- [Development Guide](docs/development.md)
 
 ## 🧰 Related Projects:
 
