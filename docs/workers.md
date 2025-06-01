@@ -1,4 +1,4 @@
-# DNS-collector - Supported Collectors & Loggers
+# DNS-collector - Workers
 
 ## Supported Collectors
 
@@ -13,9 +13,11 @@ Collectors are responsible for gathering DNS data from different sources. They a
 
 ### Network Streaming
 
-| [DNStap Server](collectors/collector_dnstap.md) | Receives DNStap protocol messages. **Full support** | Integration with DNS servers supporting DNStap (BIND, Unbound, PowerDNS) |
-| [PowerDNS](collectors/collector_powerdns.md) | Receives protobuf messages from PowerDNS servers **Full support** | Direct integration with PowerDNS authoritative and recursive servers |
-| [TZSP](collectors/collector_tzsp.md) | beta support |  |
+| Collector | Status | Description |
+|-----------|--------|-------------|
+| [DNStap Server](collectors/collector_dnstap.md) | **Full support** | Integration with DNS servers supporting DNStap (BIND, Unbound, PowerDNS) |
+| [PowerDNS](collectors/collector_powerdns.md) | **Full support** | Direct integration with PowerDNS authoritative and recursive servers |
+| [TZSP](collectors/collector_tzsp.md) | Beta support | TZSP network protocol support |
 
 ### File-Based Collectors
 
