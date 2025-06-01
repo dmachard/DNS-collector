@@ -1,17 +1,9 @@
-# DNS-collector - Docker
+# DNS-collector - Docker Deployment Guide
 
 - [Docker](#docker)
 - [Docker Compose](#docker-compose-recommended)
 
-## Docker
-
-Docker run with a custom configuration:
-
-```bash
-docker run -d dmachard/dnscollector -v $(pwd)/config.yml:/etc/dnscollector/config.yml
-```
-
-## Docker-compose (Recommended)
+## Quick Start with Docker Compose (Recommended)
 
 Create a directory of your choice (e.g. ./dnscollector) to hold the docker-compose.yml and .env files.
 
@@ -35,4 +27,13 @@ Start the containers using docker compose command
 
 ```bash
 docker compose up -d
+```
+
+
+## Basic docker run
+
+Docker run with a custom configuration:
+
+```bash
+docker run -d dmachard/dnscollector -v $(pwd)/config.yml:/etc/dnscollector/config.yml
 ```

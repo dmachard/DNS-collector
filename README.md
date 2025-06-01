@@ -27,6 +27,7 @@ The missing piece between DNS servers and your data stack.
 - **DNS-aware transformations**: Filtering noise upstream, user privacy
 - **Flexible outputs**: Files, syslog, databases, monitoring tools and more...
 - **Production ready**: Used in real networks, tested with major DNS servers
+- **Enhanced DNStap**: TLS encryption, compression, and more metadata capabilities
 
 ## 🚀 Quick Start
 
@@ -44,16 +45,17 @@ To get started quickly, you can use this default [`config.yml`](config.yml).
 
 | Topic | Description |
 |-------|-------------|
-| [🔍 Examples](docs/examples.md) | Ready-to-use configs |
 | [🔧 Configuration](docs/configuration.md) | Complete config reference |
 | [📤 Workers](docs/workers.md) | Input sources and output destinations setup |
 | [🔄 Transformers](docs/transformers.md) | Data enrichment options |
 | [🐳 Docker](docs/docker.md) | Container deployment |
-| [🔗 Integrations](docs/integrations.md) | Popular tools setup |
+| [🔍 Examples](docs/examples.md) | Ready-to-use configs |
+| [🔗 Integrations](docs/integrations.md) | Integrationn with popular tools and DNS servers |
+| [⭐ Extended DNStap](docs/extended_dnstap.md) | Extended DNSTap |
 | [📊 Telemetry](docs/telemetry.md) | REST API and Prometheus metrics |
 | [⚡ Performance](docs/performance.md) | Tuning guide |
 
-## 🤝 Contributing
+## 👥 Contributions
 
 Contributions are welcome!
 Check out:
