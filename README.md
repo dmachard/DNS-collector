@@ -18,6 +18,7 @@
 ## 🔧 Why DNS-collector?
 
 Grab your DNS logs, detect anomalies, and finally understand what's happening on your network.
+
 The missing piece between DNS servers and your data stack.
 
 - **DNS-native processing**: Understands DNS protocol, EDNS, query types natively
