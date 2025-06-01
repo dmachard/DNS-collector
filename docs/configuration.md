@@ -9,9 +9,13 @@
   - [Default text format](#default-text-format)
 - [Configuration reloading](#configuration-reloading)
 
-## Configuration Architecture
+## Configuration
 
-DNS-collector uses a YAML-based configuration with three main sections:
+The configuration of DNS-collector is done through a file named [`config.yml`](config.yml). 
+
+When the DNS-collector starts, it will look for the config.yml from the current working directory.
+A typical configuration in pipeline mode includes one or more collectors to receive DNS traffic and several loggers to process the incoming data. 
+
 
 ```yaml
 pipelines::
@@ -27,11 +31,6 @@ pipelines::
 ```
 
 
-The configuration of DNS-collector is done through a file named [`config.yml`](config.yml). 
-When the DNS-collector starts, it will look for the config.yml from the current working directory.
-A typical [configuration in pipeline](./running_mode.md) mode includes one or more collectors to receive DNS traffic and several loggers to process the incoming data. 
-
-To get started quickly, you can use this default [`config.yml`](config.yml). You can also see  the `_examples` folder from documentation witch contains a number of [various configurations](./docs/examples.md) to get you started with the DNS-collector in different ways.
 
 ![config](./docs/_images/config.png)
 

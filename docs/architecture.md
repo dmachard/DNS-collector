@@ -1,6 +1,6 @@
 # DNS-collector - Architecture
 
-![overview](./docs/_images/overview.png)
+![overview](./_images/overview.png)
 
 ## Pipeline Flow
 
