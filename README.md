@@ -31,17 +31,12 @@ The missing piece between DNS servers and your data stack
 
 ## 🚀 Quick Start
 
-1. Download the [latest release](https://github.com/dmachard/DNS-collector/releases)
-2. Run with default config:
+Download the [latest release](https://github.com/dmachard/DNS-collector/releases) and run with default config:
+Default setup listens on tcp/6000 for DNStap streams and outputs to stdout.
 
 ```bash
-# Download the latest release binary for your platform
-# https://github.com/dmachard/DNS-collector/releases/latest
-
 ./dnscollector -config config.yml
 ```
-
-Default setup listens on tcp/6000 for DNStap streams and outputs to stdout.
 
 ![run](docs/_images/terminal.gif)
 
@@ -61,8 +56,8 @@ Default setup listens on tcp/6000 for DNStap streams and outputs to stdout.
 ## 🤝 Contributing
 
 Contributions are welcome! Check out:
+- [Architecture](docs/architecture.md)
 - [Development guide](docs/development.md)
-- [Architecture](docs/development.md)
 
 ## 🧰 Related Projects:
 

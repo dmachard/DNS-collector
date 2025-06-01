@@ -1,4 +1,21 @@
-# Performance tuning
+# DNS-collector - Performance tuning
+
+
+Tuning may be necessary to deal with a large traffic loads.
+Please refer to the [performance tuning](./docs/performance.md) guide if needed.
+
+Performance metrics are available to evaluate the efficiency of your pipelines. These metrics allow you to track:
+- The number of incoming and outgoing packets processed by each worker
+- The number of packets matching the policies applied (forwarded, dropped)
+- The number of "discarded" packets
+- Memory consumption
+- CPU consumption
+
+A [build-in](./docs/dashboards/grafana_exporter.json) dashboard is available for monitoring these metrics.
+
+![dashboard](docs/_images/dashboard_global.png)
+
+
 
 All loggers and collectors are based on buffered channels.
 The size of these buffers can be configured with `buffer-size` in global section.

@@ -43,12 +43,9 @@
 
    The DNS traffic can be collected and aggregated from simultaneously [sources](./docs/workers.md) like DNStap streams, network interface or log files and relays it to multiple other [listeners](./docs/workers.md) 
 
-  [![overview](./docs/_images/overview.png)](./docs/running_mode.md)
-
   You can also applied  [transformations](./docs/transformers.md) on it like ([traffic filtering](./docs/transformers.md#dns-filtering), [user privacy](./docs/transformers.md#user-privacy), ...).
 
-  [![config](./docs/_images/config.png)](./docs/configuration.md)
-
+ 
 - **[Collectors & Loggers](./docs/workers.md)**
 
   - *Listen for logging traffic with streaming network protocols*
@@ -117,46 +114,9 @@ If you prefer run it from docker, follow this [guide](./docs/docker.md).
 
 ## ⚙️ Configuration
 
-The configuration of DNS-collector is done through a file named [`config.yml`](config.yml). 
-When the DNS-collector starts, it will look for the config.yml from the current working directory.
-A typical [configuration in pipeline](./running_mode.md) mode includes one or more collectors to receive DNS traffic and several loggers to process the incoming data. 
-
-To get started quickly, you can use this default [`config.yml`](config.yml). You can also see  the `_examples` folder from documentation witch contains a number of [various configurations](./docs/examples.md) to get you started with the DNS-collector in different ways.
-
-For advanced settings, see the [advanced configuration guide](./docs/advanced_config.md).
-
-Additionally, the [`_integration`](./docs/_integration) folder contains preconfigured files and `docker compose` examples
-for integrating DNS-collector with popular tools:
-
-- [Fluentd](./docs/_integration/fluentd/README.md)
-- [Elasticsearch](./docs/_integration/elasticsearch/README.md)
-- [Kafka](./docs/_integration/kafka/README.md)
-- [InfluxDB](./docs/_integration/influxdb/README.md)
-- [Prometheus](./docs/_integration/prometheus/README.md)
-- [Loki](./docs/_integration/loki/README.md)
-
 ## 📊 DNS Telemetry
 
-`DNS-collector` provides telemetry capabilities with the Prometheus logger, 
-you can easily monitor key performance indicators and detect anomalies in real-time.
-
-![dashboard](docs/_images/dashboard_prometheus.png)
-
 ## ⚡ Performance
-
-Tuning may be necessary to deal with a large traffic loads.
-Please refer to the [performance tuning](./docs/performance.md) guide if needed.
-
-Performance metrics are available to evaluate the efficiency of your pipelines. These metrics allow you to track:
-- The number of incoming and outgoing packets processed by each worker
-- The number of packets matching the policies applied (forwarded, dropped)
-- The number of "discarded" packets
-- Memory consumption
-- CPU consumption
-
-A [build-in](./docs/dashboards/grafana_exporter.json) dashboard is available for monitoring these metrics.
-
-![dashboard](docs/_images/dashboard_global.png)
 
 ## ❤️ Contributing
 
