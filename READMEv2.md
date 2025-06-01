@@ -12,13 +12,13 @@
 </p>
 
 <p align="center">
-  <img src="docs/dns-collector_logo.png" alt="DNS-collector"/>
   <p align="center">
   Grab your DNS logs, detect anomalies, and finally understand what's happening on your network.
   </p>
+  <img src="docs/dns-collector_logo.png" alt="DNS-collector"/>
 </p>
 
-## Why DNS-collector?
+## 🔧 Why DNS-collector?
 
 The missing piece between DNS servers and your data stack
 
@@ -29,7 +29,7 @@ The missing piece between DNS servers and your data stack
 - **Flexible outputs**: Files, syslog, databases, monitoring tools and more...
 - **Production ready**: Used in real networks, tested with major DNS servers
 
-## Quick Start
+## 🚀 Quick Start
 
 1. Download the [latest release](https://github.com/dmachard/DNS-collector/releases)
 2. Run with default config:
@@ -44,3 +44,26 @@ The missing piece between DNS servers and your data stack
 Default setup listens on tcp/6000 for DNStap streams and outputs to stdout.
 
 ![run](docs/_images/terminal.gif)
+
+## 📚 Documentation
+
+| Topic | Description |
+|-------|-------------|
+| [📊 Examples](docs/examples.md) | Ready-to-use configs |
+| [🔧 Configuration](docs/configuration.md) | Complete config reference |
+| [🔄 Transformers](docs/transformers.md) | Data enrichment options |
+| [📡 Collectors](docs/collectors.md) | Input sources setup |
+| [📤 Loggers](docs/loggers.md) | Output destinations |
+| [🐳 Docker](docs/docker.md) | Container deployment |
+| [🔗 Integrations](docs/integrations.md) | Popular tools setup |
+| [⚡ Performance](docs/performance.md) | Tuning guide |
+
+## 🤝 Contributing
+
+Contributions are welcome! Check out:
+- [Development guide](docs/development.md)
+- [Pull request guidelines](.github/PULL_REQUEST_TEMPLATE.md)
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
