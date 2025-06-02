@@ -15,9 +15,17 @@
   <img src="docs/dns-collector_logo.png" alt="DNS-collector"/>
 </p>
 
-## 🔧 Why DNS-collector?
+## What is DNS-collector?
 
-Grab your DNS logs, detect anomalies, and finally understand what's happening on your network.
+**DNS-collector** is a lightweight tool that captures DNS queries and responses from your DNS servers, processes them intelligently, and sends clean data to your monitoring or analytics systems.
+
+What it does:
+- **Captures DNS data** from your DNS servers (BIND, PowerDNS, Unbound, etc.) via DNStap protocol or live network capture
+- **Filters out noise** like health checks, internal queries, or spam before storage
+- **Enriches data** with GeoIP, threat intelligence, or custom metadata  
+- **Outputs clean data** to files, databases, SIEM tools, or monitoring dashboards
+
+## Why DNS-collector?
 
 The missing piece between DNS servers and your data stack.
 
