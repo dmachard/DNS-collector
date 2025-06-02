@@ -553,7 +553,7 @@ func (w *LogFile) StartLogging() {
 	// Max size of a batch before forcing a write
 	batch := new(bytes.Buffer)
 	maxBatchSize := w.config.Loggers.LogFile.MaxBatchSize
-	batchSize := 0 // Current batch size
+	accumulatedBatchSize := 0 // Current batch size
 
 	for {
 		select {
@@ -566,7 +566,7 @@ func (w *LogFile) StartLogging() {
 			flushTimer.Stop()
 
 			// Force write remaining batch data
-			if batchSize > 0 {
+			if accumulatedBatchSize > 0 {
 				w.WriteToPlain(batch.Bytes())
 			}
 
@@ -646,21 +646,21 @@ func (w *LogFile) StartLogging() {
 			}
 
 			// Update the batch size
-			batchSize += batch.Len()
+			accumulatedBatchSize += batch.Len()
 
 			// If the batch exceeds the max size, force a write
-			if batchSize >= maxBatchSize {
+			if accumulatedBatchSize >= maxBatchSize {
 				w.WriteToPlain(batch.Bytes())
 				batch.Reset() // Reset batch after write
-				batchSize = 0
+				accumulatedBatchSize = 0
 			}
 
 		case <-flushTimer.C:
 			// Flush the current batch, then flush the writers
-			if batchSize > 0 {
+			if accumulatedBatchSize > 0 {
 				w.WriteToPlain(batch.Bytes())
 				batch.Reset()
-				batchSize = 0
+				accumulatedBatchSize = 0
 			}
 
 			// flush writer
