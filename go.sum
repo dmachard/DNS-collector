@@ -114,6 +114,8 @@ github.com/dmachard/go-dnstap-protobuf v1.3.0 h1:Tvxnb22Y9gibwlIzBQ0qWBQ6BNynVzH
 github.com/dmachard/go-dnstap-protobuf v1.3.0/go.mod h1:AlVew99KX/IX+NG1O4vJf/Wl4+K+TdakOujRuBjc+1E=
 github.com/dmachard/go-framestream v1.3.0 h1:KUxMOTOuf1LZgZU6Zm9sVOJcEW2p+72bjOR5S++7JeU=
 github.com/dmachard/go-framestream v1.3.0/go.mod h1:tbKZ8qdeW+q5J1PjDPRaIoRdgWM/6th0ysE2J6rrtsU=
+github.com/dmachard/go-framestream v1.3.1 h1:LXJMeUJngNw0gSMiAPB35XgnUk1BSyzKtdkw5x6zpFc=
+github.com/dmachard/go-framestream v1.3.1/go.mod h1:spq5pjfsYu8mEINchmEVNjPm+yYXU4I9isLMf5xck6M=
 github.com/dmachard/go-logger v1.1.1 h1:H4mQAAyhZ6u1E8kFezz7o6PsDqhsdFbO5pZGnoNuRYI=
 github.com/dmachard/go-logger v1.1.1/go.mod h1:vg6cMQBmx+SgH45XsqEyqScXp9eJhS6yuvvJZOgBbvU=
 github.com/dmachard/go-netutils v1.6.0 h1:vqtnAgOqKq3aV3OxGZ+rGuENUoI/t98Ih0qoIYvKQks=
@@ -520,6 +522,8 @@ github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 h1:nn5Wsu0esKSJiIVhscUt
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
 github.com/segmentio/kafka-go v0.4.47 h1:IqziR4pA3vrZq7YdRxaT3w1/5fvIH5qpCwstUanQQB0=
 github.com/segmentio/kafka-go v0.4.47/go.mod h1:HjF6XbOKh0Pjlkr5GVZxt6CsjjwnmhVOfURM5KMd8qg=
+github.com/segmentio/kafka-go v0.4.48 h1:9jyu9CWK4W5W+SroCe8EffbrRZVqAOkuaLd/ApID4Vs=
+github.com/segmentio/kafka-go v0.4.48/go.mod h1:HjF6XbOKh0Pjlkr5GVZxt6CsjjwnmhVOfURM5KMd8qg=
 github.com/sercand/kuberesolver/v5 v5.1.1 h1:CYH+d67G0sGBj7q5wLK61yzqJJ8gLLC8aeprPTHb6yY=
 github.com/sercand/kuberesolver/v5 v5.1.1/go.mod h1:Fs1KbKhVRnB2aDWN12NjKCB+RgYMWZJ294T3BtmVCpQ=
 github.com/shopspring/decimal v1.2.0/go.mod h1:DKyhrW/HYNuLGql+MJL6WCR6knT2jwCFRcu2hWCYk4o=

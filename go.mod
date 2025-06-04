@@ -11,7 +11,7 @@ require (
 	github.com/creasty/defaults v1.8.0
 	github.com/dmachard/go-clientsyslog v1.0.1
 	github.com/dmachard/go-dnstap-protobuf v1.3.0
-	github.com/dmachard/go-framestream v1.3.0
+	github.com/dmachard/go-framestream v1.3.1
 	github.com/dmachard/go-logger v1.1.1
 	github.com/dmachard/go-netutils v1.6.0
 	github.com/dmachard/go-powerdns-protobuf v1.4.0
@@ -34,7 +34,7 @@ require (
 	github.com/oschwald/maxminddb-golang v1.13.1
 	github.com/prometheus/client_golang v1.22.0
 	github.com/rs/tzsp v0.0.0-20161230003637-8ce729c826b9
-	github.com/segmentio/kafka-go v0.4.47
+	github.com/segmentio/kafka-go v0.4.48
 	github.com/stretchr/testify v1.10.0
 	github.com/tinylib/msgp v1.2.5
 	go.opentelemetry.io/otel v1.36.0
