@@ -171,6 +171,10 @@ func CreateStanza(stanzaName string, config *pkgconfig.Config, mapCollectors map
 		mapLoggers[stanzaName] = workers.NewStatsdClient(config, logger, stanzaName)
 		mapLoggers[stanzaName].SetMetrics(metrics)
 	}
+	if config.Loggers.Nsq.Enable {
+		mapLoggers[stanzaName] = workers.NewNsqClient(config, logger, stanzaName)
+		mapLoggers[stanzaName].SetMetrics(metrics)
+	}
 	if config.Loggers.ElasticSearchClient.Enable {
 		mapLoggers[stanzaName] = workers.NewElasticSearchClient(config, logger, stanzaName)
 		mapLoggers[stanzaName].SetMetrics(metrics)

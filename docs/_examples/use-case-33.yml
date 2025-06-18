@@ -1,0 +1,35 @@
+# This configuration sets up DNS traffic monitoring through DNStap on port 6000
+# and publishes DNS messages to NSQ for distributed processing.
+#
+# As prerequisites, we assume you have:
+# - a DNS server which supports DNSTap (unbound, bind, powerdns, etc) for more informations about dnstap, 
+#   read the following page: https://dmachard.github.io/posts/0001-dnstap-testing/
+# - an NSQ instance running with nsqd on port 4150
+# - NSQ consumers ready to process DNS messages from the specified topic
+#
+# Use case: This setup is ideal for high-volume DNS environments where you need
+# to distribute DNS log processing across multiple consumers for real-time analytics,
+# security monitoring, or compliance logging.
+
+# If turned on, debug messages are printed in the standard output
+global:
+  trace:
+    verbose: true
+
+pipelines:
+  # Listen on tcp/6000 for incoming DNSTap protobuf messages from dns servers
+  - name: tap
+    dnstap:
+      listen-ip: 0.0.0.0
+      listen-port: 6000
+    # Routes DNS messages from the tap collector to NSQ
+    routing-policy:
+      forward: [ nsq ]
+
+  # Publishes DNS messages to NSQ topic for distributed processing
+  - name: nsq
+    nsq:
+      host: "127.0.0.1"
+      port: 4150
+      topic: "dns-logs"
+      chan-buffer-size: 1000

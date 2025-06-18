@@ -73,6 +73,7 @@ Loggers handle the output and processing of collected DNS data. They provide var
 |--------|-------------|
 | [Redis Publisher](loggers/logger_redis.md) | Publishes logs to Redis pub/sub channels |
 | [Kafka Producer](loggers/logger_kafka.md) | Sends logs to Apache Kafka topics |
+| [NSQ](loggers/logger_nsq.md) | Publishes logs to NSQ topics |
 
 ### Specialized Loggers
 | Logger | Description |

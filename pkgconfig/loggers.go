@@ -224,6 +224,13 @@ type ConfigLoggers struct {
 		KeyFile           string `yaml:"key-file" default:""`
 		ChannelBufferSize int    `yaml:"chan-buffer-size" default:"0"`
 	} `yaml:"statsd"`
+	Nsq struct {
+		Enable            bool   `yaml:"enable" default:"false"`
+		Host              string `yaml:"host" default:"127.0.0.1"`
+		Port              int    `yaml:"port" default:"4150"`
+		Topic             string `yaml:"topic" default:"dnscollector"`
+		ChannelBufferSize int    `yaml:"chan-buffer-size" default:"0"`
+	} `yaml:"nsq"`
 	ElasticSearchClient struct {
 		Enable            bool   `yaml:"enable" default:"false"`
 		Index             string `yaml:"index" default:"dnscollector"`
