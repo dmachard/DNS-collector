@@ -345,6 +345,10 @@ func DecodePayload(dm *DNSMessage, header *DNSHeader, config *pkgconfig.Config) 
 		edns, _, err := DecodeEDNS(header.Arcount, payloadOffset, dm.DNS.Payload)
 		if err == nil { // nolint
 			dm.EDNS = edns
+			// Update the RCode to the "real" rcode
+			if header.Qr == 1 {
+				dm.DNS.Rcode = RcodeToString(edns.ExtendedRcode + header.Rcode)
+			}
 		} else if dm.DNS.Flags.TC && (errors.Is(err, ErrDecodeDNSAnswerTooShort) ||
 			errors.Is(err, ErrDecodeDNSAnswerRdataTooShort) ||
 			errors.Is(err, ErrDecodeDNSLabelTooShort) ||
