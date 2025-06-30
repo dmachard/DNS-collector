@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/pkgconfig"
+	"github.com/miekg/dns"
 )
 
 func TestDecodePayload_QueryHappy(t *testing.T) {
@@ -1139,5 +1140,85 @@ func TestDecodePayload_Query_NoRcode(t *testing.T) {
 	// check the rcode
 	if dm.DNS.Rcode != "-" {
 		t.Errorf("invalid rcode: %s", dm.DNS.Rcode)
+	}
+}
+
+func TestDecodePayload_Response_Extended_Rcode(t *testing.T) {
+	// issue #1027. The dns.Rcode field should contain the full RCODE, including the extended RCode
+	// This packet has the RCODE XYRRSET (7) in the header, and the upper 8 bits in the
+	// Extended RCODE set to 16 (1<<4), which is RCODE 23, BADCOOKIE.
+	// We don't really stuff a cookie in the response, as that is not the point of this test :).
+	payload := []byte{
+		// header, RCODE set to XYRRSET (7)
+		0xa8, 0x1a, 0x81, 0x07, 0x00, 0x01, 0x00, 0x00,
+		0x00, 0x01, 0x00, 0x01,
+		// query
+		0x03, 0x66, 0x6f, 0x6f,
+		0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
+		0x63, 0x6f, 0x6d, 0x00,
+		// type A, class IN
+		0x00, 0x01, 0x00, 0x01,
+		// Authority section
+		// name
+		0xc0, 0x10,
+		// type SOA, class IN
+		0x00, 0x06, 0x00, 0x01,
+		// TTL
+		0x00, 0x00, 0x00, 0x3c,
+		// RDLENGTH
+		0x00, 0x26,
+		// RDATA
+		// MNAME
+		0x03, 0x6e, 0x73, 0x31,
+		0xc0, 0x10,
+		// RNAME
+		0x09, 0x64, 0x6e, 0x73, 0x2d, 0x61,
+		0x64, 0x6d, 0x69, 0x6e, 0xc0, 0x10,
+		// serial
+		0x19, 0xa1, 0x4a, 0xb4,
+		// refresh
+		0x00, 0x00, 0x03, 0x84,
+		// retry
+		0x00, 0x00, 0x03, 0x84,
+		// expire
+		0x00, 0x00, 0x07, 0x08,
+		// minimum
+		0x00, 0x00, 0x00, 0x3c,
+		// Additional records, EDNS Record
+		// Root label
+		0x00,
+		// Tupe field, OPT (41)
+		0x00, 0x29,
+		// Class, UDP payload size
+		0x04, 0xd0,
+		// TTL, Extended RCODE and flags
+		// Extended RCODE (1, but parsed as the 5th bit, so 16)
+		0x01,
+		// EDNS version 0
+		0x00,
+		// Flags, DO=1
+		0x80, 0x00,
+		// RDLEN (0)
+		0x00, 0x00,
+	}
+
+	dm := DNSMessage{}
+	dm.Init()
+	dm.DNS.Payload = payload
+	dm.DNS.Length = len(payload)
+
+	// decode header and paylo
+	header, err := DecodeDNS(payload)
+	if err != nil {
+		t.Errorf("unexpected error when decoding header: %v", err)
+	}
+	if err = DecodePayload(&dm, &header, pkgconfig.GetDefaultConfig()); err != nil {
+		t.Errorf("Unexpected error while decoding payload: %v", err)
+	}
+	if dm.DNS.MalformedPacket != false {
+		t.Errorf("did not expect packet to be malformed")
+	}
+	if dm.DNS.Rcode != RcodeToString(dns.RcodeBadCookie) {
+		t.Errorf("did not expect RCode to be %s", dm.DNS.Rcode)
 	}
 }
