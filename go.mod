@@ -7,7 +7,7 @@ toolchain go1.24.2
 require (
 	github.com/IBM/fluent-forward-go v0.3.0
 	github.com/IBM/sarama v1.45.1
-	github.com/cilium/ebpf v0.17.1
+	github.com/cilium/ebpf v0.19.0
 	github.com/creasty/defaults v1.8.0
 	github.com/dmachard/go-clientsyslog v1.0.1
 	github.com/dmachard/go-dnstap-protobuf v1.3.0
@@ -31,6 +31,7 @@ require (
 	github.com/klauspost/compress v1.18.0
 	github.com/miekg/dns v1.1.66
 	github.com/natefinch/lumberjack v2.0.0+incompatible
+	github.com/nsqio/go-nsq v1.1.0
 	github.com/oschwald/maxminddb-golang v1.13.1
 	github.com/prometheus/client_golang v1.22.0
 	github.com/rs/tzsp v0.0.0-20161230003637-8ce729c826b9
@@ -123,7 +124,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
-	github.com/nsqio/go-nsq v1.1.0 // indirect
 	github.com/onsi/ginkgo/v2 v2.13.0 // indirect
 	github.com/onsi/gomega v1.29.0 // indirect
 	github.com/opentracing-contrib/go-grpc v0.0.0-20210225150812-73cb765af46e // indirect
