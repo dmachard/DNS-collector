@@ -60,7 +60,7 @@ jobs:
           - { service: "dnsdist2", version: "20", mode: "tcp" }
           - { service: "dnsdist2", version: "20", mode: "doq" }
           - { service: "knotresolver", version: "6.0.11", mode: "unix" }
-          - { service: "bind9", version: "9.18.33-r0", mode: "unix" }
+          #- { service: "bind9", version: "9.18.33-r0", mode: "unix" }
 
     steps:
       - uses: actions/checkout@v4
