@@ -54,6 +54,7 @@ Transformers execute in a specific sequence to ensure data consistency and optim
 |-------------|------------------------|------------------|
 | [GeoIP Metadata](transformers/transform_geoip.md) | • **Country Identification**: Client geolocation<br/>• **City-Level Data**: Detailed location information<br/>• **ASN Mapping**: Internet service provider data<br/>• **IP Intelligence**: Threat reputation scoring | • Geographic traffic analysis<br/>• Compliance monitoring<br/>• Threat intelligence correlation<br/>• Content delivery optimization |
 | [Data Extractor](transformers/transform_dataextractor.md) | • **Base64 Encoding**: Full DNS payload preservation<br/>• **Binary Data Handling**: Raw packet analysis<br/>• **Metadata Extraction**: Protocol-level details<br/>• **Custom Field Addition**: Flexible data enhancement | • Deep packet inspection<br/>• Forensic analysis<br/>• Custom analytics<br/>• Advanced research |
+| [REST Lookup](transformers/transform_rest.md) | • **Custom Data Addition**: Flexible data enhancement | • Business intelligence integration |
 
 ### Data Transformation & Formatting
 

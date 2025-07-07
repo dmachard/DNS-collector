@@ -21,12 +21,12 @@ func Test_Webhook(t *testing.T) {
 			return
 		}
 
-		if username != "testuser" || password != "testpass" {
+		if username != "whuser" || password != "whpass" {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		fmt.Fprintf(w, "testbody")
+		fmt.Fprintf(w, "whbody")
 	}))
 	defer server.Close()
 
@@ -39,8 +39,8 @@ func Test_Webhook(t *testing.T) {
 	config.Collectors.Webhook.Enable = true
 	config.Collectors.Webhook.URL = server.URL
 	config.Collectors.Webhook.BasicAuthEnabled = true
-	config.Collectors.Webhook.BasicAuthLogin = "testuser"
-	config.Collectors.Webhook.BasicAuthPwd = "testpass"
+	config.Collectors.Webhook.BasicAuthLogin = "whuser"
+	config.Collectors.Webhook.BasicAuthPwd = "whpass"
 
 	// init collector
 	c := NewWebhook(nil, config, logger.New(false), "test")
@@ -61,7 +61,7 @@ func Test_Webhook(t *testing.T) {
 		t.Errorf("REST request failed")
 	}
 
-	if dmOut.Rest.Response != "testbody" {
-		t.Errorf("REST body mismatch, want: testbody got: %s", dmOut.Rest.Response)
+	if dmOut.Rest.Response != "whbody" {
+		t.Errorf("REST body mismatch, want: whbody got: %s", dmOut.Rest.Response)
 	}
 }

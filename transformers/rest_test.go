@@ -21,12 +21,12 @@ func TestRest_Request(t *testing.T) {
 			return
 		}
 
-		if username != "testuser" || password != "testpass" {
+		if username != "restuser" || password != "restpass" {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		fmt.Fprintf(w, "testbody")
+		fmt.Fprintf(w, "restbody")
 	}))
 	defer server.Close()
 
@@ -35,8 +35,8 @@ func TestRest_Request(t *testing.T) {
 	config.Rest.Enable = true
 	config.Rest.URL = server.URL
 	config.Rest.BasicAuthEnabled = true
-	config.Rest.BasicAuthLogin = "testuser"
-	config.Rest.BasicAuthPwd = "testpass"
+	config.Rest.BasicAuthLogin = "restuser"
+	config.Rest.BasicAuthPwd = "restpass"
 
 	// init the processor
 	outChans := []chan dnsutils.DNSMessage{}
@@ -52,7 +52,7 @@ func TestRest_Request(t *testing.T) {
 		t.Errorf("REST request failed")
 	}
 
-	if dm.Rest.Response != "testbody" {
-		t.Errorf("REST body mismatch, want: testbody got: %s", dm.Rest.Response)
+	if dm.Rest.Response != "restbody" {
+		t.Errorf("REST body mismatch, want: restbody got: %s", dm.Rest.Response)
 	}
 }

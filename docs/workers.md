@@ -29,6 +29,7 @@ Collectors are responsible for gathering DNS data from different sources. They a
 | Collector | Description |
 |-----------|-------------|
 | [DNS Message](collectors/collector_dnsmessage.md) | Filters and matches specific DNS messages |
+| [HTTP Webhook](collectors/collector_webhook.md) | Adds custom data using HTTP webhooks |
 
 ## Supported Loggers
 
