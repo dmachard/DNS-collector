@@ -1,12 +1,12 @@
 package workers
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"io"
 	"net/http"
 	"time"
-	"io"
-	"bytes"
-	"encoding/json"
 
 	"github.com/dmachard/go-dnscollector/dnsutils"
 	"github.com/dmachard/go-dnscollector/pkgconfig"
@@ -41,13 +41,13 @@ func (w *Webhook) ReadConfig() {
 	w.BasicAuthPwd = w.GetConfig().Collectors.Webhook.BasicAuthPwd
 
 	tr := &http.Transport{
-		MaxIdleConns: 10,
+		MaxIdleConns:        10,
 		MaxIdleConnsPerHost: 10,
-		IdleConnTimeout: 30 * time.Second,
+		IdleConnTimeout:     30 * time.Second,
 	}
 
 	w.httpclient = &http.Client{
-		Timeout: time.Duration(w.GetConfig().Collectors.Webhook.Timeout) * time.Second,
+		Timeout:   time.Duration(w.GetConfig().Collectors.Webhook.Timeout) * time.Second,
 		Transport: tr,
 	}
 }
@@ -85,6 +85,7 @@ func (w *Webhook) StartCollect() {
 		case dm, opened := <-w.GetInputChannel():
 			if !opened {
 				w.LogInfo("channel closed, exit")
+				cancel()
 				return
 			}
 			// count global messages
@@ -133,14 +134,22 @@ func (w *Webhook) StartLogging(threadnum int, ctx context.Context) {
 	}
 }
 
-func (w *Webhook) Request(dm *dnsutils.DNSMessage) (error) {
+func (w *Webhook) Request(dm *dnsutils.DNSMessage) error {
 	if dm.Rest == nil {
 		dm.Rest = &dnsutils.TransformRest{Failed: true, Response: ""}
 	}
 
 	payload, err := json.Marshal(dm)
+	if err != nil {
+		w.LogError("JSON marshal failed: %s", err)
+		return err
+	}
 
 	post, err := http.NewRequest("POST", w.URL, bytes.NewBuffer(payload))
+	if err != nil {
+		w.LogError("HTTP error: %s", err)
+		return err
+	}
 
 	post.Header.Set("Content-Type", "application/json")
 

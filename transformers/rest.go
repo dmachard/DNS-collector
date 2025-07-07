@@ -1,11 +1,11 @@
 package transformers
 
 import (
-	"time"
-	"io"
-	"net/http"
 	"bytes"
 	"encoding/json"
+	"io"
+	"net/http"
+	"time"
 
 	"github.com/dmachard/go-dnscollector/dnsutils"
 	"github.com/dmachard/go-dnscollector/pkgconfig"
@@ -31,15 +31,15 @@ func (t *RestTransform) GetTransforms() ([]Subtransform, error) {
 	return subtransforms, nil
 }
 
-func (t *RestTransform) Setup() () {
+func (t *RestTransform) Setup() {
 	tr := &http.Transport{
-		MaxIdleConns: 10,
+		MaxIdleConns:        10,
 		MaxIdleConnsPerHost: 10,
-		IdleConnTimeout: 30 * time.Second,
+		IdleConnTimeout:     30 * time.Second,
 	}
 
 	t.httpclient = &http.Client{
-		Timeout: time.Duration(t.config.Rest.Timeout) * time.Second,
+		Timeout:   time.Duration(t.config.Rest.Timeout) * time.Second,
 		Transport: tr,
 	}
 }
@@ -50,8 +50,16 @@ func (t *RestTransform) Request(dm *dnsutils.DNSMessage) (int, error) {
 	}
 
 	payload, err := json.Marshal(dm)
+	if err != nil {
+		t.LogError("JSON marshal failed: %s", err)
+		return ReturnKeep, nil
+	}
 
 	post, err := http.NewRequest("POST", t.config.Rest.URL, bytes.NewBuffer(payload))
+	if err != nil {
+		t.LogError("HTTP error: %s", err)
+		return ReturnKeep, nil
+	}
 
 	post.Header.Set("Content-Type", "application/json")
 
