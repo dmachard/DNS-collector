@@ -28,7 +28,7 @@ ifndef $(GOPATH)
 	export GOPATH
 endif
 
-.PHONY: all check-go dep lint build clean goversion
+.PHONY: all check-go dep lint build clean goversion stats
 
 # This target depends on dep and build.
 all: check-go dep build
@@ -77,6 +77,17 @@ tests: check-go
 	@go test ./telemetry/ -race -cover -v
 	@go test -timeout 90s ./transformers/ -race -cover -v
 	@go test -timeout 180s ./workers/ -race -cover -v
+
+stats:
+	@echo "Calculating Go code statistics (excluding tests)..."
+	@TOTAL_LINES=$$(find . -name '*.go' ! -name '*_test.go' -print0 | xargs -0 cat | wc -l); \
+	COMMENT_LINES=$$(find . -name '*.go' ! -name '*_test.go' -print0 | xargs -0 grep -E '^\s*//' | wc -l); \
+	EMPTY_LINES=$$(find . -name '*.go' ! -name '*_test.go' -print0 | xargs -0 grep -E '^\s*$$' | wc -l); \
+	CODE_LINES=$$((TOTAL_LINES - COMMENT_LINES - EMPTY_LINES)); \
+	echo "Total lines        : $$TOTAL_LINES"; \
+	echo "Comment lines      : $$COMMENT_LINES"; \
+	echo "Empty lines        : $$EMPTY_LINES"; \
+	echo "Effective code lines: $$CODE_LINES"
 
 # Cleans the project using go clean.
 clean: check-go

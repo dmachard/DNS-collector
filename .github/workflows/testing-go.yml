@@ -152,14 +152,6 @@ jobs:
         echo "Count of Tests: $data"
         echo "data=$data" >> $GITHUB_OUTPUT
 
-    - id: count_lines
+    - name: Count lines of code
       run: |
-        data=$(find . -name "*.go" -exec grep -v "^$" {} \; -exec grep -v "//" {} \; | wc -l)
-        echo "Count of Lines: $data"
-        echo "data=$data" >> $GITHUB_OUTPUT
-
-    - id: count_lines_tests
-      run: |
-        data=$(find . -name "*_test.go" -exec grep -v "^$" {} \; -exec grep -v "//" {} \; | wc -l)
-        echo "Count of Lines in tests file: $data"
-        echo "data=$data" >> $GITHUB_OUTPUT
+        make stats
