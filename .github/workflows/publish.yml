@@ -27,7 +27,7 @@ jobs:
 
     - name: Upload to DockerHub
       run: |
-        docker login -u ${{ secrets.DOCKERHUB_LOGIN }} -p ${{ secrets.DOCKERHUB_PASSWORD }}
+        echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_LOGIN }}" --password-stdin
         docker push dmachard/dnscollector:latest
         docker push dmachard/dnscollector:${{ github.event.release.tag_name }}
         docker push dmachard/go-dnscollector:latest
