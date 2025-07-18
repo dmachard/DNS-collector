@@ -146,11 +146,9 @@ jobs:
       with:
         go-version: ${{ env.GO_VERSION }}
 
-    - id: count_tests
+    - name: Run test from makefile
       run: |
-        data=$(sudo go test -timeout 360s -v -exec sudo  ./workers ./dnsutils ./transformers ./pkgconfig ./pkginit ./telemetry ././ 2>&1 | grep -c RUN)
-        echo "Count of Tests: $data"
-        echo "data=$data" >> $GITHUB_OUTPUT
+        make tests
 
     - name: Count lines of code
       run: |
