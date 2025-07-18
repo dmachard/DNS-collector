@@ -71,6 +71,12 @@ go test -run=^$ -bench=.
 
 ## Update Golang version and package dependencies
 
+Update go version
+
+```bash
+go mod edit -go=1.24
+```
+
 Update package dependencies
 
 ```bash
