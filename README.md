@@ -75,3 +75,4 @@ Check out:
 ## 🧰 Related Projects:
 
 - [DNS-tester](https://github.com/dmachard/DNS-tester) - DNS testing toolkit
+- [CoreDNS-GSLB](https://github.com/dmachard/coredns-gslb) - Global Server Load Balancing functionality in CoreDNS
