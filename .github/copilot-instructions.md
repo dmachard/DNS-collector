@@ -1,0 +1,5 @@
+- Keep the project backward compatible and follow existing code conventions.
+- Add unit tests for any new features, bug fixes, or important logic changes.
+- Make sure the project still passes all existing tests
+- Documentation updated with any relevant changes
+- Use descriptive commit messages
