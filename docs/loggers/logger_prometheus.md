@@ -161,7 +161,6 @@ The full metrics can be found [here](./../metrics.txt).
 | dnscollector_top_nxdomains                      | Number of hit per nx domain topN, partitioned by stream and qname
 | dnscollector_top_sfdomains                      | Number of hit per servfail domain topN, partitioned by stream and qname
 | dnscollector_top_requesters                     | Number of hit per requester topN, partitioned by client IP
-| dnscollector_top_tlds                           | Number of hit per tld - topN
 | dnscollector_top_unanswered                     | Number of hit per unanswered domain - topN
 | dnscollector_total_unanswered_lru               | Total number of unanswered domains most recently observed per stream identity
 | dnscollector_total_suspicious_lru               | Total number of suspicious domains most recently observed per stream identity
