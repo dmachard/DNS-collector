@@ -134,15 +134,14 @@ The full metrics can be found [here](./../metrics.txt).
 |-------------------------------------------------|------------------------------------
 | dnscollector_build_info                         | Build info
 | dnscollector_total_requesters_lru               | Total number of DNS clients most recently observed per stream identity.
-| dnscollector_total_domains_lru                | Total number of serverfail domains most recently observed per stream identity
-| dnscollector_total_noerror_domains_lru                | Total number of serverfail domains most recently observed per stream identity
-| dnscollector_total_servfail_domains_lru                | Total number of serverfail domains most recently observed per stream identity
-| dnscollector_total_nonexistentçdomains_lru                | Total number of NX domains most recently observed per stream identity
-| dnscollector_dnsmessage_total                   | Counter of total of DNS messages
+| dnscollector_total_domains_lru                  | Total number of serverfail domains most recently observed per stream identity
+| dnscollector_total_noerror_domains_lru          | Total number of serverfail domains most recently observed per stream identity
+| dnscollector_total_servfail_domains_lru         | Total number of serverfail domains most recently observed per stream identity
+| dnscollector_total_nonexistent_domains_lru      | Total number of NX domains most recently observed per stream identity
+| dnscollector_dnsmessages_total                  | Counter of total of DNS messages
 | dnscollector_queries_total                      | Counter of total of queries
 | dnscollector_replies_total                      | Counter of total of replies
 | dnscollector_qtypes_total                       | Counter of total of queries per qtypes
-| dnscollector_dnsmessage_total                   | Counter of total of DNS messages
 | dnscollector_ipprotocol_total                   | The total number of DNS messages per IP protocol (UDP, TCPs)
 | dnscollector_ipversion_total                    | The total number of DNS messages per IP version (v4, v6)
 | dnscollector_bytes_total                        | The total bytes sent and received
