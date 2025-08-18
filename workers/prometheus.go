@@ -29,7 +29,7 @@ import (
 
 /*
 This is the list of available label values selectors.
-Configuration may specify a list of lables to use for metrics.
+Configuration may specify a list of labels to use for metrics.
 Any label in this catalogueSelectors can be specidied in config (prometheus-labels stanza)
 */
 var catalogueSelectors map[string]func(*dnsutils.DNSMessage) string = map[string]func(*dnsutils.DNSMessage) string{
@@ -665,22 +665,22 @@ func (w *PromCounterCatalogueContainer) GetCountersSet(dm *dnsutils.DNSMessage) 
 	// Otherwise, there is another layer of labels.
 	var newElem PrometheusCountersCatalogue
 	// Prepare labels for the new element (needed for ether CatalogueContainer and CounterSet)
-	newLables := map[string]string{
+	newLabels := map[string]string{
 		w.labelNames[0]: lbl,
 	}
 	for k, v := range w.labels {
-		newLables[k] = v
+		newLabels[k] = v
 	}
 	if len(w.labelNames) > 1 {
 		newElem = NewPromCounterCatalogueContainer(
 			w.prom,
 			w.labelNames[1:],
-			newLables, // Here we'll do an extra map copy...
+			newLabels, // Here we'll do an extra map copy...
 		)
 	} else {
 		newElem = newPrometheusCounterSet(
 			w.prom,
-			prometheus.Labels(newLables),
+			prometheus.Labels(newLabels),
 		)
 
 	}
