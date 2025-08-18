@@ -232,11 +232,11 @@ func DecodeDNS(payload []byte) (DNSHeader, error) {
 // given DNS header.
 // If packet is marked as malformed already, this function returs with no
 // error, but does not process the packet.
-// Error is returned if packet can not be parsed. Returned error wraps the
+// Error is returned if packet cannot be parsed. Returned error wraps the
 // original error returned by relevant decoding operation.
 func DecodePayload(dm *DNSMessage, header *DNSHeader, config *pkgconfig.Config) error {
 	if dm.DNS.MalformedPacket {
-		// do not continue if packet is malformed, the header can not be
+		// do not continue if packet is malformed, the header cannot be
 		// trusted.
 		return nil
 	}
