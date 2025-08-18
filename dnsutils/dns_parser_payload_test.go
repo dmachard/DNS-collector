@@ -1187,7 +1187,7 @@ func TestDecodePayload_Response_Extended_Rcode(t *testing.T) {
 		// Additional records, EDNS Record
 		// Root label
 		0x00,
-		// Tupe field, OPT (41)
+		// Tuple field, OPT (41)
 		0x00, 0x29,
 		// Class, UDP payload size
 		0x04, 0xd0,
