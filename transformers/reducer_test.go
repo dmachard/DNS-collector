@@ -21,7 +21,7 @@ func TestReducer_Json(t *testing.T) {
 	dm := dnsutils.GetFakeDNSMessage()
 	dm.Init()
 
-	// init subproccesor
+	// init subprocessor
 
 	reducer := NewReducerTransform(config, logger.New(false), "test", 0, outChans)
 	reducer.repetitiveTrafficDetector(&dm)
@@ -67,7 +67,7 @@ func TestReducer_RepetitiveTrafficDetector(t *testing.T) {
 	outChans := []chan dnsutils.DNSMessage{}
 	outChans = append(outChans, outChan)
 
-	// init subproccesor
+	// init subprocessor
 	reducer := NewReducerTransform(config, logger.New(false), "test", 0, outChans)
 	subtransforms, _ := reducer.GetTransforms()
 	if len(subtransforms) != 1 {
@@ -210,7 +210,7 @@ func TestReducer_QnamePlusOne(t *testing.T) {
 	outChans := []chan dnsutils.DNSMessage{}
 	outChans = append(outChans, outChan)
 
-	// init subproccesor
+	// init subprocessor
 	reducer := NewReducerTransform(config, logger.New(false), "test", 0, outChans)
 	subtransforms, _ := reducer.GetTransforms()
 	if len(subtransforms) != 1 {

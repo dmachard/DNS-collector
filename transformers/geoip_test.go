@@ -20,7 +20,7 @@ func TestGeoIP_Json(t *testing.T) {
 	dm := dnsutils.GetFakeDNSMessage()
 	dm.Init()
 
-	// init subproccesor
+	// init subprocessor
 	geoip := NewDNSGeoIPTransform(config, logger.New(true), "test", 0, outChans)
 	if err := geoip.Open(); err != nil {
 		t.Fatalf("geoip init failed: %v+", err)

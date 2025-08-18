@@ -21,7 +21,7 @@ func TestExtract_Json(t *testing.T) {
 	// get dns message
 	dm := dnsutils.GetFakeDNSMessageWithPayload()
 
-	// init subproccesor
+	// init subprocessor
 	extract := NewExtractTransform(config, logger.New(false), "test", 0, outChans)
 	extract.GetTransforms()
 	extract.addBase64Payload(&dm)
