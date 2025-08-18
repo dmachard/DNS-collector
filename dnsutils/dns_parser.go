@@ -492,7 +492,7 @@ func DecodeAnswer(ancount int, startOffset int, payload []byte) ([]DNSAnswer, in
 			}
 		}
 
-		// finnally append answer to the list
+		// finally append answer to the list
 		a := DNSAnswer{
 			Name:      name,
 			Rdatatype: rdatatype,
