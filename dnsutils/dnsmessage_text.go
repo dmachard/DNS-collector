@@ -82,7 +82,7 @@ func (dm *DNSMessage) handlePdnsDirectives(directive string, s *strings.Builder)
 					if len(directives) == 2 {
 						tagIndex, err := strconv.Atoi(directives[1])
 						if err != nil {
-							log.Fatalf("unsupport tag index provided (integer expected): %s", directives[1])
+							log.Fatalf("unsupported tag index provided (integer expected): %s", directives[1])
 						}
 						if tagIndex >= len(dm.PowerDNS.Tags) {
 							s.WriteString("-")
@@ -217,7 +217,7 @@ func (dm *DNSMessage) handleATagsDirectives(directive string, s *strings.Builder
 				if len(directives) == 2 {
 					tagIndex, err := strconv.Atoi(directives[1])
 					if err != nil {
-						log.Fatalf("unsupport tag index provided (integer expected): %s", directives[1])
+						log.Fatalf("unsupported tag index provided (integer expected): %s", directives[1])
 					}
 					if tagIndex >= len(dm.ATags.Tags) {
 						s.WriteString("-")
@@ -382,7 +382,7 @@ func (dm *DNSMessage) handleMachineLearningDirectives(directive string, s *strin
 func (dm *DNSMessage) Bytes(format []string, fieldDelimiter string, fieldBoundary string) []byte {
 	line, err := dm.ToTextLine(format, fieldDelimiter, fieldBoundary)
 	if err != nil {
-		log.Fatalf("unsupport directive for text format: %s", err)
+		log.Fatalf("unsupported directive for text format: %s", err)
 	}
 	return line
 }
