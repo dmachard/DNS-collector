@@ -177,7 +177,7 @@ func TestPrometheus_EPS_Counters(t *testing.T) {
 	mf := getMetrics(g, t)
 	ensureMetricValue(t, mf, "dnscollector_throughput_ops", map[string]string{"stream_id": "collector"}, 0)
 
-	// Simulate processing 2 more messages, that will be 2 events per second
+	// Simulate processing two more messages, that will be two events per second
 	// after next ComputeEventsPerSecond call
 	g.Record(noErrorRecord)
 	g.Record(noErrorRecord)

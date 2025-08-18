@@ -64,7 +64,7 @@ type PrometheusCountersCatalogue interface {
 	// Containers and CounterSets must implement PrometheusCountersCatalogue interface
 	// to allow fetching a CounterSet by the list of metric/values by fetching values from
 	// the DNS message it logs.
-	// There is a schematic sample layout when there are 2 labels considered at the end of this file
+	// There is a schematic sample layout when there are two labels considered at the end of this file
 	GetCountersSet(*dnsutils.DNSMessage) PrometheusCountersCatalogue
 }
 
