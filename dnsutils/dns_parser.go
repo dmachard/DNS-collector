@@ -230,7 +230,7 @@ func DecodeDNS(payload []byte) (DNSHeader, error) {
 // decodePayload can be used to decode raw payload data in dm.DNS.Payload
 // into relevant parts of dm.DNS struct. The payload is decoded according to
 // given DNS header.
-// If packet is marked as malformed already, this function returs with no
+// If packet is marked as malformed already, this function returns with no
 // error, but does not process the packet.
 // Error is returned if packet cannot be parsed. Returned error wraps the
 // original error returned by relevant decoding operation.
