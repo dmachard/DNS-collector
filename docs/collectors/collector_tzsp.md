@@ -1,7 +1,7 @@
 # Collector: TZSP sniffer
 
 This collector receives TZSP (TaZmen Sniffer Protocol) packets that contain a full DNS packet, meaning Ethernet, IPv4/IPv6, UDP, then DNS.
-Its primary purpose is to suppport DNS packet capture from Mikrotik brand devices. These devices allow cloning of packets and sending them via TZSP to remote hosts.
+Its primary purpose is to support DNS packet capture from Mikrotik brand devices. These devices allow cloning of packets and sending them via TZSP to remote hosts.
 
 Options:
 
