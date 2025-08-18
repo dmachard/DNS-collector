@@ -1144,9 +1144,9 @@ func TestDecodePayload_Query_NoRcode(t *testing.T) {
 }
 
 func TestDecodePayload_Response_Extended_Rcode(t *testing.T) {
-	// issue #1027. The dns.Rcode field should contain the full RCODE, including the extended RCode
+	// issue #1027. The dns.Rcode field should contain the full RCODE, including the extended RCODE
 	// This packet has the RCODE XYRRSET (7) in the header, and the upper 8 bits in the
-	// Extended RCODE set to 16 (1<<4), which is RCODE 23, BADCOOKIE.
+	// extended RCODE set to 16 (1<<4), which is RCODE 23, BADCOOKIE.
 	// We don't really stuff a cookie in the response, as that is not the point of this test :).
 	payload := []byte{
 		// header, RCODE set to XYRRSET (7)
