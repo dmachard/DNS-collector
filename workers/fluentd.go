@@ -235,7 +235,7 @@ func (w *FluentdClient) StartLogging() {
 	// init buffer
 	bufferDm := []dnsutils.DNSMessage{}
 
-	// init flust timer for buffer
+	// init flush timer for buffer
 	flushInterval := time.Duration(w.GetConfig().Loggers.Fluentd.FlushInterval) * time.Second
 	flushTimer := time.NewTimer(flushInterval)
 

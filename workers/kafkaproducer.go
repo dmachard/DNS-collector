@@ -351,10 +351,10 @@ func (w *KafkaProducer) StartLogging() {
 	// init buffer
 	bufferDm := []dnsutils.DNSMessage{}
 
-	// init flust timer for buffer
+	// init flush timer for buffer
 	readyTimer := time.NewTimer(time.Duration(10) * time.Second)
 
-	// init flust timer for buffer
+	// init flush timer for buffer
 	flushInterval := time.Duration(w.GetConfig().Loggers.KafkaProducer.FlushInterval) * time.Second
 	flushTimer := time.NewTimer(flushInterval)
 

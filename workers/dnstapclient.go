@@ -253,7 +253,7 @@ func (w *DnstapSender) StartLogging() {
 	// init buffer
 	bufferDm := []dnsutils.DNSMessage{}
 
-	// init flust timer for buffer
+	// init flush timer for buffer
 	flushInterval := time.Duration(w.GetConfig().Loggers.DNSTap.FlushInterval) * time.Second
 	flushTimer := time.NewTimer(flushInterval)
 
