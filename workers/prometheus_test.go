@@ -119,7 +119,7 @@ func getMetricsTestCase(config *pkgconfig.Config, labels map[string]string) func
 		noErrorRecord.DNSTap.Identity = "other_collector"
 		g.Record(noErrorRecord)
 
-		// call ComputeMetrics for the second time, to calculate per-second metrcis
+		// call ComputeMetrics for the second time, to calculate per-second metrics
 		g.ComputeEventsPerSecond()
 		mf := getMetrics(g, t)
 
