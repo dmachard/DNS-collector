@@ -335,7 +335,7 @@ func TestDnsMessage_TextFormat_InvalidDirectives(t *testing.T) {
 		{
 			name:   "publicsuffix",
 			dm:     DNSMessage{PublicSuffix: &TransformPublicSuffix{}},
-			format: "publixsuffix-invalid",
+			format: "publicsuffix-invalid",
 		},
 		{
 			name:   "powerdns",
@@ -396,13 +396,13 @@ func TestDnsMessage_TextFormat_Directives_PublicSuffix(t *testing.T) {
 	}{
 		{
 			name:     "undefined",
-			format:   "publixsuffix-tld",
+			format:   "publicsuffix-tld",
 			dm:       DNSMessage{},
 			expected: "-",
 		},
 		{
 			name:     "default",
-			format:   "publixsuffix-tld publixsuffix-etld+1",
+			format:   "publicsuffix-tld publicsuffix-etld+1",
 			dm:       DNSMessage{PublicSuffix: &TransformPublicSuffix{QnamePublicSuffix: "com", QnameEffectiveTLDPlusOne: "google.com"}},
 			expected: "com google.com",
 		},

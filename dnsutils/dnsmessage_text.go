@@ -16,7 +16,7 @@ var (
 	PdnsDirectives            = regexp.MustCompile(`^powerdns-*`)
 	GeoIPDirectives           = regexp.MustCompile(`^geoip-*`)
 	SuspiciousDirectives      = regexp.MustCompile(`^suspicious-*`)
-	PublicSuffixDirectives    = regexp.MustCompile(`^publixsuffix-*`)
+	PublicSuffixDirectives    = regexp.MustCompile(`^publicsuffix-*`)
 	ExtractedDirectives       = regexp.MustCompile(`^extracted-*`)
 	ReducerDirectives         = regexp.MustCompile(`^reducer-*`)
 	MachineLearningDirectives = regexp.MustCompile(`^ml-*`)
@@ -262,11 +262,11 @@ func (dm *DNSMessage) handlePublicSuffixDirectives(directive string, s *strings.
 		s.WriteString("-")
 	} else {
 		switch directive {
-		case "publixsuffix-tld":
+		case "publicsuffix-tld":
 			s.WriteString(dm.PublicSuffix.QnamePublicSuffix)
-		case "publixsuffix-etld+1":
+		case "publicsuffix-etld+1":
 			s.WriteString(dm.PublicSuffix.QnameEffectiveTLDPlusOne)
-		case "publixsuffix-managed-icann":
+		case "publicsuffix-managed-icann":
 			if dm.PublicSuffix.ManagedByICANN {
 				s.WriteString("managed")
 			} else {
