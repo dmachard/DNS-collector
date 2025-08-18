@@ -827,7 +827,7 @@ func TestDecodePayload_AdditionalRRAndEDNS(t *testing.T) {
 
 	header, err := DecodeDNS(payload)
 	if err != nil {
-		t.Errorf("error when deocoding header: %v", err)
+		t.Errorf("error when decoding header: %v", err)
 	}
 
 	if err := DecodePayload(&dm, &header, pkgconfig.GetDefaultConfig()); err != nil {
