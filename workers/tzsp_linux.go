@@ -124,7 +124,7 @@ func (w *TZSPSniffer) StartCollect() {
 					w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "] read msg, buffer is empty")
 				}
 				if bufN > len(buf) {
-					w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "] read msg, bufer overflow")
+					w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "] read msg, buffer overflow")
 				}
 				if oobn == 0 {
 					w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "] read msg, oob missing")
