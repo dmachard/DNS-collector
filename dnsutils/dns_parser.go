@@ -104,7 +104,7 @@ var (
 		0:  "NOERROR",   // No error condition
 		1:  "FORMERR",   // Format error: query was not understood
 		2:  "SERVFAIL",  // Server failure: unable to process the query
-		3:  "NXDOMAIN",  // Non-existent domain: domain name does not exist
+		3:  "NXDOMAIN",  // Nonexistent domain: domain name does not exist
 		4:  "NOTIMP",    // Not implemented: query type not supported
 		5:  "REFUSED",   // Query refused by policy
 		6:  "YXDOMAIN",  // Name exists when it should not (YX: exists)

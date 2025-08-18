@@ -166,7 +166,7 @@ func TestDNSMessage_Matching(t *testing.T) {
 			wantMatch: false,
 		},
 		{
-			name: "Test non-existent key",
+			name: "Test nonexistent key",
 			dm:   &DNSMessage{DNS: DNS{Opcode: 1}},
 			matching: map[string]interface{}{
 				"dns.nonexistent": 1,
@@ -175,7 +175,7 @@ func TestDNSMessage_Matching(t *testing.T) {
 			wantMatch: false,
 		},
 		{
-			name: "Test nested non-existent key",
+			name: "Test nested nonexistent key",
 			dm:   &DNSMessage{DNS: DNS{Opcode: 1}},
 			matching: map[string]interface{}{
 				"dns.flags.nonexistent": true,
