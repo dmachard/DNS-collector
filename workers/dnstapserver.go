@@ -350,7 +350,7 @@ func (w *DNSTapProcessor) StartCollect() {
 
 			dm.DNSTap.PeerName = w.PeerName
 
-			// init dns message with additionnals parts
+			// init dns message with additional parts
 			identity := dt.GetIdentity()
 			if len(identity) > 0 {
 				dm.DNSTap.Identity = string(identity)

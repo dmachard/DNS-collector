@@ -201,7 +201,7 @@ func (w *Syslog) StartCollect() {
 			// count global messages
 			w.CountIngressTraffic()
 
-			// apply tranforms, init dns message with additionnals parts if necessary
+			// apply tranforms, init dns message with additional parts if necessary
 			transformResult, err := subprocessors.ProcessMessage(&dm)
 			if err != nil {
 				w.LogError(err.Error())

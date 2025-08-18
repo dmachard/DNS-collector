@@ -101,7 +101,7 @@ func (dm *DNSMessage) ToDNSTap(extended bool) ([]byte, error) {
 			ednstap.OriginalDnstapExtra = []byte(dm.DNSTap.Extra)
 		}
 
-		// add additionnals tags ?
+		// add additional tags ?
 		if dm.ATags != nil {
 			ednstap.Atags = &ExtendedATags{
 				Tags: dm.ATags.Tags,

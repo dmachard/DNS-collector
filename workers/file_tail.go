@@ -61,7 +61,7 @@ func (w *Tail) StartCollect() {
 	dm := dnsutils.DNSMessage{}
 	dm.Init()
 
-	// init dns message with additionnals parts
+	// init dns message with additional parts
 	hostname, err := os.Hostname()
 	if err == nil {
 		dm.DNSTap.Identity = hostname

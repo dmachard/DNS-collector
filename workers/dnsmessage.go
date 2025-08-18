@@ -231,7 +231,7 @@ func (w *DNSMessage) StartCollect() {
 			w.CountEgressTraffic()
 
 			// apply tranforms on matched packets only
-			// init dns message with additionnals parts if necessary
+			// init dns message with additional parts if necessary
 			if matched {
 				transformResult, err := subprocessors.ProcessMessage(&dm)
 				if err != nil {
