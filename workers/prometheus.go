@@ -61,7 +61,7 @@ type PrometheusCountersCatalogue interface {
 	// Prometheus logger encapsulates stats counters (PrometheusCounterSet) inside
 	// PromCounterCatalogueContainer's. For each label the logger creates a nested level
 	// of containers.
-	// Containers and CounterSets must implemnent PrometheusCountersCatalogue interface
+	// Containers and CounterSets must implement PrometheusCountersCatalogue interface
 	// to allow fetching a CounterSet by the list of metric/values by fetching values from
 	// the DNS message it logs.
 	// There is a schematic sample layout when there are 2 labels considered at the end of this file
