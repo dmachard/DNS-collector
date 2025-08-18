@@ -1133,7 +1133,7 @@ func TestDecodePayload_Query_NoRcode(t *testing.T) {
 	dm.DNS.Payload = payload
 	dm.DNS.Length = len(payload)
 
-	// decode header and paylo
+	// decode header and payload
 	header, _ := DecodeDNS(payload)
 	DecodePayload(&dm, &header, pkgconfig.GetDefaultConfig())
 
@@ -1207,7 +1207,7 @@ func TestDecodePayload_Response_Extended_Rcode(t *testing.T) {
 	dm.DNS.Payload = payload
 	dm.DNS.Length = len(payload)
 
-	// decode header and paylo
+	// decode header and payload
 	header, err := DecodeDNS(payload)
 	if err != nil {
 		t.Errorf("unexpected error when decoding header: %v", err)

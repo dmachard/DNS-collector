@@ -32,7 +32,7 @@ func TestDecodeQuestion(t *testing.T) {
 }
 
 func TestDecodeQuestion_Multiple(t *testing.T) {
-	paylaod := []byte{
+	payload := []byte{
 		0x9e, 0x84, 0x01, 0x20, 0x00, 0x03, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00,
 		// query 1
@@ -49,7 +49,7 @@ func TestDecodeQuestion_Multiple(t *testing.T) {
 		0x00, 0x1c, 0x00, 0x01,
 	}
 
-	qname, qtype, qclass, offset, err := DecodeQuestion(3, paylaod)
+	qname, qtype, qclass, offset, err := DecodeQuestion(3, payload)
 	if err != nil {
 		t.Errorf("unexpected error %v", err)
 	}
@@ -65,7 +65,7 @@ func TestDecodeQuestion_Multiple(t *testing.T) {
 }
 
 func TestDecodeQuestion_Multiple_InvalidCount(t *testing.T) {
-	paylaod := []byte{
+	payload := []byte{
 		0x9e, 0x84, 0x01, 0x20, 0x00, 0x04, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00,
 		// query 1
@@ -82,7 +82,7 @@ func TestDecodeQuestion_Multiple_InvalidCount(t *testing.T) {
 		0x00, 0x1c, 0x00, 0x01,
 	}
 
-	_, _, _, _, err := DecodeQuestion(4, paylaod)
+	_, _, _, _, err := DecodeQuestion(4, payload)
 	if !errors.Is(err, ErrDecodeDNSLabelTooShort) {
 		t.Errorf("bad error received: %v", err)
 	}
