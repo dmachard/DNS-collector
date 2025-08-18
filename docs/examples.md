@@ -15,7 +15,7 @@ Get started quickly with these ready-to-use configuration examples covering comm
   - [x] [Aggregate several DNSTap stream and forward it to the same file](./_examples/use-case-7.yml)
   - [x] [Send to syslog TLS](./_examples/use-case-23.yml)
 
-- **Captue DNS traffic and make format conversion on it**
+- **Capture DNS traffic and make format conversion on it**
   - [x] [Convert to text format output](./_examples/use-case-28.yml)
   - [x] [Convert to CSV output style](./_examples/use-case-30.yml)
   - [x] [Convert to text format with dig style, based on Jinja templating](./_examples/use-case-27.yml)
