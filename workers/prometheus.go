@@ -220,7 +220,7 @@ func (w *PrometheusCountersSet) GetCountersSet(dm *dnsutils.DNSMessage) Promethe
 }
 
 // each CounterSet has the same list of timeseries descriptors,
-// so it uses descriptros from the Prometheus instance the set belongs to.
+// so it uses descriptors from the Prometheus instance the set belongs to.
 func (w *PrometheusCountersSet) Describe(ch chan<- *prometheus.Desc) {
 	// Gauge metrcis
 	w.Lock()
