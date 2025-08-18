@@ -1240,7 +1240,7 @@ Example of conterSet/Container for 2 labels
 |         value11                                                                 value12                  |
 | +---------------------------------------------------------------------------+ +-------------------------+|
 | | Container for label2                                                      | | Container for label2    ||
-| | in this container ALL elements                                            | | all elemenens share     ||
+| | in this container ALL elements                                            | | all elements share      ||
 | | have the same value for label1                                            | | the same value of label1||
 | |                                                                           | |                         ||
 | | Label2 values:                                                            | | +----------++----------+||
