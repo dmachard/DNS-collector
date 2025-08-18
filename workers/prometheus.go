@@ -719,7 +719,7 @@ func NewPrometheus(config *pkgconfig.Config, logger *logger.Logger, name string)
 	// init prometheus
 	w.InitProm()
 
-	// midleware to add basic authentication
+	// middleware to add basic authentication
 	authMiddleware := func(handler http.Handler) http.Handler {
 		return http.HandlerFunc(func(httpWriter http.ResponseWriter, r *http.Request) {
 			username, password, ok := r.BasicAuth()
