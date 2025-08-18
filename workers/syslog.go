@@ -314,7 +314,7 @@ func (w *Syslog) StartLogging() {
 				return
 			}
 
-			// discar dns message if the connection is not ready
+			// discard dns message if the connection is not ready
 			if !w.syslogReady {
 				continue
 			}
