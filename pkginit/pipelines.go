@@ -71,7 +71,7 @@ func StanzaNameIsUniq(name string, config *pkgconfig.Config) (ret error) {
 	}
 
 	if stanzaCounter > 1 {
-		return fmt.Errorf("stanza=%s allready exists", name)
+		return fmt.Errorf("stanza=%s already exists", name)
 	}
 	return nil
 }

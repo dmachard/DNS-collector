@@ -651,7 +651,7 @@ func (w *PromCounterCatalogueContainer) GetCountersSet(dm *dnsutils.DNSMessage) 
 	}
 
 	// w.selector fetches the value for the label *this* Catalogue Element considers.
-	// Check if we alreday have item for it, and return it if we do (it is either catalogue or counter set)
+	// Check if we already have item for it, and return it if we do (it is either catalogue or counter set)
 	lbl := w.selector(dm)
 	w.Lock()
 	defer w.Unlock()
