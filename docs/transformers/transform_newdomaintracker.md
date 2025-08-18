@@ -58,7 +58,7 @@ transforms:
 Example of content for the file `/tmp/whitelist_domain.txt`
 
 ```
-(mail|wwww).google.com
+(mail|www).google.com
 github.com
 ```
 

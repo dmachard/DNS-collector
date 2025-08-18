@@ -22,7 +22,7 @@ pipelines:
 
   # Print DNS messages on standard output with TEXT format
   # with on transformation to reduce qname to lowercase
-  # For example: Wwww.GooGlE.com will be equal to www.google.com
+  # For example: Www.GooGlE.com will be equal to www.google.com
   - name: console
     stdout:
       mode: text

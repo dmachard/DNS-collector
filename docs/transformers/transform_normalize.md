@@ -2,7 +2,7 @@
 
 This transformer can be used:
 
-- to convert all domain to lowercase. For example: `Wwww.GooGlE.com` will be equal to `www.google.com`
+- to convert all domain to lowercase. For example: `Www.GooGlE.com` will be equal to `www.google.com`
 - to add top level domain. For example for `books.amazon.co.uk`, the `TLD`
 is `co.uk` and the `TLD+1` is `amazon.co.uk`.
 - to use small text form. For example: `CLIENT_QUERY` will be replaced by `CQ`

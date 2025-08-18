@@ -65,7 +65,7 @@ transforms:
 Domain list with regex example:
 
 ```bash
-(mail|wwww).google.com
+(mail|www).google.com
 github.com
 ```
 
