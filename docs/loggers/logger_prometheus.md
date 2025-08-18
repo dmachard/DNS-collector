@@ -137,7 +137,7 @@ See the [full list of metrics](./../metrics.txt).
 | dnscollector_total_domains_lru                | Total number of serverfail domains most recently observed per stream identity
 | dnscollector_total_noerror_domains_lru                | Total number of serverfail domains most recently observed per stream identity
 | dnscollector_total_servfail_domains_lru                | Total number of serverfail domains most recently observed per stream identity
-| dnscollector_total_nonexistentçdomains_lru                | Total number of NX domains most recently observed per stream identity
+| dnscollector_total_nonexistent_domains_lru                | Total number of NX domains most recently observed per stream identity
 | dnscollector_dnsmessage_total                   | Counter of total of DNS messages
 | dnscollector_queries_total                      | Counter of total of queries
 | dnscollector_replies_total                      | Counter of total of replies
