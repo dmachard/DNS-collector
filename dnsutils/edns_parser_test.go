@@ -174,7 +174,7 @@ func TestDecodeEdns_Short(t *testing.T) {
 				// Option data
 				0x00, 0x00, 0x00,
 				// Another RR starts here, we try to trick the parser
-				// to jum here with invalid option length
+				// to jump here with invalid option length
 				// empty name
 				0x00,
 				// type OPT
