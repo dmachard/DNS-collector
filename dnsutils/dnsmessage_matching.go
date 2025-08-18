@@ -119,7 +119,7 @@ func matchUserMap(realValue, expectedValue reflect.Value) (bool, error) {
 				for i := 0; i < realValue.Len(); i++ {
 					elemValue := realValue.Index(i)
 
-					// Check if the element is a int
+					// Check if the element is an int
 					if _, ok := elemValue.Interface().(int); !ok {
 						continue
 					}
@@ -165,7 +165,7 @@ func matchUserMap(realValue, expectedValue reflect.Value) (bool, error) {
 				for i := 0; i < realValue.Len(); i++ {
 					elemValue := realValue.Index(i)
 
-					// Check if the element is a int
+					// Check if the element is an int
 					if _, ok := elemValue.Interface().(int); !ok {
 						continue
 					}
@@ -338,7 +338,7 @@ func matchUserBoolean(realValue, expectedValue reflect.Value) (bool, error) {
 		for i := 0; i < realValue.Len(); i++ {
 			elemValue := realValue.Index(i)
 
-			// Check if the element is a int
+			// Check if the element is an int
 			if _, ok := elemValue.Interface().(bool); !ok {
 				continue
 			}
@@ -368,7 +368,7 @@ func matchUserInteger(realValue, expectedValue reflect.Value) (bool, error) {
 		for i := 0; i < realValue.Len(); i++ {
 			elemValue := realValue.Index(i)
 
-			// Check if the element is a int
+			// Check if the element is an int
 			if _, ok := elemValue.Interface().(int); !ok {
 				continue
 			}
