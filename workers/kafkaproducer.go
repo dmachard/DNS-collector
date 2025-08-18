@@ -346,7 +346,7 @@ func (w *KafkaProducer) StartLogging() {
 	defer w.LoggingDone()
 
 	ctx, cancelKafka := context.WithCancel(context.Background())
-	defer cancelKafka() // Libérez les ressources liées au contexte
+	defer cancelKafka() // Free context-related resources
 
 	// init buffer
 	bufferDm := []dnsutils.DNSMessage{}
