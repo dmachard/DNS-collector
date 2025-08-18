@@ -19,7 +19,7 @@ Options:
 
 * `bulk-channel-size` (integer)
   > Maximum number of bulk messages in buffer.
-  > Specifies the maximun number of bulk messages in buffer before to drop it.
+  > Specifies the maximum number of bulk messages in buffer before to drop it.
 
 * `compression`  (string)
   > Compression for bulk messages: `none`, `gzip`.
