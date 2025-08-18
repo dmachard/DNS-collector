@@ -232,7 +232,7 @@ func (w *Syslog) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 			buffer.Write(dm.Bytes(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary))
 
 			// replace NULL char from text line directly in the buffer
-			// because the NULL is a end of log in syslog
+			// because the NULL is at end of log in syslog
 			for i := 0; i < buffer.Len(); i++ {
 				if buffer.Bytes()[i] == 0 {
 					buffer.Bytes()[i] = w.GetConfig().Loggers.Syslog.ReplaceNullChar[0]
