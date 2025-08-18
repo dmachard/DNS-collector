@@ -186,7 +186,7 @@ func TestPrometheus_EPS_Counters(t *testing.T) {
 	ensureMetricValue(t, mf, "dnscollector_throughput_ops", map[string]string{"stream_id": "collector"}, 2)
 	ensureMetricValue(t, mf, "dnscollector_throughput_ops_max", map[string]string{"stream_id": "collector"}, 2)
 
-	// During next 'second' we see only 1 event. EPS counter changes, EPS Max counter keeps it's value
+	// During next 'second' we see only 1 event. EPS counter changes, EPS Max counter keeps its value
 	g.Record(noErrorRecord)
 	g.ComputeEventsPerSecond()
 
