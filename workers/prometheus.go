@@ -713,7 +713,7 @@ func NewPrometheus(config *pkgconfig.Config, logger *logger.Logger, name string)
 	w.doneAPI = make(chan bool)
 	w.promRegistry = prometheus.NewPedanticRegistry()
 
-	// This will create a catalogue of counters indexed by fileds requested by config
+	// This will create a catalogue of counters indexed by fields requested by config
 	w.catalogueLabels, w.counters = CreateSystemCatalogue(w)
 
 	// init prometheus
