@@ -30,7 +30,7 @@ import (
 /*
 This is the list of available label values selectors.
 Configuration may specify a list of labels to use for metrics.
-Any label in this catalogueSelectors can be specidied in config (prometheus-labels stanza)
+Any label in this catalogueSelectors can be specified in config (prometheus-labels stanza)
 */
 var catalogueSelectors map[string]func(*dnsutils.DNSMessage) string = map[string]func(*dnsutils.DNSMessage) string{
 	"stream_id":     GetStreamID,
