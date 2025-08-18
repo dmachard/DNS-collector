@@ -104,7 +104,7 @@ type PromCounterCatalogueContainer struct {
 	// map to use to get proper selectors.
 	// The topmost instance of PromCounterCatalogueContainer has the full list of all names to
 	// consider (the one provided by the config). Whenver it needs to create a new item in
-	// it's stats map, it suplies labelNames[1:] to the constructor for the lower level
+	// it's stats map, it supplies labelNames[1:] to the constructor for the lower level
 	// container to get the selector for the next level
 	labelNames []string // This is list of label names for nested containers
 
