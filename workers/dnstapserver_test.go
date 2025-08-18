@@ -181,7 +181,7 @@ func Test_DnstapCollector_CloseFrameStream(t *testing.T) {
 		t.Errorf("reset sender error: %s", errClose)
 	}
 
-	regxp := ".*framestream reseted by sender.*"
+	regxp := ".*framestream reset by sender.*"
 	pattern := regexp.MustCompile(regxp)
 
 	matchMsg := false
