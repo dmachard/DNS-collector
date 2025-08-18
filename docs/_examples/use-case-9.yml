@@ -12,7 +12,7 @@ global:
 
 pipelines:
   # Listen on tcp/6000 for incoming DNSTap protobuf messages from dns servers
-  # with some transformations to only keep 1 out of every downsample records
+  # with some transformations to only keep one out of every downsample records
   # and whitelistfile witch contains:
   # *.google.com$
   # *.github.com$

@@ -42,7 +42,7 @@ Options:
   > drop all replies on false
 
 * `downsample` (integer)
-  > set the sampling rate, only keep 1 out of every `downsample` records, e.g. if set to 20, then this will return every 20th record (sampling at 1:20 or dropping 95% of queries).
+  > set the sampling rate, only keep one out of every `downsample` records, e.g. if set to 20, then this will return every 20th record (sampling at 1:20 or dropping 95% of queries).
 
 Default values:
 
