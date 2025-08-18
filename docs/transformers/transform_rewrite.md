@@ -1,7 +1,7 @@
 # Transformer: Rewrite
 
 Use this transformer to rewrite the content of DNS messages according to the [structure](../dnsjson.md#dns-collector---json-encoding).
-For more details, see the feature request [here](https://github.com/dmachard/DNS-collector/issues/527).
+For more details, see the [feature request](https://github.com/dmachard/DNS-collector/issues/527).
 
 > Only fields with int and string types are supported.
 
