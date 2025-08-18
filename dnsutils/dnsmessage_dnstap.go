@@ -91,7 +91,7 @@ func (dm *DNSMessage) ToDNSTap(extended bool) ([]byte, error) {
 		dt.Extra = []byte(dm.DNSTap.Extra)
 	}
 
-	// construct new dnstap field with all tranformations
+	// construct new dnstap field with all transformations
 	// the original extra field is kept if exist
 	if extended {
 		ednstap := &ExtendedDnstap{}

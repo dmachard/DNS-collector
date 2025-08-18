@@ -25,7 +25,7 @@ func TestFilteringQR(t *testing.T) {
 	// init subprocessor
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
 
-	// get tranforms
+	// get transforms
 	subtransforms, _ := filtering.GetTransforms()
 	if len(subtransforms) != 2 {
 		t.Errorf("invalid number of subtransforms enabled")
@@ -53,7 +53,7 @@ func TestFilteringByRcodeNOERROR(t *testing.T) {
 	// init subprocessor
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
 
-	// get tranforms
+	// get transforms
 	subtransforms, _ := filtering.GetTransforms()
 	if len(subtransforms) != 1 {
 		t.Errorf("invalid number of subtransforms enabled")
@@ -76,7 +76,7 @@ func TestFilteringByRcodeEmpty(t *testing.T) {
 	// init subprocessor
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
 
-	// get tranforms
+	// get transforms
 	subtransforms, _ := filtering.GetTransforms()
 	if len(subtransforms) != 0 {
 		t.Errorf("no subtransforms should be enabled")
@@ -94,7 +94,7 @@ func TestFilteringByKeepQueryIp(t *testing.T) {
 	// init subprocessor
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
 
-	// get tranforms
+	// get transforms
 	subtransforms, _ := filtering.GetTransforms()
 	if len(subtransforms) != 1 {
 		t.Errorf("invalid number of subtransforms enabled")
@@ -128,7 +128,7 @@ func TestFilteringByDropQueryIp(t *testing.T) {
 	// init subprocessor
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
 
-	// get tranforms
+	// get transforms
 	subtransforms, _ := filtering.GetTransforms()
 	if len(subtransforms) != 1 {
 		t.Errorf("invalid number of subtransforms enabled")
@@ -163,7 +163,7 @@ func TestFilteringByKeepRdataIp(t *testing.T) {
 	// init subprocessor
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
 
-	// get tranforms
+	// get transforms
 	subtransforms, _ := filtering.GetTransforms()
 	if len(subtransforms) != 1 {
 		t.Errorf("invalid number of subtransforms enabled")
@@ -262,7 +262,7 @@ func TestFilteringByFqdn(t *testing.T) {
 	// init subprocessor
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
 
-	// get tranforms
+	// get transforms
 	subtransforms, _ := filtering.GetTransforms()
 	if len(subtransforms) != 1 {
 		t.Errorf("invalid number of subtransforms enabled")
@@ -291,7 +291,7 @@ func TestFilteringByDomainRegex(t *testing.T) {
 	// init subprocessor
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
 
-	// get tranforms
+	// get transforms
 	subtransforms, _ := filtering.GetTransforms()
 	if len(subtransforms) != 1 {
 		t.Errorf("invalid number of subtransforms enabled")
@@ -327,7 +327,7 @@ func TestFilteringByKeepDomain(t *testing.T) {
 	// init subprocessor
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
 
-	// get tranforms
+	// get transforms
 	subtransforms, _ := filtering.GetTransforms()
 	if len(subtransforms) != 1 {
 		t.Errorf("invalid number of subtransforms enabled")
@@ -372,7 +372,7 @@ func TestFilteringByKeepDomainRegex(t *testing.T) {
 	// init subprocessor
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
 
-	// get tranforms
+	// get transforms
 	subtransforms, _ := filtering.GetTransforms()
 	if len(subtransforms) != 1 {
 		t.Errorf("invalid number of subtransforms enabled")
