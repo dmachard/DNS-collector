@@ -13,7 +13,7 @@ import (
 
 func TestTailRun(t *testing.T) {
 	// create a temp file
-	tmpFile, err := os.CreateTemp("", "temp_tailffile")
+	tmpFile, err := os.CreateTemp("", "temp_tailfile")
 	if err != nil {
 		log.Fatal(err)
 	}
