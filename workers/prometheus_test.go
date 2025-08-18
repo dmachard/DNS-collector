@@ -71,7 +71,7 @@ func TestPrometheus_GetMetrics(t *testing.T) {
 	t.Run("TwoLabelsStreamIDResolver", getMetricsTestCase(config, map[string]string{"resolver": "4.3.2.1", "stream_id": "collector"}))
 }
 
-// This helper generates a set of DNS packes for logger to count
+// This helper generates a set of DNS packets for logger to count
 // It then collects Prometheus metrics to verify they exist and have expected labels/values
 // func getMetricsHelper(config *pkgconfig.Config, labels map[string]string, t *testing.T) {
 func getMetricsTestCase(config *pkgconfig.Config, labels map[string]string) func(t *testing.T) {
