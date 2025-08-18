@@ -1223,7 +1223,7 @@ func (w *Prometheus) StartLogging() {
 
 /*
 This is an implementation of variadic dimensions map of label values.
-Having nested structure offers the fastest operations, compared to super-flexibile approach that prom client
+Having nested structure offers the fastest operations, compared to super-flexible approach that prom client
 uses with arbitrary set of labels.
 
 Label values are obtained by the means of 'selectors' - functions that fetch a specific field of a DNS Message
