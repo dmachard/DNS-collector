@@ -69,7 +69,7 @@ type PrometheusCountersCatalogue interface {
 }
 
 // This type represents a set of counters for a unique set of label name=value pairs.
-// By default, we create a set per setream_id for backward compatibility
+// By default, we create a set per stream_id for backward compatibility
 // However, we can allow slicing and dicing data using more dimensions.
 // Each CounterSet is registered with Prometheus collection independently (wrapping label values)
 type PrometheusCountersSet struct {

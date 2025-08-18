@@ -58,13 +58,13 @@ Options:
   > maximum time (in seconds) before eviction from the LRU cache
 
 * `domains-cache-size` (integer)
-  > LRU (least-recently-used) cache size for observed domains per strea
+  > LRU (least-recently-used) cache size for observed domains per stream
 
 * `domains-cache-ttl` (integer)
   > maximum time (in seconds) before eviction from the LRU cache
 
 * `noerror-domains-cache-size`: (integer)
-  > LRU (least-recently-used) cache size for observed NOERROR domains per strea
+  > LRU (least-recently-used) cache size for observed NOERROR domains per stream
 
 * `noerror-domains-cache-ttl` (integer)
   > maximum time (in seconds) before eviction from the LRU cache

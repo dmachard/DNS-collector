@@ -17,7 +17,7 @@ pipelines:
       listen-ip: 0.0.0.0
       listen-port: 6000
     # Routes the pdns_internal stream to internal file 
-    # and pdns_internet steram to internet file
+    # and pdns_internet stream to internet file
     routing-policy:
       forward: [ file_internal ]
 
