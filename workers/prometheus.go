@@ -151,7 +151,7 @@ type Prometheus struct {
 	catalogueLabels []string
 	counters        *PromCounterCatalogueContainer
 
-	// All metrics use these descriptions when regestering
+	// All metrics use these descriptions when registering
 	gaugeTopDomains, gaugeTopRequesters                        *prometheus.Desc
 	gaugeTopNoerrDomains, gaugeTopNxDomains, gaugeTopSfDomains *prometheus.Desc
 	gaugeTopTlds, gaugeTopETldsPlusOne                         *prometheus.Desc
