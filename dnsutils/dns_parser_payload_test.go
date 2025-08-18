@@ -556,7 +556,7 @@ func TestDecodePayload_AnswerInvalidEdns(t *testing.T) {
 	}
 }
 
-func TestDecodePayload_AnswerInvaliAdditional(t *testing.T) {
+func TestDecodePayload_AnswerInvalidAdditional(t *testing.T) {
 	payload := []byte{
 		0x9e, 0x84, 0x81, 0x80, 0x00, 0x01, 0x00, 0x04,
 		0x00, 0x00, 0x00, 0x01,
