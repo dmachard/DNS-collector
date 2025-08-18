@@ -765,7 +765,7 @@ func (w *Prometheus) InitProm() {
 	// also try collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 
 	// Metric description created in Prometheus object, but used in Describe method of PrometheusCounterSet
-	// Prometheus class itself reports signle metric - BuildInfo.
+	// Prometheus class itself reports single metric - BuildInfo.
 	w.gaugeTopDomains = prometheus.NewDesc(
 		fmt.Sprintf("%s_top_domains", promPrefix),
 		"Number of hit per domain topN, partitioned by qname",
