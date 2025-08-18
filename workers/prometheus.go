@@ -111,7 +111,7 @@ type PromCounterCatalogueContainer struct {
 	// This is the unique set of label-value pairs for this catalogue element.
 	// The topmost Catalog has it empty, when it creates a new entry it provides the pair of
 	// labelNames[0]->selector(message) to the constructor. Lower levels get these pair
-	// collected. Ultimately, when all label names in labelNames is exausted, Catalogue creates
+	// collected. Ultimately, when all label names in labelNames is exhausted, Catalogue creates
 	// an instance of newPrometheusCounterSet and provides it with labels map to properly wrap
 	// in Prometheus registry.
 	// The goal is to separate label/values pairs construction and individual counters collection
