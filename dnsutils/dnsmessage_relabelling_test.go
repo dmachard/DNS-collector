@@ -8,7 +8,7 @@ import (
 
 // Flatten and relabeling
 func TestDnsMessage_ApplyRelabeling(t *testing.T) {
-	// Créer un DNSMessage avec des règles de relabeling pour le test
+	// Create a DNSMessage with relabeling rules for the test
 	dm := &DNSMessage{
 		Relabeling: &TransformRelabeling{
 			Rules: []RelabelingRule{
