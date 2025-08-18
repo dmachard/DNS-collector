@@ -37,7 +37,7 @@ Configuration example
         - regex: "network"
 ```
 
-This config produces the following flat-json ouput:
+This config produces the following flat-json output:
 
 Query:
 
