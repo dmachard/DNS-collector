@@ -726,7 +726,7 @@ MX
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 */
 func ParseMX(rdataOffset int, payload []byte) (string, error) {
-	// ensure there is enough data for pereference and at least
+	// ensure there is enough data for preference and at least
 	// one byte for label
 	if len(payload) < rdataOffset+3 {
 		return "", ErrDecodeDNSAnswerRdataTooShort
