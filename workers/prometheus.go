@@ -53,8 +53,8 @@ type EpsCounters struct {
 	TotalQueries, TotalReplies                     int
 	TotalBytes, TotalBytesSent, TotalBytesReceived int
 
-	TotalTC, TotalAA, TotalRA, TotalAD               float64
-	TotalMalformed, TotalFragmented, TotalReasembled float64
+	TotalTC, TotalAA, TotalRA, TotalAD                float64
+	TotalMalformed, TotalFragmented, TotalReassembled float64
 }
 
 type PrometheusCountersCatalogue interface {
@@ -415,7 +415,7 @@ func (w *PrometheusCountersSet) Record(dm dnsutils.DNSMessage) {
 		w.epsCounters.TotalFragmented++
 	}
 	if dm.NetworkInfo.TCPReassembled {
-		w.epsCounters.TotalReasembled++
+		w.epsCounters.TotalReassembled++
 	}
 
 }
@@ -577,7 +577,7 @@ func (w *PrometheusCountersSet) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(w.prom.counterFlagsFragmented, prometheus.CounterValue,
 		w.epsCounters.TotalFragmented)
 	ch <- prometheus.MustNewConstMetric(w.prom.counterFlagsReassembled, prometheus.CounterValue,
-		w.epsCounters.TotalReasembled)
+		w.epsCounters.TotalReassembled)
 
 	ch <- prometheus.MustNewConstMetric(w.prom.totalBytes,
 		prometheus.CounterValue, float64(w.epsCounters.TotalBytes),
