@@ -97,7 +97,7 @@ func InitMultiplexer(mapLoggers map[string]workers.Worker, mapCollectors map[str
 		// prepare restructured config for the current logger
 		subcfg := GetItemConfig("loggers", config, output)
 
-		// registor the logger if enabled
+		// register the logger if enabled
 		if subcfg.Loggers.DevNull.Enable && IsLoggerRouted(config, output.Name) {
 			mapLoggers[output.Name] = workers.NewDevNull(subcfg, logger, output.Name)
 		}
