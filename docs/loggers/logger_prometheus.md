@@ -128,7 +128,7 @@ curl -u admin:changeme http://127.0.0.1:8080/metrics
 
 ## Metrics
 
-The full metrics can be found [here](./../metrics.txt).
+See the [full list of metrics](./../metrics.txt).
 
 | Metric                                          | Notes
 |-------------------------------------------------|------------------------------------
