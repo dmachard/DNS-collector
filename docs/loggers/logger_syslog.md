@@ -43,7 +43,7 @@ Options:
 * `key-file` (string)
   > Specifies the path to the key file corresponding to the certificate file. This is a required parameter if TLS support is enabled.
 
-* `formattter` (string)
+* `formatter` (string)
   > Set syslog formatter between `unix`, `rfc3164` or `rfc5424`
 
 * `framer` (string)
