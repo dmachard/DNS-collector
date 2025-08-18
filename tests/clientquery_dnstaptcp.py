@@ -95,12 +95,12 @@ class TestDnstap(unittest.TestCase):
                 self.fail("collector listening timeout")
 
             # connect client to collector
-            hanshake_client = self.loop.create_future()
-            transport_client, protocol_client =  await self.loop.create_connection(lambda: DnstapProtocol(hanshake_client), 'localhost', 6000)
+            handshake_client = self.loop.create_future()
+            transport_client, protocol_client =  await self.loop.create_connection(lambda: DnstapProtocol(handshake_client), 'localhost', 6000)
 
             # wait handshake from collector
             try:
-                await asyncio.wait_for(hanshake_client, timeout=1.0)
+                await asyncio.wait_for(handshake_client, timeout=1.0)
             except asyncio.TimeoutError:
                 protocol_collector.kill()
                 self.fail("handshake client failed")
