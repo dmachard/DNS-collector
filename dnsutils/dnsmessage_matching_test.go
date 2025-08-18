@@ -208,7 +208,7 @@ func TestDNSMessage_Matching_Arrays(t *testing.T) {
 		wantMatch bool
 	}{
 		{
-			name: "Test wilcard match with operator",
+			name: "Test wildcard match with operator",
 			dm:   &DNSMessage{DNS: DNS{DNSRRs: DNSRRs{Answers: []DNSAnswer{{TTL: 300}}}}},
 			matching: map[string]interface{}{
 				"dns.resource-records.an.*.ttl": map[string]interface{}{
@@ -219,7 +219,7 @@ func TestDNSMessage_Matching_Arrays(t *testing.T) {
 			wantMatch: true,
 		},
 		{
-			name: "Test wilcard no match and operator",
+			name: "Test wildcard no match and operator",
 			dm:   &DNSMessage{DNS: DNS{DNSRRs: DNSRRs{Answers: []DNSAnswer{{TTL: 300}}}}},
 			matching: map[string]interface{}{
 				"dns.resource-records.an.*.ttl": map[string]interface{}{
@@ -230,7 +230,7 @@ func TestDNSMessage_Matching_Arrays(t *testing.T) {
 			wantMatch: false,
 		},
 		{
-			name: "Test wilcard no match and invalid operator",
+			name: "Test wildcard no match and invalid operator",
 			dm:   &DNSMessage{DNS: DNS{DNSRRs: DNSRRs{Answers: []DNSAnswer{{TTL: 300}}}}},
 			matching: map[string]interface{}{
 				"dns.resource-records.an.*.ttl": map[string]interface{}{
