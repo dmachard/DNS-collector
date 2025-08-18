@@ -26,7 +26,7 @@ Options:
 * `hash-ip-algo` (string)
   > algorithm to use for IP hashing, currently supported `sha1` (default), `sha256`, `sha512`
 
-* `minimaze-qname` (boolean)
+* `minimize-qname` (boolean)
   > keep only the second level domain
 
 ```yaml
@@ -38,5 +38,5 @@ transforms:
     hash-query-ip: false
     hash-reply-ip: false
     hash-ip-algo: "sha1"
-    minimaze-qname: false
+    minimize-qname: false
 ```

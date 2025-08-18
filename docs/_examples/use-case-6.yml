@@ -21,7 +21,7 @@ pipelines:
     transforms:
       user-privacy:
         anonymize-ip: true
-        minimaze-qname: true
+        minimize-qname: true
     # Routes DNS messages from the tap collector to standard output
     routing-policy:
       forward: [ console ]
