@@ -50,7 +50,7 @@ Options:
   > Specifies the maximum number of packets that can be buffered before discard additional packets.
   > Set to zero to use the default global value.
 
-* `extended-support` (boolen)
+* `extended-support` (boolean)
   > Extend the DNStap message by incorporating additional transformations, such as filtering and ATags, into the extra field.
 
 * `compression` (string)
