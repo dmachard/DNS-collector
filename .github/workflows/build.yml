@@ -85,15 +85,14 @@ jobs:
 
   docker-build:
     runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        platform: [linux/amd64, linux/386]
-
     steps:
       - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
 
       - name: Build the Docker image
         run: |
-          PLATFORM=${{ matrix.platform }}  
-          TAG=$(echo "$PLATFORM" | tr '/' '-')
-          docker build --build-arg VERSION=dev . --platform $PLATFORM --file Dockerfile -t dnscollector:$TAG
+          docker buildx build \
+            --build-arg VERSION=dev \
+            --platform linux/amd64,linux/arm64,linux/i386 \
+            --file Dockerfile -t dnscollector .

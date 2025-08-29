@@ -181,7 +181,7 @@ func Test_DnstapCollector_CloseFrameStream(t *testing.T) {
 		t.Errorf("reset sender error: %s", errClose)
 	}
 
-	regxp := ".*framestream reseted by sender.*"
+	regxp := ".*framestream reset by sender.*"
 	pattern := regexp.MustCompile(regxp)
 
 	matchMsg := false
@@ -668,7 +668,7 @@ func Test_DnstapProcessor_TelemetryCounters(t *testing.T) {
 	r := <-metrics.Record
 
 	if r.TotalIngress != 1 {
-		t.Errorf("invalid total ingress oucnter: got %d expect 1", r.TotalIngress)
+		t.Errorf("invalid total ingress counter: got %d expect 1", r.TotalIngress)
 	}
 	if r.TotalEgress != 1 {
 		t.Errorf("invalid total egress counter: got %d expect 1", r.TotalEgress)

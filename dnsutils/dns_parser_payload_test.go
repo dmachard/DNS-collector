@@ -154,7 +154,7 @@ func TestDecodePayload_AnswerHappy(t *testing.T) {
 		0x00, 0x00, 0x01, 0x2c,
 		// 10.10.1.4
 		0x00, 0x04, 0x0a, 0x0a, 0x01, 0x04,
-		// Additianl records, EDNS Option, 0 bytes DO=0, Z = 0
+		// Additional records, EDNS Option, 0 bytes DO=0, Z = 0
 		0x00, 0x00, 0x29, 0x04, 0xd0, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00,
 	}
@@ -275,7 +275,7 @@ func TestDecodePayload_AnswerMultipleQueries(t *testing.T) {
 		0x00, 0x00, 0x01, 0x2c,
 		// 10.10.1.4
 		0x00, 0x04, 0x0a, 0x0a, 0x01, 0x04,
-		// Additianl records, EDNS Option, 0 bytes DO=0, Z = 0
+		// Additional records, EDNS Option, 0 bytes DO=0, Z = 0
 		0x00, 0x00, 0x29, 0x04, 0xd0, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00,
 	}
@@ -388,7 +388,7 @@ func TestDecodePayload_AnswerInvalid(t *testing.T) {
 		0x00, 0x00, 0x01, 0x2c,
 		// 10.10.1.4
 		0x00, 0x04, 0x0a, 0x0a, 0x01, 0x04,
-		// Additianl records, EDNS Option, 0 bytes DO=0, Z = 0
+		// Additional records, EDNS Option, 0 bytes DO=0, Z = 0
 		0x00, 0x00, 0x29, 0x04, 0xd0, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00,
 	}
@@ -456,7 +456,7 @@ func TestDecodePayload_AnswerInvalidQuery(t *testing.T) {
 		0x00, 0x00, 0x01, 0x2c,
 		// 10.10.1.4
 		0x00, 0x04, 0x0a, 0x0a, 0x01, 0x04,
-		// Additianl records, EDNS Option, 0 bytes DO=0, Z = 0
+		// Additional records, EDNS Option, 0 bytes DO=0, Z = 0
 		0x00, 0x00, 0x29, 0x04, 0xd0, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00,
 	}
@@ -530,7 +530,7 @@ func TestDecodePayload_AnswerInvalidEdns(t *testing.T) {
 		0x00, 0x00, 0x01, 0x2c,
 		// 10.10.1.4
 		0x00, 0x04, 0x0a, 0x0a, 0x01, 0x04,
-		// Additianl records, Invalid EDNS Option
+		// Additional records, Invalid EDNS Option
 		0x00, 0x00, 0x29, 0x04, 0xd0, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x03, 0x00, 0x01, 0x01,
 	}
@@ -556,7 +556,7 @@ func TestDecodePayload_AnswerInvalidEdns(t *testing.T) {
 	}
 }
 
-func TestDecodePayload_AnswerInvaliAdditional(t *testing.T) {
+func TestDecodePayload_AnswerInvalidAdditional(t *testing.T) {
 	payload := []byte{
 		0x9e, 0x84, 0x81, 0x80, 0x00, 0x01, 0x00, 0x04,
 		0x00, 0x00, 0x00, 0x01,
@@ -598,7 +598,7 @@ func TestDecodePayload_AnswerInvaliAdditional(t *testing.T) {
 		0x00, 0x00, 0x01, 0x2c,
 		// 10.10.1.4
 		0x00, 0x04, 0x0a, 0x0a, 0x01, 0x04,
-		// Additianl records, Invalid RDLENGTH
+		// Additional records, Invalid RDLENGTH
 		0x00, 0x00, 0x29, 0x04, 0xd0, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x01,
 	}
@@ -661,7 +661,7 @@ func TestDecodePayload_AnswerError(t *testing.T) {
 		0x00, 0x00, 0x07, 0x08,
 		// minimum
 		0x00, 0x00, 0x00, 0x3c,
-		// Additianl records, EDNS Option, 0 bytes DO=1, Z = 0
+		// Additional records, EDNS Option, 0 bytes DO=1, Z = 0
 		0x00, 0x00, 0x29, 0x04, 0xd0, 0x00,
 		0x00, 0x80, 0x00, 0x00, 0x00,
 	}
@@ -765,7 +765,7 @@ func TestDecodePayload_AnswerError_Invalid(t *testing.T) {
 		0x00, 0x00, 0x07, 0x08,
 		// minimum
 		0x00, 0x00, 0x00, 0x3c,
-		// Additianl records, EDNS Option, 0 bytes DO=1, Z = 0
+		// Additional records, EDNS Option, 0 bytes DO=1, Z = 0
 		0x00, 0x00, 0x29, 0x04, 0xd0, 0x00,
 		0x00, 0x80, 0x00, 0x00, 0x00,
 	}
@@ -827,7 +827,7 @@ func TestDecodePayload_AdditionalRRAndEDNS(t *testing.T) {
 
 	header, err := DecodeDNS(payload)
 	if err != nil {
-		t.Errorf("error when deocoding header: %v", err)
+		t.Errorf("error when decoding header: %v", err)
 	}
 
 	if err := DecodePayload(&dm, &header, pkgconfig.GetDefaultConfig()); err != nil {
@@ -1004,7 +1004,7 @@ func TestDecodePayload_UpdateQuery(t *testing.T) {
 		0x75, 0xa1,
 		// Update Query
 		0x28, 0x00,
-		// 1 zone, O prerequisites, 1 update, 0 additionnal
+		// 1 zone, O prerequisites, 1 update, 0 additional
 		0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
 		// zone section
 		// --> zone name
@@ -1133,7 +1133,7 @@ func TestDecodePayload_Query_NoRcode(t *testing.T) {
 	dm.DNS.Payload = payload
 	dm.DNS.Length = len(payload)
 
-	// decode header and paylo
+	// decode header and payload
 	header, _ := DecodeDNS(payload)
 	DecodePayload(&dm, &header, pkgconfig.GetDefaultConfig())
 
@@ -1144,9 +1144,9 @@ func TestDecodePayload_Query_NoRcode(t *testing.T) {
 }
 
 func TestDecodePayload_Response_Extended_Rcode(t *testing.T) {
-	// issue #1027. The dns.Rcode field should contain the full RCODE, including the extended RCode
+	// issue #1027. The dns.Rcode field should contain the full RCODE, including the extended RCODE
 	// This packet has the RCODE XYRRSET (7) in the header, and the upper 8 bits in the
-	// Extended RCODE set to 16 (1<<4), which is RCODE 23, BADCOOKIE.
+	// extended RCODE set to 16 (1<<4), which is RCODE 23, BADCOOKIE.
 	// We don't really stuff a cookie in the response, as that is not the point of this test :).
 	payload := []byte{
 		// header, RCODE set to XYRRSET (7)
@@ -1187,7 +1187,7 @@ func TestDecodePayload_Response_Extended_Rcode(t *testing.T) {
 		// Additional records, EDNS Record
 		// Root label
 		0x00,
-		// Tupe field, OPT (41)
+		// Tuple field, OPT (41)
 		0x00, 0x29,
 		// Class, UDP payload size
 		0x04, 0xd0,
@@ -1207,7 +1207,7 @@ func TestDecodePayload_Response_Extended_Rcode(t *testing.T) {
 	dm.DNS.Payload = payload
 	dm.DNS.Length = len(payload)
 
-	// decode header and paylo
+	// decode header and payload
 	header, err := DecodeDNS(payload)
 	if err != nil {
 		t.Errorf("unexpected error when decoding header: %v", err)

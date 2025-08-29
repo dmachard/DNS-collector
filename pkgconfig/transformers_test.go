@@ -7,7 +7,7 @@ func TestConfigTransformersSetDefault(t *testing.T) {
 	config.SetDefault()
 
 	if config.UserPrivacy.Enable != false {
-		t.Errorf("user privay should be disabled")
+		t.Errorf("user privacy should be disabled")
 	}
 	if config.Filtering.Enable != false {
 		t.Errorf("filtering should be disabled")

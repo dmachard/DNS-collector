@@ -59,7 +59,7 @@ func (dm *DNSMessage) ToPacketLayer(overwritePort bool) ([]gopacket.Serializable
 		udp.SrcPort = layers.UDPPort(srcPort)
 		udp.DstPort = layers.UDPPort(dstPort)
 
-		// translate to défault DNS port ?
+		// translate to default DNS port ?
 		if dm.DNS.Type == DNSQuery && overwritePort {
 			udp.DstPort = 53
 		}
@@ -87,7 +87,7 @@ func (dm *DNSMessage) ToPacketLayer(overwritePort bool) ([]gopacket.Serializable
 		tcp.PSH = true
 		tcp.Window = 65535
 
-		// translate to défault DNS port ?
+		// translate to default DNS port ?
 		if dm.DNS.Type == DNSQuery && overwritePort {
 			tcp.DstPort = 53
 		}

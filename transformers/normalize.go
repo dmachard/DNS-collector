@@ -132,7 +132,7 @@ func (t *NormalizeTransform) GetEffectiveTld(dm *dnsutils.DNSMessage) (int, erro
 		dm.PublicSuffix = &dnsutils.TransformPublicSuffix{QnamePublicSuffix: "-", QnameEffectiveTLDPlusOne: "-"}
 	}
 
-	// PublicSuffix is case sensitive.
+	// PublicSuffix is case-sensitive.
 	// remove ending dot ?
 	qname := strings.ToLower(dm.DNS.Qname)
 	qname = strings.TrimSuffix(qname, ".")
@@ -153,7 +153,7 @@ func (t *NormalizeTransform) GetEffectiveTldPlusOne(dm *dnsutils.DNSMessage) (in
 		dm.PublicSuffix = &dnsutils.TransformPublicSuffix{QnamePublicSuffix: "-", QnameEffectiveTLDPlusOne: "-"}
 	}
 
-	// PublicSuffix is case sensitive, remove ending dot ?
+	// PublicSuffix is case-sensitive, remove ending dot ?
 	qname := strings.ToLower(dm.DNS.Qname)
 	qname = strings.TrimSuffix(qname, ".")
 

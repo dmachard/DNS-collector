@@ -59,7 +59,7 @@ To get started quickly, you can use this default [`config.yml`](config.yml).
 | [🔄 Transformers](docs/transformers.md) | Data enrichment options |
 | [🐳 Docker](docs/docker.md) | Container deployment |
 | [🔍 Examples](docs/examples.md) | Ready-to-use configs |
-| [🔗 Integrations](docs/integrations.md) | Integrationn with popular tools and DNS servers |
+| [🔗 Integrations](docs/integrations.md) | Integration with popular tools and DNS servers |
 | [⭐ Extended DNStap](docs/extended_dnstap.md) | Extended DNSTap |
 | [📊 Telemetry](docs/telemetry.md) | REST API and Prometheus metrics |
 | [⚡ Performance](docs/performance.md) | Tuning guide |

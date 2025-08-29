@@ -116,7 +116,7 @@ func MyTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, na
 }
 ```
 
-Declare the transfomer in the following file `tranformers.go`
+Declare the transformer in the following file `transformers.go`
 Finally update the docs `doc/transformers.md` and `README.md`
 
 ### Add a worker (collector or logger)

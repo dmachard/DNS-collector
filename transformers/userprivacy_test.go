@@ -18,7 +18,7 @@ var (
 func BenchmarkUserPrivacy_ReduceQname(b *testing.B) {
 	config := pkgconfig.GetFakeConfigTransformers()
 	config.UserPrivacy.Enable = true
-	config.UserPrivacy.MinimazeQname = true
+	config.UserPrivacy.MinimizeQname = true
 
 	channels := []chan dnsutils.DNSMessage{}
 
@@ -30,7 +30,7 @@ func BenchmarkUserPrivacy_ReduceQname(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		userprivacy.minimazeQname(&dm)
+		userprivacy.minimizeQname(&dm)
 	}
 }
 
@@ -94,7 +94,7 @@ func TestUserPrivacy_ReduceQname(t *testing.T) {
 	// enable feature
 	config := pkgconfig.GetFakeConfigTransformers()
 	config.UserPrivacy.Enable = true
-	config.UserPrivacy.MinimazeQname = true
+	config.UserPrivacy.MinimizeQname = true
 
 	outChans := []chan dnsutils.DNSMessage{}
 
@@ -121,7 +121,7 @@ func TestUserPrivacy_ReduceQname(t *testing.T) {
 			dm := dnsutils.GetFakeDNSMessage()
 			dm.DNS.Qname = tc.input
 
-			returnCode, err := userPrivacy.minimazeQname(&dm)
+			returnCode, err := userPrivacy.minimizeQname(&dm)
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}

@@ -295,7 +295,7 @@ func BenchmarkNormalize_RRLowercase(b *testing.B) {
 	config := pkgconfig.GetFakeConfigTransformers()
 	channels := []chan dnsutils.DNSMessage{}
 
-	tranform := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
+	transform := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
 
 	name := "En.Tikipedia.Org"
 	dm := dnsutils.GetFakeDNSMessage()
@@ -306,7 +306,7 @@ func BenchmarkNormalize_RRLowercase(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		tranform.RRLowercase(&dm)
+		transform.RRLowercase(&dm)
 	}
 }
 

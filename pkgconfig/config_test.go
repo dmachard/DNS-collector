@@ -269,7 +269,7 @@ multiplexer:
 			wantErr: false,
 		},
 		{
-			name: "Valid tranforms key with flow argument",
+			name: "Valid transforms key with flow argument",
 			content: `
 multiplexer:
   collectors:

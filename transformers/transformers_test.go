@@ -24,7 +24,7 @@ func BenchmarkTransforms_InitAndProcess(b *testing.B) {
 	config.GeoIP.DBCountryFile = ".././tests/testsdata/GeoLite2-Country.mmdb"
 	config.GeoIP.DBASNFile = ".././tests/testsdata/GeoLite2-ASN.mmdb"
 	config.UserPrivacy.Enable = true
-	config.UserPrivacy.MinimazeQname = true
+	config.UserPrivacy.MinimizeQname = true
 	config.UserPrivacy.AnonymizeIP = true
 	config.Normalize.Enable = true
 	config.Normalize.QnameLowerCase = true

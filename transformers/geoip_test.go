@@ -20,7 +20,7 @@ func TestGeoIP_Json(t *testing.T) {
 	dm := dnsutils.GetFakeDNSMessage()
 	dm.Init()
 
-	// init subproccesor
+	// init subprocessor
 	geoip := NewDNSGeoIPTransform(config, logger.New(true), "test", 0, outChans)
 	if err := geoip.Open(); err != nil {
 		t.Fatalf("geoip init failed: %v+", err)
@@ -117,7 +117,7 @@ func TestGeoIP_LookupAsn(t *testing.T) {
 	// lookup
 	geoInfo, err := geoip.Lookup("83.112.146.176")
 	if err != nil {
-		t.Errorf("geoip loopkup failed: %v", err)
+		t.Errorf("geoip lookup failed: %v", err)
 	}
 
 	if geoInfo.ASO != "Orange" {

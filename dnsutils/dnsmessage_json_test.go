@@ -443,7 +443,7 @@ func TestDnsMessage_JsonFlatten_Transforms_Reference(t *testing.T) {
 					  }`,
 		},
 		{
-			transform: "publixsuffix",
+			transform: "publicsuffix",
 			dm: DNSMessage{
 				PublicSuffix: &TransformPublicSuffix{
 					QnamePublicSuffix:        "com",

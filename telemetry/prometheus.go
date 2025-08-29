@@ -19,7 +19,7 @@ import (
 
 /*
 OpenMetrics and the Prometheus exposition format require the metric name
-to consist only of alphanumericals and "_", ":" and they must not start
+to consist only of alphanumerics and "_", ":" and they must not start
 with digits.
 */
 var metricNameRegex = regexp.MustCompile(`_*[^0-9A-Za-z_]+_*`)

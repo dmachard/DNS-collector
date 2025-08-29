@@ -104,7 +104,7 @@ var (
 		0:  "NOERROR",   // No error condition
 		1:  "FORMERR",   // Format error: query was not understood
 		2:  "SERVFAIL",  // Server failure: unable to process the query
-		3:  "NXDOMAIN",  // Non-existent domain: domain name does not exist
+		3:  "NXDOMAIN",  // Nonexistent domain: domain name does not exist
 		4:  "NOTIMP",    // Not implemented: query type not supported
 		5:  "REFUSED",   // Query refused by policy
 		6:  "YXDOMAIN",  // Name exists when it should not (YX: exists)
@@ -230,13 +230,13 @@ func DecodeDNS(payload []byte) (DNSHeader, error) {
 // decodePayload can be used to decode raw payload data in dm.DNS.Payload
 // into relevant parts of dm.DNS struct. The payload is decoded according to
 // given DNS header.
-// If packet is marked as malformed already, this function returs with no
+// If packet is marked as malformed already, this function returns with no
 // error, but does not process the packet.
-// Error is returned if packet can not be parsed. Returned error wraps the
+// Error is returned if packet cannot be parsed. Returned error wraps the
 // original error returned by relevant decoding operation.
 func DecodePayload(dm *DNSMessage, header *DNSHeader, config *pkgconfig.Config) error {
 	if dm.DNS.MalformedPacket {
-		// do not continue if packet is malformed, the header can not be
+		// do not continue if packet is malformed, the header cannot be
 		// trusted.
 		return nil
 	}
@@ -492,7 +492,7 @@ func DecodeAnswer(ancount int, startOffset int, payload []byte) ([]DNSAnswer, in
 			}
 		}
 
-		// finnally append answer to the list
+		// finally append answer to the list
 		a := DNSAnswer{
 			Name:      name,
 			Rdatatype: rdatatype,
@@ -726,7 +726,7 @@ MX
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 */
 func ParseMX(rdataOffset int, payload []byte) (string, error) {
-	// ensure there is enough data for pereference and at least
+	// ensure there is enough data for preference and at least
 	// one byte for label
 	if len(payload) < rdataOffset+3 {
 		return "", ErrDecodeDNSAnswerRdataTooShort

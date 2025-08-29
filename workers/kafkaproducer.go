@@ -321,7 +321,7 @@ func (w *KafkaProducer) StartCollect() {
 			// count global messages
 			w.CountIngressTraffic()
 
-			// apply tranforms, init dns message with additionnals parts if necessary
+			// apply transforms, init dns message with additional parts if necessary
 			transformResult, err := subprocessors.ProcessMessage(&dm)
 			if err != nil {
 				w.LogError(err.Error())
@@ -346,15 +346,15 @@ func (w *KafkaProducer) StartLogging() {
 	defer w.LoggingDone()
 
 	ctx, cancelKafka := context.WithCancel(context.Background())
-	defer cancelKafka() // Libérez les ressources liées au contexte
+	defer cancelKafka() // Free context-related resources
 
 	// init buffer
 	bufferDm := []dnsutils.DNSMessage{}
 
-	// init flust timer for buffer
+	// init flush timer for buffer
 	readyTimer := time.NewTimer(time.Duration(10) * time.Second)
 
-	// init flust timer for buffer
+	// init flush timer for buffer
 	flushInterval := time.Duration(w.GetConfig().Loggers.KafkaProducer.FlushInterval) * time.Second
 	flushTimer := time.NewTimer(flushInterval)
 

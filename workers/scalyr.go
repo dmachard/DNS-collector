@@ -102,7 +102,7 @@ func (w *ScalyrClient) ReadConfig() {
 
 	tlsConfig, err := netutils.TLSClientConfig(tlsOptions)
 	if err != nil {
-		w.LogFatal("unable to parse tls confgi: ", err)
+		w.LogFatal("unable to parse tls config: ", err)
 	}
 
 	// prepare http client
@@ -161,7 +161,7 @@ func (w *ScalyrClient) StartCollect() {
 			// count global messages
 			w.CountIngressTraffic()
 
-			// apply tranforms, init dns message with additionnals parts if necessary
+			// apply transforms, init dns message with additional parts if necessary
 			transformResult, err := subprocessors.ProcessMessage(&dm)
 			if err != nil {
 				w.LogError(err.Error())

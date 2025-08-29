@@ -108,7 +108,7 @@ func (p *Transforms) Prepare() error {
 	// clean the slice
 	p.activeProcessTransforms = p.activeProcessTransforms[:0]
 	p.activeTransforms = p.activeTransforms[:0]
-	tranformsList := []string{}
+	transformsList := []string{}
 
 	for _, transform := range p.availableTransforms {
 		subtransforms, err := transform.GetTransforms()
@@ -122,12 +122,12 @@ func (p *Transforms) Prepare() error {
 		for _, subtransform := range subtransforms {
 			p.activeProcessTransforms = append(p.activeProcessTransforms, subtransform.processFunc)
 
-			tranformsList = append(tranformsList, subtransform.name)
+			transformsList = append(transformsList, subtransform.name)
 		}
 	}
 
-	if len(tranformsList) > 0 {
-		p.LogInfo("transformers applied: %v", tranformsList)
+	if len(transformsList) > 0 {
+		p.LogInfo("transformers applied: %v", transformsList)
 	}
 	return nil
 }

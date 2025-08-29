@@ -34,5 +34,5 @@ Specific directive(s) available for the text format:
 * `ml-consecutive-digits`: number of consecutive digits
 * `ml-consecutive-consonants`: number of consecutive consonants
 * `ml-size`: size of the packet
-* `ml-occurences`: number of repetition of the packet
+* `ml-occurrences`: number of repetition of the packet
 * `ml-uncommon-qtypes`: flag for uncommon qtypes

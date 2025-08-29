@@ -66,7 +66,7 @@ func (c *Config) IsValid(userCfg map[string]interface{}) error {
 		case "multiplexer":
 			if kvMap, ok := userValue.(map[string]interface{}); ok {
 				if err := c.Multiplexer.IsValid(kvMap); err != nil {
-					return errors.Errorf("mutiplexer section - %s", err)
+					return errors.Errorf("multiplexer section - %s", err)
 				}
 			} else {
 				return errors.Errorf("unexpected type for multiplexer value, got %T", kvMap)

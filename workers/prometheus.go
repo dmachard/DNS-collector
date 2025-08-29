@@ -29,8 +29,8 @@ import (
 
 /*
 This is the list of available label values selectors.
-Configuration may specify a list of lables to use for metrics.
-Any label in this catalogueSelectors can be specidied in config (prometheus-labels stanza)
+Configuration may specify a list of labels to use for metrics.
+Any label in this catalogueSelectors can be specified in config (prometheus-labels stanza)
 */
 var catalogueSelectors map[string]func(*dnsutils.DNSMessage) string = map[string]func(*dnsutils.DNSMessage) string{
 	"stream_id":     GetStreamID,
@@ -53,23 +53,23 @@ type EpsCounters struct {
 	TotalQueries, TotalReplies                     int
 	TotalBytes, TotalBytesSent, TotalBytesReceived int
 
-	TotalTC, TotalAA, TotalRA, TotalAD               float64
-	TotalMalformed, TotalFragmented, TotalReasembled float64
+	TotalTC, TotalAA, TotalRA, TotalAD                float64
+	TotalMalformed, TotalFragmented, TotalReassembled float64
 }
 
 type PrometheusCountersCatalogue interface {
 	// Prometheus logger encapsulates stats counters (PrometheusCounterSet) inside
 	// PromCounterCatalogueContainer's. For each label the logger creates a nested level
 	// of containers.
-	// Containers and CounterSets must implemnent PrometheusCountersCatalogue interface
+	// Containers and CounterSets must implement PrometheusCountersCatalogue interface
 	// to allow fetching a CounterSet by the list of metric/values by fetching values from
 	// the DNS message it logs.
-	// There is a schematic sample layout when there are 2 labels considered at the end of this file
+	// There is a schematic sample layout when there are two labels considered at the end of this file
 	GetCountersSet(*dnsutils.DNSMessage) PrometheusCountersCatalogue
 }
 
 // This type represents a set of counters for a unique set of label name=value pairs.
-// By default, we create a set per setream_id for backward compatibility
+// By default, we create a set per stream_id for backward compatibility
 // However, we can allow slicing and dicing data using more dimensions.
 // Each CounterSet is registered with Prometheus collection independently (wrapping label values)
 type PrometheusCountersSet struct {
@@ -103,15 +103,15 @@ type PromCounterCatalogueContainer struct {
 	// labelNames - is a list of label *names* for PromCounterCatalogueContainer's in stats
 	// map to use to get proper selectors.
 	// The topmost instance of PromCounterCatalogueContainer has the full list of all names to
-	// consider (the one provided by the config). Whenver it needs to create a new item in
-	// it's stats map, it suplies labelNames[1:] to the constructor for the lower level
+	// consider (the one provided by the config). Whenever it needs to create a new item in
+	// it's stats map, it supplies labelNames[1:] to the constructor for the lower level
 	// container to get the selector for the next level
 	labelNames []string // This is list of label names for nested containers
 
 	// This is the unique set of label-value pairs for this catalogue element.
 	// The topmost Catalog has it empty, when it creates a new entry it provides the pair of
 	// labelNames[0]->selector(message) to the constructor. Lower levels get these pair
-	// collected. Ultimately, when all label names in labelNames is exausted, Catalogue creates
+	// collected. Ultimately, when all label names in labelNames is exhausted, Catalogue creates
 	// an instance of newPrometheusCounterSet and provides it with labels map to properly wrap
 	// in Prometheus registry.
 	// The goal is to separate label/values pairs construction and individual counters collection
@@ -151,7 +151,7 @@ type Prometheus struct {
 	catalogueLabels []string
 	counters        *PromCounterCatalogueContainer
 
-	// All metrics use these descriptions when regestering
+	// All metrics use these descriptions when registering
 	gaugeTopDomains, gaugeTopRequesters                        *prometheus.Desc
 	gaugeTopNoerrDomains, gaugeTopNxDomains, gaugeTopSfDomains *prometheus.Desc
 	gaugeTopTlds, gaugeTopETldsPlusOne                         *prometheus.Desc
@@ -220,9 +220,9 @@ func (w *PrometheusCountersSet) GetCountersSet(dm *dnsutils.DNSMessage) Promethe
 }
 
 // each CounterSet has the same list of timeseries descriptors,
-// so it uses descriptros from the Prometheus instance the set belongs to.
+// so it uses descriptors from the Prometheus instance the set belongs to.
 func (w *PrometheusCountersSet) Describe(ch chan<- *prometheus.Desc) {
-	// Gauge metrcis
+	// Gauge metrics
 	w.Lock()
 	defer w.Unlock()
 	ch <- w.prom.gaugeTopDomains
@@ -415,7 +415,7 @@ func (w *PrometheusCountersSet) Record(dm dnsutils.DNSMessage) {
 		w.epsCounters.TotalFragmented++
 	}
 	if dm.NetworkInfo.TCPReassembled {
-		w.epsCounters.TotalReasembled++
+		w.epsCounters.TotalReassembled++
 	}
 
 }
@@ -577,7 +577,7 @@ func (w *PrometheusCountersSet) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(w.prom.counterFlagsFragmented, prometheus.CounterValue,
 		w.epsCounters.TotalFragmented)
 	ch <- prometheus.MustNewConstMetric(w.prom.counterFlagsReassembled, prometheus.CounterValue,
-		w.epsCounters.TotalReasembled)
+		w.epsCounters.TotalReassembled)
 
 	ch <- prometheus.MustNewConstMetric(w.prom.totalBytes,
 		prometheus.CounterValue, float64(w.epsCounters.TotalBytes),
@@ -651,7 +651,7 @@ func (w *PromCounterCatalogueContainer) GetCountersSet(dm *dnsutils.DNSMessage) 
 	}
 
 	// w.selector fetches the value for the label *this* Catalogue Element considers.
-	// Check if we alreday have item for it, and return it if we do (it is either catalogue or counter set)
+	// Check if we already have item for it, and return it if we do (it is either catalogue or counter set)
 	lbl := w.selector(dm)
 	w.Lock()
 	defer w.Unlock()
@@ -665,22 +665,22 @@ func (w *PromCounterCatalogueContainer) GetCountersSet(dm *dnsutils.DNSMessage) 
 	// Otherwise, there is another layer of labels.
 	var newElem PrometheusCountersCatalogue
 	// Prepare labels for the new element (needed for ether CatalogueContainer and CounterSet)
-	newLables := map[string]string{
+	newLabels := map[string]string{
 		w.labelNames[0]: lbl,
 	}
 	for k, v := range w.labels {
-		newLables[k] = v
+		newLabels[k] = v
 	}
 	if len(w.labelNames) > 1 {
 		newElem = NewPromCounterCatalogueContainer(
 			w.prom,
 			w.labelNames[1:],
-			newLables, // Here we'll do an extra map copy...
+			newLabels, // Here we'll do an extra map copy...
 		)
 	} else {
 		newElem = newPrometheusCounterSet(
 			w.prom,
-			prometheus.Labels(newLables),
+			prometheus.Labels(newLabels),
 		)
 
 	}
@@ -713,13 +713,13 @@ func NewPrometheus(config *pkgconfig.Config, logger *logger.Logger, name string)
 	w.doneAPI = make(chan bool)
 	w.promRegistry = prometheus.NewPedanticRegistry()
 
-	// This will create a catalogue of counters indexed by fileds requested by config
+	// This will create a catalogue of counters indexed by fields requested by config
 	w.catalogueLabels, w.counters = CreateSystemCatalogue(w)
 
 	// init prometheus
 	w.InitProm()
 
-	// midleware to add basic authentication
+	// middleware to add basic authentication
 	authMiddleware := func(handler http.Handler) http.Handler {
 		return http.HandlerFunc(func(httpWriter http.ResponseWriter, r *http.Request) {
 			username, password, ok := r.BasicAuth()
@@ -765,7 +765,7 @@ func (w *Prometheus) InitProm() {
 	// also try collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 
 	// Metric description created in Prometheus object, but used in Describe method of PrometheusCounterSet
-	// Prometheus class itself reports signle metric - BuildInfo.
+	// Prometheus class itself reports single metric - BuildInfo.
 	w.gaugeTopDomains = prometheus.NewDesc(
 		fmt.Sprintf("%s_top_domains", promPrefix),
 		"Number of hit per domain topN, partitioned by qname",
@@ -1169,7 +1169,7 @@ func (w *Prometheus) StartCollect() {
 			// count global messages
 			w.CountIngressTraffic()
 
-			// apply tranforms, init dns message with additionnals parts if necessary
+			// apply transforms, init dns message with additional parts if necessary
 			transformResult, err := subprocessors.ProcessMessage(&dm)
 			if err != nil {
 				w.LogError(err.Error())
@@ -1223,7 +1223,7 @@ func (w *Prometheus) StartLogging() {
 
 /*
 This is an implementation of variadic dimensions map of label values.
-Having nested structure offers the fastest operations, compared to super-flexibile approach that prom client
+Having nested structure offers the fastest operations, compared to super-flexible approach that prom client
 uses with arbitrary set of labels.
 
 Label values are obtained by the means of 'selectors' - functions that fetch a specific field of a DNS Message
@@ -1240,7 +1240,7 @@ Example of conterSet/Container for 2 labels
 |         value11                                                                 value12                  |
 | +---------------------------------------------------------------------------+ +-------------------------+|
 | | Container for label2                                                      | | Container for label2    ||
-| | in this container ALL elements                                            | | all elemenens share     ||
+| | in this container ALL elements                                            | | all elements share      ||
 | | have the same value for label1                                            | | the same value of label1||
 | |                                                                           | |                         ||
 | | Label2 values:                                                            | | +----------++----------+||

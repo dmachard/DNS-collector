@@ -35,7 +35,7 @@ func TestPipelines_IsRouteExist(t *testing.T) {
 	}
 
 	// Case where the route does not exist
-	nonExistingRoute := "non-existent-route"
+	nonExistingRoute := "nonexistent-route"
 	err = IsRouteExist(nonExistingRoute, config)
 	if err == nil {
 		t.Errorf("For the non-existing route %s, an expected error was not returned. Received error: %v", nonExistingRoute, err)

@@ -201,7 +201,7 @@ func (w *Syslog) StartCollect() {
 			// count global messages
 			w.CountIngressTraffic()
 
-			// apply tranforms, init dns message with additionnals parts if necessary
+			// apply transforms, init dns message with additional parts if necessary
 			transformResult, err := subprocessors.ProcessMessage(&dm)
 			if err != nil {
 				w.LogError(err.Error())
@@ -232,7 +232,7 @@ func (w *Syslog) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 			buffer.Write(dm.Bytes(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary))
 
 			// replace NULL char from text line directly in the buffer
-			// because the NULL is a end of log in syslog
+			// because the NULL is at end of log in syslog
 			for i := 0; i < buffer.Len(); i++ {
 				if buffer.Bytes()[i] == 0 {
 					buffer.Bytes()[i] = w.GetConfig().Loggers.Syslog.ReplaceNullChar[0]
@@ -289,7 +289,7 @@ func (w *Syslog) StartLogging() {
 	// init buffer
 	bufferDm := []dnsutils.DNSMessage{}
 
-	// init flust timer for buffer
+	// init flush timer for buffer
 	flushInterval := time.Duration(w.GetConfig().Loggers.Syslog.FlushInterval) * time.Second
 	flushTimer := time.NewTimer(flushInterval)
 
@@ -314,7 +314,7 @@ func (w *Syslog) StartLogging() {
 				return
 			}
 
-			// discar dns message if the connection is not ready
+			// discard dns message if the connection is not ready
 			if !w.syslogReady {
 				continue
 			}

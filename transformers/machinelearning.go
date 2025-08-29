@@ -151,7 +151,7 @@ func (t *MlTransform) addFeatures(dm *dnsutils.DNSMessage) (int, error) {
 		dm.MachineLearning.Size = dm.Reducer.CumulativeLength
 	}
 
-	// occurences
+	// occurrences
 	if dm.Reducer != nil {
 		dm.MachineLearning.Occurrences = dm.Reducer.Occurrences
 	}

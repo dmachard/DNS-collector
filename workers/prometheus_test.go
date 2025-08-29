@@ -71,7 +71,7 @@ func TestPrometheus_GetMetrics(t *testing.T) {
 	t.Run("TwoLabelsStreamIDResolver", getMetricsTestCase(config, map[string]string{"resolver": "4.3.2.1", "stream_id": "collector"}))
 }
 
-// This helper generates a set of DNS packes for logger to count
+// This helper generates a set of DNS packets for logger to count
 // It then collects Prometheus metrics to verify they exist and have expected labels/values
 // func getMetricsHelper(config *pkgconfig.Config, labels map[string]string, t *testing.T) {
 func getMetricsTestCase(config *pkgconfig.Config, labels map[string]string) func(t *testing.T) {
@@ -119,7 +119,7 @@ func getMetricsTestCase(config *pkgconfig.Config, labels map[string]string) func
 		noErrorRecord.DNSTap.Identity = "other_collector"
 		g.Record(noErrorRecord)
 
-		// call ComputeMetrics for the second time, to calculate per-second metrcis
+		// call ComputeMetrics for the second time, to calculate per-second metrics
 		g.ComputeEventsPerSecond()
 		mf := getMetrics(g, t)
 
@@ -177,7 +177,7 @@ func TestPrometheus_EPS_Counters(t *testing.T) {
 	mf := getMetrics(g, t)
 	ensureMetricValue(t, mf, "dnscollector_throughput_ops", map[string]string{"stream_id": "collector"}, 0)
 
-	// Simulate processing 2 more messages, that will be 2 events per second
+	// Simulate processing two more messages, that will be two events per second
 	// after next ComputeEventsPerSecond call
 	g.Record(noErrorRecord)
 	g.Record(noErrorRecord)
@@ -186,7 +186,7 @@ func TestPrometheus_EPS_Counters(t *testing.T) {
 	ensureMetricValue(t, mf, "dnscollector_throughput_ops", map[string]string{"stream_id": "collector"}, 2)
 	ensureMetricValue(t, mf, "dnscollector_throughput_ops_max", map[string]string{"stream_id": "collector"}, 2)
 
-	// During next 'second' we see only 1 event. EPS counter changes, EPS Max counter keeps it's value
+	// During next 'second' we see only 1 event. EPS counter changes, EPS Max counter keeps its value
 	g.Record(noErrorRecord)
 	g.ComputeEventsPerSecond()
 

@@ -16,7 +16,7 @@ var (
 	PdnsDirectives            = regexp.MustCompile(`^powerdns-*`)
 	GeoIPDirectives           = regexp.MustCompile(`^geoip-*`)
 	SuspiciousDirectives      = regexp.MustCompile(`^suspicious-*`)
-	PublicSuffixDirectives    = regexp.MustCompile(`^publixsuffix-*`)
+	PublicSuffixDirectives    = regexp.MustCompile(`^publicsuffix-*`)
 	ExtractedDirectives       = regexp.MustCompile(`^extracted-*`)
 	ReducerDirectives         = regexp.MustCompile(`^reducer-*`)
 	MachineLearningDirectives = regexp.MustCompile(`^ml-*`)
@@ -82,7 +82,7 @@ func (dm *DNSMessage) handlePdnsDirectives(directive string, s *strings.Builder)
 					if len(directives) == 2 {
 						tagIndex, err := strconv.Atoi(directives[1])
 						if err != nil {
-							log.Fatalf("unsupport tag index provided (integer expected): %s", directives[1])
+							log.Fatalf("unsupported tag index provided (integer expected): %s", directives[1])
 						}
 						if tagIndex >= len(dm.PowerDNS.Tags) {
 							s.WriteString("-")
@@ -217,7 +217,7 @@ func (dm *DNSMessage) handleATagsDirectives(directive string, s *strings.Builder
 				if len(directives) == 2 {
 					tagIndex, err := strconv.Atoi(directives[1])
 					if err != nil {
-						log.Fatalf("unsupport tag index provided (integer expected): %s", directives[1])
+						log.Fatalf("unsupported tag index provided (integer expected): %s", directives[1])
 					}
 					if tagIndex >= len(dm.ATags.Tags) {
 						s.WriteString("-")
@@ -262,11 +262,11 @@ func (dm *DNSMessage) handlePublicSuffixDirectives(directive string, s *strings.
 		s.WriteString("-")
 	} else {
 		switch directive {
-		case "publixsuffix-tld":
+		case "publicsuffix-tld":
 			s.WriteString(dm.PublicSuffix.QnamePublicSuffix)
-		case "publixsuffix-etld+1":
+		case "publicsuffix-etld+1":
 			s.WriteString(dm.PublicSuffix.QnameEffectiveTLDPlusOne)
-		case "publixsuffix-managed-icann":
+		case "publicsuffix-managed-icann":
 			if dm.PublicSuffix.ManagedByICANN {
 				s.WriteString("managed")
 			} else {
@@ -382,7 +382,7 @@ func (dm *DNSMessage) handleMachineLearningDirectives(directive string, s *strin
 func (dm *DNSMessage) Bytes(format []string, fieldDelimiter string, fieldBoundary string) []byte {
 	line, err := dm.ToTextLine(format, fieldDelimiter, fieldBoundary)
 	if err != nil {
-		log.Fatalf("unsupport directive for text format: %s", err)
+		log.Fatalf("unsupported directive for text format: %s", err)
 	}
 	return line
 }

@@ -65,8 +65,8 @@ func (t *UserPrivacyTransform) GetTransforms() ([]Subtransform, error) {
 		subprocessors = append(subprocessors, Subtransform{name: "userprivacy:ip-anonymization", processFunc: t.anonymizeQueryIP})
 	}
 
-	if t.config.UserPrivacy.MinimazeQname {
-		subprocessors = append(subprocessors, Subtransform{name: "userprivacy:minimaze-qname", processFunc: t.minimazeQname})
+	if t.config.UserPrivacy.MinimizeQname {
+		subprocessors = append(subprocessors, Subtransform{name: "userprivacy:minimize-qname", processFunc: t.minimizeQname})
 	}
 
 	if t.config.UserPrivacy.HashQueryIP {
@@ -105,7 +105,7 @@ func (t *UserPrivacyTransform) hashReplyIP(dm *dnsutils.DNSMessage) (int, error)
 	return ReturnKeep, nil
 }
 
-func (t *UserPrivacyTransform) minimazeQname(dm *dnsutils.DNSMessage) (int, error) {
+func (t *UserPrivacyTransform) minimizeQname(dm *dnsutils.DNSMessage) (int, error) {
 	if etpo, err := publicsuffix.EffectiveTLDPlusOne(dm.DNS.Qname); err == nil {
 		dm.DNS.Qname = etpo
 	}

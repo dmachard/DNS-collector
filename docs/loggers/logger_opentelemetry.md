@@ -16,13 +16,13 @@ opentelemetry:
   otel-endpoint: ""
 ```
 
-Exemple of result with Tempo from Grafana
+Example of result with Tempo from Grafana
 
 <p align="center">
   <img src="../_images/otel_tracing.png" alt="dnscollector"/>
 </p>
 
-Exemple with DNS error (NXDOMAIN)
+Example with DNS error (NXDOMAIN)
 
 <p align="center">
   <img src="../_images/otel_tracing_error.png" alt="dnscollector"/>

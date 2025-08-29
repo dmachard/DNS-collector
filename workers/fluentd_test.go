@@ -120,7 +120,7 @@ func Test_FluentdClient(t *testing.T) {
 			}
 
 			if nb != maxDm {
-				t.Errorf("invalid numer of msgpack: expected=%d received=%d", maxDm, nb)
+				t.Errorf("invalid number of msgpack: expected=%d received=%d", maxDm, nb)
 			}
 
 			// stop all
