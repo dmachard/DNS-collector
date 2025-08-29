@@ -157,6 +157,7 @@ See the [full list of metrics](./../metrics.txt).
 | dnscollector_throughput_ops                     | Number of ops per second received, partitioned by stream
 | dnscollector_throughput_ops_max                 | Max number of ops per second observed, partitioned by stream
 | dnscollector_total_tlds_lru                     | Total number of tld most recently observed per stream identity
+| dnscollector_top_tlds                           | Number of hit per tld - topN
 | dnscollector_top_domains                        | Number of hit per domain topN, partitioned by stream and qname
 | dnscollector_top_nxdomains                      | Number of hit per nx domain topN, partitioned by stream and qname
 | dnscollector_top_sfdomains                      | Number of hit per servfail domain topN, partitioned by stream and qname
