@@ -237,7 +237,7 @@ func (w *ElasticSearchClient) sendBulkInternal(bodyReader *bytes.Reader, compres
 	bodyBytes := new(bytes.Buffer)
 	_, err = bodyBytes.ReadFrom(resp.Body)
 	if err != nil {
-		return fmt.Errorf("error reading response body: %v", err)
+		return fmt.Errorf("error reading response body: %w", err)
 	}
 
 	var bulkResp struct {
