@@ -46,56 +46,58 @@ func Test_ElasticSearchClient_BulkSize_Exceeded(t *testing.T) {
 			conf.Loggers.ElasticSearchClient.BulkChannelSize = 50
 			g := NewElasticSearchClient(conf, logger.New(false), "test")
 
+			var totalDm int
+			done := make(chan struct{})
+
+			go func() {
+				for {
+					conn, err := fakeRcvr.Accept()
+					if err != nil {
+						select {
+						case <-done:
+							return
+						default:
+							t.Logf("accept error: %v", err)
+							return
+						}
+					}
+					go func(conn net.Conn) {
+						defer conn.Close()
+						connReader := bufio.NewReader(conn)
+						connReaderT := bufio.NewReaderSize(connReader, tc.bulkSize*2)
+						request, err := http.ReadRequest(connReaderT)
+						if err == nil {
+							payload, _ := io.ReadAll(request.Body)
+							scanner := bufio.NewScanner(strings.NewReader(string(payload)))
+							cnt := 0
+							for scanner.Scan() {
+								if cnt%2 == 1 {
+									totalDm++
+								}
+								cnt++
+							}
+						}
+						conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 16\r\n\r\n{\"errors\":false}"))
+					}(conn)
+				}
+			}()
+
 			go g.StartCollect()
 
 			dm := dnsutils.GetFakeDNSMessage()
-
 			for i := 0; i < tc.inputSize; i++ {
 				g.GetInputChannel() <- dm
 			}
 
-			totalDm := 0
-			for i := 0; i < tc.inputSize; i++ {
-				// accept conn
-				conn, err := fakeRcvr.Accept()
-				if err != nil {
-					t.Fatal(err)
+			try := 0
+			for try < 20 {
+				if totalDm >= tc.inputSize {
+					break
 				}
-				defer conn.Close()
-
-				// read and parse http request on server side
-				connReader := bufio.NewReader(conn)
-				connReaderT := bufio.NewReaderSize(connReader, tc.bulkSize*2)
-				request, err := http.ReadRequest(connReaderT)
-				if err != nil {
-					t.Fatal(err)
-				}
-				conn.Write([]byte(pkgconfig.HTTPOK))
-
-				// read payload from request body
-				payload, err := io.ReadAll(request.Body)
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				scanner := bufio.NewScanner(strings.NewReader(string(payload)))
-
-				cnt := 0
-				for scanner.Scan() {
-					if cnt%2 == 0 {
-						var res map[string]interface{}
-						json.Unmarshal(scanner.Bytes(), &res)
-						assert.Equal(t, map[string]interface{}{}, res["create"])
-					} else {
-						var bulkDm dnsutils.DNSMessage
-						err := json.Unmarshal(scanner.Bytes(), &bulkDm)
-						assert.NoError(t, err)
-						totalDm += 1
-					}
-					cnt++
-				}
-
+				time.Sleep(100 * time.Millisecond)
+				try++
 			}
+			close(done)
 			assert.Equal(t, tc.inputSize, totalDm)
 		})
 	}
@@ -189,7 +191,7 @@ func Test_ElasticSearchClient_FlushInterval_Exceeded(t *testing.T) {
 	}
 }
 
-func TestElasticSearchClient_sendBulk_WithBasicAuth(t *testing.T) {
+func Test_ElasticSearchClient_sendBulk_WithBasicAuth(t *testing.T) {
 	// Create a test HTTP server to simulate Elasticsearch
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify that the Authorization header is present

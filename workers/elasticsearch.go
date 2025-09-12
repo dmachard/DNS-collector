@@ -194,24 +194,42 @@ func (w *ElasticSearchClient) StartLogging() {
 }
 
 func (w *ElasticSearchClient) sendBulk(bulk []byte) error {
-	// Create a new HTTP request
-	req, err := http.NewRequest("POST", w.bulkURL, bytes.NewReader(bulk))
+	return w.sendBulkInternal(bytes.NewReader(bulk), false)
+}
+
+func (w *ElasticSearchClient) sendCompressedBulk(bulk []byte) error {
+	var compressedBulk bytes.Buffer
+	gzipWriter := gzip.NewWriter(&compressedBulk)
+	_, err := gzipWriter.Write(bulk)
+	if err != nil {
+		return err
+	}
+	err = gzipWriter.Close()
+	if err != nil {
+		return err
+	}
+	return w.sendBulkInternal(bytes.NewReader(compressedBulk.Bytes()), true)
+}
+
+func (w *ElasticSearchClient) sendBulkInternal(bodyReader *bytes.Reader, compressed bool) error {
+	req, err := http.NewRequest("POST", w.bulkURL, bodyReader)
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/x-ndjson")
+	if compressed {
+		req.Header.Set("Content-Encoding", "gzip")
+	}
 	if w.GetConfig().Loggers.ElasticSearchClient.BasicAuthEnabled {
 		req.SetBasicAuth(w.GetConfig().Loggers.ElasticSearchClient.BasicAuthLogin, w.GetConfig().Loggers.ElasticSearchClient.BasicAuthPwd)
 	}
 
-	// Send the request using the HTTP client
 	resp, err := w.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	// Check the response status code
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
@@ -222,7 +240,6 @@ func (w *ElasticSearchClient) sendBulk(bulk []byte) error {
 		return fmt.Errorf("error reading response body: %v", err)
 	}
 
-	// Minimal check: only look at 'errors' field
 	var bulkResp struct {
 		Errors bool `json:"errors"`
 	}
@@ -230,48 +247,6 @@ func (w *ElasticSearchClient) sendBulk(bulk []byte) error {
 		if bulkResp.Errors {
 			return fmt.Errorf("elasticsearch bulk response contains errors: %s", bodyBytes.String())
 		}
-	}
-
-	return nil
-}
-
-func (w *ElasticSearchClient) sendCompressedBulk(bulk []byte) error {
-	var compressedBulk bytes.Buffer
-	gzipWriter := gzip.NewWriter(&compressedBulk)
-
-	// Write the uncompressed data to the gzip writer
-	_, err := gzipWriter.Write(bulk)
-	if err != nil {
-		return err
-	}
-
-	// Close the gzip writer to flush any remaining data
-	err = gzipWriter.Close()
-	if err != nil {
-		return err
-	}
-
-	// Create a new HTTP request
-	req, err := http.NewRequest("POST", w.bulkURL, &compressedBulk)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/x-ndjson")
-	req.Header.Set("Content-Encoding", "gzip") // Set Content-Encoding header to gzip
-	if w.GetConfig().Loggers.ElasticSearchClient.BasicAuthEnabled {
-		req.SetBasicAuth(w.GetConfig().Loggers.ElasticSearchClient.BasicAuthLogin, w.GetConfig().Loggers.ElasticSearchClient.BasicAuthPwd)
-	}
-
-	// Send the request using the HTTP client
-	resp, err := w.httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// Check the response status code
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	return nil
