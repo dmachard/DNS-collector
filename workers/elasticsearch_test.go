@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -46,7 +47,7 @@ func Test_ElasticSearchClient_BulkSize_Exceeded(t *testing.T) {
 			conf.Loggers.ElasticSearchClient.BulkChannelSize = 50
 			g := NewElasticSearchClient(conf, logger.New(false), "test")
 
-			var totalDm int
+			var totalDm int32
 			done := make(chan struct{})
 
 			go func() {
@@ -72,7 +73,7 @@ func Test_ElasticSearchClient_BulkSize_Exceeded(t *testing.T) {
 							cnt := 0
 							for scanner.Scan() {
 								if cnt%2 == 1 {
-									totalDm++
+									atomic.AddInt32(&totalDm, 1)
 								}
 								cnt++
 							}
@@ -91,14 +92,14 @@ func Test_ElasticSearchClient_BulkSize_Exceeded(t *testing.T) {
 
 			try := 0
 			for try < 20 {
-				if totalDm >= tc.inputSize {
+				if atomic.LoadInt32(&totalDm) >= int32(tc.inputSize) {
 					break
 				}
 				time.Sleep(100 * time.Millisecond)
 				try++
 			}
 			close(done)
-			assert.Equal(t, tc.inputSize, totalDm)
+			assert.Equal(t, int32(tc.inputSize), atomic.LoadInt32(&totalDm))
 		})
 	}
 }
