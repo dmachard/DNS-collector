@@ -216,6 +216,22 @@ func (w *ElasticSearchClient) sendBulk(bulk []byte) error {
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
+	bodyBytes := new(bytes.Buffer)
+	_, err = bodyBytes.ReadFrom(resp.Body)
+	if err != nil {
+		return fmt.Errorf("error reading response body: %v", err)
+	}
+
+	// Minimal check: only look at 'errors' field
+	var bulkResp struct {
+		Errors bool `json:"errors"`
+	}
+	if err := json.Unmarshal(bodyBytes.Bytes(), &bulkResp); err == nil {
+		if bulkResp.Errors {
+			return fmt.Errorf("elasticsearch bulk response contains errors: %s", bodyBytes.String())
+		}
+	}
+
 	return nil
 }
 
