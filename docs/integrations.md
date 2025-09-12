@@ -17,9 +17,9 @@ This guide covers compatibility, configuration, and integration examples.
 
 DNS-collector supports seamless integration with popular observability and data processing platforms through pre-configured templates and Docker Compose examples. The [`_integration`](./_integration) folder contains preconfigured files and `docker compose` examples:
 
-- [Fluentd](./docs/_integration/fluentd/README.md)
-- [Elasticsearch](./docs/_integration/elasticsearch/README.md)
-- [Kafka](./docs/_integration/kafka/README.md)
-- [InfluxDB](./docs/_integration/influxdb/README.md)
-- [Prometheus](./docs/_integration/prometheus/README.md)
-- [Loki](./docs/_integration/loki/README.md)
+- [Fluentd](./_integration/fluentd/README.md)
+- [Elasticsearch](./_integration/elasticsearch/README.md)
+- [Kafka](./_integration/kafka/README.md)
+- [InfluxDB](./_integration/influxdb/README.md)
+- [Prometheus](./_integration/prometheus/README.md)
+- [Loki](./_integration/loki/README.md)

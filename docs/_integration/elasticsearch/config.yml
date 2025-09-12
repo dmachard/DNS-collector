@@ -9,12 +9,16 @@ pipelines:
       listen-ip: 0.0.0.0
       listen-port: 6000
     routing-policy:
-      forward: [ elastic]
+      forward: [ elastic, console]
       dropped: []
+      
+  - name: console
+    stdout:
+      mode: text
 
   - name: elastic
     elasticsearch:
-      server: "http://192.168.1.16:9200/"
+      server: "http://localhost:9200/"
       index:  "dnscollector"
       bulk-size: 5242880
       flush-interval: 10
