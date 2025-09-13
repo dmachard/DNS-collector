@@ -126,23 +126,85 @@ Structured JSON output with complete DNS message details:
 }
 ```
 
+
 ### Flat JSON Format
+
+**Note:** In this format, all lists (for example, DNS answers or EDNS options) are converted into a single string, where each element is concatenated using the `|` (pipe) separator. This ensures a flat format compatible with most indexing and analytics tools. If a list is empty, the field value is set to `-`.
 
 Single-level key-value pairs for easier processing:
 
 ```json
 {
-  "dns.qname": "example.com",
-  "dns.qtype": "A",
-  "dns.rcode": "NOERROR",
-  "network.query-ip": "192.168.1.100",
-  "network.protocol": "UDP",
-  "dnstap.operation": "CLIENT_RESPONSE",
-  "dnstap.timestamp-rfc3339ns": "2024-01-15T10:30:45.123456789Z"
+  "dns.flags.aa": false,
+  "dns.flags.ad": false,
+  "dns.flags.qr": false,
+  "dns.flags.ra": false,
+  "dns.flags.tc": false,
+  "dns.flags.rd": false,
+  "dns.flags.cd": false,
+  "dns.length": 0,
+  "dns.malformed-packet": false,
+  "dns.id": 0,
+  "dns.opcode": 0,
+  "dns.qname": "-",
+  "dns.qtype": "-",
+  "dns.rcode": "-",
+  "dns.qclass": "-",
+  "dns.qdcount": 0,
+  "dns.ancount": 0,
+  "dns.arcount": 0,
+  "dns.nscount": 0,
+  "dns.resource-records.an.names": "google.nl",
+  "dns.resource-records.an.rdatas": "142.251.39.99",
+  "dns.resource-records.an.rdatatypes": "A",
+  "dns.resource-records.an.ttls": "300",
+  "dns.resource-records.an.classes": "IN",
+  "dns.resource-records.ar.names": "-",
+  "dns.resource-records.ar.rdatas": "-",
+  "dns.resource-records.ar.rdatatypes": "-",
+  "dns.resource-records.ar.ttls": "-",
+  "dns.resource-records.ar.classes": "-",
+  "dns.resource-records.ns.names": "-",
+  "dns.resource-records.ns.rdatas": "-",
+  "dns.resource-records.ns.rdatatypes": "-",
+  "dns.resource-records.ns.ttls": "-",
+  "dns.resource-records.ns.classes": "-",
+  "dnstap.identity": "-",
+  "dnstap.latency": 0,
+  "dnstap.operation": "-",
+  "dnstap.timestamp-rfc3339ns": "-",
+  "dnstap.version": "-",
+  "dnstap.extra": "-",
+  "dnstap.policy-rule": "-",
+  "dnstap.policy-type": "-",
+  "dnstap.policy-action": "-",
+  "dnstap.policy-match": "-",
+  "dnstap.policy-value": "-",
+  "dnstap.peer-name": "-",
+  "dnstap.query-zone": "-",
+  "edns.dnssec-ok": 0,
+  "edns.optionscount": 1,
+  "edns.options.codes": "10",
+  "edns.options.datas": "aaaabbbbcccc",
+  "edns.options.names": "COOKIE",
+  "edns.rcode": 0,
+  "edns.udp-size": 0,
+  "edns.version": 0,
+  "network.family": "-",
+  "network.ip-defragmented": false,
+  "network.protocol": "-",
+  "network.query-ip": "-",
+  "network.query-port": "-",
+  "network.response-ip": "-",
+  "network.response-port": "-",
+  "network.tcp-reassembled": false
 }
 ```
 
+
 ### Jinja Templating
+
+**Tip:** For a complete list of available field names and their structure, visit: https://pkg.go.dev/github.com/dmachard/go-dnscollector/dnsutils#DNSMessage
 
 For maximum flexibility, use Jinja2 templates:
 

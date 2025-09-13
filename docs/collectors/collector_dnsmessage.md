@@ -10,10 +10,10 @@ Options:
 
 * `matching` (map)
     * `include` (map)
-    > Defines the list of fields (flat-json) which must be present in the DNS message (regex are supported).
+    > Defines the list of fields (json) which must be present in the DNS message (regex are supported).
 
     * `exclude` (map)
-    > Defines the list of fields (flat-json) which must not be present in the DNS message (regex are supported).
+    > Defines the list of fields (json) which must not be present in the DNS message (regex are supported).
 
 
 The matching functionality support any type of values. For each fields, the advanced settings can be  used:

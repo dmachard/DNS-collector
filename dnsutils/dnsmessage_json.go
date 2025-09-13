@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"strconv"
+	"strings"
 )
 
 func (dm *DNSMessage) ToJSON() string {
@@ -56,6 +57,7 @@ func (dm *DNSMessage) Flatten() (map[string]interface{}, error) {
 		"dnstap.policy-value":        dm.DNSTap.PolicyValue,
 		"dnstap.peer-name":           dm.DNSTap.PeerName,
 		"dnstap.query-zone":          dm.DNSTap.QueryZone,
+		"edns.optionscount":          len(dm.EDNS.Options),
 		"edns.dnssec-ok":             dm.EDNS.Do,
 		"edns.rcode":                 dm.EDNS.ExtendedRcode,
 		"edns.udp-size":              dm.EDNS.UDPSize,
@@ -70,54 +72,65 @@ func (dm *DNSMessage) Flatten() (map[string]interface{}, error) {
 		"network.tcp-reassembled":    dm.NetworkInfo.TCPReassembled,
 	}
 
-	// Add empty slices
-	if len(dm.DNS.DNSRRs.Answers) == 0 {
-		dnsFields["dns.resource-records.an"] = "-"
-	}
-	if len(dm.DNS.DNSRRs.Records) == 0 {
-		dnsFields["dns.resource-records.ar"] = "-"
-	}
-	if len(dm.DNS.DNSRRs.Nameservers) == 0 {
-		dnsFields["dns.resource-records.ns"] = "-"
-	}
-	if len(dm.EDNS.Options) == 0 {
-		dnsFields["edns.options"] = "-"
+	// Helper function to build RR fields
+	buildRRFields := func(rrs []DNSAnswer) (names, rdatatypes, rdatas, ttls, classes string) {
+		var n, t, d, l, c []string
+		for _, rr := range rrs {
+			n = append(n, rr.Name)
+			t = append(t, rr.Rdatatype)
+			d = append(d, rr.Rdata)
+			l = append(l, strconv.Itoa(rr.TTL))
+			c = append(c, rr.Class)
+		}
+		joinOrDash := func(arr []string) string {
+			if len(arr) == 0 {
+				return "-"
+			}
+			return strings.Join(arr, "|")
+		}
+		return joinOrDash(n), joinOrDash(t), joinOrDash(d), joinOrDash(l), joinOrDash(c)
 	}
 
-	// Add DNSAnswer fields: "dns.resource-records.an.0.name": "google.nl"
-	// nolint: goconst
-	for i, an := range dm.DNS.DNSRRs.Answers {
-		prefixAn := "dns.resource-records.an." + strconv.Itoa(i)
-		dnsFields[prefixAn+".name"] = an.Name
-		dnsFields[prefixAn+".rdata"] = an.Rdata
-		dnsFields[prefixAn+".rdatatype"] = an.Rdatatype
-		dnsFields[prefixAn+".ttl"] = an.TTL
-		dnsFields[prefixAn+".class"] = an.Class
-	}
-	for i, ns := range dm.DNS.DNSRRs.Nameservers {
-		prefixNs := "dns.resource-records.ns." + strconv.Itoa(i)
-		dnsFields[prefixNs+".name"] = ns.Name
-		dnsFields[prefixNs+".rdata"] = ns.Rdata
-		dnsFields[prefixNs+".rdatatype"] = ns.Rdatatype
-		dnsFields[prefixNs+".ttl"] = ns.TTL
-		dnsFields[prefixNs+".class"] = ns.Class
-	}
-	for i, ar := range dm.DNS.DNSRRs.Records {
-		prefixAr := "dns.resource-records.ar." + strconv.Itoa(i)
-		dnsFields[prefixAr+".name"] = ar.Name
-		dnsFields[prefixAr+".rdata"] = ar.Rdata
-		dnsFields[prefixAr+".rdatatype"] = ar.Rdatatype
-		dnsFields[prefixAr+".ttl"] = ar.TTL
-		dnsFields[prefixAr+".class"] = ar.Class
-	}
+	// AN
+	anNames, anTypes, anDatas, anTTLs, anClasses := buildRRFields(dm.DNS.DNSRRs.Answers)
+	dnsFields["dns.resource-records.an.names"] = anNames
+	dnsFields["dns.resource-records.an.rdatatypes"] = anTypes
+	dnsFields["dns.resource-records.an.rdatas"] = anDatas
+	dnsFields["dns.resource-records.an.ttls"] = anTTLs
+	dnsFields["dns.resource-records.an.classes"] = anClasses
+
+	// NS
+	nsNames, nsTypes, nsDatas, nsTTLs, nsClasses := buildRRFields(dm.DNS.DNSRRs.Nameservers)
+	dnsFields["dns.resource-records.ns.names"] = nsNames
+	dnsFields["dns.resource-records.ns.rdatatypes"] = nsTypes
+	dnsFields["dns.resource-records.ns.rdatas"] = nsDatas
+	dnsFields["dns.resource-records.ns.ttls"] = nsTTLs
+	dnsFields["dns.resource-records.ns.classes"] = nsClasses
+
+	// AR
+	arNames, arTypes, arDatas, arTTLs, arClasses := buildRRFields(dm.DNS.DNSRRs.Records)
+	dnsFields["dns.resource-records.ar.names"] = arNames
+	dnsFields["dns.resource-records.ar.rdatatypes"] = arTypes
+	dnsFields["dns.resource-records.ar.rdatas"] = arDatas
+	dnsFields["dns.resource-records.ar.ttls"] = arTTLs
+	dnsFields["dns.resource-records.ar.classes"] = arClasses
 
 	// Add EDNSoptions fields: "edns.options.0.code": 10,
-	for i, opt := range dm.EDNS.Options {
-		prefixOpt := "edns.options." + strconv.Itoa(i)
-		dnsFields[prefixOpt+".code"] = opt.Code
-		dnsFields[prefixOpt+".data"] = opt.Data
-		dnsFields[prefixOpt+".name"] = opt.Name
+	var optCodes, optDatas, optNames []string
+	for _, opt := range dm.EDNS.Options {
+		optCodes = append(optCodes, strconv.Itoa(opt.Code))
+		optDatas = append(optDatas, opt.Data)
+		optNames = append(optNames, opt.Name)
 	}
+	joinOrDash := func(arr []string) string {
+		if len(arr) == 0 {
+			return "-"
+		}
+		return strings.Join(arr, "|")
+	}
+	dnsFields["edns.options.codes"] = joinOrDash(optCodes)
+	dnsFields["edns.options.datas"] = joinOrDash(optDatas)
+	dnsFields["edns.options.names"] = joinOrDash(optNames)
 
 	// Add TransformDNSGeo fields
 	if dm.Geo != nil {
