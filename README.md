@@ -54,6 +54,7 @@ To get started quickly, you can use this default [`config.yml`](config.yml).
 
 | Topic | Description |
 |-------|-------------|
+| [📝 Formats](docs/formats.md) | Supported output formats (text, JSON, PCAP, Jinja2, etc.) |
 | [🔧 Configuration](docs/configuration.md) | Complete config reference |
 | [📤 Workers](docs/workers.md) | Input sources and output destinations setup |
 | [🔄 Transformers](docs/transformers.md) | Data enrichment options |

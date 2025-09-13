@@ -4,6 +4,8 @@ This guide covers compatibility, configuration, and integration examples.
 
 ## Tested DNS Server Compatibility
 
+[Enabling DNStap logging on most popular DNS servers](https://dmachard.github.io/posts/0001-dnstap-testing/)
+
 | DNS Server | Versions | Transport Modes |
 |------------|----------|-----------------|
 | ✅ **Unbound** | 1.22.x, 1.21.x | TCP |
