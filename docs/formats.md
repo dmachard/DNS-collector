@@ -2,6 +2,15 @@
 
 DNS-collector supports multiple output formats for different use cases.
 
+
+## Table of Contents
+
+1. [Text Format](#text-format)
+2. [JSON Format](#json-format)
+3. [Flat JSON Format](#flat-json-format)
+4. [Jinja Templating](#jinja-templating)
+5. [PCAP Format](#pcap-format)
+
 ### Text Format
 
 Highly customizable text output using field directives:
@@ -133,7 +142,7 @@ Single-level key-value pairs for easier processing:
 }
 ```
 
-### Jinja2 Templating
+### Jinja Templating
 
 For maximum flexibility, use Jinja2 templates:
 
