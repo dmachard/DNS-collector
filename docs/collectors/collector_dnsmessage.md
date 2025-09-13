@@ -1,3 +1,4 @@
+
 # Collector: DNSMessage
 
 Collector to match specific DNS messages.
@@ -10,11 +11,15 @@ Options:
 
 * `matching` (map)
     * `include` (map)
-    > Defines the list of fields (json) which must be present in the DNS message (regex are supported).
+    > Defines the list of fields which must be present in the DNS message (regex are supported).
 
     * `exclude` (map)
-    > Defines the list of fields (json) which must not be present in the DNS message (regex are supported).
+    > Defines the list of fields which must not be present in the DNS message (regex are supported).
 
+
+## Matching functionality
+
+The field names used in this collector are based on the JSON structure of the DNSMessage object. For lists (arrays), each element can be accessed using an index (e.g., `.tags.0`, `.tags.1`, etc.), or you can use a wildcard pattern (e.g., `.tags.*`) to refer to all elements. This makes it easy to map and extract values consistently, following the same naming as in the JSON output.
 
 The matching functionality support any type of values. For each fields, the advanced settings can be  used:
 * `greater-than` (int) 
