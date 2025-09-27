@@ -46,7 +46,7 @@ jobs:
     strategy:
       matrix:
         os-version: [ 'ubuntu-24.04' ]
-        go-version: [ '1.24' ]
+        go-version: [ '1.24', '1.25' ]
         package:
           - '.'
           - 'pkgconfig'
