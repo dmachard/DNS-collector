@@ -12,7 +12,6 @@ import (
 	"github.com/dmachard/go-logger"
 
 	dto "github.com/prometheus/client_model/go"
-	"github.com/prometheus/common/expfmt"
 )
 
 const (
@@ -301,23 +300,20 @@ func ensureMetricValue(t *testing.T, mf map[string]*dto.MetricFamily, name strin
 }
 
 func getMetrics(prom *Prometheus, t *testing.T) map[string]*dto.MetricFamily {
-
-	request := httptest.NewRequest(http.MethodGet, "/metrics", strings.NewReader(""))
-	request.SetBasicAuth(prom.GetConfig().Loggers.Prometheus.BasicAuthLogin, prom.GetConfig().Loggers.Prometheus.BasicAuthPwd)
-	responseRecorder := httptest.NewRecorder()
-
-	// call handler
-	prom.httpServer.Handler.ServeHTTP(responseRecorder, request)
-
-	// checking status code
-	if responseRecorder.Code != http.StatusOK {
-		t.Errorf("Want status '%d', got '%d'", http.StatusOK, responseRecorder.Code)
+	// Gather metrics directly from the in-memory Prometheus registry to avoid
+	// parsing the HTTP exposition format (which can depend on global validation
+	// scheme state and cause panics in tests).
+	mfs, err := prom.promRegistry.Gather()
+	if err != nil {
+		t.Fatalf("Error gathering prom metrics: %v", err)
 	}
 
-	var parser expfmt.TextParser
-	mf, err := parser.TextToMetricFamilies(responseRecorder.Body)
-	if err != nil {
-		t.Fatalf("Error parsing prom metrics: %v", err)
+	mf := make(map[string]*dto.MetricFamily)
+	for _, f := range mfs {
+		if f == nil || f.Name == nil {
+			continue
+		}
+		mf[f.GetName()] = f
 	}
 	return mf
 }
