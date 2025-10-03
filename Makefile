@@ -2,13 +2,13 @@ BINARY_NAME := dnscollector
 
 GO_VERSION := $(shell go env GOVERSION | sed -n 's/go\([0-9]\+\.[0-9]\+\).*/\1/p')
 
-GO_LOGGER := 1.1.1
-GO_POWERDNS_PROTOBUF := 1.5.0
-GO_DNSTAP_PROTOBUF := 1.3.0
+GO_LOGGER := 1.2.0
+GO_POWERDNS_PROTOBUF := 1.6.0
+GO_DNSTAP_PROTOBUF := 1.4.0
 GO_FRAMESTREAM := 1.3.2
-GO_CLIENTSYSLOG := 1.0.1
-GO_TOPMAP := 1.0.2
-GO_NETUTILS := 1.7.0
+GO_CLIENTSYSLOG := 1.0.2
+GO_TOPMAP := 1.0.3
+GO_NETUTILS := 1.8.0
 
 BUILD_TIME := $(shell LANG=en_US date +"%F_%T_%z")
 COMMIT := $(shell git rev-parse --short HEAD)
