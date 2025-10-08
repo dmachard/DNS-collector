@@ -117,6 +117,8 @@ func TestDnsMessage_Json_Collectors_Reference(t *testing.T) {
 				RequestorID:           "f7c3e94ad6284eec9a50cfc5bd7384d6",
 				DeviceID:              "ffffffffffffffffeaaeaeae",
 				DeviceName:            "foobar",
+				EdnsVersion:           "0",
+				OpenTelemetryData:     "5e006236c8a74f7eafc6af126e6d0689",
 			}},
 
 			jsonRef: `{
@@ -136,7 +138,9 @@ func TestDnsMessage_Json_Collectors_Reference(t *testing.T) {
 							"initial-requestor-id": "5e006236c8a74f7eafc6af126e6d0689",
 							"requestor-id": "f7c3e94ad6284eec9a50cfc5bd7384d6",
 							"device-id": "ffffffffffffffffeaaeaeae",
-							"device-name": "foobar"
+							"device-name": "foobar",
+							"edns-version": "0",
+							"opentelemetry-data": "5e006236c8a74f7eafc6af126e6d0689"
 						}
 					}`,
 		},
@@ -711,6 +715,8 @@ func TestDnsMessage_JsonFlatten_Collectors_Reference(t *testing.T) {
 				Tags:                  []string{"tag1"},
 				Metadata:              map[string]string{"stream_id": "collector"},
 				HTTPVersion:           "http3",
+				EdnsVersion:           "0",
+				OpenTelemetryData:     "5e006236c8a74f7eafc6af126e6d0689",
 			}},
 
 			jsonRef: `{
@@ -722,7 +728,9 @@ func TestDnsMessage_JsonFlatten_Collectors_Reference(t *testing.T) {
 						"powerdns.applied-policy-type": "type",
 						"powerdns.tags.0": "tag1",
 						"powerdns.metadata.stream_id": "collector",
-						"powerdns.http-version": "http3"
+						"powerdns.http-version": "http3",
+						"powerdns.edns-version": "0",
+						"powerdns.opentelemetry-data": "5e006236c8a74f7eafc6af126e6d0689"
 					}`,
 		},
 	}

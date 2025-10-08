@@ -597,7 +597,7 @@ func TestDnsMessage_TextFormat_Directives_Pdns(t *testing.T) {
 			expected: "5e006236c8a74f7eafc6af126e6d0689 test",
 		},
 		{
-			name:     "ends_version",
+			name:     "edns_version",
 			format:   "powerdns-edns-version",
 			dm:       DNSMessage{PowerDNS: &CollectorPowerDNS{EdnsVersion: "1"}},
 			expected: "1",
