@@ -27,6 +27,8 @@ Highly customizable text output using field directives:
 **DNS Information**
 - `operation` - DNStap operation (CLIENT_QUERY, etc.)
 - `rcode` - DNS response code
+- `rdatatype` - DNS response type (A, AAAA, etc.)
+- `rdatatypes` - DNS response types (semicolon separated)
 - `qname` - Query domain name
 - `qtype` - Query type (A, AAAA, etc.)
 - `qclass` - Query class

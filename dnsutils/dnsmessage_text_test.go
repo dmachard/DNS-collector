@@ -305,6 +305,54 @@ func TestDnsMessage_TextFormat_DefaultDirectives(t *testing.T) {
 			expected: "127.0.0.1;127.0.0.2",
 		},
 		{
+			format: "rdatatype",
+			dm: DNSMessage{
+				DNS: DNS{
+					DNSRRs: DNSRRs{
+						Answers: []DNSAnswer{
+							{
+								Name:      "dnscollector.fr",
+								Rdatatype: "A",
+								Class:     "IN",
+								Rdata:     "127.0.0.1",
+							},
+							{
+								Name:      "dnscollector.fr",
+								Rdatatype: "A",
+								Class:     "IN",
+								Rdata:     "127.0.0.2",
+							},
+						},
+					},
+				},
+			},
+			expected: "A",
+		},
+		{
+			format: "rdatatypes",
+			dm: DNSMessage{
+				DNS: DNS{
+					DNSRRs: DNSRRs{
+						Answers: []DNSAnswer{
+							{
+								Name:      "dnscollector.fr",
+								Rdatatype: "A",
+								Class:     "IN",
+								Rdata:     "127.0.0.1",
+							},
+							{
+								Name:      "dnscollector.fr",
+								Rdatatype: "A",
+								Class:     "IN",
+								Rdata:     "127.0.0.2",
+							},
+						},
+					},
+				},
+			},
+			expected: "A;A",
+		},
+		{
 			format:   "http-protocol",
 			dm:       DNSMessage{DNSTap: DNSTap{HttpProtocol: "HTTP3"}},
 			expected: "HTTP3",

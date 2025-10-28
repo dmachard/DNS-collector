@@ -610,6 +610,33 @@ func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBo
 				s.WriteByte('-')
 			}
 
+		case directive == "rdatatype":
+			ansFound := false
+			for _, answer := range an {
+				s.WriteString(answer.Rdatatype)
+				ansFound = true
+				break
+			}
+
+			if !ansFound {
+				s.WriteByte('-')
+			}
+
+		case directive == "rdatatypes":
+			ansFound := false
+			var rDataTypes []string
+
+			for _, answer := range an {
+				rDataTypes = append(rDataTypes, answer.Rdatatype)
+				ansFound = true
+			}
+			if !ansFound {
+				s.WriteByte('-')
+			} else {
+				s.WriteString(strings.Join(rDataTypes, ";"))
+
+			}
+
 		case directive == "questionscount" || directive == "qdcount":
 			s.WriteString(strconv.Itoa(dm.DNS.QdCount))
 		case directive == "answercount" || directive == "ancount":
