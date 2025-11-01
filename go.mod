@@ -29,7 +29,7 @@ require (
 	github.com/hpcloud/tail v1.0.0
 	github.com/influxdata/influxdb-client-go v1.4.0
 	github.com/klauspost/compress v1.18.0
-	github.com/miekg/dns v1.1.67
+	github.com/miekg/dns v1.1.68
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/nsqio/go-nsq v1.1.0
 	github.com/oschwald/maxminddb-golang v1.13.1
