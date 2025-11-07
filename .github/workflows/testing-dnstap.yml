@@ -48,8 +48,7 @@ jobs:
     strategy:
       matrix:
         config:
-          - { service: "unbound", version: "1.22.0", mode: "tcp" }
-          - { service: "unbound", version: "1.21.0", mode: "tcp" }
+          - { service: "unbound", version: "1.24.1", mode: "tcp" }
           - { service: "coredns", version: "1.11.1", mode: "tcp" }
           - { service: "coredns", version: "1.11.1", mode: "tls" }
           - { service: "coredns", version: "1.12.1", mode: "tcp" }
@@ -112,7 +111,7 @@ jobs:
         run: |
           case ${{ matrix.config.service }} in
             "unbound")
-              sudo docker run -d --network="host" --name=dnsserver --volume=$PWD/tests/testsdata/unbound/unbound_${{ matrix.config.mode }}.conf:/opt/unbound/etc/unbound/unbound.conf:z -v /tmp/dnstap-socket/:/opt/unbound/etc/unbound/tmp/:z mvance/unbound:${{ matrix.config.version }}
+              sudo docker run -d --network="host" --name=dnsserver --volume=$PWD/tests/testsdata/unbound/unbound_${{ matrix.config.mode }}.conf:/opt/unbound/etc/unbound/unbound.conf:z -v /tmp/dnstap-socket/:/opt/unbound/etc/unbound/tmp/:z ghcr.io/majorp93/unbound:${{ matrix.config.version }}
               ;;
             "coredns")
               sudo docker run -d --network="host" --name=dnsserver -v $PWD/tests/testsdata/:$PWD/tests/testsdata/ -v /tmp/dnstap-socket/:/tmp/ coredns/coredns:${{ matrix.config.version }} -conf $PWD/tests/testsdata/coredns/coredns_${{ matrix.config.mode }}.conf
