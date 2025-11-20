@@ -78,7 +78,7 @@ jobs:
   
       - name: Download q test doq test
         run: |
-          wget https://github.com/natesales/q/releases/download/v0.19.2/q_${{ env.Q_VERSION }}_linux_amd64.tar.gz
+          wget https://github.com/natesales/q/releases/download/v${{ env.Q_VERSION }}/q_${{ env.Q_VERSION }}_linux_amd64.tar.gz
           tar xvf q_${{ env.Q_VERSION }}_linux_amd64.tar.gz
   
       - name: Generate certificate
