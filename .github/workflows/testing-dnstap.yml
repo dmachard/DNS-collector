@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 env:
-  Q_VERSION: "0.19.2"
+  Q_VERSION: "0.19.11"
   PYTHON_VERSION: "3.13"
   GO_VERSION: "1.24"
   COLLECTOR_USER: "pdns"
