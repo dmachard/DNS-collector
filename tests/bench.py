@@ -46,16 +46,15 @@ class GeneratorProc(asyncio.SubprocessProtocol):
         except ProcessLookupError: pass
 
 class TestBench(unittest.TestCase):
-    def setUp(self):
-        self.loop = asyncio.get_event_loop()
-
     def test_stdout_recv(self):
         """benchmark"""
         async def run():
-            # run collector
+            loop = asyncio.get_running_loop()
             is_listening = asyncio.Future()
+
+            # run collector
             args = ( "./dnscollector", "-config", "./tests/testsdata/config_bench.yml",)
-            transport_collector, protocol_collector =  await self.loop.subprocess_exec(lambda: CollectorProc(is_listening),
+            transport_collector, protocol_collector =  await loop.subprocess_exec(lambda: CollectorProc(is_listening),
                                                                                        *args, stdout=asyncio.subprocess.PIPE)
 
             # wait if is listening
@@ -72,7 +71,7 @@ class TestBench(unittest.TestCase):
                 # start gen
                 is_existed = asyncio.Future()
                 args = ( "./../gen/go-dnstap-generator", "-c", "2", "-n", str(nb) )
-                transport_gen, protocol_gen =  await self.loop.subprocess_exec(lambda: GeneratorProc(is_existed),
+                transport_gen, protocol_gen =  await loop.subprocess_exec(lambda: GeneratorProc(is_existed),
                                                                                         *args, stdout=asyncio.subprocess.PIPE)
                 await is_existed
 
@@ -94,5 +93,4 @@ class TestBench(unittest.TestCase):
             protocol_collector.kill()
             transport_collector.close()
 
-
-        self.loop.run_until_complete(run())
+        asyncio.run(run())

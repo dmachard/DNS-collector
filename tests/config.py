@@ -30,19 +30,15 @@ class ProcessProtocol(asyncio.SubprocessProtocol):
         except ProcessLookupError: pass
 
 class TestConfig(unittest.TestCase):
-    def setUp(self):
-        self.loop = asyncio.get_event_loop()
-        asyncio.set_event_loop(self.loop)
-    def tearDown(self):
-        self.loop.close()
-
     def test1_valid(self):
         """test valid config"""
         async def run():
-            # run collector
+            loop = asyncio.get_running_loop()
             is_configvalid= asyncio.Future()
+
+            # run collector
             args = ( "./dnscollector", "-config", "./tests/testsdata/config_verbose.yml",)
-            transport_collector, protocol_collector =  await self.loop.subprocess_exec(lambda: ProcessProtocol(is_configvalid, None),
+            transport_collector, protocol_collector =  await loop.subprocess_exec(lambda: ProcessProtocol(is_configvalid, None),
                                                                                         *args, stdout=asyncio.subprocess.PIPE)
 
             # wait if is listening
@@ -56,15 +52,17 @@ class TestConfig(unittest.TestCase):
             protocol_collector.kill()
             transport_collector.close()
 
-        self.loop.run_until_complete(run())
+        asyncio.run(run())
 
     def test2_invalid(self):
         """test invalid config"""
         async def run():
+            loop = asyncio.get_running_loop()
+            is_configinvalid = asyncio.Future()
+
             # run collector
-            is_configinvalid= asyncio.Future()
             args = ( "./dnscollector", "-config", "./tests/testsdata/config_invalid.yml",)
-            transport_collector, protocol_collector =  await self.loop.subprocess_exec(lambda: ProcessProtocol(None, is_configinvalid),
+            transport_collector, protocol_collector =  await loop.subprocess_exec(lambda: ProcessProtocol(None, is_configinvalid),
                                                                                         *args, stdout=asyncio.subprocess.PIPE)
 
             # wait if is listening
@@ -78,15 +76,17 @@ class TestConfig(unittest.TestCase):
             protocol_collector.kill()
             transport_collector.close()
             
-        self.loop.run_until_complete(run())
+        asyncio.run(run())
 
     def test3_default_config(self):
         """test the default config"""
         async def run():
+            loop = asyncio.get_running_loop()
+            is_configvalid = asyncio.Future()
+
             # run collector
-            is_configvalid= asyncio.Future()
             args = ( "./dnscollector", )
-            transport_collector, protocol_collector =  await self.loop.subprocess_exec(lambda: ProcessProtocol(is_configvalid, None),
+            transport_collector, protocol_collector =  await loop.subprocess_exec(lambda: ProcessProtocol(is_configvalid, None),
                                                                                         *args, stdout=asyncio.subprocess.PIPE)
 
             # wait if is listening
@@ -100,4 +100,4 @@ class TestConfig(unittest.TestCase):
             protocol_collector.kill()
             transport_collector.close()
 
-        self.loop.run_until_complete(run())
+        asyncio.run(run())

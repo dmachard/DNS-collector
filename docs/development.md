@@ -83,6 +83,21 @@ Update package dependencies
 make dep
 ```
 
+### Running python tests
+
+```bash
+# set python env
+python3 -m venv venv
+source venv/bin/activate
+python3 -m pip install dnstap_pb fstrm dnspython protobuf
+
+# build dnscollector
+make build
+
+# run tests
+python3 -m unittest tests.config -v
+```
+
 ## How to userguides
 
 ### Add transformer
@@ -208,4 +223,4 @@ if subcfg.Loggers.MyLogger.Enable && IsLoggerRouted(config, output.Name) {
 }
 ```
 
-4. Finally update the docs `doc/loggers.md` or `doc/collectors.md` and `README.md`
+4. Finally update the docs in the `docs` folder and `README.md`

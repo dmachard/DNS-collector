@@ -50,24 +50,23 @@ class DoQClient(asyncio.SubprocessProtocol):
         except ProcessLookupError: pass
 
 class TestDnstap(unittest.TestCase):
-    def setUp(self):
-        self.loop = asyncio.get_event_loop()
-
     def test_stdout_recv(self):
         """test to receive dnstap DOQ response in stdout"""
         async def run():
-            # run collector
+            loop = asyncio.get_running_loop()
             is_ready = asyncio.Future()
             is_clientresponse = asyncio.Future()
+
+            # run collector
             args = ( "./dnscollector", "-config", "./tests/testsdata/config_stdout_dnstaptcp.yml",)
-            transport_collector, protocol_collector =  await self.loop.subprocess_exec(lambda: CollectorProc(is_ready, is_clientresponse),
+            transport_collector, protocol_collector =  await loop.subprocess_exec(lambda: CollectorProc(is_ready, is_clientresponse),
                                                                                        *args, stdout=asyncio.subprocess.PIPE)
 
             # make doq resolution
             for i in range(10):
                 is_existed = asyncio.Future()
                 args = ( "./q", "www.github.com", "A", "@quic://127.0.0.1:5853", "--tls-insecure-skip-verify")
-                transport_client, protocol_client =  await self.loop.subprocess_exec(lambda: DoQClient(is_existed), *args, stdout=asyncio.subprocess.PIPE)
+                transport_client, protocol_client =  await loop.subprocess_exec(lambda: DoQClient(is_existed), *args, stdout=asyncio.subprocess.PIPE)
                 await is_existed
 
                 protocol_client.kill()
@@ -85,7 +84,7 @@ class TestDnstap(unittest.TestCase):
             for i in range(10):
                 is_existed = asyncio.Future()
                 args = ( "./q", "www.github.com", "A", "@quic://127.0.0.1:5853", "--tls-insecure-skip-verify")
-                transport_client, protocol_client =  await self.loop.subprocess_exec(lambda: DoQClient(is_existed), *args, stdout=asyncio.subprocess.PIPE)
+                transport_client, protocol_client =  await loop.subprocess_exec(lambda: DoQClient(is_existed), *args, stdout=asyncio.subprocess.PIPE)
                 await is_existed
 
                 protocol_client.kill()
@@ -103,5 +102,4 @@ class TestDnstap(unittest.TestCase):
             protocol_collector.kill()
             transport_collector.close()
 
-
-        self.loop.run_until_complete(run())
+        asyncio.run(run())

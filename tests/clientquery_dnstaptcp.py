@@ -74,17 +74,16 @@ class ProcessProtocol(asyncio.SubprocessProtocol):
         
 
 class TestDnstap(unittest.TestCase):
-    def setUp(self):
-        self.loop = asyncio.get_event_loop()
-
     def test_stdout_recv(self):
         """test to receive dnstap query in stdout"""
         async def run():
-            # run collector
+            loop = asyncio.get_running_loop()
             is_listening = asyncio.Future()
             is_clientquery = asyncio.Future()
+
+            # run collector
             args = ( "./dnscollector", "-config", "./tests/testsdata/config_stdout_dnstaptcp.yml",)
-            transport_collector, protocol_collector =  await self.loop.subprocess_exec(lambda: ProcessProtocol(is_listening, is_clientquery),
+            transport_collector, protocol_collector =  await loop.subprocess_exec(lambda: ProcessProtocol(is_listening, is_clientquery),
                                                                                        *args, stdout=asyncio.subprocess.PIPE)
 
             # wait if is listening
@@ -96,7 +95,7 @@ class TestDnstap(unittest.TestCase):
 
             # connect client to collector
             handshake_client = self.loop.create_future()
-            transport_client, protocol_client =  await self.loop.create_connection(lambda: DnstapProtocol(handshake_client), 'localhost', 6000)
+            transport_client, protocol_client =  await loop.create_connection(lambda: DnstapProtocol(handshake_client), 'localhost', 6000)
 
             # wait handshake from collector
             try:
@@ -120,7 +119,7 @@ class TestDnstap(unittest.TestCase):
             protocol_collector.kill()
             transport_collector.close()
 
-        self.loop.run_until_complete(run())
+        asyncio.run(run())
 
 
             

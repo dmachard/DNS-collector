@@ -43,18 +43,17 @@ class ProcessProtocol(asyncio.SubprocessProtocol):
         
 
 class TestDnstap(unittest.TestCase):
-    def setUp(self):
-        self.loop = asyncio.get_event_loop()
-
     def test_stdout_recv(self):
         """test to receive dnstap response in stdout"""
         async def run():
-            # run collector
+            loop = asyncio.get_running_loop()
             is_ready = asyncio.Future()
             is_clientquery = asyncio.Future()
             is_clientresponse = asyncio.Future()
+
+            # run collector
             args = ( "./dnscollector", "-config", "./tests/testsdata/config_stdout_dnstaptcp.yml",)
-            transport_collector, protocol_collector =  await self.loop.subprocess_exec(lambda: ProcessProtocol(is_ready, is_clientquery, is_clientresponse),
+            transport_collector, protocol_collector =  await loop.subprocess_exec(lambda: ProcessProtocol(is_ready, is_clientquery, is_clientresponse),
                                                                                        *args, stdout=asyncio.subprocess.PIPE)
 
             # make some dns queries to force the dns server to connect to the collector
@@ -98,5 +97,4 @@ class TestDnstap(unittest.TestCase):
             protocol_collector.kill()
             transport_collector.close()
 
-
-        self.loop.run_until_complete(run())
+        asyncio.run(run())

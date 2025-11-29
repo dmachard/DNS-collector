@@ -42,19 +42,17 @@ class ProcessProtocol(asyncio.SubprocessProtocol):
         except ProcessLookupError: pass
         
 class TestDnstap(unittest.TestCase):
-    def setUp(self):
-        self.loop = asyncio.get_event_loop()
-        asyncio.set_event_loop(self.loop)
-
     def test_stdout_recv(self):
         """test to receive dnstap response in stdout"""
         async def run():
-            # run collector
+            loop = asyncio.get_running_loop()
             is_ready = asyncio.Future()
             is_clientresponse = asyncio.Future()
+
+            # run collector
             print("Starting collector with current user: ", COLLECTOR_USER)
             args = ( "sudo", "-u", COLLECTOR_USER, "-s", "./dnscollector", "-config", "./tests/testsdata/config_stdout_dnstapunix.yml",)
-            transport_collector, protocol_collector =  await self.loop.subprocess_exec(lambda: ProcessProtocol(is_ready, is_clientresponse),
+            transport_collector, protocol_collector =  await loop.subprocess_exec(lambda: ProcessProtocol(is_ready, is_clientresponse),
                                                                                        *args, stdout=asyncio.subprocess.PIPE)
 
             print("Restarting DNS server container...")
@@ -93,5 +91,4 @@ class TestDnstap(unittest.TestCase):
             protocol_collector.kill()
             transport_collector.close()
 
-
-        self.loop.run_until_complete(run())
+        asyncio.run(run())
