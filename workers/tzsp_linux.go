@@ -1,5 +1,4 @@
 //go:build linux
-// +build linux
 
 // Written by Noel Kuntze <noel.kuntze {@@@@@} thermi.consulting>
 // Updating by Denis Machard
