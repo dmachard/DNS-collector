@@ -48,9 +48,9 @@ jobs:
     strategy:
       matrix:
         config:
-          - { service: "unbound", version: "1.24.1", mode: "tcp" }
-          - { service: "coredns", version: "1.11.1", mode: "tcp" }
-          - { service: "coredns", version: "1.11.1", mode: "tls" }
+          - { service: "unbound", version: "1.24.2", mode: "tcp" }
+          - { service: "coredns", version: "1.13.1", mode: "tcp" }
+          - { service: "coredns", version: "1.13.1", mode: "tls" }
           - { service: "coredns", version: "1.12.1", mode: "tcp" }
           - { service: "coredns", version: "1.12.1", mode: "tls" }
           - { service: "dnsdist", version: "19", mode: "tcp" }
@@ -58,7 +58,7 @@ jobs:
           - { service: "dnsdist", version: "19", mode: "doq" }
           - { service: "dnsdist2", version: "20", mode: "tcp" }
           - { service: "dnsdist2", version: "20", mode: "doq" }
-          - { service: "knotresolver", version: "6.0.11", mode: "unix" }
+          - { service: "knotresolver", version: "6.0.16", mode: "unix" }
           #- { service: "bind9", version: "9.18.33-r0", mode: "unix" }
 
     steps:
