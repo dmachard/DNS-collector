@@ -1,7 +1,7 @@
 
 services:
   kafka-ui:
-    image: provectuslabs/kafka-ui:v0.7.1
+    image: provectuslabs/kafka-ui:v0.7.2
     container_name: kafka-ui
     environment:
       DYNAMIC_CONFIG_ENABLED: true
@@ -14,7 +14,7 @@ services:
       - kafka
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.0
+    image: confluentinc/cp-zookeeper:7.7.7
     hostname: zookeeper
     container_name: zookeeper
     ports:
@@ -24,7 +24,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   kafka:
-    image: confluentinc/cp-kafka:7.6.0
+    image: confluentinc/cp-kafka:7.7.7
     container_name: kafka
     depends_on:
       - zookeeper
@@ -49,7 +49,7 @@ services:
 
 
   kafka-init-topics:
-    image: confluentinc/cp-kafka:7.6.0
+    image: confluentinc/cp-kafka:7.7.7
     container_name: kafka-init-topic
     volumes:
        - ./message.json:/data/message.json
@@ -57,4 +57,4 @@ services:
       - kafka
     command: "bash -c 'echo Waiting for Kafka to be ready... && \
                cub kafka-ready -b kafka:29092 1 30 && \
-               kafka-topics --create --topic dnscollector --partitions 2 --replication-factor 1 --if-not-exists --bootstrap-server kafka:29092 < /data/message.json'"
+               kafka-topics --create --topic dnscollector --partitions 4 --replication-factor 1 --if-not-exists --bootstrap-server kafka:29092 < /data/message.json'"
