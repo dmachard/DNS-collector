@@ -15,14 +15,8 @@ Options:
 * `connect-timeout` (integer)
   > Specifies the maximum time to wait for a connection attempt to complete.
 
-* `retry-interval` (integer)
-  > Specifies the interval between attempts to reconnect in case of connection failure.
-
 * `flush-interval` (integer)
   > Specifies the interval between buffer flushes.
-
-* `cancel-kafka` (boolean)
-  > Determines whether the Kafka worker should stop running if all configured brokers become unreachable after 10 seconds.
 
 * `tls-support` (boolean)
   > Enables or disables TLS (Transport Layer Security) support.
@@ -103,3 +97,12 @@ kafkaproducer:
   chan-buffer-size: 0
   compression: none
 ```
+
+Deprecated, will be removed in future versions
+
+
+* `retry-interval` (integer)
+  > Specifies the interval between attempts to reconnect in case of connection failure.
+
+* `cancel-kafka` (boolean)
+  > Determines whether the Kafka worker should stop running if all configured brokers become unreachable after 10 seconds.
