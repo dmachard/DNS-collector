@@ -1,6 +1,12 @@
 # Logger: Kafka Producer
 
 Kafka producer, based on [kafka-go](https://github.com/segmentio/kafka-go) library.
+It receives DNS messages and sends them to one or more Kafka topics, with support for TLS, SASL, compression, and partitioning.
+
+Behavior
+- Connection and Reconnection: The producer tries to connect to all brokers or a specific partition. If it fails, it retries using exponential backoff (1s, 2s, 4s, 8s, 16s, 30s max).
+- Buffering and Flush: DNS messages are buffered in memory and flushed to Kafka either when the buffer reaches batch-size or after flush-interval seconds.
+- Partitioning: If partition is set, all messages are sent to that partition. Otherwise, messages are distributed round-robin across all available partitions.
 
 Options:
 
