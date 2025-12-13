@@ -293,6 +293,7 @@ func (w *DnstapSender) StartLogging() {
 			// drop dns message if the connection is not ready to avoid memory leak or
 			// to block the channel
 			if !w.fsReady {
+				w.CountEgressDiscarded()
 				continue
 			}
 

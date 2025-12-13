@@ -281,6 +281,12 @@ func (w *GenericWorker) CountEgressTraffic() {
 	}
 }
 
+func (w *GenericWorker) CountEgressDiscarded() {
+	if w.config.Global.Telemetry.Enabled {
+		w.countDiscarded <- 1
+	}
+}
+
 func (w *GenericWorker) SendDroppedTo(routes []chan dnsutils.DNSMessage, routesName []string, dm dnsutils.DNSMessage) {
 	for i := range routes {
 		select {

@@ -284,6 +284,9 @@ func (w *KafkaProducer) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 	w.connMutex.RUnlock()
 
 	if !connected {
+		for range *buf {
+			w.CountEgressDiscarded()
+		}
 		*buf = nil
 		return
 	}
@@ -330,6 +333,12 @@ func (w *KafkaProducer) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 		numPartitions := len(w.kafkaConns)
 		if numPartitions == 0 {
 			w.LogError("no kafka connections available")
+
+			// count discarded messages
+			for range msgs {
+				w.CountEgressDiscarded()
+			}
+
 			w.connMutex.RUnlock()
 			w.connMutex.Lock()
 			w.kafkaConnected = false
@@ -353,6 +362,12 @@ func (w *KafkaProducer) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 
 		if err != nil {
 			w.LogError("[partition=%d] write failed: %v", *w.lastPartitionIndex, err.Error())
+
+			// count discarded messages
+			for range msgs {
+				w.CountEgressDiscarded()
+			}
+
 			w.connMutex.RUnlock()
 			w.connMutex.Lock()
 			w.kafkaConnected = false
@@ -374,6 +389,12 @@ func (w *KafkaProducer) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 		conn, exists := w.kafkaConns[*partition]
 		if !exists {
 			w.LogError("[partition=%d] connection not available", *partition)
+
+			// count discarded messages
+			for range msgs {
+				w.CountEgressDiscarded()
+			}
+
 			w.connMutex.RUnlock()
 			w.connMutex.Lock()
 			w.kafkaConnected = false
@@ -397,6 +418,12 @@ func (w *KafkaProducer) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 
 		if err != nil {
 			w.LogError("[partition=%d] write failed: %v", *partition, err.Error())
+
+			// count discarded messages
+			for range msgs {
+				w.CountEgressDiscarded()
+			}
+
 			w.connMutex.RUnlock()
 			w.connMutex.Lock()
 			w.kafkaConnected = false
@@ -413,6 +440,7 @@ func (w *KafkaProducer) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 		}
 	}
 
+	// successfully sent, clear buffer
 	*buf = nil
 }
 
@@ -538,6 +566,7 @@ func (w *KafkaProducer) StartLogging() {
 			// drop dns message if the connection is not ready to avoid memory leak or
 			// to block the channel
 			if !connected {
+				w.CountEgressDiscarded()
 				continue
 			}
 

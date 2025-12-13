@@ -258,6 +258,7 @@ func (w *FluentdClient) StartLogging() {
 			// drop dns message if the connection is not ready to avoid memory leak or
 			// to block the channel
 			if !w.writerReady {
+				w.CountEgressDiscarded()
 				continue
 			}
 
@@ -271,7 +272,10 @@ func (w *FluentdClient) StartLogging() {
 
 		// flush the buffer
 		case <-flushTimer.C:
-			if !w.writerReady {
+			if !w.writerReady && len(bufferDm) > 0 {
+				for range bufferDm {
+					w.CountEgressDiscarded()
+				}
 				bufferDm = nil
 			}
 

@@ -94,6 +94,7 @@ func (w *NsqClient) StartLogging() {
 			encoded, err := json.Marshal(msg)
 			if err != nil {
 				w.LogError("json encoding error: %v", err)
+				w.CountEgressDiscarded()
 				continue
 			}
 

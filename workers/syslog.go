@@ -316,6 +316,7 @@ func (w *Syslog) StartLogging() {
 
 			// discard dns message if the connection is not ready
 			if !w.syslogReady {
+				w.CountEgressDiscarded()
 				continue
 			}
 			// append dns message to buffer
@@ -328,7 +329,10 @@ func (w *Syslog) StartLogging() {
 
 			// flush the buffer
 		case <-flushTimer.C:
-			if !w.syslogReady {
+			if !w.syslogReady && len(bufferDm) > 0 {
+				for range bufferDm {
+					w.CountEgressDiscarded()
+				}
 				bufferDm = nil
 			}
 

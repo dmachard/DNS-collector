@@ -152,6 +152,7 @@ func (w *OpenTelemetryClient) StartLogging() {
 			timestamp, err := time.Parse(time.RFC3339, dm.DNSTap.TimestampRFC3339)
 			if err != nil {
 				w.LogWarning("invalid timestamp: %v", err)
+				w.CountEgressDiscarded()
 				continue
 			}
 			tracer := w.getTracer(dm.DNSTap.Identity)
