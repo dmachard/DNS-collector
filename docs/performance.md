@@ -27,7 +27,7 @@ global:
 
 - `dnscollector_worker_ingress_traffic_total`  
   Total number of DNS messages received by each worker. Reflects successful handoff to the next internal
-  worker only, **not external delivery guarantees**. Message loss due to temporary output unavailability is tracked via `worker_discarded_traffic_total`.
+  worker only, **not external delivery guarantees**. Message loss due to temporary output unavailability is tracked via `dnscollector_worker_discarded_traffic_total`.
 
 - `dnscollector_worker_egress_traffic_total`  
   Total number of DNS messages successfully passed to the next stage by each worker.  
