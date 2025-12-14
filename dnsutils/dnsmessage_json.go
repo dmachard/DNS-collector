@@ -46,6 +46,7 @@ func (dm *DNSMessage) Flatten() (map[string]interface{}, error) {
 		"dns.nscount":                dm.DNS.NsCount,
 		"dnstap.identity":            dm.DNSTap.Identity,
 		"dnstap.latency":             dm.DNSTap.Latency,
+		"dnstap.latency_ms":          dm.DNSTap.LatencyMs,
 		"dnstap.operation":           dm.DNSTap.Operation,
 		"dnstap.timestamp-rfc3339ns": dm.DNSTap.TimestampRFC3339,
 		"dnstap.version":             dm.DNSTap.Version,

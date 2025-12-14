@@ -51,7 +51,8 @@ Highly customizable text output using field directives:
 - `ad` - Authenticated Data
 
 **Advanced Fields**
-- `latency` - Query/response latency
+- `latency` - Query/response latency in second(s)
+- `latency_ms` - Query/response latency in millisecond(s)
 - `answer` - First answer record
 - `answer-ip` - First A/AAAA answer
 - `answer-ips` - All A/AAAA answers (comma-separated)

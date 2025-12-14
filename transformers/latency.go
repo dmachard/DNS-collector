@@ -146,6 +146,7 @@ func (t *LatencyTransform) measureLatency(dm *dnsutils.DNSMessage) (int, error) 
 				t.hashQueries.Delete(key)
 				latency := float64(dm.DNSTap.Timestamp-value) / float64(1000000000)
 				dm.DNSTap.Latency = latency
+				dm.DNSTap.LatencyMs = int(latency * 1000)
 			}
 		}
 	}

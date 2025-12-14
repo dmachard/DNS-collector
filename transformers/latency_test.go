@@ -11,7 +11,7 @@ import (
 	"github.com/dmachard/go-logger"
 )
 
-func TestLatency_MeasureLatency(t *testing.T) {
+func TestLatency_MeasureLatencyAndMs(t *testing.T) {
 	// enable feature
 	config := pkgconfig.GetFakeConfigTransformers()
 	outChannels := []chan dnsutils.DNSMessage{}
@@ -42,21 +42,26 @@ func TestLatency_MeasureLatency(t *testing.T) {
 			// Register Query
 			CQ := dnsutils.GetFakeDNSMessage()
 			CQ.DNS.Type = tc.cq
-			CQ.DNSTap.Timestamp = 1704486841216166066
+			CQ.DNSTap.Timestamp = int64(1704486841216166066) // example nanoseconds timestamp
 
-			// Measure latency
 			latency.measureLatency(&CQ)
 
-			// Register Query
+			// Register Response
 			CR := dnsutils.GetFakeDNSMessage()
 			CR.DNS.Type = tc.cr
-			CR.DNSTap.Timestamp = 1704486841227961611
+			CR.DNSTap.Timestamp = int64(1704486841227961611)
 
-			// Measure latency
 			latency.measureLatency(&CR)
 
-			if CR.DNSTap.Latency == 0.0 {
-				t.Errorf("incorrect latency, got 0.0")
+			// Check Latency in seconds
+			if CR.DNSTap.Latency <= 0.0 {
+				t.Errorf("incorrect latency, got %f", CR.DNSTap.Latency)
+			}
+
+			// Check Latency in milliseconds
+			expectedMs := CR.DNSTap.Latency * 1000
+			if CR.DNSTap.LatencyMs != int(expectedMs) {
+				t.Errorf("incorrect latencyMs, got %d, expected %d", CR.DNSTap.LatencyMs, int(expectedMs))
 			}
 		})
 	}

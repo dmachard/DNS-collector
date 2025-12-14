@@ -91,6 +91,7 @@ type DNSTap struct {
 	TimeSec          int     `json:"-"`
 	TimeNsec         int     `json:"-"`
 	Latency          float64 `json:"latency"`
+	LatencyMs        int     `json:"latency_ms"`
 	Payload          []byte  `json:"-"`
 	Extra            string  `json:"extra"`
 	PolicyRule       string  `json:"policy-rule"`

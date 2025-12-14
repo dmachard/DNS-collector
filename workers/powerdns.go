@@ -302,6 +302,8 @@ func (w *PdnsProcessor) StartCollect() {
 
 				// convert latency to human
 				dm.DNSTap.Latency = tsReply - tsQuery
+				dm.DNSTap.LatencyMs = int((tsReply - tsQuery) * 1000)
+
 				dm.DNS.Rcode = dnsutils.RcodeToString(int(pbdm.Response.GetRcode()))
 			}
 

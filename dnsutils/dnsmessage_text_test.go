@@ -153,6 +153,11 @@ func TestDnsMessage_TextFormat_DefaultDirectives(t *testing.T) {
 			expected: "0.000010000",
 		},
 		{
+			format:   "latency_ms",
+			dm:       DNSMessage{DNSTap: DNSTap{LatencyMs: 20}},
+			expected: "20",
+		},
+		{
 			format:   "qname qtype opcode",
 			dm:       DNSMessage{DNS: DNS{Qname: "dnscollector.fr", Qtype: "AAAA", Opcode: 42}},
 			expected: "dnscollector.fr AAAA 42",
@@ -897,7 +902,7 @@ func BenchmarkDnsMessage_ToTextFormat(b *testing.B) {
 
 	textFormat := []string{"timestamp-rfc3339ns", "identity",
 		"operation", "rcode", "queryip", "queryport", "family",
-		"protocol", "length-unit", "qname", "qtype", "latency"}
+		"protocol", "length-unit", "qname", "qtype", "latency", "latency_ms"}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := dm.ToTextLine(textFormat, " ", "\"")
