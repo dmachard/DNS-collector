@@ -97,10 +97,12 @@ func Test_LokiClientRun(t *testing.T) {
 
 func Test_LokiClientRelabel(t *testing.T) {
 	testcases := []struct {
+		name          string
 		relabelConfig []*relabel.Config
 		labelsPattern string
 	}{
 		{
+			name: "export rcode label from __dns_rcode",
 			relabelConfig: []*relabel.Config{
 				{
 					Action:       relabel.Replace,
@@ -114,6 +116,7 @@ func Test_LokiClientRelabel(t *testing.T) {
 			labelsPattern: "{identity=\"test_id\", job=\"dnscollector\", rcode=\"NOERROR\"}",
 		},
 		{
+			name: "internal relabel is dropped (__ labels are not exported)",
 			relabelConfig: []*relabel.Config{
 				{
 					Action:       relabel.Replace,
@@ -127,6 +130,7 @@ func Test_LokiClientRelabel(t *testing.T) {
 			labelsPattern: "{identity=\"test_id\", job=\"dnscollector\"}",
 		},
 		{
+			name: "drop job label via relabel config",
 			relabelConfig: []*relabel.Config{
 				{
 					Action: relabel.LabelDrop,
@@ -146,7 +150,7 @@ func Test_LokiClientRelabel(t *testing.T) {
 
 	for _, tc := range testcases {
 		for _, m := range []string{pkgconfig.ModeText, pkgconfig.ModeJSON, pkgconfig.ModeFlatJSON} {
-			t.Run(fmt.Sprint(m, tc.relabelConfig, tc.labelsPattern), func(t *testing.T) {
+			t.Run(fmt.Sprintf("%s/%s", m, tc.name), func(t *testing.T) {
 				// init logger
 				cfg := pkgconfig.GetDefaultConfig()
 				cfg.Loggers.LokiClient.Mode = m

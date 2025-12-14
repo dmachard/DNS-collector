@@ -211,42 +211,46 @@ func (w *LokiClient) StartLogging() {
 				return
 			}
 
-			lbls := labels.Labels{
-				labels.Label{Name: "identity", Value: dm.DNSTap.Identity},
-				labels.Label{Name: "job", Value: w.GetConfig().Loggers.LokiClient.JobName},
-			}
+			// lbls := labels.Labels{
+			// 	{Name: "identity", Value: dm.DNSTap.Identity},
+			// 	{Name: "job", Value: w.GetConfig().Loggers.LokiClient.JobName},
+			// }
+			lbls := labels.FromStrings(
+				"identity", dm.DNSTap.Identity,
+				"job", w.GetConfig().Loggers.LokiClient.JobName,
+			)
 			var err error
 			var flat map[string]interface{}
 			if len(w.GetConfig().Loggers.LokiClient.RelabelConfigs) > 0 {
-				// Save flattened JSON in case it's used when populating the message of the log entry.
-				// There is more room for improvement for reusing data though. Flatten() internally
-				// does a JSON encode of the DnsMessage, but it's not saved to use when the mode
-				// is JSON.
+				// flatten dns message
 				flat, err = dm.Flatten()
 				if err != nil {
 					w.LogError("flattening DNS message failed: %e", err)
+					w.CountEgressDiscarded()
+					continue
 				}
-				sb := labels.NewScratchBuilder(len(lbls) + len(flat))
-				sb.Assign(lbls)
+
+				// build labels set for relabeling
+				sb := labels.NewBuilder(lbls)
 				for k, v := range flat {
-					sb.Add(fmt.Sprintf("__%s", strings.ReplaceAll(k, ".", "_")), fmt.Sprint(v))
+					sb.Set(fmt.Sprintf("__%s", strings.ReplaceAll(k, ".", "_")), fmt.Sprint(v))
 				}
-				sb.Sort()
+
+				// Apply relabeling
 				lbls, _ = relabel.Process(sb.Labels(), w.GetConfig().Loggers.LokiClient.RelabelConfigs...)
 
-				// Drop all labels starting with __ from the map if a relabel config is used.
-				// These labels are just exposed to relabel for the user and should not be
-				// shipped to loki by default.
+				// remove internal labels
 				lb := labels.NewBuilder(lbls)
 				lbls.Range(func(l labels.Label) {
-					if l.Name[0:2] == "__" {
+					if strings.HasPrefix(l.Name, "__") {
 						lb.Del(l.Name)
 					}
 				})
 				lbls = lb.Labels()
 
-				if len(lbls) == 0 {
+				if lbls.Len() == 0 {
 					w.LogInfo("dropping %v since it has no labels", dm)
+					w.CountEgressDiscarded()
 					continue
 				}
 			}
@@ -269,6 +273,8 @@ func (w *LokiClient) StartLogging() {
 					flat, err = dm.Flatten()
 					if err != nil {
 						w.LogError("flattening DNS message failed: %e", err)
+						w.CountEgressDiscarded()
+						continue
 					}
 				}
 				json.NewEncoder(buffer).Encode(flat)
@@ -295,6 +301,7 @@ func (w *LokiClient) StartLogging() {
 					w.LogError("error encoding log entries - %v", err)
 					// reset push request and entries
 					ls.ResetEntries()
+					w.CountEgressDiscarded()
 					return
 				}
 
@@ -317,6 +324,7 @@ func (w *LokiClient) StartLogging() {
 						s.ResetEntries()
 						// restart timer
 						tflush.Reset(tflushInterval)
+						w.CountEgressDiscarded()
 						return
 					}
 
