@@ -17,12 +17,29 @@ Highly customizable text output using field directives:
 
 #### Available Directives
 
-**Time & Identity**
+**Time**
 - `timestamp-rfc3339ns` - RFC3339 timestamp with nanoseconds
 - `timestamp-unixms` - Unix timestamp (milliseconds)
 - `localtime` - Local time format
-- `identity` - DNStap identity
+- `latency` - Query/response latency in second(s)
+- `latency_ms` - Query/response latency in millisecond(s)
+
+**Network Details**
+- `queryip` / `responseip` - IP addresses
+- `queryport` / `responseport` - Port numbers
+- `family` - IP version (IPv4/IPv6)
+- `protocol` - Transport protocol (UDP/TCP)
+- `length` / `length-unit` - Packet size
 - `peer-name` - Sender hostname/IP
+- `identity` - DNStap identity
+
+**DNS Flags**
+- `qr` - Query/Response flag
+- `aa` - Authoritative Answer
+- `tc` - Truncated
+- `rd` - Recursion Desired
+- `ra` - Recursion Available
+- `ad` - Authenticated Data
 
 **DNS Information**
 - `operation` - DNStap operation (CLIENT_QUERY, etc.)
@@ -34,31 +51,11 @@ Highly customizable text output using field directives:
 - `qclass` - Query class
 - `opcode` - DNS opcode
 - `id` - DNS transaction ID
-
-**Network Details**
-- `queryip` / `responseip` - IP addresses
-- `queryport` / `responseport` - Port numbers
-- `family` - IP version (IPv4/IPv6)
-- `protocol` - Transport protocol (UDP/TCP)
-- `length` / `length-unit` - Packet size
-
-**DNS Flags**
-- `qr` - Query/Response flag
-- `aa` - Authoritative Answer
-- `tc` - Truncated
-- `rd` - Recursion Desired
-- `ra` - Recursion Available
-- `ad` - Authenticated Data
-
-**Advanced Fields**
-- `latency` - Query/response latency in second(s)
-- `latency_ms` - Query/response latency in millisecond(s)
 - `answer` - First answer record
 - `answer-ip` - First A/AAAA answer
 - `answer-ips` - All A/AAAA answers (comma-separated)
 - `ttl` - Answer TTL
 - `edns-csubnet` - EDNS Client Subnet
-
 
 #### Text Format Examples
 
@@ -124,7 +121,8 @@ Structured JSON output with complete DNS message details:
     "operation": "CLIENT_RESPONSE",
     "identity": "dns-server-1",
     "timestamp-rfc3339ns": "2024-01-15T10:30:45.123456789Z",
-    "latency": 0.025
+    "latency": 0.025,
+    "latency_ms": 25
   }
 }
 ```
@@ -174,6 +172,7 @@ Single-level key-value pairs for easier processing:
   "dns.resource-records.ns.classes": "-",
   "dnstap.identity": "-",
   "dnstap.latency": 0,
+  "dnstap.latency_ms": 0,
   "dnstap.operation": "-",
   "dnstap.timestamp-rfc3339ns": "-",
   "dnstap.version": "-",
@@ -232,8 +231,11 @@ pipelines:
 ```
 
 Protocol mapping:
-- DNS/UDP → DNS UDP/53
-- DNS/TCP → DNS TCP/53  
-- DoH/TCP/443 → DNS UDP/443 (unencrypted)
-- DoT/TCP/853 → DNS UDP/853 (unencrypted)
-- DoQ/UDP/443 → DNS UDP/443 (unencrypted)
+
+| Protocol       | Mapped To                  |
+|----------------|----------------------------|
+| DNS/UDP        | DNS UDP/53                 |
+| DNS/TCP        | DNS TCP/53                 |
+| DoH/TCP/443    | DNS UDP/443 (unencrypted)  |
+| DoT/TCP/853    | DNS UDP/853 (unencrypted)  |
+| DoQ/UDP/443    | DNS UDP/443 (unencrypted)  |
