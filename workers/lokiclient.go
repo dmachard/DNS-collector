@@ -211,10 +211,6 @@ func (w *LokiClient) StartLogging() {
 				return
 			}
 
-			// lbls := labels.Labels{
-			// 	{Name: "identity", Value: dm.DNSTap.Identity},
-			// 	{Name: "job", Value: w.GetConfig().Loggers.LokiClient.JobName},
-			// }
 			lbls := labels.FromStrings(
 				"identity", dm.DNSTap.Identity,
 				"job", w.GetConfig().Loggers.LokiClient.JobName,
