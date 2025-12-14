@@ -47,10 +47,8 @@ jobs:
     strategy:
       matrix:
         component: 
-          - { name: 'dnsdist', version: '18' }
           - { name: 'dnsdist', version: '19' }
           - { name: 'dnsdist2', version: '20' }
-          - { name: 'recursor', version: '51' }
           - { name: 'recursor', version: '52' }
 
     steps:
