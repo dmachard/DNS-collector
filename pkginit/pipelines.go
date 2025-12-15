@@ -207,6 +207,10 @@ func CreateStanza(stanzaName string, config *pkgconfig.Config, mapCollectors map
 		mapLoggers[stanzaName] = workers.NewOpenTelemetryClient(config, logger, stanzaName)
 		mapLoggers[stanzaName].SetMetrics(metrics)
 	}
+	if config.Loggers.MQTT.Enable {
+		mapLoggers[stanzaName] = workers.NewMQTT(config, logger, stanzaName)
+		mapLoggers[stanzaName].SetMetrics(metrics)
+	}
 
 	// register the collector if enabled
 	if config.Collectors.DNSMessage.Enable {

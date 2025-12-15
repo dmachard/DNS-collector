@@ -152,9 +152,7 @@ func InitMultiplexer(mapLoggers map[string]workers.Worker, mapCollectors map[str
 		if subcfg.Loggers.ClickhouseClient.Enable && IsLoggerRouted(config, output.Name) {
 			mapLoggers[output.Name] = workers.NewClickhouseClient(subcfg, logger, output.Name)
 		}
-		if subcfg.Loggers.MQTT.Enable && IsLoggerRouted(config, output.Name) {
-			mapLoggers[output.Name] = workers.NewMQTT(subcfg, logger, output.Name)
-		}
+
 	}
 
 	// load collectors

@@ -50,10 +50,9 @@ mqtt:
 ### Basic MQTT Connection
 
 ```yaml
-loggers:
+pipelines:
   - name: mqtt-logger
     mqtt:
-      enable: true
       remote-address: "mqtt.example.com"
       remote-port: 1883
       topic: "dns/queries"
@@ -63,10 +62,9 @@ loggers:
 ### MQTT with TLS
 
 ```yaml
-loggers:
+pipelines:
   - name: mqtt-secure
     mqtt:
-      enable: true
       remote-address: "mqtt.example.com"
       remote-port: 8883
       topic: "dns/secure"
@@ -80,10 +78,9 @@ loggers:
 ### MQTT with Authentication
 
 ```yaml
-loggers:
+pipelines:
   - name: mqtt-auth
     mqtt:
-      enable: true
       remote-address: "mqtt.example.com"
       remote-port: 1883
       topic: "dns/logs"
@@ -95,10 +92,9 @@ loggers:
 ### MQTT v5 with JSON Output
 
 ```yaml
-loggers:
+pipelines:
   - name: mqtt-v5
     mqtt:
-      enable: true
       remote-address: "mqtt.example.com"
       remote-port: 1883
       topic: "dns/json"
@@ -110,10 +106,9 @@ loggers:
 ### Custom Text Format
 
 ```yaml
-loggers:
+pipelines:
   - name: mqtt-text
     mqtt:
-      enable: true
       remote-address: "127.0.0.1"
       remote-port: 1883
       topic: "dns/text"
@@ -124,10 +119,9 @@ loggers:
 ### High-Throughput Configuration
 
 ```yaml
-loggers:
+pipelines:
   - name: mqtt-highthroughput
     mqtt:
-      enable: true
       remote-address: "mqtt.example.com"
       remote-port: 1883
       topic: "dns/highvolume"
