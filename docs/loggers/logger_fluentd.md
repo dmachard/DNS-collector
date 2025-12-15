@@ -4,6 +4,18 @@
 Fluentd client to remote server or unix socket.
 Based on [IBM/fluent-forward-go](https://github.com/IBM/fluent-forward-go) library
 
+* Fluent Forward protocol (Forward mode)
+* TCP, Unix socket and TCP+TLS transports
+* Buffered sending with periodic flush
+* Automatic reconnect on connection failure
+* TLS client authentication (optional)
+
+
+The following Fluentd features are **not yet supported**:
+
+* Chunk ACK support (`ack` response from Fluentd)
+* Compression (`gzip`, `zstd`, ...)
+
 Options:
 
 * `transport` (string)
@@ -61,9 +73,49 @@ fluentd:
   tag: dns.collector
   tls-insecure: false
   tls-min-version: "1.2"
-  tls-min-version: ""
   ca-file: ""
   cert-file: ""
   key-file: ""
   chan-buffer-size: 0
 ```
+
+## Buffering behavior
+
+DNS messages are buffered in memory before being sent to Fluentd.
+
+* The buffer is flushed when:
+  * the buffer reaches `buffer-size`
+  * the `flush-interval` expires
+* If the Fluentd connection is not ready:
+  * messages are dropped
+  * discard counters are incremented
+* The buffer is memory-only (no persistence on disk)
+
+## Reconnection strategy
+
+* On connection failure:
+  * the client retries every `retry-interval` seconds
+* During reconnection:
+  * incoming messages are discarded
+  * buffering is paused to avoid memory leaks
+* Once reconnected:
+  * logging resumes automatically
+
+## TLS configuration
+
+When using `transport: tcp+tls`, the following options apply:
+
+* Server certificate verification can be disabled using `tls-insecure`
+* Client certificates are supported
+* Supported minimum TLS version is configurable
+
+Example:
+
+```yaml
+fluentd:
+  transport: tcp+tls
+  remote-address: fluentd.example.com
+  remote-port: 24224
+  ca-file: /etc/ssl/ca.pem
+  cert-file: /etc/ssl/client.pem
+  key-file: /etc/ssl/client.key

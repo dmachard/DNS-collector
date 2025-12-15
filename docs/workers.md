@@ -64,10 +64,10 @@ Loggers handle the output and processing of collected DNS data. They provide var
 ### Log Aggregation Platforms
 | Logger | Status | Description |
 |--------|--------|-------------|
-| [Fluentd](loggers/logger_fluentd.md) | Beta ready | Forwards logs to Fluentd collectors |
+| [Fluentd](loggers/logger_fluentd.md) | Beta support | Forwards logs to Fluentd collectors |
 | [Loki Client](loggers/logger_loki.md) | Production ready | Sends logs to Grafana Loki |
 | [ElasticSearch](loggers/logger_elasticsearch.md) | Production ready | Indexes logs in Elasticsearch |
-| [Scalyr](loggers/logger_scalyr.md) | Beta ready | Sends logs to DataSet/Scalyr platform |
+| [Scalyr](loggers/logger_scalyr.md) | Beta support | Sends logs to DataSet/Scalyr platform |
 
 ### Message Queues & Streaming
 | Logger | Status | Description |
@@ -75,10 +75,11 @@ Loggers handle the output and processing of collected DNS data. They provide var
 | [Redis Publisher](loggers/logger_redis.md) | Production ready | Publishes logs to Redis pub/sub channels |
 | [Kafka Producer](loggers/logger_kafka.md) | Production ready | Sends logs to Apache Kafka topics |
 | [NSQ](loggers/logger_nsq.md) | Beta ready | Publishes logs to NSQ topics |
+| [MQTT Publisher](loggers/logger_mqtt.md) | Beta support | Publishes DNS logs to MQTT brokers |
 
 ### Specialized Loggers
 | Logger | Status | Description |
 |--------|--------|-------------|
-| [Falco](loggers/logger_falco.md) | Beta ready | Integration with Falco security monitoring |
-| [OpenTelemetry](loggers/logger_opentelemetry.md) | Experimental | Distributed tracing support **Experimental** |
+| [Falco](loggers/logger_falco.md) | Beta support | Integration with Falco security monitoring |
+| [OpenTelemetry](loggers/logger_opentelemetry.md) | Experimental | Distributed tracing support |
 | [DevNull](loggers/logger_devnull.md) | Production ready | Discards all logs (Performance testing) |
