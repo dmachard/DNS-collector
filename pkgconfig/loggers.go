@@ -332,6 +332,29 @@ type ConfigLoggers struct {
 		Table             string `yaml:"table" default:"records"`
 		ChannelBufferSize int    `yaml:"chan-buffer-size" default:"0"`
 	} `yaml:"clickhouse"`
+	MQTT struct {
+		Enable            bool   `yaml:"enable" default:"false"`
+		RemoteAddress     string `yaml:"remote-address" default:"127.0.0.1"`
+		RemotePort        int    `yaml:"remote-port" default:"1883"`
+		ConnectTimeout    int    `yaml:"connect-timeout" default:"5"`
+		RetryInterval     int    `yaml:"retry-interval" default:"10"`
+		Topic             string `yaml:"topic" default:"dnscollector/dns"`
+		QOS               byte   `yaml:"qos" default:"0"`
+		Mode              string `yaml:"mode" default:"flat-json"`
+		TextFormat        string `yaml:"text-format" default:""`
+		BufferSize        int    `yaml:"buffer-size" default:"100"`
+		FlushInterval     int    `yaml:"flush-interval" default:"30"`
+		ProtocolVersion   string `yaml:"protocol-version" default:"auto"`
+		Username          string `yaml:"username" default:""`
+		Password          string `yaml:"password" default:""`
+		TLSSupport        bool   `yaml:"tls-support" default:"false"`
+		TLSInsecure       bool   `yaml:"tls-insecure" default:"false"`
+		TLSMinVersion     string `yaml:"tls-min-version" default:"1.2"`
+		CAFile            string `yaml:"ca-file" default:""`
+		CertFile          string `yaml:"cert-file" default:""`
+		KeyFile           string `yaml:"key-file" default:""`
+		ChannelBufferSize int    `yaml:"chan-buffer-size" default:"0"`
+	} `yaml:"mqtt"`
 }
 
 func (c *ConfigLoggers) SetDefault() {
