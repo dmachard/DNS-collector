@@ -42,6 +42,22 @@ Options:
 * `basic-auth-pwd` (string)
   > The password
 
+* `retry-enable` (bool)
+  > Enable retry mechanism for failed bulk requests.  
+  > If enabled, the client retries failed bulk requests using an exponential backoff strategy.
+
+* `retry-max-attempts` (integer)
+  > Maximum number of retry attempts for a bulk request.  
+  > Prevents infinite retry loops when Elasticsearch is unreachable.
+
+* `retry-initial-delay` (integer)
+  > Initial retry delay in seconds.  
+  > The delay is doubled after each failed attempt (exponential backoff).
+
+* `retry-max-delay` (integer)
+  > Maximum retry delay in seconds.  
+  > Caps the exponential backoff to avoid excessively long waits.
+
 Defaults:
 
 ```yaml
@@ -54,9 +70,15 @@ Defaults:
     flush-interval: 10 # in seconds
     compression: none
     bulk-channel-size: 10
+
     basic-auth-enable: false
     basic-auth-login: ""
     basic-auth-pwd: ""
+
+    retry-enable: true
+    retry-max-attempts: 5
+    retry-initial-delay: 1  # in seconds
+    retry-max-delay: 30     # in seconds
 ```
 
 > Could you explain the difference between `bulk-size` and `bulk-channel-size`?
@@ -64,3 +86,10 @@ Defaults:
 `bulk-size` refers to the size of the batch of DNS messages sent to your Elasticsearch instance.
 Since sending these batches can take time, `bulk-channel-size` defines the number of batches
 the DNS collector can hold in memory before dropping them.
+
+> How does retry/backoff work?
+
+When a bulk request fails, the Elasticsearch client retries sending it after a delay.
+This delay increases exponentially after each failed attempt, starting from
+`retry-initial-delay` and capped at `retry-max-delay`.
+The retry process stops after retry-max-attempts failures or when the worker is stopped.

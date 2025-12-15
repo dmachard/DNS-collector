@@ -244,6 +244,10 @@ type ConfigLoggers struct {
 		BasicAuthEnabled  bool   `yaml:"basic-auth-enable" default:"false"`
 		BasicAuthLogin    string `yaml:"basic-auth-login" default:""`
 		BasicAuthPwd      string `yaml:"basic-auth-pwd" default:""`
+		RetryEnabled      bool   `yaml:"retry-enable" default:"true"`
+		RetryMaxAttempts  int    `yaml:"retry-max-attempts" default:"5"`
+		RetryInitialDelay int    `yaml:"retry-initial-delay" default:"1"`
+		RetryMaxDelay     int    `yaml:"retry-max-delay" default:"30"`
 	} `yaml:"elasticsearch"`
 	OpenTelemetryClient struct {
 		Enable               bool   `yaml:"enable" default:"false"`

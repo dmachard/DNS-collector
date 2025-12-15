@@ -65,7 +65,11 @@ func (w *ElasticSearchClient) StartCollect() {
 	droppedRoutes, droppedNames := GetRoutes(w.GetDroppedRoutes())
 
 	// prepare transforms
-	subprocessors := transformers.NewTransforms(&w.GetConfig().OutgoingTransformers, w.GetLogger(), w.GetName(), w.GetOutputChannelAsList(), 0)
+	subprocessors := transformers.NewTransforms(&w.GetConfig().OutgoingTransformers,
+		w.GetLogger(),
+		w.GetName(),
+		w.GetOutputChannelAsList(),
+		0)
 
 	// goroutine to process transformed dns messages
 	go w.StartLogging()
@@ -126,14 +130,8 @@ func (w *ElasticSearchClient) StartLogging() {
 	dataBuffer := make(chan []byte, w.GetConfig().Loggers.ElasticSearchClient.BulkChannelSize)
 	go func() {
 		for data := range dataBuffer {
-			var err error
-			if w.GetConfig().Loggers.ElasticSearchClient.Compression == pkgconfig.CompressGzip {
-				err = w.sendCompressedBulk(data)
-			} else {
-				err = w.sendBulk(data)
-			}
-			if err != nil {
-				w.LogError("error sending bulk data: %v", err)
+			if err := w.sendBulkWithRetry(data); err != nil {
+				w.LogError("bulk permanently failed: %v", err)
 			}
 		}
 	}()
@@ -189,6 +187,55 @@ func (w *ElasticSearchClient) StartLogging() {
 					w.LogWarning("automatic flush, send buffer is full, bulk dropped")
 				}
 			}
+		}
+	}
+}
+
+func (w *ElasticSearchClient) sendBulkWithRetry(bulk []byte) error {
+	cfg := w.GetConfig().Loggers.ElasticSearchClient
+
+	attempt := 0
+	delay := time.Duration(cfg.RetryInitialDelay) * time.Second
+	maxDelay := time.Duration(cfg.RetryMaxDelay) * time.Second
+
+	for {
+		var err error
+		if cfg.Compression == pkgconfig.CompressGzip {
+			err = w.sendCompressedBulk(bulk)
+		} else {
+			err = w.sendBulk(bulk)
+		}
+
+		if err == nil {
+			return nil
+		}
+
+		attempt++
+		if !cfg.RetryEnabled || attempt >= cfg.RetryMaxAttempts {
+			return fmt.Errorf("bulk failed after %d attempts: %w", attempt, err)
+		}
+
+		w.LogWarning(
+			"bulk send failed (attempt %d/%d), retrying in %s: %v",
+			attempt,
+			cfg.RetryMaxAttempts,
+			delay,
+			err,
+		)
+
+		timer := time.NewTimer(delay)
+		select {
+		case <-timer.C:
+		case <-w.OnStop():
+			timer.Stop()
+			return fmt.Errorf("bulk retry aborted due to worker stop")
+		}
+		timer.Stop()
+
+		// exponential backoff (cap)
+		delay *= 2
+		if delay > maxDelay {
+			delay = maxDelay
 		}
 	}
 }
