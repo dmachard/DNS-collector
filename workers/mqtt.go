@@ -211,6 +211,7 @@ func (w *MQTT) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 			flat, err := dm.Flatten()
 			if err != nil {
 				w.LogError("flattening DNS message failed: %e", err)
+				w.CountEgressDiscarded()
 				continue
 			}
 			json.NewEncoder(buffer).Encode(flat)
@@ -318,6 +319,7 @@ func (w *MQTT) StartLogging() {
 			}
 
 			if !w.writerReady {
+				w.CountEgressDiscarded()
 				continue
 			}
 
