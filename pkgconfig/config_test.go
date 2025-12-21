@@ -87,32 +87,6 @@ func TestConfig_CheckConfig(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Valid multiplexer configuration",
-			content: `
-global:
-  trace:
-    verbose: true
-  server-identity: "dns-collector"
-multiplexer:
-  collectors:
-    - name: tap
-      dnstap:
-        listen-ip: 0.0.0.0
-        listen-port: 6000
-      transforms:
-        normalize:
-          qname-lowercase: false
-  loggers:
-    - name: console
-      stdout:
-        mode: text
-  routes:
-    - from: [ tap ]
-      to: [ console ]
-`,
-			wantErr: false,
-		},
-		{
 			name: "Valid pipeline configuration",
 			content: `
 global:
@@ -142,37 +116,6 @@ global:
 			wantErr: true,
 		},
 		{
-			name: "Invalid multiplexer config format",
-			content: `
-multiplexer:
-  - name: block
-    dnstap:
-      listen-ip: 0.0.0.0
-    transforms:
-      normalize:
-        qname-lowercase: true
-`,
-			wantErr: true,
-		},
-		{
-			name: "Invalid multiplexer logger",
-			content: `
-multiplexer:
-  collectors:
-  - name: tap
-    dnstap:
-      listen-ip: 0.0.0.0
-  loggers:
-  - name: tapOut
-    dnstap:
-      listen-ip: 0.0.0.0
-  routes:
-  - from: [ tapIn ]
-    to: [ tapOut ]
-`,
-			wantErr: true,
-		},
-		{
 			name: "Invalid pipeline transform",
 			content: `
 pipelines:
@@ -188,16 +131,6 @@ pipelines:
 			wantErr: true,
 		},
 		{
-			name: "Invalid multiplexer route",
-			content: `
-multiplexer:
-  routes:
-  - from: [test-route]
-    unknown-key: invalid
-`,
-			wantErr: true,
-		},
-		{
 			name: "pipeline dynamic keys",
 			content: `
 pipelines:
@@ -208,77 +141,6 @@ pipelines:
           atags.tags.*: test
           atags.tags.2: test
           dns.resources-records.*: test
-`,
-			wantErr: false,
-		},
-		{
-			name: "freeform loki #643",
-			content: `
-multiplexer:
-  collectors:
-  - name: tap
-    dnstap:
-      listen-ip: 0.0.0.0
-      listen-port: 6000
-  loggers:
-  - name: loki
-    lokiclient:
-      server-url: "https://grafana-loki.example.com/loki/api/v1/push"
-      job-name: "dnscollector"
-      mode: "flat-json"
-      tls-insecure: true
-      tenant-id: fake
-      relabel-configs:
-      - source_labels: ["__dns_qtype"]
-        target_label: "qtype"
-        replacement: "test"
-        action: "update"
-        separator: ","
-        regex: "test"
-  routes:
-  - from: [ tap ]
-    to: [ loki ]
-`,
-			wantErr: false,
-		},
-		{
-			name: "freeform scalyr #676",
-			content: `
-multiplexer:
-  collectors:
-  - name: tap
-    dnstap:
-      listen-ip: 0.0.0.0
-      listen-port: 6000
-  loggers:
-  - name: scalyr
-    scalyrclient:
-      apikey: XXXXX
-      attrs:
-        service: dnstap
-        type: queries
-      flush-interval: 10
-      mode: flat-json
-      sessioninfo:
-        cloud_provider: Azure
-        cloud_region: westeurope
-  routes:
-  - from: [ tap ]
-    to: [ scalyr ]
-`,
-			wantErr: false,
-		},
-		{
-			name: "Valid transforms key with flow argument",
-			content: `
-multiplexer:
-  collectors:
-  - name: tap
-    dnstap:
-      listen-ip: 0.0.0.0
-    transforms:
-      atags:
-        add-tags: [ "TXT:google", "MX:apple" ]
 `,
 			wantErr: false,
 		},

@@ -27,16 +27,12 @@ type Config struct {
 	IngoingTransformers  ConfigTransformers `yaml:"collectors-transformers"`
 	Loggers              ConfigLoggers      `yaml:"loggers"`
 	OutgoingTransformers ConfigTransformers `yaml:"loggers-transformers"`
-	Multiplexer          ConfigMultiplexer  `yaml:"multiplexer"`
 	Pipelines            []ConfigPipelines  `yaml:"pipelines"`
 }
 
 func (c *Config) SetDefault() {
 	// Set default config for global part
 	c.Global.SetDefault()
-
-	// Set default config for multiplexer
-	c.Multiplexer.SetDefault()
 
 	// sSet default config for collectors
 	c.Collectors.SetDefault()
@@ -61,15 +57,6 @@ func (c *Config) IsValid(userCfg map[string]interface{}) error {
 				}
 			} else {
 				return errors.Errorf("unexpected type for global value, got %T", kvMap)
-			}
-
-		case "multiplexer":
-			if kvMap, ok := userValue.(map[string]interface{}); ok {
-				if err := c.Multiplexer.IsValid(kvMap); err != nil {
-					return errors.Errorf("multiplexer section - %s", err)
-				}
-			} else {
-				return errors.Errorf("unexpected type for multiplexer value, got %T", kvMap)
 			}
 
 		case "pipelines":

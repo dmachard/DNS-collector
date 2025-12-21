@@ -162,14 +162,6 @@ func main() {
 	mapLoggers := make(map[string]workers.Worker)
 	mapCollectors := make(map[string]workers.Worker)
 
-	// running mode,
-	// multiplexer ?
-	if pkginit.IsMuxEnabled(config) {
-		logger.Info("main - running in multiplexer mode")
-		logger.Warning("main - The multiplexer mode is deprecated. Please switch to the pipelines mode.")
-		pkginit.InitMultiplexer(mapLoggers, mapCollectors, config, logger)
-	}
-
 	// or pipeline ?
 	if pkginit.IsPipelinesEnabled(config) {
 		logger.Info("main - running in pipeline mode")
@@ -207,11 +199,8 @@ func main() {
 					os.Exit(1)
 				}
 
-				// reload logger and multiplexer
+				// reload
 				InitLogger(logger, config)
-				if pkginit.IsMuxEnabled(config) {
-					pkginit.ReloadMultiplexer(mapLoggers, mapCollectors, config, logger)
-				}
 				if pkginit.IsPipelinesEnabled(config) {
 					pkginit.ReloadPipelines(mapLoggers, mapCollectors, config, logger)
 				}
