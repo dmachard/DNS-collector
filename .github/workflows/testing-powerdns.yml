@@ -50,6 +50,7 @@ jobs:
           - { name: 'dnsdist', version: '19' }
           - { name: 'dnsdist2', version: '20' }
           - { name: 'recursor', version: '52' }
+          - { name: 'recursor', version: '53' }
 
     steps:
       - uses: actions/checkout@v6
