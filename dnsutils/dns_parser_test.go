@@ -39,3 +39,33 @@ func TestDecodeDns_HeaderTooShort(t *testing.T) {
 		t.Errorf("bad error returned: %v", err)
 	}
 }
+
+// Benchmark for RdatatypeToString
+func BenchmarkLookupRdatatypeToString(b *testing.B) {
+	// Simulate A, NS, CNAME, SOA, AAAA
+	input := []int{1, 2, 5, 6, 28}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = RdatatypeToString(input[i%len(input)])
+	}
+}
+
+// Benchmark for RcodeToString
+func BenchmarkLookupRcodeToString(b *testing.B) {
+	// Simulate: NOERROR, SERVFAIL, NXDOMAIN
+	input := []int{0, 2, 3}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = RcodeToString(input[i%len(input)])
+	}
+}
+
+// Benchmark for ClassToString
+func BenchmarkLookupClassToString(b *testing.B) {
+	// The IN class (1) represents 99% of traffic
+	input := 1
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = ClassToString(input)
+	}
+}
