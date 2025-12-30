@@ -480,13 +480,13 @@ func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBo
 			if dm.DNS.Type == DNSQuery {
 				s.WriteByte('-')
 			} else {
-				s.WriteString(fmt.Sprintf("%.9f", dm.DNSTap.Latency))
+				fmt.Fprintf(s, "%.9f", dm.DNSTap.Latency)
 			}
 		case directive == "latency_ms":
 			if dm.DNS.Type == DNSQuery {
 				s.WriteByte('-')
 			} else {
-				s.WriteString(fmt.Sprintf("%d", dm.DNSTap.LatencyMs))
+				fmt.Fprintf(s, "%d", dm.DNSTap.LatencyMs)
 			}
 		case directive == "malformed":
 			if dm.DNS.MalformedPacket {
