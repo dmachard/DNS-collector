@@ -613,7 +613,6 @@ func (w *LogFile) StartLogging() {
 			}
 
 			// Process the message based on the configured mode
-			//var message []byte
 			switch w.GetConfig().Loggers.LogFile.Mode {
 
 			// with basic text mode

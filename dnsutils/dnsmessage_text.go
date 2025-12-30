@@ -402,11 +402,11 @@ func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBo
 		case directive == "timestamp-rfc3339ns", directive == "timestamp":
 			s.WriteString(dm.DNSTap.TimestampRFC3339)
 		case directive == "timestamp-unixms":
-			s.WriteString(fmt.Sprintf("%d", dm.DNSTap.Timestamp/1000000))
+			fmt.Fprintf(s, "%d", dm.DNSTap.Timestamp/1000000)
 		case directive == "timestamp-unixus":
-			s.WriteString(fmt.Sprintf("%d", dm.DNSTap.Timestamp/1000))
+			fmt.Fprintf(s, "%d", dm.DNSTap.Timestamp/1000)
 		case directive == "timestamp-unixns":
-			s.WriteString(fmt.Sprintf("%d", dm.DNSTap.Timestamp))
+			fmt.Fprintf(s, "%d", dm.DNSTap.Timestamp)
 		case directive == "localtime":
 			ts := time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec))
 			s.WriteString(ts.Format("2006-01-02 15:04:05.999999999"))
