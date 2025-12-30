@@ -11,11 +11,9 @@ import (
 )
 
 const DNSLen = 12
-
-// DNS Classes, Rdata types and Rcodes
 const UNKNOWN = "UNKNOWN"
 
-// RdataTypesArray couvre les types DNS de 0 à 259 (Hot Path)
+// Rdatatypes covers the DNS types from 0 to 259
 var Rdatatypes = [260]string{
 	0: "NONE", 1: "A", 2: "NS", 3: "MD", 4: "MF", 5: "CNAME", 6: "SOA",
 	7: "MB", 8: "MG", 9: "MR", 10: "NULL", 11: "WKS", 12: "PTR", 13: "HINFO",
@@ -37,7 +35,7 @@ func RdatatypeToString(rrtype int) string {
 			return val
 		}
 	}
-	// Fallback pour les types rares (optimisé en Jump Table par le compilateur)
+	// Fallback for other types
 	switch rrtype {
 	case 32768:
 		return "TA"
@@ -470,7 +468,8 @@ func ParseLabels(offset int, payload []byte) (string, int, error) {
 		return "", 0, ErrDecodeDNSLabelInvalidOffset
 	}
 
-	labels := make([]string, 0, 8)
+	// Pre-allocate buffer to store the domain name (Optimization)
+	nameBuffer := make([]byte, 0, 64)
 	// Where the current decoding run has started. Set after on every pointer jump.
 	startOffset := offset
 	// Track where the current decoding run is allowed to advance. Set after every pointer jump.
@@ -482,41 +481,56 @@ func ParseLabels(offset int, payload []byte) (string, int, error) {
 	totalLength := 0
 
 	for {
+		// If offset is beyond payload, it's "Too Short" to read the next length byte
 		if offset >= len(payload) {
 			return "", 0, ErrDecodeDNSLabelTooShort
-		} else if offset >= maxOffset {
+		}
+
+		// Security window check
+		if offset >= maxOffset {
 			return "", 0, ErrDecodeDNSLabelInvalidPointer
 		}
 
 		length := int(payload[offset])
-		if length == 0 { // nolint
+		if length == 0 {
 			if endOffset == -1 {
 				endOffset = offset + 1
 			}
 			break
-		} else if length&0xc0 == 0xc0 {
+		}
+
+		// Compression Pointer (0xc0)
+		if length&0xc0 == 0xc0 {
 			if offset+2 > len(payload) {
 				return "", 0, ErrDecodeDNSLabelTooShort
-			} else if offset+2 > maxOffset {
+			}
+			if offset+2 > maxOffset {
 				return "", 0, ErrDecodeDNSLabelInvalidPointer
 			}
 
-			ptr := int(binary.BigEndian.Uint16(payload[offset:offset+2]) & 16383)
+			ptr := int(binary.BigEndian.Uint16(payload[offset:offset+2]) & 0x3fff)
+
+			// RFC 1035: Pointers must point to prior data
 			if ptr >= startOffset {
-				// Require pointers to always point to prior data (based on a reading of RFC 1035, section 4.1.4).
 				return "", 0, ErrDecodeDNSLabelInvalidPointer
 			}
 
 			if endOffset == -1 {
 				endOffset = offset + 2
 			}
+
 			maxOffset = startOffset
 			startOffset = ptr
 			offset = ptr
-		} else if length&0xc0 == 0x00 {
+			continue
+		}
+
+		// Regular Label (0x00)
+		if length&0xc0 == 0x00 {
 			if offset+length+1 > len(payload) {
 				return "", 0, ErrDecodeDNSLabelTooShort
-			} else if offset+length+1 > maxOffset {
+			}
+			if offset+length+1 > maxOffset {
 				return "", 0, ErrDecodeDNSLabelInvalidPointer
 			}
 
@@ -525,15 +539,23 @@ func ParseLabels(offset int, payload []byte) (string, int, error) {
 				return "", 0, ErrDecodeDNSLabelTooLong
 			}
 
-			label := payload[offset+1 : offset+length+1]
-			labels = append(labels, string(label))
+			if len(nameBuffer) > 0 {
+				nameBuffer = append(nameBuffer, '.')
+			}
+
+			nameBuffer = append(nameBuffer, payload[offset+1:offset+length+1]...)
 			offset += length + 1
 		} else {
 			return "", 0, ErrDecodeDNSLabelInvalidData
 		}
 	}
 
-	return strings.Join(labels, "."), endOffset, nil
+	// If no pointers were encountered, set endOffset to the current offset + 1
+	if endOffset == -1 {
+		endOffset = offset + 1
+	}
+
+	return string(nameBuffer), endOffset, nil
 }
 
 func ParseRdata(rdatatype string, rdata []byte, payload []byte, rdataOffset int) (string, error) {
