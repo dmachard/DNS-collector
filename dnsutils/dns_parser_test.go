@@ -5,6 +5,7 @@ import (
 	"net"
 	"testing"
 
+	"github.com/dmachard/go-dnscollector/pkgconfig"
 	"github.com/miekg/dns"
 )
 
@@ -91,6 +92,39 @@ func BenchmarkParseIP_v6(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_, err := ParseIP(input, size)
 		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+var exampleDNSPacket = []byte{
+	0x12, 0x34, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+	// Question: example.com
+	0x07, 'e', 'x', 'a', 'm', 'p', 'l', 'e', 0x03, 'c', 'o', 'm', 0x00,
+	0x00, 0x01, 0x00, 0x01,
+	// Answer: example.com (pointer) -> A -> 60s -> 4 bytes
+	0xc0, 0x0c, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x3c, 0x00, 0x04, 0x5d, 0xb8, 0xd8, 0x22,
+}
+var resultMsg *DNSMessage
+
+func BenchmarkCustomDecodeDNS(b *testing.B) {
+	config := &pkgconfig.Config{}
+	dm := &DNSMessage{}
+	dm.DNS.Payload = exampleDNSPacket
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		header, _ := DecodeDNS(exampleDNSPacket)
+		_ = DecodePayload(dm, &header, config)
+		resultMsg = dm
+	}
+}
+
+func BenchmarkMiekgDecodeDNS(b *testing.B) {
+	msg := new(dns.Msg)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if err := msg.Unpack(exampleDNSPacket); err != nil {
 			b.Fatal(err)
 		}
 	}
