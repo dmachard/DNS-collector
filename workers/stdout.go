@@ -1,10 +1,9 @@
 package workers
 
 import (
-	"bytes"
+	"bufio"
 	"encoding/json"
 	"io"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -34,7 +33,7 @@ type StdOut struct {
 	*GenericWorker
 	textFormat  []string
 	jinjaFormat string
-	writerText  *log.Logger
+	writerRaw   *bufio.Writer
 	writerPcap  *pcapgo.Writer
 }
 
@@ -44,7 +43,13 @@ func NewStdOut(config *pkgconfig.Config, console *logger.Logger, name string) *S
 		bufSize = config.Loggers.Stdout.ChannelBufferSize
 	}
 	w := &StdOut{GenericWorker: NewGenericWorker(config, console, name, "stdout", bufSize, pkgconfig.DefaultMonitor)}
-	w.writerText = log.New(os.Stdout, "", 0)
+
+	// init writers with buffer to minimize syscalls
+	writerBufSize := config.Loggers.Stdout.WriterBufferSize
+	if writerBufSize <= 0 {
+		writerBufSize = 64 * 1024 // 64KB default
+	}
+	w.writerRaw = bufio.NewWriterSize(os.Stdout, writerBufSize)
 	w.ReadConfig()
 	return w
 }
@@ -67,9 +72,12 @@ func (w *StdOut) ReadConfig() {
 	}
 }
 
-func (w *StdOut) SetTextWriter(b *bytes.Buffer) {
-	w.writerText = log.New(os.Stdout, "", 0)
-	w.writerText.SetOutput(b)
+func (w *StdOut) SetTextWriter(out io.Writer) {
+	writerBufSize := w.GetConfig().Loggers.Stdout.WriterBufferSize
+	if writerBufSize <= 0 {
+		writerBufSize = 64 * 1024 // 64KB default
+	}
+	w.writerRaw = bufio.NewWriterSize(out, writerBufSize)
 }
 
 func (w *StdOut) SetPcapWriter(pcapWriter io.Writer) {
@@ -142,17 +150,25 @@ func (w *StdOut) StartLogging() {
 	w.LogInfo("logging has started")
 	defer w.LoggingDone()
 
-	// standard output buffer
-	buffer := new(bytes.Buffer)
-
 	if w.GetConfig().Loggers.Stdout.Mode == pkgconfig.ModePCAP && w.writerPcap == nil {
 		w.SetPcapWriter(os.Stdout)
 	}
 
+	flushInterval := time.Duration(w.GetConfig().Loggers.Stdout.FlushInterval * float64(time.Second))
+	if flushInterval <= 0 {
+		flushInterval = 1 * time.Second
+	}
+	flushTicker := time.NewTicker(flushInterval)
+	defer flushTicker.Stop()
+
 	for {
 		select {
 		case <-w.OnLoggerStopped():
+			w.writerRaw.Flush()
 			return
+
+		case <-flushTicker.C:
+			w.writerRaw.Flush()
 
 		case dm, opened := <-w.GetOutputChannel():
 			if !opened {
@@ -199,14 +215,10 @@ func (w *StdOut) StartLogging() {
 				buf.Reset()
 
 				err := dm.ToTextLine(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary, buf)
-				if err != nil {
-					w.CountEgressDiscarded()
-					w.LogError("process: could not encode to text format: %s", err)
-					w.PutTextBuffer(buf)
-					continue
+				if err == nil {
+					w.writerRaw.Write(buf.Bytes())
+					w.writerRaw.WriteByte('\n')
 				}
-
-				w.writerText.Print(buf.String())
 
 				// return buffer to pool
 				w.PutTextBuffer(buf)
@@ -218,12 +230,16 @@ func (w *StdOut) StartLogging() {
 					w.LogError("process: unable to update template: %s", err)
 					continue
 				}
-				w.writerText.Print(textLine)
+				w.writerRaw.WriteString(textLine)
+				w.writerRaw.WriteByte('\n')
 
 			case pkgconfig.ModeJSON:
-				json.NewEncoder(buffer).Encode(dm)
-				w.writerText.Print(buffer.String())
-				buffer.Reset()
+				err := json.NewEncoder(w.writerRaw).Encode(dm)
+				if err != nil {
+					w.CountEgressDiscarded()
+					w.LogError("process: unable to encode json: %s", err)
+					continue
+				}
 
 			case pkgconfig.ModeFlatJSON:
 				flat, err := dm.Flatten()
@@ -232,9 +248,12 @@ func (w *StdOut) StartLogging() {
 					w.LogError("process: flattening DNS message failed: %e", err)
 					continue
 				}
-				json.NewEncoder(buffer).Encode(flat)
-				w.writerText.Print(buffer.String())
-				buffer.Reset()
+				err = json.NewEncoder(w.writerRaw).Encode(flat)
+				if err != nil {
+					w.CountEgressDiscarded()
+					w.LogError("process: unable to encode flat json: %s", err)
+					continue
+				}
 			}
 		}
 	}

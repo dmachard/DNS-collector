@@ -13,12 +13,14 @@ type ConfigLoggers struct {
 		ChannelBufferSize int  `yaml:"chan-buffer-size" default:"0"`
 	} `yaml:"devnull"`
 	Stdout struct {
-		Enable               bool   `yaml:"enable" default:"false"`
-		Mode                 string `yaml:"mode" default:"text"`
-		TextFormat           string `yaml:"text-format" default:""`
-		JinjaFormat          string `yaml:"jinja-format" default:""`
-		ChannelBufferSize    int    `yaml:"chan-buffer-size" default:"0"`
-		OverwriteDNSPortPcap bool   `yaml:"overwrite-dns-port-pcap" default:"false"`
+		Enable               bool    `yaml:"enable" default:"false"`
+		Mode                 string  `yaml:"mode" default:"text"`
+		TextFormat           string  `yaml:"text-format" default:""`
+		JinjaFormat          string  `yaml:"jinja-format" default:""`
+		ChannelBufferSize    int     `yaml:"chan-buffer-size" default:"0"`
+		OverwriteDNSPortPcap bool    `yaml:"overwrite-dns-port-pcap" default:"false"`
+		WriterBufferSize     int     `yaml:"writer-buffer-size" default:"65536"`
+		FlushInterval        float64 `yaml:"flush-interval" default:"1.0"`
 	} `yaml:"stdout"`
 	Prometheus struct {
 		Enable                    bool     `yaml:"enable" default:"false"`

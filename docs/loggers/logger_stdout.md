@@ -5,6 +5,7 @@ Print to your standard output, all DNS logs received
 * in text or json format
 * custom text format (with jinja templating support)
 * binary mode (pcap)
+* Uses an asynchronous write buffer to minimize system overhead (syscalls).
 
 Options:
 
@@ -22,8 +23,14 @@ Options:
   > Set to zero to use the default global value.
 
 * `overwrite-dns-port-pcap` (bool)
-  > tThis option is used only with the `pcap` output mode.
+  > This option is used only with the `pcap` output mode.
   > It replaces the destination port with 53, ensuring no distinction between DoT, DoH, and DoQ.
+
+* `writer-buffer-size` (integer)
+  > Size of the write buffer in bytes. A larger buffer (e.g., 64 KB) reduces the number of write system calls, significantly improving throughput on modern high-core CPUs. Default: 65536 (64 KB).
+
+* `flush-interval` (float)
+  > Maximum interval in seconds before forcing the output of logs pending in the buffer. A short interval (e.g., 0.1) ensures near real-time display, while a longer interval (e.g., 1.0) maximizes performance. Default: 1.0.
 
 Default values:
 
@@ -34,6 +41,8 @@ stdout:
   jinja-format: ""
   chan-buffer-size: 0
   overwrite-dns-port-pcap: false
+  writer-buffer-size: 65536
+  flush-interval: 1.0
 ```
 
 Example:
