@@ -298,7 +298,22 @@ func (w *KafkaProducer) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 		var strDm string
 		switch w.GetConfig().Loggers.KafkaProducer.Mode {
 		case pkgconfig.ModeText:
-			strDm = dm.String(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary)
+			textBuf := w.GetTextBuffer() // get buffer from pool
+			err := dm.ToTextLine(
+				w.textFormat,
+				w.GetConfig().Global.TextFormatDelimiter,
+				w.GetConfig().Global.TextFormatBoundary,
+				textBuf,
+			)
+			if err != nil {
+				w.CountEgressDiscarded()
+				w.LogError("could not encode to text format: %s", err)
+				w.PutTextBuffer(textBuf)
+				continue
+			}
+
+			strDm = textBuf.String() // assign buffer content
+			w.PutTextBuffer(textBuf) // return buffer to pool
 		case pkgconfig.ModeJSON:
 			json.NewEncoder(buffer).Encode(dm)
 			strDm = buffer.String()

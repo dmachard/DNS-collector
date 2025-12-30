@@ -1,6 +1,7 @@
 package dnsutils
 
 import (
+	"bytes"
 	"fmt"
 	"strconv"
 	"strings"
@@ -133,29 +134,70 @@ func ConvertToString(value interface{}) string {
 	}
 }
 
-func QuoteStringAndWrite(s *strings.Builder, fieldString, fieldDelimiter, fieldBoundary string) {
-	// Handle the case where the field string is empty and boundaries are specified
+// QuoteStringAndWrite writes a field string to the buffer, adding boundaries only if needed.
+// If the field is empty and a boundary is defined, it is written as boundary+field+boundary.
+// If the field contains the delimiter or the boundary, it is enclosed in the boundary.
+// Boundary characters inside the field are escaped with a backslash.
+func QuoteStringAndWrite(buf *bytes.Buffer, fieldString, fieldDelimiter, fieldBoundary string) {
+	// Handle empty field with boundary
 	if fieldString == "" && len(fieldBoundary) > 0 {
-		fmt.Fprintf(s, "%s%s%s", fieldBoundary, fieldString, fieldBoundary)
+		buf.WriteString(fieldBoundary)
+		buf.WriteString(fieldString)
+		buf.WriteString(fieldBoundary)
 		return
 	}
 
-	switch {
-	case len(fieldDelimiter) > 0 && strings.Contains(fieldString, fieldDelimiter):
-		// Case where the field string contains the delimiter
-		fieldEscaped := fieldString
-		if len(fieldBoundary) > 0 && strings.Contains(fieldEscaped, fieldBoundary) {
-			fieldEscaped = strings.ReplaceAll(fieldEscaped, fieldBoundary, "\\"+fieldBoundary)
+	// Determine if we need to enclose the field with boundaries
+	needsBoundary := false
+	if len(fieldBoundary) > 0 {
+		if len(fieldDelimiter) > 0 && strings.Contains(fieldString, fieldDelimiter) {
+			needsBoundary = true
 		}
-		fmt.Fprintf(s, "%s%s%s", fieldBoundary, fieldEscaped, fieldBoundary)
+		if strings.Contains(fieldString, fieldBoundary) {
+			needsBoundary = true
+		}
+	}
 
-	case len(fieldBoundary) > 0 && strings.Contains(fieldString, fieldBoundary):
-		// Case where the field string contains the boundary character
-		fieldEscaped := strings.ReplaceAll(fieldString, fieldBoundary, "\\"+fieldBoundary)
-		fmt.Fprintf(s, "%s%s%s", fieldBoundary, fieldEscaped, fieldBoundary)
-
-	default:
-		// Default case: simply write the field string as is
-		s.WriteString(fieldString)
+	if needsBoundary {
+		buf.WriteString(fieldBoundary)
+		for i := 0; i < len(fieldString); i++ {
+			c := fieldString[i]
+			// Escape the boundary character inside the field
+			if strings.ContainsRune(fieldBoundary, rune(c)) {
+				buf.WriteByte('\\')
+			}
+			buf.WriteByte(c)
+		}
+		buf.WriteString(fieldBoundary)
+	} else {
+		// Default case: write field as is
+		buf.WriteString(fieldString)
 	}
 }
+
+// func QuoteStringAndWriteV0(s *strings.Builder, fieldString, fieldDelimiter, fieldBoundary string) {
+// 	// Handle the case where the field string is empty and boundaries are specified
+// 	if fieldString == "" && len(fieldBoundary) > 0 {
+// 		fmt.Fprintf(s, "%s%s%s", fieldBoundary, fieldString, fieldBoundary)
+// 		return
+// 	}
+
+// 	switch {
+// 	case len(fieldDelimiter) > 0 && strings.Contains(fieldString, fieldDelimiter):
+// 		// Case where the field string contains the delimiter
+// 		fieldEscaped := fieldString
+// 		if len(fieldBoundary) > 0 && strings.Contains(fieldEscaped, fieldBoundary) {
+// 			fieldEscaped = strings.ReplaceAll(fieldEscaped, fieldBoundary, "\\"+fieldBoundary)
+// 		}
+// 		fmt.Fprintf(s, "%s%s%s", fieldBoundary, fieldEscaped, fieldBoundary)
+
+// 	case len(fieldBoundary) > 0 && strings.Contains(fieldString, fieldBoundary):
+// 		// Case where the field string contains the boundary character
+// 		fieldEscaped := strings.ReplaceAll(fieldString, fieldBoundary, "\\"+fieldBoundary)
+// 		fmt.Fprintf(s, "%s%s%s", fieldBoundary, fieldEscaped, fieldBoundary)
+
+// 	default:
+// 		// Default case: simply write the field string as is
+// 		s.WriteString(fieldString)
+// 	}
+// }

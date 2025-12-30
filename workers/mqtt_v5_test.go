@@ -164,7 +164,22 @@ func TestMQTT_V5_ProtocolFeatures(t *testing.T) {
 					}
 
 				case pkgconfig.ModeText:
-					payload = dm.String(mqttWorker.textFormat, config.Global.TextFormatDelimiter, config.Global.TextFormatBoundary)
+					buf := mqttWorker.GetTextBuffer()
+					err := dm.ToTextLine(
+						mqttWorker.textFormat,
+						config.Global.TextFormatDelimiter,
+						config.Global.TextFormatBoundary,
+						buf,
+					)
+					if err != nil {
+						t.Errorf("Could not encode to text format: %v", err)
+						mqttWorker.PutTextBuffer(buf)
+						continue
+					}
+
+					payload = buf.String()
+					mqttWorker.PutTextBuffer(buf)
+
 					if len(payload) == 0 {
 						t.Errorf("Empty text payload")
 					}

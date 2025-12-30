@@ -228,23 +228,50 @@ func (w *Syslog) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 	for _, dm := range *buf {
 		switch w.GetConfig().Loggers.Syslog.Mode {
 		case pkgconfig.ModeText:
-			// write the text line to the buffer
-			buffer.Write(dm.Bytes(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary))
+			buf := w.GetTextBuffer()
+			buf.Reset()
+
+			// encode to text line the dns message
+			err := dm.ToTextLine(
+				w.textFormat,
+				w.GetConfig().Global.TextFormatDelimiter,
+				w.GetConfig().Global.TextFormatBoundary,
+				buf,
+			)
+			if err != nil {
+				w.CountEgressDiscarded()
+				w.LogError("syslog: could not encode to text format: %s", err)
+				w.PutTextBuffer(buf)
+				break
+			}
 
 			// replace NULL char from text line directly in the buffer
 			// because the NULL is at end of log in syslog
-			for i := 0; i < buffer.Len(); i++ {
-				if buffer.Bytes()[i] == 0 {
-					buffer.Bytes()[i] = w.GetConfig().Loggers.Syslog.ReplaceNullChar[0]
+			nullReplace := w.GetConfig().Loggers.Syslog.ReplaceNullChar
+			data := buf.Bytes()
+			for i := 0; i < len(data); i++ {
+				if data[i] == 0 {
+					data[i] = nullReplace[0]
 				}
 			}
 
 			// ensure it ends in a \n
-			buffer.WriteString("\n")
+			if len(data) == 0 || data[len(data)-1] != '\n' {
+				buf.WriteByte('\n')
+			}
 
 			// write the modified content of the buffer to s.syslogWriter
 			// and reset the buffer
-			_, err = buffer.WriteTo(w.syslogWriter)
+			_, err = buf.WriteTo(w.syslogWriter)
+			if err != nil {
+				w.LogError("syslog: write failed: %s", err)
+				w.CountEgressDiscarded()
+				w.PutTextBuffer(buf)
+				continue
+			}
+
+			// return text buffer to pool
+			w.PutTextBuffer(buf)
 
 		case pkgconfig.ModeJSON:
 			// encode to json the dns message

@@ -150,9 +150,23 @@ func (w *TCPClient) ConnectToRemote() {
 func (w *TCPClient) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 	for _, dm := range *buf {
 		if w.GetConfig().Loggers.TCPClient.Mode == pkgconfig.ModeText {
-			w.transportWriter.Write(dm.Bytes(w.textFormat,
+			textBuf := w.GetTextBuffer() // get buffer from pool
+			err := dm.ToTextLine(
+				w.textFormat,
 				w.GetConfig().Global.TextFormatDelimiter,
-				w.GetConfig().Global.TextFormatBoundary))
+				w.GetConfig().Global.TextFormatBoundary,
+				textBuf,
+			)
+			if err != nil {
+				w.CountEgressDiscarded()
+				w.LogError("could not encode to text format: %s", err)
+				w.PutTextBuffer(textBuf)
+				continue
+			}
+
+			w.transportWriter.WriteString(textBuf.String()) // write buffer content
+			w.PutTextBuffer(textBuf)                        // return buffer to pool
+
 			w.transportWriter.WriteString(w.GetConfig().Loggers.TCPClient.PayloadDelimiter)
 		}
 

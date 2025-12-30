@@ -93,7 +93,7 @@ func Test_KafkaProducer_Send(t *testing.T) {
 			defer broker.Close()
 
 			cfg := setupKafkaProducerConfig(testAddress, testPort, testTopic, tc.compress)
-			producer := NewKafkaProducer(cfg, logger.New(true), "test")
+			producer := NewKafkaProducer(cfg, logger.New(false), "test")
 			go producer.StartCollect()
 			defer producer.StopLogger()
 
@@ -118,7 +118,7 @@ func Test_KafkaProducer_MultipleAddresses(t *testing.T) {
 
 	// Set RemoteAddress to multiple addresses
 	cfg := setupKafkaProducerConfig(addresses[0]+","+addresses[1], testPort, testTopic, "none")
-	producer := NewKafkaProducer(cfg, logger.New(true), "test")
+	producer := NewKafkaProducer(cfg, logger.New(false), "test")
 	go producer.StartCollect()
 	defer producer.StopLogger()
 
@@ -139,7 +139,7 @@ func Test_KafkaProducer_Reconnect(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	cfg := setupKafkaProducerConfig(testAddress, testPort, testTopic, "none")
-	producer := NewKafkaProducer(cfg, logger.New(true), "test")
+	producer := NewKafkaProducer(cfg, logger.New(false), "test")
 	go producer.StartCollect()
 	defer producer.StopLogger()
 

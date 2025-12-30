@@ -1,7 +1,7 @@
 package dnsutils
 
 import (
-	"strings"
+	"bytes"
 	"testing"
 )
 
@@ -148,7 +148,7 @@ func TestHelper_ConvertToString(t *testing.T) {
 	}
 }
 
-func TestHelper_QuoteStringAndWrite(t *testing.T) {
+func Test_QuoteStringAndWrite(t *testing.T) {
 	tests := []struct {
 		name           string
 		fieldString    string
@@ -209,12 +209,12 @@ func TestHelper_QuoteStringAndWrite(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var builder strings.Builder
-			QuoteStringAndWrite(&builder, tt.fieldString, tt.fieldDelimiter, tt.fieldBoundary)
-			result := builder.String()
+			var buf bytes.Buffer
+			QuoteStringAndWrite(&buf, tt.fieldString, tt.fieldDelimiter, tt.fieldBoundary)
+			result := buf.String()
 
 			if result != tt.expected {
-				t.Errorf("quoteStringAndWrite() = %v, want %v", result, tt.expected)
+				t.Errorf("QuoteStringAndWrite() = %v, want %v", result, tt.expected)
 			}
 		})
 	}

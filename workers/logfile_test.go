@@ -77,7 +77,7 @@ func Test_LogFileText(t *testing.T) {
 
 			pattern := regexp.MustCompile(tc.pattern)
 			if !pattern.MatchString(string(data[:count])) {
-				t.Errorf("loki test error want %s, got: %s", tc.pattern, string(data[:count]))
+				t.Errorf("logfile test error want %s, got: %s", tc.pattern, string(data[:count]))
 			}
 		})
 	}

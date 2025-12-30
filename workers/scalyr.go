@@ -231,9 +231,22 @@ func (w *ScalyrClient) StartLogging() {
 
 			switch w.mode {
 			case pkgconfig.ModeText:
-				attrs["message"] = string(dm.Bytes(w.textFormat,
+				buf := w.GetTextBuffer() // get buffer from pool
+				err := dm.ToTextLine(
+					w.textFormat,
 					w.GetConfig().Global.TextFormatDelimiter,
-					w.GetConfig().Global.TextFormatBoundary))
+					w.GetConfig().Global.TextFormatBoundary,
+					buf,
+				)
+				if err != nil {
+					w.CountEgressDiscarded()
+					w.LogError("could not encode to text format: %s", err)
+					w.PutTextBuffer(buf)
+					continue
+				}
+
+				attrs["message"] = buf.String() // assign buffer content
+				w.PutTextBuffer(buf)            // return buffer to pool
 			case pkgconfig.ModeJSON:
 				attrs["message"] = dm
 			case pkgconfig.ModeFlatJSON:

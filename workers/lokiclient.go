@@ -257,9 +257,30 @@ func (w *LokiClient) StartLogging() {
 
 			switch w.GetConfig().Loggers.LokiClient.Mode {
 			case pkgconfig.ModeText:
-				entry.Line = string(dm.Bytes(w.textFormat,
+				// get buffer from pool
+				buf := w.GetTextBuffer()
+				buf.Reset()
+
+				// write the DNSMessage to the buffer
+				err := dm.ToTextLine(
+					w.textFormat,
 					w.GetConfig().Global.TextFormatDelimiter,
-					w.GetConfig().Global.TextFormatBoundary))
+					w.GetConfig().Global.TextFormatBoundary,
+					buf,
+				)
+				if err != nil {
+					w.CountEgressDiscarded()
+					w.LogError("process: could not encode to text format: %s", err)
+					w.PutTextBuffer(buf)
+					continue
+				}
+
+				// assign buffer content to Loki entry
+				entry.Line = buf.String()
+
+				// return buffer to pool
+				w.PutTextBuffer(buf)
+
 			case pkgconfig.ModeJSON:
 				json.NewEncoder(buffer).Encode(dm)
 				entry.Line = buffer.String()

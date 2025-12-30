@@ -163,12 +163,14 @@ func (w *StdOut) StartLogging() {
 			switch w.GetConfig().Loggers.Stdout.Mode {
 			case pkgconfig.ModePCAP:
 				if len(dm.DNS.Payload) == 0 {
+					w.CountEgressDiscarded()
 					w.LogError("process: no dns payload to encode, drop it")
 					continue
 				}
 
 				pkt, err := dm.ToPacketLayer(w.GetConfig().Loggers.Stdout.OverwriteDNSPortPcap)
 				if err != nil {
+					w.CountEgressDiscarded()
 					w.LogError("process: unable to pack layer: %s", err)
 					continue
 				}
@@ -192,11 +194,27 @@ func (w *StdOut) StartLogging() {
 				w.writerPcap.WritePacket(ci, buf.Bytes())
 
 			case pkgconfig.ModeText:
-				w.writerText.Print(dm.String(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary))
+				// get buffer from pool
+				buf := w.GetTextBuffer()
+				buf.Reset()
+
+				err := dm.ToTextLine(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary, buf)
+				if err != nil {
+					w.CountEgressDiscarded()
+					w.LogError("process: could not encode to text format: %s", err)
+					w.PutTextBuffer(buf)
+					continue
+				}
+
+				w.writerText.Print(buf.String())
+
+				// return buffer to pool
+				w.PutTextBuffer(buf)
 
 			case pkgconfig.ModeJinja:
 				textLine, err := dm.ToTextTemplate(w.jinjaFormat)
 				if err != nil {
+					w.CountEgressDiscarded()
 					w.LogError("process: unable to update template: %s", err)
 					continue
 				}
@@ -210,7 +228,9 @@ func (w *StdOut) StartLogging() {
 			case pkgconfig.ModeFlatJSON:
 				flat, err := dm.Flatten()
 				if err != nil {
+					w.CountEgressDiscarded()
 					w.LogError("process: flattening DNS message failed: %e", err)
+					continue
 				}
 				json.NewEncoder(buffer).Encode(flat)
 				w.writerText.Print(buffer.String())

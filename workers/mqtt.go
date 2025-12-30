@@ -203,7 +203,27 @@ func (w *MQTT) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 		var payload string
 		switch w.GetConfig().Loggers.MQTT.Mode {
 		case pkgconfig.ModeText:
-			payload = dm.String(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary)
+			// get buffer from pool
+			buf := w.GetTextBuffer()
+
+			// write the DNSMessage to the buffer
+			err := dm.ToTextLine(
+				w.textFormat,
+				w.GetConfig().Global.TextFormatDelimiter,
+				w.GetConfig().Global.TextFormatBoundary,
+				buf,
+			)
+			if err != nil {
+				w.CountEgressDiscarded()
+				w.LogError("process mqtt: could not encode to text format: %s", err)
+				w.PutTextBuffer(buf) // return buffer in case of error
+				continue
+			}
+
+			// assign buffer content to MQTT payload
+			payload = buf.String()
+			// return buffer after use
+			w.PutTextBuffer(buf)
 		case pkgconfig.ModeJSON:
 			json.NewEncoder(buffer).Encode(dm)
 			payload = buffer.String()

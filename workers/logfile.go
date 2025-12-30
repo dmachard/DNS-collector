@@ -613,14 +613,40 @@ func (w *LogFile) StartLogging() {
 			}
 
 			// Process the message based on the configured mode
-			var message []byte
+			//var message []byte
 			switch w.GetConfig().Loggers.LogFile.Mode {
 
 			// with basic text mode
 			case pkgconfig.ModeText:
-				message = dm.Bytes(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary)
-				batch.Write(message)
-				batch.WriteString("\n")
+				// get a text buffer from pool
+				buf := w.GetTextBuffer()
+				buf.Reset()
+
+				// encode to text line the dns message
+				err := dm.ToTextLine(
+					w.textFormat,
+					w.GetConfig().Global.TextFormatDelimiter,
+					w.GetConfig().Global.TextFormatBoundary,
+					buf,
+				)
+				if err != nil {
+					w.CountEgressDiscarded()
+					w.LogError("logfile: could not encode to text format: %s", err)
+					w.PutTextBuffer(buf)
+					break
+				}
+
+				// ensure it ends in a \n
+				data := buf.Bytes()
+				if len(data) == 0 || data[len(data)-1] != '\n' {
+					buf.WriteByte('\n')
+				}
+
+				// write to batch
+				batch.Write(buf.Bytes())
+
+				// return text buffer to pool
+				w.PutTextBuffer(buf)
 
 			// with custom text mode
 			case pkgconfig.ModeJinja:

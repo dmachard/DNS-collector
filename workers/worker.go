@@ -1,6 +1,8 @@
 package workers
 
 import (
+	"bytes"
+	"sync"
 	"time"
 
 	"github.com/dmachard/go-dnscollector/dnsutils"
@@ -22,6 +24,8 @@ type Worker interface {
 	GetInputChannel() chan dnsutils.DNSMessage
 	ReadConfig()
 	ReloadConfig(config *pkgconfig.Config)
+	GetTextBuffer() *bytes.Buffer
+	PutTextBuffer(buf *bytes.Buffer)
 }
 
 type GenericWorker struct {
@@ -38,6 +42,8 @@ type GenericWorker struct {
 	metrics                                                                 *telemetry.PrometheusCollector
 	countIngress, countEgress, countForwarded, countDropped, countDiscarded chan int
 	totalIngress, totalEgress, totalForwarded, totalDropped, totalDiscarded int
+
+	TextBufferPool *sync.Pool
 }
 
 func NewGenericWorker(config *pkgconfig.Config, logger *logger.Logger, name string, descr string, bufferSize int, monitor bool) *GenericWorker {
@@ -63,6 +69,9 @@ func NewGenericWorker(config *pkgconfig.Config, logger *logger.Logger, name stri
 		countDiscarded:     make(chan int),
 		countForwarded:     make(chan int),
 		countDropped:       make(chan int),
+		TextBufferPool: &sync.Pool{
+			New: func() interface{} { return new(bytes.Buffer) },
+		},
 	}
 	if monitor {
 		go w.Monitor()
@@ -317,6 +326,15 @@ func (w *GenericWorker) SendForwardedTo(routes []chan dnsutils.DNSMessage, route
 			w.WorkerIsBusy(routesName[i])
 		}
 	}
+}
+
+func (w *GenericWorker) GetTextBuffer() *bytes.Buffer {
+	return w.TextBufferPool.Get().(*bytes.Buffer)
+}
+
+func (w *GenericWorker) PutTextBuffer(buf *bytes.Buffer) {
+	buf.Reset()
+	w.TextBufferPool.Put(buf)
 }
 
 func GetRoutes(routes []Worker) ([]chan dnsutils.DNSMessage, []string) {

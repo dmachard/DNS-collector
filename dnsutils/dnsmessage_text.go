@@ -1,6 +1,7 @@
 package dnsutils
 
 import (
+	"bytes"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -25,7 +26,7 @@ var (
 	ATagsDirectives           = regexp.MustCompile(`^atags*`)
 )
 
-func (dm *DNSMessage) handleOpenTelemetryDirectives(directive string, s *strings.Builder) error {
+func (dm *DNSMessage) handleOpenTelemetryDirectives(directive string, s *bytes.Buffer) error {
 	if dm.OpenTelemetry == nil {
 		s.WriteString("-")
 	} else {
@@ -39,7 +40,7 @@ func (dm *DNSMessage) handleOpenTelemetryDirectives(directive string, s *strings
 	return nil
 }
 
-func (dm *DNSMessage) handleGeoIPDirectives(directive string, s *strings.Builder) error {
+func (dm *DNSMessage) handleGeoIPDirectives(directive string, s *bytes.Buffer) error {
 	if dm.Geo == nil {
 		s.WriteString("-")
 	} else {
@@ -61,7 +62,7 @@ func (dm *DNSMessage) handleGeoIPDirectives(directive string, s *strings.Builder
 	return nil
 }
 
-func (dm *DNSMessage) handlePdnsDirectives(directive string, s *strings.Builder) error {
+func (dm *DNSMessage) handlePdnsDirectives(directive string, s *bytes.Buffer) error {
 	if dm.PowerDNS == nil {
 		s.WriteString("-")
 	} else {
@@ -211,7 +212,7 @@ func (dm *DNSMessage) handlePdnsDirectives(directive string, s *strings.Builder)
 	return nil
 }
 
-func (dm *DNSMessage) handleATagsDirectives(directive string, s *strings.Builder) error {
+func (dm *DNSMessage) handleATagsDirectives(directive string, s *bytes.Buffer) error {
 	if dm.ATags == nil {
 		s.WriteString("-")
 	} else {
@@ -255,7 +256,7 @@ func (dm *DNSMessage) handleATagsDirectives(directive string, s *strings.Builder
 	return nil
 }
 
-func (dm *DNSMessage) handleSuspiciousDirectives(directive string, s *strings.Builder) error {
+func (dm *DNSMessage) handleSuspiciousDirectives(directive string, s *bytes.Buffer) error {
 	if dm.Suspicious == nil {
 		s.WriteString("-")
 	} else {
@@ -269,7 +270,7 @@ func (dm *DNSMessage) handleSuspiciousDirectives(directive string, s *strings.Bu
 	return nil
 }
 
-func (dm *DNSMessage) handlePublicSuffixDirectives(directive string, s *strings.Builder) error {
+func (dm *DNSMessage) handlePublicSuffixDirectives(directive string, s *bytes.Buffer) error {
 	if dm.PublicSuffix == nil {
 		s.WriteString("-")
 	} else {
@@ -291,7 +292,7 @@ func (dm *DNSMessage) handlePublicSuffixDirectives(directive string, s *strings.
 	return nil
 }
 
-func (dm *DNSMessage) handleExtractedDirectives(directive string, s *strings.Builder) error {
+func (dm *DNSMessage) handleExtractedDirectives(directive string, s *bytes.Buffer) error {
 	if dm.Extracted == nil {
 		s.WriteString("-")
 		return nil
@@ -311,7 +312,7 @@ func (dm *DNSMessage) handleExtractedDirectives(directive string, s *strings.Bui
 	return nil
 }
 
-func (dm *DNSMessage) handleFilteringDirectives(directive string, s *strings.Builder) error {
+func (dm *DNSMessage) handleFilteringDirectives(directive string, s *bytes.Buffer) error {
 	if dm.Filtering == nil {
 		s.WriteString("-")
 	} else {
@@ -325,7 +326,7 @@ func (dm *DNSMessage) handleFilteringDirectives(directive string, s *strings.Bui
 	return nil
 }
 
-func (dm *DNSMessage) handleReducerDirectives(directive string, s *strings.Builder) error {
+func (dm *DNSMessage) handleReducerDirectives(directive string, s *bytes.Buffer) error {
 	if dm.Reducer == nil {
 		s.WriteString("-")
 	} else {
@@ -341,7 +342,7 @@ func (dm *DNSMessage) handleReducerDirectives(directive string, s *strings.Build
 	return nil
 }
 
-func (dm *DNSMessage) handleMachineLearningDirectives(directive string, s *strings.Builder) error {
+func (dm *DNSMessage) handleMachineLearningDirectives(directive string, s *bytes.Buffer) error {
 	if dm.MachineLearning == nil {
 		s.WriteString("-")
 	} else {
@@ -391,21 +392,7 @@ func (dm *DNSMessage) handleMachineLearningDirectives(directive string, s *strin
 	return nil
 }
 
-func (dm *DNSMessage) Bytes(format []string, fieldDelimiter string, fieldBoundary string) []byte {
-	line, err := dm.ToTextLine(format, fieldDelimiter, fieldBoundary)
-	if err != nil {
-		log.Fatalf("unsupported directive for text format: %s", err)
-	}
-	return line
-}
-
-func (dm *DNSMessage) String(format []string, fieldDelimiter string, fieldBoundary string) string {
-	return string(dm.Bytes(format, fieldDelimiter, fieldBoundary))
-}
-
-func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBoundary string) ([]byte, error) {
-	var s strings.Builder
-
+func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBoundary string, s *bytes.Buffer) error {
 	an := dm.DNS.DNSRRs.Answers
 	qname := dm.DNS.Qname
 	flags := dm.DNS.Flags
@@ -427,25 +414,25 @@ func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBo
 			if len(qname) == 0 {
 				s.WriteString(".")
 			} else {
-				QuoteStringAndWrite(&s, qname, fieldDelimiter, fieldBoundary)
+				QuoteStringAndWrite(s, qname, fieldDelimiter, fieldBoundary)
 			}
 		case directive == "identity":
 			if len(dm.DNSTap.Identity) == 0 {
 				s.WriteString("-")
 			} else {
-				QuoteStringAndWrite(&s, dm.DNSTap.Identity, fieldDelimiter, fieldBoundary)
+				QuoteStringAndWrite(s, dm.DNSTap.Identity, fieldDelimiter, fieldBoundary)
 			}
 		case directive == "peer-name":
 			if len(dm.DNSTap.PeerName) == 0 {
 				s.WriteString("-")
 			} else {
-				QuoteStringAndWrite(&s, dm.DNSTap.PeerName, fieldDelimiter, fieldBoundary)
+				QuoteStringAndWrite(s, dm.DNSTap.PeerName, fieldDelimiter, fieldBoundary)
 			}
 		case directive == "version":
 			if len(dm.DNSTap.Version) == 0 {
 				s.WriteString("-")
 			} else {
-				QuoteStringAndWrite(&s, dm.DNSTap.Version, fieldDelimiter, fieldBoundary)
+				QuoteStringAndWrite(s, dm.DNSTap.Version, fieldDelimiter, fieldBoundary)
 			}
 		case directive == "extra":
 			s.WriteString(dm.DNSTap.Extra)
@@ -611,7 +598,7 @@ func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBo
 				}
 			}
 			if len(ips) > 0 {
-				QuoteStringAndWrite(&s, strings.Join(ips, ";"), fieldDelimiter, fieldBoundary)
+				QuoteStringAndWrite(s, strings.Join(ips, ";"), fieldDelimiter, fieldBoundary)
 			} else {
 				s.WriteByte('-')
 			}
@@ -666,58 +653,58 @@ func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBo
 
 		// more directives from loggers
 		case OtelDirectives.MatchString(directive):
-			err := dm.handleOpenTelemetryDirectives(directive, &s)
+			err := dm.handleOpenTelemetryDirectives(directive, s)
 			if err != nil {
-				return nil, err
+				return err
 			}
 
 		// more directives from collectors
 		case PdnsDirectives.MatchString(directive):
-			err := dm.handlePdnsDirectives(directive, &s)
+			err := dm.handlePdnsDirectives(directive, s)
 			if err != nil {
-				return nil, err
+				return err
 			}
 
 		// more directives from transformers
 		case ReducerDirectives.MatchString(directive):
-			err := dm.handleReducerDirectives(directive, &s)
+			err := dm.handleReducerDirectives(directive, s)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		case GeoIPDirectives.MatchString(directive):
-			err := dm.handleGeoIPDirectives(directive, &s)
+			err := dm.handleGeoIPDirectives(directive, s)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		case SuspiciousDirectives.MatchString(directive):
-			err := dm.handleSuspiciousDirectives(directive, &s)
+			err := dm.handleSuspiciousDirectives(directive, s)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		case PublicSuffixDirectives.MatchString(directive):
-			err := dm.handlePublicSuffixDirectives(directive, &s)
+			err := dm.handlePublicSuffixDirectives(directive, s)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		case ExtractedDirectives.MatchString(directive):
-			err := dm.handleExtractedDirectives(directive, &s)
+			err := dm.handleExtractedDirectives(directive, s)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		case MachineLearningDirectives.MatchString(directive):
-			err := dm.handleMachineLearningDirectives(directive, &s)
+			err := dm.handleMachineLearningDirectives(directive, s)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		case FilteringDirectives.MatchString(directive):
-			err := dm.handleFilteringDirectives(directive, &s)
+			err := dm.handleFilteringDirectives(directive, s)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		case ATagsDirectives.MatchString(directive):
-			err := dm.handleATagsDirectives(directive, &s)
+			err := dm.handleATagsDirectives(directive, s)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		case RawTextDirective.MatchString(directive):
 			directive = strings.ReplaceAll(directive, "{", "")
@@ -726,7 +713,7 @@ func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBo
 
 		// handle invalid directive
 		default:
-			return nil, errors.New(ErrorUnexpectedDirective + directive)
+			return errors.New(ErrorUnexpectedDirective + directive)
 		}
 
 		if i < len(format)-1 {
@@ -735,5 +722,5 @@ func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBo
 			}
 		}
 	}
-	return []byte(s.String()), nil
+	return nil
 }

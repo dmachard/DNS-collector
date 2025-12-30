@@ -162,8 +162,25 @@ func (w *RedisPub) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 		w.transportWriter.WriteString(cmd)
 
 		if w.GetConfig().Loggers.RedisPub.Mode == pkgconfig.ModeText {
-			w.transportWriter.WriteString(strconv.Quote(dm.String(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary)))
+			textBuf := w.GetTextBuffer()
+			err := dm.ToTextLine(
+				w.textFormat,
+				w.GetConfig().Global.TextFormatDelimiter,
+				w.GetConfig().Global.TextFormatBoundary,
+				textBuf,
+			)
+			if err != nil {
+				w.CountEgressDiscarded()
+				w.LogError("could not encode to text format: %s", err)
+				w.PutTextBuffer(textBuf)
+				continue
+			}
+
+			// Write text line directly without extra quotes
+			w.transportWriter.WriteString(textBuf.String())
 			w.transportWriter.WriteString(w.GetConfig().Loggers.RedisPub.PayloadDelimiter)
+
+			w.PutTextBuffer(textBuf)
 		}
 
 		if w.GetConfig().Loggers.RedisPub.Mode == pkgconfig.ModeJSON {

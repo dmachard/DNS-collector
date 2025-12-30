@@ -1,11 +1,46 @@
 package dnsutils
 
 import (
+	"bytes"
 	"strings"
+	sync "sync"
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/pkgconfig"
 )
+
+var textBufferPool = sync.Pool{
+	New: func() interface{} {
+		return bytes.NewBuffer(make([]byte, 0, 512))
+	},
+}
+
+func BenchmarkDnsMessage_ToTextFormat(b *testing.B) {
+	dm := DNSMessage{}
+	dm.Init()
+	dm.InitTransforms()
+
+	textFormat := []string{
+		"timestamp-rfc3339ns", "identity",
+		"operation", "rcode", "queryip", "queryport", "family",
+		"protocol", "length-unit", "qname", "qtype", "latency", "latency_ms",
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		// Get a buffer from the pool
+		buf := textBufferPool.Get().(*bytes.Buffer)
+		buf.Reset()
+
+		err := dm.ToTextLine(textFormat, " ", "\"", buf)
+		if err != nil {
+			b.Fatalf("could not encode to text format: %v\n", err)
+		}
+
+		// return the buffer to the pool
+		textBufferPool.Put(buf)
+	}
+}
 
 // Tests for TEXT format
 func TestDnsMessage_TextFormat_ToString(t *testing.T) {
@@ -120,7 +155,13 @@ func TestDnsMessage_TextFormat_ToString(t *testing.T) {
 			dm.DNS.Qname = tc.qname
 			dm.DNSTap.Identity = tc.identity
 
-			line := dm.String(strings.Fields(tc.format), tc.delimiter, tc.boundary)
+			var buf bytes.Buffer
+			err := dm.ToTextLine(strings.Fields(tc.format), tc.delimiter, tc.boundary, &buf)
+			if err != nil {
+				t.Fatalf("failed to generate text line: %v", err)
+			}
+
+			line := buf.String()
 			if line != tc.expected {
 				t.Errorf("Want: %s, got: %s", tc.expected, line)
 			}
@@ -366,7 +407,13 @@ func TestDnsMessage_TextFormat_DefaultDirectives(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.format, func(t *testing.T) {
-			line := tc.dm.String(strings.Fields(tc.format), config.Global.TextFormatDelimiter, config.Global.TextFormatBoundary)
+			var buf bytes.Buffer
+			err := tc.dm.ToTextLine(strings.Fields(tc.format), config.Global.TextFormatDelimiter, config.Global.TextFormatBoundary, &buf)
+			if err != nil {
+				t.Fatalf("failed to generate text line: %v", err)
+			}
+
+			line := buf.String()
 			if line != tc.expected {
 				t.Errorf("Want: %s, got: %s", tc.expected, line)
 			}
@@ -428,7 +475,8 @@ func TestDnsMessage_TextFormat_InvalidDirectives(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := tc.dm.ToTextLine(strings.Fields(tc.format), " ", "")
+			var buf bytes.Buffer
+			err := tc.dm.ToTextLine(strings.Fields(tc.format), " ", "", &buf)
 			if err == nil {
 				t.Errorf("Want err, got nil")
 			} else if err.Error() != ErrorUnexpectedDirective+tc.format {
@@ -463,11 +511,14 @@ func TestDnsMessage_TextFormat_Directives_PublicSuffix(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			line := tc.dm.String(
-				strings.Fields(tc.format),
-				config.Global.TextFormatDelimiter,
-				config.Global.TextFormatBoundary,
-			)
+			var buf bytes.Buffer
+			err := tc.dm.ToTextLine(strings.Fields(tc.format), config.Global.TextFormatDelimiter, config.Global.TextFormatBoundary, &buf)
+			if err != nil {
+				t.Fatalf("failed to generate text line: %v", err)
+			}
+
+			line := buf.String()
+
 			if line != tc.expected {
 				t.Errorf("Want: %s, got: %s", tc.expected, line)
 			}
@@ -501,11 +552,13 @@ func TestDnsMessage_TextFormat_Directives_Geo(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			line := tc.dm.String(
-				strings.Fields(tc.format),
-				config.Global.TextFormatDelimiter,
-				config.Global.TextFormatBoundary,
-			)
+			var buf bytes.Buffer
+			err := tc.dm.ToTextLine(strings.Fields(tc.format), config.Global.TextFormatDelimiter, config.Global.TextFormatBoundary, &buf)
+			if err != nil {
+				t.Fatalf("failed to generate text line: %v", err)
+			}
+
+			line := buf.String()
 			if line != tc.expected {
 				t.Errorf("Want: %s, got: %s", tc.expected, line)
 			}
@@ -538,11 +591,13 @@ func TestDnsMessage_TextFormat_Directives_OpenTelemetry(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			line := tc.dm.String(
-				strings.Fields(tc.format),
-				config.Global.TextFormatDelimiter,
-				config.Global.TextFormatBoundary,
-			)
+			var buf bytes.Buffer
+			err := tc.dm.ToTextLine(strings.Fields(tc.format), config.Global.TextFormatDelimiter, config.Global.TextFormatBoundary, &buf)
+			if err != nil {
+				t.Fatalf("failed to generate text line: %v", err)
+			}
+
+			line := buf.String()
 			if line != tc.expected {
 				t.Errorf("Want: %s, got: %s", tc.expected, line)
 			}
@@ -665,11 +720,13 @@ func TestDnsMessage_TextFormat_Directives_Pdns(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			line := tc.dm.String(
-				strings.Fields(tc.format),
-				config.Global.TextFormatDelimiter,
-				config.Global.TextFormatBoundary,
-			)
+			var buf bytes.Buffer
+			err := tc.dm.ToTextLine(strings.Fields(tc.format), config.Global.TextFormatDelimiter, config.Global.TextFormatBoundary, &buf)
+			if err != nil {
+				t.Fatalf("failed to generate text line: %v", err)
+			}
+
+			line := buf.String()
 			if line != tc.expected {
 				t.Errorf("Want: %s, got: %s", tc.expected, line)
 			}
@@ -720,11 +777,13 @@ func TestDnsMessage_TextFormat_Directives_ATags(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			line := tc.dm.String(
-				strings.Fields(tc.format),
-				config.Global.TextFormatDelimiter,
-				config.Global.TextFormatBoundary,
-			)
+			var buf bytes.Buffer
+			err := tc.dm.ToTextLine(strings.Fields(tc.format), config.Global.TextFormatDelimiter, config.Global.TextFormatBoundary, &buf)
+			if err != nil {
+				t.Fatalf("failed to generate text line: %v", err)
+			}
+
+			line := buf.String()
 			if line != tc.expected {
 				t.Errorf("Want: %s, got: %s", tc.expected, line)
 			}
@@ -757,11 +816,13 @@ func TestDnsMessage_TextFormat_Directives_Suspicious(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			line := tc.dm.String(
-				strings.Fields(tc.format),
-				config.Global.TextFormatDelimiter,
-				config.Global.TextFormatBoundary,
-			)
+			var buf bytes.Buffer
+			err := tc.dm.ToTextLine(strings.Fields(tc.format), config.Global.TextFormatDelimiter, config.Global.TextFormatBoundary, &buf)
+			if err != nil {
+				t.Fatalf("failed to generate text line: %v", err)
+			}
+
+			line := buf.String()
 			if line != tc.expected {
 				t.Errorf("Want: %s, got: %s", tc.expected, line)
 			}
@@ -794,11 +855,13 @@ func TestDnsMessage_TextFormat_Directives_Reducer(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			line := tc.dm.String(
-				strings.Fields(tc.format),
-				config.Global.TextFormatDelimiter,
-				config.Global.TextFormatBoundary,
-			)
+			var buf bytes.Buffer
+			err := tc.dm.ToTextLine(strings.Fields(tc.format), config.Global.TextFormatDelimiter, config.Global.TextFormatBoundary, &buf)
+			if err != nil {
+				t.Fatalf("failed to generate text line: %v", err)
+			}
+
+			line := buf.String()
 			if line != tc.expected {
 				t.Errorf("Want: %s, got: %s", tc.expected, line)
 			}
@@ -846,11 +909,13 @@ func TestDnsMessage_TextFormat_Directives_Extracted(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			line := tc.dm.String(
-				strings.Fields(tc.format),
-				config.Global.TextFormatDelimiter,
-				config.Global.TextFormatBoundary,
-			)
+			var buf bytes.Buffer
+			err := tc.dm.ToTextLine(strings.Fields(tc.format), config.Global.TextFormatDelimiter, config.Global.TextFormatBoundary, &buf)
+			if err != nil {
+				t.Fatalf("failed to generate text line: %v", err)
+			}
+
+			line := buf.String()
 			if line != tc.expected {
 				t.Errorf("Want: %s, got: %s", tc.expected, line)
 			}
@@ -883,31 +948,16 @@ func TestDnsMessage_TextFormat_Directives_Filtering(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			line := tc.dm.String(
-				strings.Fields(tc.format),
-				config.Global.TextFormatDelimiter,
-				config.Global.TextFormatBoundary,
-			)
+			var buf bytes.Buffer
+			err := tc.dm.ToTextLine(strings.Fields(tc.format), config.Global.TextFormatDelimiter, config.Global.TextFormatBoundary, &buf)
+			if err != nil {
+				t.Fatalf("failed to generate text line: %v", err)
+			}
+
+			line := buf.String()
 			if line != tc.expected {
 				t.Errorf("Want: %s, got: %s", tc.expected, line)
 			}
 		})
-	}
-}
-
-func BenchmarkDnsMessage_ToTextFormat(b *testing.B) {
-	dm := DNSMessage{}
-	dm.Init()
-	dm.InitTransforms()
-
-	textFormat := []string{"timestamp-rfc3339ns", "identity",
-		"operation", "rcode", "queryip", "queryport", "family",
-		"protocol", "length-unit", "qname", "qtype", "latency", "latency_ms"}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, err := dm.ToTextLine(textFormat, " ", "\"")
-		if err != nil {
-			b.Fatalf("could not encode to text format: %v\n", err)
-		}
 	}
 }
