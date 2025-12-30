@@ -84,13 +84,15 @@ tests: check-go
 
 stats:
 	@echo "Calculating Go code statistics (excluding tests)..."
-	@TOTAL_LINES=$$(find . -name '*.go' ! -name '*_test.go' -print0 | xargs -0 cat | wc -l); \
-	COMMENT_LINES=$$(find . -name '*.go' ! -name '*_test.go' -print0 | xargs -0 grep -E '^\s*//' | wc -l); \
-	EMPTY_LINES=$$(find . -name '*.go' ! -name '*_test.go' -print0 | xargs -0 grep -E '^\s*$$' | wc -l); \
-	CODE_LINES=$$((TOTAL_LINES - COMMENT_LINES - EMPTY_LINES)); \
-	echo "Total lines        : $$TOTAL_LINES"; \
-	echo "Comment lines      : $$COMMENT_LINES"; \
-	echo "Empty lines        : $$EMPTY_LINES"; \
+	@find . -name '*.go' ! -name '*_test.go' -print0 > files.tmp; \
+	TOTAL_LINES=$$(cat files.tmp | xargs -0 cat | wc -l); \
+	EMPTY_LINES=$$(cat files.tmp | xargs -0 grep -E '^\s*$$' | wc -l); \
+	COMMENT_LINES=$$(cat files.tmp | xargs -0 grep -E '^\s*(//|/\*|\*)' | wc -l); \
+	CODE_LINES=$$((TOTAL_LINES - EMPTY_LINES - COMMENT_LINES)); \
+	rm files.tmp; \
+	echo "Total lines         : $$TOTAL_LINES"; \
+	echo "Comment lines (est.): $$COMMENT_LINES"; \
+	echo "Empty lines         : $$EMPTY_LINES"; \
 	echo "Effective code lines: $$CODE_LINES"
 
 # Cleans the project using go clean.

@@ -13,6 +13,7 @@ import (
 const DNSLen = 12
 const UNKNOWN = "UNKNOWN"
 
+// DNS Classes, Rdata types and Rcodes
 var (
 	Class = map[int]string{
 		1:   "IN",   // Internet
@@ -124,6 +125,18 @@ var (
 	}
 )
 
+func mapLookup(m map[int]string, key int) string {
+	if val, ok := m[key]; ok {
+		return val
+	}
+	return UNKNOWN
+}
+
+func RdatatypeToString(rrtype int) string { return mapLookup(Rdatatypes, rrtype) }
+func RcodeToString(rcode int) string      { return mapLookup(Rcodes, rcode) }
+func ClassToString(class int) string      { return mapLookup(Class, class) }
+
+// Various errors returned during DNS packet decoding
 var ErrDecodeDNSHeaderTooShort = errors.New("malformed pkt, dns payload too short to decode header")
 var ErrDecodeDNSLabelTooLong = errors.New("malformed pkt, label too long")
 var ErrDecodeDNSLabelInvalidData = errors.New("malformed pkt, invalid label length byte")
@@ -134,27 +147,6 @@ var ErrDecodeQuestionQtypeTooShort = errors.New("malformed pkt, not enough data 
 var ErrDecodeDNSAnswerTooShort = errors.New("malformed pkt, not enough data to decode answer")
 var ErrDecodeDNSAnswerRdataTooShort = errors.New("malformed pkt, not enough data to decode rdata answer")
 var ErrDecodeQuestionQclassTooShort = errors.New("malformed pkt, not enough data to decode qclass")
-
-func RdatatypeToString(rrtype int) string {
-	if value, ok := Rdatatypes[rrtype]; ok {
-		return value
-	}
-	return UNKNOWN
-}
-
-func RcodeToString(rcode int) string {
-	if value, ok := Rcodes[rcode]; ok {
-		return value
-	}
-	return UNKNOWN
-}
-
-func ClassToString(class int) string {
-	if value, ok := Class[class]; ok {
-		return value
-	}
-	return UNKNOWN
-}
 
 // error returned if decoding of DNS packet payload fails.
 type decodingError struct {
@@ -212,10 +204,10 @@ func DecodeDNS(payload []byte) (DNSHeader, error) {
 	dh.Aa = int((flagsBytes >> 10) & 1)
 	dh.Tc = int((flagsBytes >> 9) & 1)
 	dh.Rd = int((flagsBytes >> 8) & 1)
-	dh.Cd = int((flagsBytes >> 4) & 1)
-	dh.Ad = int((flagsBytes >> 5) & 1)
-	dh.Z = int((flagsBytes >> 6) & 1)
 	dh.Ra = int((flagsBytes >> 7) & 1)
+	dh.Z = int((flagsBytes >> 6) & 1)
+	dh.Ad = int((flagsBytes >> 5) & 1)
+	dh.Cd = int((flagsBytes >> 4) & 1)
 	dh.Rcode = int(flagsBytes & 0xF)
 
 	// decode counters
@@ -258,27 +250,14 @@ func DecodePayload(dm *DNSMessage, header *DNSHeader, config *pkgconfig.Config) 
 		}
 	}
 
-	if header.Qr == 1 {
-		dm.DNS.Flags.QR = true
-	}
-	if header.Tc == 1 {
-		dm.DNS.Flags.TC = true
-	}
-	if header.Aa == 1 {
-		dm.DNS.Flags.AA = true
-	}
-	if header.Ra == 1 {
-		dm.DNS.Flags.RA = true
-	}
-	if header.Ad == 1 {
-		dm.DNS.Flags.AD = true
-	}
-	if header.Rd == 1 {
-		dm.DNS.Flags.RD = true
-	}
-	if header.Cd == 1 {
-		dm.DNS.Flags.CD = true
-	}
+	// set flags
+	dm.DNS.Flags.QR = header.Qr == 1
+	dm.DNS.Flags.TC = header.Tc == 1
+	dm.DNS.Flags.AA = header.Aa == 1
+	dm.DNS.Flags.RA = header.Ra == 1
+	dm.DNS.Flags.AD = header.Ad == 1
+	dm.DNS.Flags.RD = header.Rd == 1
+	dm.DNS.Flags.CD = header.Cd == 1
 
 	var payloadOffset int
 	// decode DNS question
@@ -584,9 +563,9 @@ func ParseRdata(rdatatype string, rdata []byte, payload []byte, rdataOffset int)
 	var err error
 	switch rdatatype {
 	case "A":
-		ret, err = ParseA(rdata)
-	case Rdatatypes[28]:
-		ret, err = ParseAAAA(rdata)
+		ret, err = ParseIP(rdata, net.IPv4len)
+	case "AAAA":
+		ret, err = ParseIP(rdata, net.IPv6len)
 	case "CNAME":
 		ret, err = ParseCNAME(rdataOffset, payload)
 	case "MX":
@@ -664,41 +643,17 @@ func ParseSOA(rdataOffset int, payload []byte) (string, error) {
 }
 
 /*
-IPv4
+IPv4 or IPv6
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 |                    ADDRESS                    |
 |                                               |
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 */
-func ParseA(r []byte) (string, error) {
-	if len(r) < net.IPv4len {
+func ParseIP(r []byte, size int) (string, error) {
+	if len(r) < size {
 		return "", ErrDecodeDNSAnswerRdataTooShort
 	}
-	addr := make(net.IP, net.IPv4len)
-	copy(addr, r[:net.IPv4len])
-	return addr.String(), nil
-}
-
-/*
-IPv6
-+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-|                                               |
-|                                               |
-|                                               |
-|                    ADDRESS                    |
-|                                               |
-|                                               |
-|                                               |
-|                                               |
-+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-*/
-func ParseAAAA(rdata []byte) (string, error) {
-	if len(rdata) < net.IPv6len {
-		return "", ErrDecodeDNSAnswerRdataTooShort
-	}
-	addr := make(net.IP, net.IPv6len)
-	copy(addr, rdata[:net.IPv6len])
-	return addr.String(), nil
+	return net.IP(r[:size]).String(), nil
 }
 
 /*
@@ -945,7 +900,7 @@ func ParseSVCParam(svcParamKey uint16, paramData []byte) (string, error) {
 		}
 		var addresses []string
 		for offset := 0; offset < len(paramData); offset += 4 {
-			address, err := ParseA(paramData[offset : offset+4])
+			address, err := ParseIP(paramData[offset:offset+4], net.IPv4len)
 			if err != nil {
 				return "", nil
 			}
@@ -962,7 +917,7 @@ func ParseSVCParam(svcParamKey uint16, paramData []byte) (string, error) {
 		}
 		var addresses []string
 		for offset := 0; offset < len(paramData); offset += 16 {
-			address, err := ParseAAAA(paramData[offset : offset+16])
+			address, err := ParseIP(paramData[offset:offset+16], net.IPv6len)
 			if err != nil {
 				return "", nil
 			}

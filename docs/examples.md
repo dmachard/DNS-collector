@@ -12,7 +12,7 @@ Get started quickly with these ready-to-use configuration examples covering comm
 - **Capture DNS traffic from incoming DNSTap streams**
   - [x] [Read from UNIX DNSTap socket and forward it to TLS stream](./_examples/config-dnstap_unix-to-dnstap_tls.yml)
   - [x] [Relays DNSTap stream to multiple remote destination without decoding](./_examples/use-case-12.yml)
-  - [x] [Aggregate several DNSTap stream and forward it to the same file](./_examples/use-case-7.yml)
+  - [x] [Aggregate several DNSTap stream and forward it to the same file](./_examples/config-multidnstap-to-file.yml)
   - [x] [Send to syslog TLS](./_examples/use-case-23.yml)
 
 - **Capture DNS traffic and make format conversion on it**
@@ -23,15 +23,15 @@ Get started quickly with these ready-to-use configuration examples covering comm
   - [x] [Convert to JSON key/value format output](./_examples/use-case-29.yml)
 
 - **Capture DNS traffic from PowerDNS products**
-  - [x] [Capture multiple PowerDNS streams](./_examples/use-case-8.yml)
+  - [x] [Capture multiple PowerDNS streams](./_examples/config-multipowerdns-to-file.yml)
 
 - **Observe your DNS traffic from logs**
   - [x] [Observe DNS metrics with Prometheus and Grafana](./_examples/config-dnstap-to-prometheus.yml.yml)
   - [x] [Follow DNS traffic with Loki and Grafana](./_examples/config-dnstap-to-loki.yml)
 
 - **Apply some transformations**
-  - [x] [Capture DNSTap stream and apply user privacy on it](./_examples/use-case-6.yml)
-  - [x] [Filtering incoming traffic with downsample and whitelist of domains](./_examples/use-case-9.yml)
+  - [x] [Capture DNSTap stream and apply user privacy on it](./_examples/config-dnstap_anonymize-to-console.yml)
+  - [x] [Filtering incoming traffic with downsample and whitelist of domains](./_examples/config-dnstap_filtering-to-console.yml)
   - [x] [Transform all domains to lowercase](./_examples/use-case-10.yml)
   - [x] [Add geographical metadata with GeoIP](./_examplesuse-case-11.yml)
   - [x] [Count the number of evicted queries](./_examples/use-case-18.yml)
