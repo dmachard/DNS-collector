@@ -2,6 +2,7 @@ package dnsutils
 
 import (
 	"errors"
+	"net"
 	"testing"
 
 	"github.com/miekg/dns"
@@ -40,7 +41,6 @@ func TestDecodeDns_HeaderTooShort(t *testing.T) {
 	}
 }
 
-// Benchmark for RdatatypeToString
 func BenchmarkLookupRdatatypeToString(b *testing.B) {
 	// Simulate A, NS, CNAME, SOA, AAAA
 	input := []int{1, 2, 5, 6, 28}
@@ -50,7 +50,6 @@ func BenchmarkLookupRdatatypeToString(b *testing.B) {
 	}
 }
 
-// Benchmark for RcodeToString
 func BenchmarkLookupRcodeToString(b *testing.B) {
 	// Simulate: NOERROR, SERVFAIL, NXDOMAIN
 	input := []int{0, 2, 3}
@@ -60,12 +59,39 @@ func BenchmarkLookupRcodeToString(b *testing.B) {
 	}
 }
 
-// Benchmark for ClassToString
 func BenchmarkLookupClassToString(b *testing.B) {
 	// The IN class (1) represents 99% of traffic
 	input := 1
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = ClassToString(input)
+	}
+}
+
+func BenchmarkParseIP_v4(b *testing.B) {
+	// simulate IPv4 rdata (4 octets)
+	input := []byte{192, 168, 1, 1}
+	size := net.IPv4len
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := ParseIP(input, size)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkParseIP_v6(b *testing.B) {
+	// simulate IPv6 rdata (16 octets)
+	input := []byte{0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
+	size := net.IPv6len
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := ParseIP(input, size)
+		if err != nil {
+			b.Fatal(err)
+		}
 	}
 }

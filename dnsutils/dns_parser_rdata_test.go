@@ -8,6 +8,89 @@ import (
 	"github.com/miekg/dns"
 )
 
+func BenchmarkDecodeAnswer_Mixed(b *testing.B) {
+	// Setup: 1 Question + 3 Answers (A, AAAA, TXT)
+	fqdn := "test.collector.org."
+	dm := new(dns.Msg)
+	dm.SetQuestion(fqdn, dns.TypeA)
+
+	// add rdatas
+	rrA, _ := dns.NewRR(fqdn + " 3600 IN A 127.0.0.1")
+	rrAAAA, _ := dns.NewRR(fqdn + " 3600 IN AAAA fe80::1")
+	rrTXT, _ := dns.NewRR(fqdn + " 3600 IN TXT \"performance-test\"")
+	dm.Answer = append(dm.Answer, rrA, rrAAAA, rrTXT)
+
+	payload, err := dm.Pack()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	// Get offset after question
+	_, _, _, offsetRR, err := DecodeQuestion(1, payload)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		// decode all 3 answers
+		_, _, err := DecodeAnswer(3, offsetRR, payload)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkDecodeAnswer_LargeCNAME(b *testing.B) {
+	// Setup
+	fqdn := "cdn.example.com."
+	dm := new(dns.Msg)
+	dm.SetQuestion(fqdn, dns.TypeCNAME)
+
+	target := "very.long.target.label.sequence.example.net."
+	rr, _ := dns.NewRR(fmt.Sprintf("%s 3600 IN CNAME %s", fqdn, target))
+	dm.Answer = append(dm.Answer, rr)
+
+	payload, _ := dm.Pack()
+	_, _, _, offsetRR, _ := DecodeQuestion(1, payload)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _, _ = DecodeAnswer(1, offsetRR, payload)
+	}
+}
+
+func BenchmarkParseRdata_Original(b *testing.B) {
+	// data samples for different rdata types
+	ipv4Rdata := []byte{192, 168, 1, 1}
+	ipv6Rdata := []byte{0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
+
+	// payload for CNAME to simulate label parsing
+	cnamePayload := append(make([]byte, 12), []byte{0x03, 0x77, 0x77, 0x77, 0x00}...)
+	cnameRdata := cnamePayload[12:]
+
+	b.Run("TypeA", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			rdatatype := RdatatypeToString(1) // "A"
+			_, _ = ParseRdata(rdatatype, ipv4Rdata, nil, 0)
+		}
+	})
+
+	b.Run("TypeAAAA", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			rdatatype := RdatatypeToString(28) // "AAAA"
+			_, _ = ParseRdata(rdatatype, ipv6Rdata, nil, 0)
+		}
+	})
+
+	b.Run("TypeCNAME", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			rdatatype := RdatatypeToString(5) // "CNAME"
+			_, _ = ParseRdata(rdatatype, cnameRdata, cnamePayload, 12)
+		}
+	})
+}
+
 func TestRdatatypeValid(t *testing.T) {
 	rdt := RdatatypeToString(1)
 	if rdt != "A" {
@@ -349,6 +432,7 @@ func TestDecodeRdataSRV_Minimal(t *testing.T) {
 		t.Errorf("invalid decode for rdata SRV, want %s, got: %s", expectedRdata, answer[0].Rdata)
 	}
 }
+
 func TestDecodeRdataNS(t *testing.T) {
 	fqdn := TestQName
 
@@ -423,6 +507,7 @@ func TestDecodeRdataTXT_Empty(t *testing.T) {
 	}
 
 }
+
 func TestDecodeRdataTXT_Short(t *testing.T) {
 	payload := []byte{
 		// header
@@ -463,6 +548,7 @@ func TestDecodeRdataTXT_Short(t *testing.T) {
 	}
 
 }
+
 func TestDecodeRdataTXT_NoTxt(t *testing.T) {
 	payload := []byte{
 		// header

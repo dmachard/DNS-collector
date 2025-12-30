@@ -395,10 +395,9 @@ PTR can be used on NAME for compression
 | 1  1|                OFFSET                   |
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 */
-
 func DecodeAnswer(ancount int, startOffset int, payload []byte) ([]DNSAnswer, int, error) {
 	offset := startOffset
-	answers := []DNSAnswer{}
+	answers := make([]DNSAnswer, 0, ancount)
 	var rdataString string
 
 	for i := 0; i < ancount; i++ {
