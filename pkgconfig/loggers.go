@@ -113,10 +113,8 @@ type ConfigLoggers struct {
 		Enable            bool   `yaml:"enable" default:"false"`
 		RemoteAddress     string `yaml:"remote-address" default:"127.0.0.1"`
 		RemotePort        int    `yaml:"remote-port" default:"9999"`
-		SockPath          string `yaml:"sock-path" default:""` // deprecated
 		RetryInterval     int    `yaml:"retry-interval" default:"10"`
 		Transport         string `yaml:"transport" default:"tcp"`
-		TLSSupport        bool   `yaml:"tls-support" default:"false"` // deprecated
 		TLSInsecure       bool   `yaml:"tls-insecure" default:"false"`
 		TLSMinVersion     string `yaml:"tls-min-version" default:"1.2"`
 		CAFile            string `yaml:"ca-file" default:""`
@@ -158,12 +156,10 @@ type ConfigLoggers struct {
 		Enable            bool   `yaml:"enable" default:"false"`
 		RemoteAddress     string `yaml:"remote-address" default:"127.0.0.1"`
 		RemotePort        int    `yaml:"remote-port" default:"24224"`
-		SockPath          string `yaml:"sock-path" default:""` // deprecated
 		ConnectTimeout    int    `yaml:"connect-timeout" default:"5"`
 		RetryInterval     int    `yaml:"retry-interval" default:"10"`
 		FlushInterval     int    `yaml:"flush-interval" default:"30"`
 		Transport         string `yaml:"transport" default:"tcp"`
-		TLSSupport        bool   `yaml:"tls-support" default:"false"` // deprecated
 		TLSInsecure       bool   `yaml:"tls-insecure" default:"false"`
 		TLSMinVersion     string `yaml:"tls-min-version" default:"1.2"`
 		CAFile            string `yaml:"ca-file" default:""`
@@ -218,7 +214,6 @@ type ConfigLoggers struct {
 		Transport         string `yaml:"transport" default:"udp"`
 		FlushInterval     int    `yaml:"flush-interval" default:"10"`
 		CertFile          string `yaml:"cert-file" default:""`
-		TLSSupport        bool   `yaml:"tls-support" default:"false"` // deprecated
 		TLSInsecure       bool   `yaml:"tls-insecure" default:"false"`
 		TLSMinVersion     string `yaml:"tls-min-version" default:"1.2"`
 		CAFile            string `yaml:"ca-file" default:""`
@@ -278,10 +273,8 @@ type ConfigLoggers struct {
 		Enable            bool   `yaml:"enable" default:"false"`
 		RemoteAddress     string `yaml:"remote-address" default:"127.0.0.1"`
 		RemotePort        int    `yaml:"remote-port" default:"6379"`
-		SockPath          string `yaml:"sock-path" default:""` // deprecated
 		RetryInterval     int    `yaml:"retry-interval" default:"10"`
 		Transport         string `yaml:"transport" default:"tcp"`
-		TLSSupport        bool   `yaml:"tls-support" default:"false"` // deprecated
 		TLSInsecure       bool   `yaml:"tls-insecure" default:"false"`
 		TLSMinVersion     string `yaml:"tls-min-version" default:"1.2"`
 		CAFile            string `yaml:"ca-file" default:""`
@@ -300,7 +293,6 @@ type ConfigLoggers struct {
 		Enable            bool   `yaml:"enable" default:"false"`
 		RemoteAddress     string `yaml:"remote-address" default:"127.0.0.1"`
 		RemotePort        int    `yaml:"remote-port" default:"9092"`
-		RetryInterval     int    `yaml:"retry-interval" default:"10"` // deprecated, will be removed in future versions
 		TLSSupport        bool   `yaml:"tls-support" default:"false"`
 		TLSInsecure       bool   `yaml:"tls-insecure" default:"false"`
 		TLSMinVersion     string `yaml:"tls-min-version" default:"1.2"`
@@ -316,7 +308,6 @@ type ConfigLoggers struct {
 		BatchSize         int    `yaml:"batch-size" default:"100"`
 		FlushInterval     int    `yaml:"flush-interval" default:"10"`
 		ConnectTimeout    int    `yaml:"connect-timeout" default:"5"`
-		CancelKafka       bool   `yaml:"cancel-kafka" default:"false"` // deprecated, will be removed in future versions
 		Topic             string `yaml:"topic" default:"dnscollector"`
 		Partition         *int   `yaml:"partition" default:"nil"`
 		ChannelBufferSize int    `yaml:"chan-buffer-size" default:"0"`

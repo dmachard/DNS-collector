@@ -36,14 +36,6 @@ func NewFluentdClient(config *pkgconfig.Config, logger *logger.Logger, name stri
 
 func (w *FluentdClient) ReadConfig() {
 	w.transport = w.GetConfig().Loggers.Fluentd.Transport
-
-	// begin backward compatibility
-	if w.GetConfig().Loggers.Fluentd.TLSSupport {
-		w.transport = netutils.SocketTLS
-	}
-	if len(w.GetConfig().Loggers.Fluentd.SockPath) > 0 {
-		w.transport = netutils.SocketUnix
-	}
 }
 
 func (w *FluentdClient) Disconnect() {
@@ -70,9 +62,6 @@ func (w *FluentdClient) ConnectToRemote() {
 		switch w.transport {
 		case netutils.SocketUnix:
 			address = w.GetConfig().Loggers.Fluentd.RemoteAddress
-			if len(w.GetConfig().Loggers.Fluentd.SockPath) > 0 {
-				address = w.GetConfig().Loggers.Fluentd.SockPath
-			}
 			w.LogInfo("connecting to %s://%s", w.transport, address)
 			c = client.New(client.ConnectionOptions{
 				Factory: &client.ConnFactory{

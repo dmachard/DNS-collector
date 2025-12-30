@@ -52,14 +52,14 @@ Loggers handle the output and processing of collected DNS data. They provide var
 | Logger | Status | Description |
 |--------|--------|-------------|
 | [Prometheus](loggers/logger_prometheus.md) | Production ready | Exposes DNS metrics for Prometheus scraping |
-| [Statsd](loggers/logger_statsd.md) | Beta support | Sends metrics in StatsD format **Not production ready** |
+| [Statsd](loggers/logger_statsd.md) | Beta support | Sends metrics in StatsD format |
 | [Rest API](loggers/logger_restapi.md) | Beta support | Provides REST endpoints for log searching |
 
 ### Time-Series Databases
 | Logger | Status | Description |
 |--------|--------|-------------|
 | [InfluxDB](loggers/logger_influxdb.md) | Beta support | Stores DNS metrics and logs in InfluxDB v1.x/v2.x |
-| [ClickHouse](loggers/logger_clickhouse.md) | Beta support | High-performance analytics database **Not production ready** |
+| [ClickHouse](loggers/logger_clickhouse.md) | Beta support | High-performance analytics database|
 
 ### Log Aggregation Platforms
 | Logger | Status | Description |
@@ -74,7 +74,7 @@ Loggers handle the output and processing of collected DNS data. They provide var
 |--------|--------|-------------|
 | [Redis Publisher](loggers/logger_redis.md) | Production ready | Publishes logs to Redis pub/sub channels |
 | [Kafka Producer](loggers/logger_kafka.md) | Production ready | Sends logs to Apache Kafka topics |
-| [NSQ](loggers/logger_nsq.md) | Beta ready | Publishes logs to NSQ topics |
+| [NSQ](loggers/logger_nsq.md) | Beta support | Publishes logs to NSQ topics |
 | [MQTT Publisher](loggers/logger_mqtt.md) | Beta support | Publishes DNS logs to MQTT brokers |
 
 ### Specialized Loggers

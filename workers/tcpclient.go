@@ -45,16 +45,6 @@ func NewTCPClient(config *pkgconfig.Config, logger *logger.Logger, name string) 
 
 func (w *TCPClient) ReadConfig() {
 	w.transport = w.GetConfig().Loggers.TCPClient.Transport
-
-	// begin backward compatibility
-	if w.GetConfig().Loggers.TCPClient.TLSSupport {
-		w.transport = netutils.SocketTLS
-	}
-	if len(w.GetConfig().Loggers.TCPClient.SockPath) > 0 {
-		w.transport = netutils.SocketUnix
-	}
-	// end
-
 	if len(w.GetConfig().Loggers.TCPClient.TextFormat) > 0 {
 		w.textFormat = strings.Fields(w.GetConfig().Loggers.TCPClient.TextFormat)
 	} else {
@@ -110,9 +100,6 @@ func (w *TCPClient) ConnectToRemote() {
 		switch w.transport {
 		case netutils.SocketUnix:
 			address = w.GetConfig().Loggers.TCPClient.RemoteAddress
-			if len(w.GetConfig().Loggers.TCPClient.SockPath) > 0 {
-				address = w.GetConfig().Loggers.TCPClient.SockPath
-			}
 			w.LogInfo("connecting to %s://%s", w.transport, address)
 			conn, err = net.DialTimeout(w.transport, address, connTimeout)
 

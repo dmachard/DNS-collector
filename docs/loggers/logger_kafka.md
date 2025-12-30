@@ -87,7 +87,6 @@ kafkaproducer:
   remote-address: 127.0.0.1
   remote-port: 9092
   connect-timeout: 5
-  retry-interval: 10
   flush-interval: 30
   tls-support: false
   tls-insecure: false
@@ -103,12 +102,3 @@ kafkaproducer:
   chan-buffer-size: 0
   compression: none
 ```
-
-Deprecated, will be removed in future versions
-
-
-* `retry-interval` (integer)
-  > Specifies the interval between attempts to reconnect in case of connection failure.
-
-* `cancel-kafka` (boolean)
-  > Determines whether the Kafka worker should stop running if all configured brokers become unreachable after 10 seconds.

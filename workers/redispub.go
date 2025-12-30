@@ -45,17 +45,7 @@ func NewRedisPub(config *pkgconfig.Config, logger *logger.Logger, name string) *
 }
 
 func (w *RedisPub) ReadConfig() {
-
 	w.transport = w.GetConfig().Loggers.RedisPub.Transport
-
-	// begin backward compatibility
-	if w.GetConfig().Loggers.RedisPub.TLSSupport {
-		w.transport = netutils.SocketTLS
-	}
-	if len(w.GetConfig().Loggers.RedisPub.SockPath) > 0 {
-		w.transport = netutils.SocketUnix
-	}
-	// end
 
 	if len(w.GetConfig().Loggers.RedisPub.TextFormat) > 0 {
 		w.textFormat = strings.Fields(w.GetConfig().Loggers.RedisPub.TextFormat)
@@ -111,9 +101,6 @@ func (w *RedisPub) ConnectToRemote() {
 		switch w.transport {
 		case netutils.SocketUnix:
 			address = w.GetConfig().Loggers.RedisPub.RemoteAddress
-			if len(w.GetConfig().Loggers.RedisPub.SockPath) > 0 {
-				address = w.GetConfig().Loggers.RedisPub.SockPath
-			}
 			w.LogInfo("connecting to %s://%s", w.transport, address)
 			conn, err = net.DialTimeout(w.transport, address, connTimeout)
 

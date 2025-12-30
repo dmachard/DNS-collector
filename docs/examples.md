@@ -10,7 +10,7 @@ Get started quickly with these ready-to-use configuration examples covering comm
   - [x] [Detect Newly Observed Domains](./_examples/use-case-31.yml)
 
 - **Capture DNS traffic from incoming DNSTap streams**
-  - [x] [Read from UNIX DNSTap socket and forward it to TLS stream](./_examples/use-case-5.yml)
+  - [x] [Read from UNIX DNSTap socket and forward it to TLS stream](./_examples/config-dnstap_unix-to-dnstap_tls.yml)
   - [x] [Relays DNSTap stream to multiple remote destination without decoding](./_examples/use-case-12.yml)
   - [x] [Aggregate several DNSTap stream and forward it to the same file](./_examples/use-case-7.yml)
   - [x] [Send to syslog TLS](./_examples/use-case-23.yml)
@@ -19,15 +19,15 @@ Get started quickly with these ready-to-use configuration examples covering comm
   - [x] [Convert to text format output](./_examples/use-case-28.yml)
   - [x] [Convert to CSV output style](./_examples/use-case-30.yml)
   - [x] [Convert to text format with dig style, based on Jinja templating](./_examples/use-case-27.yml)
-  - [x] [Transform DNSTap as input to JSON format as output](./_examples/use-case-3.yml)
+  - [x] [Transform DNSTap as input to JSON format as output](./_examples/config-dnstap-to-console.yml)
   - [x] [Convert to JSON key/value format output](./_examples/use-case-29.yml)
 
 - **Capture DNS traffic from PowerDNS products**
   - [x] [Capture multiple PowerDNS streams](./_examples/use-case-8.yml)
 
 - **Observe your DNS traffic from logs**
-  - [x] [Observe DNS metrics with Prometheus and Grafana](./_examples/use-case-2.yml)
-  - [x] [Follow DNS traffic with Loki and Grafana](./_examples/use-case-4.yml)
+  - [x] [Observe DNS metrics with Prometheus and Grafana](./_examples/config-dnstap-to-prometheus.yml.yml)
+  - [x] [Follow DNS traffic with Loki and Grafana](./_examples/config-dnstap-to-loki.yml)
 
 - **Apply some transformations**
   - [x] [Capture DNSTap stream and apply user privacy on it](./_examples/use-case-6.yml)
@@ -42,7 +42,7 @@ Get started quickly with these ready-to-use configuration examples covering comm
   - [x] [Watch for DNStap files as input](./_examples/use-case-14.yml)
 
 - Capture DNS traffic from PCAP files
-  - [x] [Capture DNSTap stream and backup-it to text and pcap files](./_examples/use-case-1.yml)
+  - [x] [Capture DNSTap stream and backup-it to text and pcap files](./_examples/config-dnstap-to-file.yml)
   - [x] [Watch for PCAP files as input and JSON as output](./_examples/use-case-15.yml)
 
 - Capture DNS traffic from Mikrotik device

@@ -62,7 +62,6 @@ func setupKafkaProducerConfig(address, port, topic, compress string) *pkgconfig.
 	cfg.Loggers.KafkaProducer.RemotePort = portInt
 	cfg.Loggers.KafkaProducer.Topic = topic
 	cfg.Loggers.KafkaProducer.Compression = compress
-	cfg.Loggers.KafkaProducer.RetryInterval = 1
 	cfg.Loggers.KafkaProducer.Partition = nil
 	return cfg
 }
