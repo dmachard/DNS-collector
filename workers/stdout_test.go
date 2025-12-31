@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -230,7 +231,7 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 
 	// add a shot of dnsmessages to collector
 	dmIn := dnsutils.GetFakeDNSMessage()
-	for i := 0; i < 512; i++ {
+	for range 512 {
 		g.GetInputChannel() <- dmIn
 	}
 
@@ -252,7 +253,7 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 	}
 
 	// send second shot of packets to consumer
-	for i := 0; i < 1024; i++ {
+	for range 1024 {
 		g.GetInputChannel() <- dmIn
 	}
 
@@ -274,4 +275,33 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 
 	// stop loggers
 	g.Stop()
+}
+
+func Test_StdoutTextMode_Batching(t *testing.T) {
+	var stdout bytes.Buffer
+
+	cfg := pkgconfig.GetDefaultConfig()
+	cfg.Loggers.Stdout.Mode = pkgconfig.ModeText
+	cfg.Loggers.Stdout.FlushInterval = 1
+
+	g := NewStdOut(cfg, logger.New(false), "test")
+	g.SetTextWriter(&stdout)
+
+	go g.StartCollect()
+
+	dm := dnsutils.GetFakeDNSMessage()
+
+	for range 5 {
+		g.GetInputChannel() <- dm
+	}
+
+	// wait for flush 2s > to the default 1s flush interval
+	time.Sleep(2 * time.Second)
+	g.Stop()
+
+	output := stdout.String()
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if len(lines) != 5 {
+		t.Fatalf("expected 5 output lines, got %d\noutput:\n%s", len(lines), output)
+	}
 }

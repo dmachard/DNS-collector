@@ -149,10 +149,12 @@ func (w *StdOut) StartLogging() {
 	w.LogInfo("logging has started")
 	defer w.LoggingDone()
 
+	// setup pcap writer if necessary
 	if w.GetConfig().Loggers.Stdout.Mode == pkgconfig.ModePCAP && w.writerPcap == nil {
 		w.SetPcapWriter(os.Stdout)
 	}
 
+	// setup flush ticker
 	flushInterval := time.Duration(w.GetConfig().Loggers.Stdout.FlushInterval * float64(time.Second))
 	if flushInterval <= 0 {
 		flushInterval = 1 * time.Second
@@ -160,7 +162,6 @@ func (w *StdOut) StartLogging() {
 	flushTicker := time.NewTicker(flushInterval)
 	defer flushTicker.Stop()
 
-	jsonEncoder := json.NewEncoder(w.writerRaw)
 	for {
 		select {
 		case <-w.OnLoggerStopped():
@@ -234,7 +235,7 @@ func (w *StdOut) StartLogging() {
 				w.writerRaw.WriteByte('\n')
 
 			case pkgconfig.ModeJSON:
-				err := jsonEncoder.Encode(dm)
+				err := json.NewEncoder(w.writerRaw).Encode(dm)
 				if err != nil {
 					w.CountEgressDiscarded()
 					w.LogError("process: unable to encode json: %s", err)
@@ -248,7 +249,7 @@ func (w *StdOut) StartLogging() {
 					w.LogError("process: flattening DNS message failed: %e", err)
 					continue
 				}
-				err = jsonEncoder.Encode(flat)
+				err = json.NewEncoder(w.writerRaw).Encode(flat)
 				if err != nil {
 					w.CountEgressDiscarded()
 					w.LogError("process: unable to encode flat json: %s", err)
