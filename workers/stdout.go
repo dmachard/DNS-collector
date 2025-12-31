@@ -81,9 +81,8 @@ func (w *StdOut) SetTextWriter(out io.Writer) {
 }
 
 func (w *StdOut) SetPcapWriter(pcapWriter io.Writer) {
-	w.LogInfo("init pcap writer")
-
-	w.writerPcap = pcapgo.NewWriter(pcapWriter)
+	w.SetTextWriter(pcapWriter)
+	w.writerPcap = pcapgo.NewWriter(w.writerRaw)
 	if err := w.writerPcap.WriteFileHeader(65536, layers.LinkTypeEthernet); err != nil {
 		w.LogFatal("pcap init error", err)
 	}
@@ -161,6 +160,7 @@ func (w *StdOut) StartLogging() {
 	flushTicker := time.NewTicker(flushInterval)
 	defer flushTicker.Stop()
 
+	jsonEncoder := json.NewEncoder(w.writerRaw)
 	for {
 		select {
 		case <-w.OnLoggerStopped():
@@ -234,7 +234,7 @@ func (w *StdOut) StartLogging() {
 				w.writerRaw.WriteByte('\n')
 
 			case pkgconfig.ModeJSON:
-				err := json.NewEncoder(w.writerRaw).Encode(dm)
+				err := jsonEncoder.Encode(dm)
 				if err != nil {
 					w.CountEgressDiscarded()
 					w.LogError("process: unable to encode json: %s", err)
@@ -248,7 +248,7 @@ func (w *StdOut) StartLogging() {
 					w.LogError("process: flattening DNS message failed: %e", err)
 					continue
 				}
-				err = json.NewEncoder(w.writerRaw).Encode(flat)
+				err = jsonEncoder.Encode(flat)
 				if err != nil {
 					w.CountEgressDiscarded()
 					w.LogError("process: unable to encode flat json: %s", err)
