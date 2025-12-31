@@ -2,7 +2,6 @@ package workers
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -182,12 +181,16 @@ func (w *LogFile) OpenCurrentFile() error {
 
 	w.fileSize = fileinfo.Size()
 
-	switch w.GetConfig().Loggers.LogFile.Mode {
-	case pkgconfig.ModeText, pkgconfig.ModeJSON, pkgconfig.ModeFlatJSON:
-		w.writerPlain = bufio.NewWriterSize(fd, w.config.Loggers.LogFile.MaxBatchSize)
+	// create buffered writer
+	writerBufSize := w.config.Loggers.LogFile.MaxBatchSize
+	if writerBufSize <= 0 {
+		writerBufSize = 64 * 1024
+	}
+	w.writerPlain = bufio.NewWriterSize(fd, writerBufSize)
 
+	switch w.GetConfig().Loggers.LogFile.Mode {
 	case pkgconfig.ModePCAP:
-		w.writerPcap = pcapgo.NewWriter(fd)
+		w.writerPcap = pcapgo.NewWriter(w.writerPlain)
 		if w.fileSize == 0 {
 			if err := w.writerPcap.WriteFileHeader(65536, layers.LinkTypeEthernet); err != nil {
 				return err
@@ -196,7 +199,7 @@ func (w *LogFile) OpenCurrentFile() error {
 
 	case pkgconfig.ModeDNSTap:
 		fsOptions := &framestream.EncoderOptions{ContentType: []byte("protobuf:dnstap.Dnstap"), Bidirectional: false}
-		w.writerDnstap, err = framestream.NewEncoder(fd, fsOptions)
+		w.writerDnstap, err = framestream.NewEncoder(w.writerPlain, fsOptions)
 		if err != nil {
 			return err
 		}
@@ -313,14 +316,26 @@ func (w *LogFile) postRotateCommand(fullPath string) {
 
 func (w *LogFile) FlushWriters() {
 	switch w.GetConfig().Loggers.LogFile.Mode {
-	case pkgconfig.ModeText, pkgconfig.ModeJSON, pkgconfig.ModeFlatJSON:
+	case pkgconfig.ModeText, pkgconfig.ModeJSON, pkgconfig.ModeFlatJSON, pkgconfig.ModePCAP:
 		w.writerPlain.Flush()
 	case pkgconfig.ModeDNSTap:
 		w.writerDnstap.Flush()
+		w.writerPlain.Flush()
 	}
 }
 
 func (w *LogFile) RotateFile() error {
+	// flush writers
+	w.FlushWriters()
+
+	// skip rotation if file size is zero
+	if w.fileSize == 0 {
+		if w.rotationInterval > 0 {
+			w.rotationTimer.Reset(w.rotationInterval)
+		}
+		return nil
+	}
+
 	// reset rotation timer
 	if w.rotationInterval > 0 {
 		w.rotationTimer.Reset(w.rotationInterval)
@@ -389,61 +404,51 @@ func (w *LogFile) WriteToPcap(dm dnsutils.DNSMessage, pkt []gopacket.Serializabl
 		layer.SerializeTo(buf, opts)
 	}
 
-	bufSize := len(buf.Bytes())
-
 	// rotate pcap file ?
-	if (w.fileSize + int64(bufSize)) > w.GetMaxSize() {
+	packetSize := int64(16 + len(buf.Bytes()))
+	if (w.fileSize + packetSize) > w.GetMaxSize() {
 		if err := w.RotateFile(); err != nil {
-			w.LogError("failed to rotate file: %s", err)
+			w.LogError("failed to rotate pcap file: %s", err)
 			return
 		}
 	}
 
 	ci := gopacket.CaptureInfo{
 		Timestamp:     time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec)),
-		CaptureLength: bufSize,
-		Length:        bufSize,
+		CaptureLength: len(buf.Bytes()),
+		Length:        len(buf.Bytes()),
 	}
 
+	// write the packet and increase size
 	w.writerPcap.WritePacket(ci, buf.Bytes())
-
-	// increase size file
-	w.fileSize += int64(bufSize)
+	w.fileSize += packetSize
 }
 
 func (w *LogFile) WriteToPlain(data []byte) {
-	dataSize := int64(len(data))
-
 	// rotate file ?
-	if (w.fileSize + dataSize) > w.GetMaxSize() {
+	if (w.fileSize + int64(len(data))) > w.GetMaxSize() {
 		if err := w.RotateFile(); err != nil {
-			w.LogError("failed to rotate file: %s", err)
+			w.LogError("failed to rotate text file: %s", err)
 			return
 		}
 	}
 
-	// write log to file
+	// write log to file and increase size
 	n, _ := w.writerPlain.Write(data)
-
-	// increase size file
 	w.fileSize += int64(n)
 }
 
 func (w *LogFile) WriteToDnstap(data []byte) {
-	dataSize := int64(len(data))
-
 	// rotate file ?
-	if (w.fileSize + dataSize) > w.GetMaxSize() {
+	if (w.fileSize + int64(len(data))) > w.GetMaxSize() {
 		if err := w.RotateFile(); err != nil {
-			w.LogError("failed to rotate file: %s", err)
+			w.LogError("failed to rotate dnstap file: %s", err)
 			return
 		}
 	}
 
-	// write log to file
+	// write log to file and increase size
 	n, _ := w.writerDnstap.Write(data)
-
-	// increase size file
 	w.fileSize += int64(n)
 }
 
@@ -555,19 +560,15 @@ func (w *LogFile) StartLogging() {
 	w.LogInfo("logging has started")
 	defer w.LoggingDone()
 
-	// prepare some timers
+	// flush periodic timer
 	flushInterval := time.Duration(w.GetConfig().Loggers.LogFile.FlushInterval) * time.Second
-	flushTimer := time.NewTimer(flushInterval)
+	if flushInterval <= 0 {
+		flushInterval = 1 * time.Second
+	}
+	flushTicker := time.NewTicker(flushInterval)
+	defer flushTicker.Stop()
 
-	buffer := new(bytes.Buffer)
-	var data []byte
-	var err error
-
-	// Max size of a batch before forcing a write
-	batch := new(bytes.Buffer)
-	maxBatchSize := w.config.Loggers.LogFile.MaxBatchSize
-	accumulatedBatchSize := 0 // Current batch size
-
+	// rotation timer
 	rotationInterval := w.GetConfig().Loggers.LogFile.RotationInterval
 	w.rotationInterval = time.Duration(rotationInterval) * time.Second
 	w.rotationTimer = time.NewTimer(w.rotationInterval)
@@ -579,13 +580,8 @@ func (w *LogFile) StartLogging() {
 		select {
 		case <-w.OnLoggerStopped():
 			// stop timers
-			flushTimer.Stop()
+			flushTicker.Stop()
 			w.rotationTimer.Stop()
-
-			// Force write remaining batch data
-			if accumulatedBatchSize > 0 {
-				w.WriteToPlain(batch.Bytes())
-			}
 
 			// flush writer
 			w.FlushWriters()
@@ -597,10 +593,8 @@ func (w *LogFile) StartLogging() {
 			}
 			w.fileFd.Close()
 
-			/* wait until queues are processed */
+			// wait until queues are processed
 			w.queueWg.Wait()
-
-			// close channels
 			close(w.compressQueue)
 			close(w.commandQueue)
 
@@ -641,42 +635,50 @@ func (w *LogFile) StartLogging() {
 					buf.WriteByte('\n')
 				}
 
-				// write to batch
-				batch.Write(buf.Bytes())
-
-				// return text buffer to pool
+				// write and return text buffer to pool
+				w.WriteToPlain(buf.Bytes())
 				w.PutTextBuffer(buf)
 
 			// with custom text mode
 			case pkgconfig.ModeJinja:
 				textLine, err := dm.ToTextTemplate(w.jinjaFormat)
 				if err != nil {
+					w.CountEgressDiscarded()
 					w.LogError("jinja template: %s", err)
 					continue
 				}
-				batch.Write([]byte(textLine))
-
-			// with json mode
-			case pkgconfig.ModeFlatJSON:
-				flat, err := dm.Flatten()
-				if err != nil {
-					w.LogError("flattening DNS message failed: %e", err)
-					continue
+				data := []byte(textLine)
+				if len(data) > 0 && data[len(data)-1] != '\n' {
+					data = append(data, '\n')
 				}
-				json.NewEncoder(buffer).Encode(flat)
-				w.WriteToPlain(buffer.Bytes())
-				buffer.Reset()
+				w.WriteToPlain(data)
 
 			// with json mode
-			case pkgconfig.ModeJSON:
-				json.NewEncoder(buffer).Encode(dm)
-				batch.Write(buffer.Bytes())
-				buffer.Reset()
+			case pkgconfig.ModeJSON, pkgconfig.ModeFlatJSON:
+				buf := w.GetTextBuffer()
+				buf.Reset()
+
+				if w.GetConfig().Loggers.LogFile.Mode == pkgconfig.ModeFlatJSON {
+					flat, err := dm.Flatten()
+					if err != nil {
+						w.CountEgressDiscarded()
+						w.LogError("flattening DNS message failed: %e", err)
+						continue
+					}
+					json.NewEncoder(buf).Encode(flat)
+				} else {
+					json.NewEncoder(buf).Encode(dm)
+				}
+
+				// send to file and return buffer to pool
+				w.WriteToPlain(buf.Bytes())
+				w.PutTextBuffer(buf)
 
 			// with dnstap mode
 			case pkgconfig.ModeDNSTap:
-				data, err = dm.ToDNSTap(w.GetConfig().Loggers.LogFile.ExtendedSupport)
+				data, err := dm.ToDNSTap(w.GetConfig().Loggers.LogFile.ExtendedSupport)
 				if err != nil {
+					w.CountEgressDiscarded()
 					w.LogError("failed to encode to DNStap protobuf: %s", err)
 					continue
 				}
@@ -686,6 +688,7 @@ func (w *LogFile) StartLogging() {
 			case pkgconfig.ModePCAP:
 				pkt, err := dm.ToPacketLayer(w.GetConfig().Loggers.LogFile.OverwriteDNSPortPcap)
 				if err != nil {
+					w.CountEgressDiscarded()
 					w.LogError("failed to encode to packet layer: %s", err)
 					continue
 				}
@@ -694,32 +697,11 @@ func (w *LogFile) StartLogging() {
 				w.WriteToPcap(dm, pkt)
 			}
 
-			// Update the batch size
-			accumulatedBatchSize += batch.Len()
-
-			// If the batch exceeds the max size, force a write
-			if accumulatedBatchSize >= maxBatchSize {
-				w.WriteToPlain(batch.Bytes())
-				batch.Reset() // Reset batch after write
-				accumulatedBatchSize = 0
-			}
-
-		case <-flushTimer.C:
-			// Flush the current batch, then flush the writers
-			if accumulatedBatchSize > 0 {
-				w.WriteToPlain(batch.Bytes())
-				batch.Reset()
-				accumulatedBatchSize = 0
-			}
-
-			// flush writer
+		case <-flushTicker.C:
 			w.FlushWriters()
 
-			// reset flush timer and buffer
-			buffer.Reset()
-			flushTimer.Reset(flushInterval)
-
 		case <-w.rotationTimer.C:
+			w.LogInfo("rotation interval reached")
 			if err := w.RotateFile(); err != nil {
 				w.LogError("failed to rotate file: %s", err)
 			}

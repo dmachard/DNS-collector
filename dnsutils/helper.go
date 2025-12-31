@@ -60,6 +60,8 @@ func GetFakeDNSMessage() DNSMessage {
 	dm.NetworkInfo.QueryPort = "1234"
 	dm.NetworkInfo.ResponseIP = "4.3.2.1"
 	dm.NetworkInfo.ResponsePort = "4321"
+	dm.NetworkInfo.Family = netutils.ProtoIPv4
+	dm.NetworkInfo.Protocol = netutils.ProtoUDP
 	dm.DNS.Rcode = DNSRcodeNoError
 	dm.DNS.Qtype = "A"
 	return dm

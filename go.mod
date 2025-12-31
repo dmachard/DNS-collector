@@ -16,6 +16,7 @@ require (
 	github.com/dmachard/go-netutils v1.8.1
 	github.com/dmachard/go-powerdns-protobuf v1.6.0
 	github.com/dmachard/go-topmap v1.0.3
+	github.com/eclipse/paho.mqtt.golang v1.5.1
 	github.com/farsightsec/golang-framestream v0.3.0
 	github.com/flosch/pongo2 v0.0.0-20200913210552-0d938eb266f3
 	github.com/fsnotify/fsnotify v1.9.0
@@ -70,7 +71,6 @@ require (
 	github.com/eapache/go-resiliency v1.7.0 // indirect
 	github.com/eapache/go-xerial-snappy v0.0.0-20230731223053-c322873962e3 // indirect
 	github.com/eapache/queue v1.1.0 // indirect
-	github.com/eclipse/paho.mqtt.golang v1.5.1 // indirect
 	github.com/edsrzf/mmap-go v1.2.0 // indirect
 	github.com/facette/natsort v0.0.0-20181210072756-2cd4dd1e2dcb // indirect
 	github.com/fatih/color v1.18.0 // indirect
