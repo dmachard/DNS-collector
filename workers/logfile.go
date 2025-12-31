@@ -340,9 +340,8 @@ func (w *LogFile) RotateFile() error {
 	if w.rotationInterval > 0 {
 		w.rotationTimer.Reset(w.rotationInterval)
 	}
-	// close writer and existing file
-	w.FlushWriters()
 
+	// close current file
 	if w.GetConfig().Loggers.LogFile.Mode == pkgconfig.ModeDNSTap {
 		w.writerDnstap.Close()
 	}
