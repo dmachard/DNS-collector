@@ -60,7 +60,7 @@ jobs:
           python-version: "${{ env.PYTHON_VERSION }}"
 
       - name: Download Binary Artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: dnscollector
 
