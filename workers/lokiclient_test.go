@@ -107,7 +107,7 @@ func Test_LokiClientRelabel(t *testing.T) {
 				{
 					Action:       relabel.Replace,
 					Separator:    ";",
-					Regex:        relabel.MustNewRegexp("(.*)"),
+					Regex:        relabel.MustNewRegexp("^(.+)$"),
 					Replacement:  "$1",
 					SourceLabels: model.LabelNames{"__dns_rcode"},
 					TargetLabel:  "rcode",
@@ -121,7 +121,7 @@ func Test_LokiClientRelabel(t *testing.T) {
 				{
 					Action:       relabel.Replace,
 					Separator:    ";",
-					Regex:        relabel.MustNewRegexp("(.*)"),
+					Regex:        relabel.MustNewRegexp("^(.+)$"),
 					Replacement:  "$1",
 					SourceLabels: model.LabelNames{"__dns_rcode"},
 					TargetLabel:  "__rcode",
@@ -156,7 +156,7 @@ func Test_LokiClientRelabel(t *testing.T) {
 				cfg.Loggers.LokiClient.Mode = m
 				cfg.Loggers.LokiClient.BatchSize = 0
 				cfg.Loggers.LokiClient.RelabelConfigs = tc.relabelConfig
-				g := NewLokiClient(cfg, logger.New(false), "test")
+				g := NewLokiClient(cfg, logger.New(true), "test")
 
 				// start the logger
 				go g.StartCollect()

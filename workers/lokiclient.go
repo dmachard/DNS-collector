@@ -23,6 +23,7 @@ import (
 
 	// go get github.com/grafana/loki/v3/pkg/logproto
 	"github.com/grafana/loki/v3/pkg/logproto"
+	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/model/relabel"
 )
@@ -218,6 +219,10 @@ func (w *LokiClient) StartLogging() {
 			var err error
 			var flat map[string]interface{}
 			if len(w.GetConfig().Loggers.LokiClient.RelabelConfigs) > 0 {
+				finalSet := []labels.Label{
+					{Name: "identity", Value: dm.DNSTap.Identity},
+					{Name: "job", Value: w.GetConfig().Loggers.LokiClient.JobName},
+				}
 				// flatten dns message
 				flat, err = dm.Flatten()
 				if err != nil {
@@ -225,25 +230,39 @@ func (w *LokiClient) StartLogging() {
 					w.CountEgressDiscarded()
 					continue
 				}
-
-				// build labels set for relabeling
-				sb := labels.NewBuilder(lbls)
 				for k, v := range flat {
-					sb.Set(fmt.Sprintf("__%s", strings.ReplaceAll(k, ".", "_")), fmt.Sprint(v))
+					cleanKey := strings.ReplaceAll(strings.ReplaceAll(k, ".", "_"), "-", "_")
+					key := fmt.Sprintf("__%s", cleanKey)
+					finalSet = append(finalSet, labels.Label{Name: key, Value: fmt.Sprint(v)})
 				}
 
 				// Apply relabeling
-				lbls, _ = relabel.Process(sb.Labels(), w.GetConfig().Loggers.LokiClient.RelabelConfigs...)
+				ls := labels.New(finalSet...)
+				sb := labels.NewBuilder(ls)
+
+				// to support prometheus > 3.0.7
+				configs := w.GetConfig().Loggers.LokiClient.RelabelConfigs
+				for _, cfg := range configs {
+					if cfg.NameValidationScheme == 0 {
+						cfg.NameValidationScheme = model.LegacyValidation
+					}
+				}
+
+				keep := relabel.ProcessBuilder(sb, configs...)
+				if !keep {
+					w.LogInfo("dropping %v because of relabel config", dm)
+					w.CountEgressDiscarded()
+					continue
+				}
 
 				// remove internal labels
-				lb := labels.NewBuilder(lbls)
-				lbls.Range(func(l labels.Label) {
+				sb.Range(func(l labels.Label) {
 					if strings.HasPrefix(l.Name, "__") {
-						lb.Del(l.Name)
+						sb.Del(l.Name)
 					}
 				})
-				lbls = lb.Labels()
 
+				lbls = sb.Labels()
 				if lbls.Len() == 0 {
 					w.LogInfo("dropping %v since it has no labels", dm)
 					w.CountEgressDiscarded()
