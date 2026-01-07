@@ -176,30 +176,3 @@ func QuoteStringAndWrite(buf *bytes.Buffer, fieldString, fieldDelimiter, fieldBo
 		buf.WriteString(fieldString)
 	}
 }
-
-// func QuoteStringAndWriteV0(s *strings.Builder, fieldString, fieldDelimiter, fieldBoundary string) {
-// 	// Handle the case where the field string is empty and boundaries are specified
-// 	if fieldString == "" && len(fieldBoundary) > 0 {
-// 		fmt.Fprintf(s, "%s%s%s", fieldBoundary, fieldString, fieldBoundary)
-// 		return
-// 	}
-
-// 	switch {
-// 	case len(fieldDelimiter) > 0 && strings.Contains(fieldString, fieldDelimiter):
-// 		// Case where the field string contains the delimiter
-// 		fieldEscaped := fieldString
-// 		if len(fieldBoundary) > 0 && strings.Contains(fieldEscaped, fieldBoundary) {
-// 			fieldEscaped = strings.ReplaceAll(fieldEscaped, fieldBoundary, "\\"+fieldBoundary)
-// 		}
-// 		fmt.Fprintf(s, "%s%s%s", fieldBoundary, fieldEscaped, fieldBoundary)
-
-// 	case len(fieldBoundary) > 0 && strings.Contains(fieldString, fieldBoundary):
-// 		// Case where the field string contains the boundary character
-// 		fieldEscaped := strings.ReplaceAll(fieldString, fieldBoundary, "\\"+fieldBoundary)
-// 		fmt.Fprintf(s, "%s%s%s", fieldBoundary, fieldEscaped, fieldBoundary)
-
-// 	default:
-// 		// Default case: simply write the field string as is
-// 		s.WriteString(fieldString)
-// 	}
-// }
