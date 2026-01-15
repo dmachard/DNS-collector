@@ -112,19 +112,18 @@ func (w *KafkaProducer) createDialer() *kafka.Dialer {
 
 	// SASL Support
 	if w.GetConfig().Loggers.KafkaProducer.SaslSupport {
-		switch w.GetConfig().Loggers.KafkaProducer.SaslMechanism {
+		kafkaConfig := w.GetConfig().Loggers.KafkaProducer
+		username, password := kafkaConfig.SaslUsername, kafkaConfig.SaslPassword
+
+		switch kafkaConfig.SaslMechanism {
 		case pkgconfig.SASLMechanismPlain:
-			mechanism := plain.Mechanism{
-				Username: w.GetConfig().Loggers.KafkaProducer.SaslUsername,
-				Password: w.GetConfig().Loggers.KafkaProducer.SaslPassword,
+			dialer.SASLMechanism = plain.Mechanism{Username: username, Password: password}
+		case pkgconfig.SASLMechanismSha512, pkgconfig.SASLMechanismSha256:
+			algo := scram.SHA512
+			if kafkaConfig.SaslMechanism == pkgconfig.SASLMechanismSha256 {
+				algo = scram.SHA256
 			}
-			dialer.SASLMechanism = mechanism
-		case pkgconfig.SASLMechanismScram:
-			mechanism, err := scram.Mechanism(
-				scram.SHA512,
-				w.GetConfig().Loggers.KafkaProducer.SaslUsername,
-				w.GetConfig().Loggers.KafkaProducer.SaslPassword,
-			)
+			mechanism, err := scram.Mechanism(algo, username, password)
 			if err != nil {
 				panic(err)
 			}

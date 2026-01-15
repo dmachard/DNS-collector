@@ -54,7 +54,7 @@ Options:
 
 * `sasl-mechanism` (string)
   > Specifies the SASL mechanism to use for authentication with Kafka brokers.
-  > SASL mechanism: `PLAIN` or `SCRAM-SHA-512`.
+  > SASL mechanism: `PLAIN`, `SCRAM-SHA-512` or `SCRAM-SHA-256` .
 
 * `mode` (string)
   > Specifies the output format for Kafka messages. Output format: `text`, `json`, or `flat-json`.

@@ -25,8 +25,9 @@ const (
 	ModePCAP     = "pcap"
 	ModeDNSTap   = "dnstap"
 
-	SASLMechanismPlain = "PLAIN"
-	SASLMechanismScram = "SCRAM-SHA-512"
+	SASLMechanismPlain  = "PLAIN"
+	SASLMechanismSha512 = "SCRAM-SHA-512"
+	SASLMechanismSha256 = "SCRAM-SHA-256"
 
 	CompressGzip   = "gzip"
 	CompressSnappy = "snappy"
