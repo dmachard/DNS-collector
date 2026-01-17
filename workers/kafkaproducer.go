@@ -20,6 +20,14 @@ import (
 	"github.com/segmentio/kafka-go/sasl/scram"
 )
 
+var supportedCompressions = map[string]compress.Codec{
+	pkgconfig.CompressGzip:   &compress.GzipCodec,
+	pkgconfig.CompressLz4:    &compress.Lz4Codec,
+	pkgconfig.CompressSnappy: &compress.SnappyCodec,
+	pkgconfig.CompressZstd:   &compress.ZstdCodec,
+	pkgconfig.CompressNone:   nil,
+}
+
 type KafkaProducer struct {
 	*GenericWorker
 	textFormat         []string
@@ -50,27 +58,17 @@ func NewKafkaProducer(config *pkgconfig.Config, logger *logger.Logger, name stri
 }
 
 func (w *KafkaProducer) ReadConfig() {
-	if len(w.GetConfig().Loggers.KafkaProducer.TextFormat) > 0 {
-		w.textFormat = strings.Fields(w.GetConfig().Loggers.KafkaProducer.TextFormat)
+	kafkaConfig := w.GetConfig().Loggers.KafkaProducer
+	if len(kafkaConfig.TextFormat) > 0 {
+		w.textFormat = strings.Fields(kafkaConfig.TextFormat)
 	} else {
 		w.textFormat = strings.Fields(w.GetConfig().Global.TextFormat)
 	}
 
-	if w.GetConfig().Loggers.KafkaProducer.Compression != pkgconfig.CompressNone {
-		switch w.GetConfig().Loggers.KafkaProducer.Compression {
-		case pkgconfig.CompressGzip:
-			w.compressCodec = &compress.GzipCodec
-		case pkgconfig.CompressLz4:
-			w.compressCodec = &compress.Lz4Codec
-		case pkgconfig.CompressSnappy:
-			w.compressCodec = &compress.SnappyCodec
-		case pkgconfig.CompressZstd:
-			w.compressCodec = &compress.ZstdCodec
-		case pkgconfig.CompressNone:
-			w.compressCodec = nil
-		default:
-			w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] kafka - invalid compress mode: ", w.GetConfig().Loggers.KafkaProducer.Compression)
-		}
+	if codec, ok := supportedCompressions[kafkaConfig.Compression]; ok {
+		w.compressCodec = codec
+	} else {
+		w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] kafka - invalid compress mode: ", kafkaConfig.Compression)
 	}
 }
 
@@ -88,19 +86,20 @@ func (w *KafkaProducer) Disconnect() {
 }
 
 func (w *KafkaProducer) createDialer() *kafka.Dialer {
+	kafkaConfig := w.GetConfig().Loggers.KafkaProducer
 	dialer := &kafka.Dialer{
-		Timeout:   time.Duration(w.GetConfig().Loggers.KafkaProducer.ConnectTimeout) * time.Second,
+		Timeout:   time.Duration(kafkaConfig.ConnectTimeout) * time.Second,
 		DualStack: true,
 	}
 
 	// TLS Support
-	if w.GetConfig().Loggers.KafkaProducer.TLSSupport {
+	if kafkaConfig.TLSSupport {
 		tlsOptions := netutils.TLSOptions{
-			InsecureSkipVerify: w.GetConfig().Loggers.KafkaProducer.TLSInsecure,
-			MinVersion:         w.GetConfig().Loggers.KafkaProducer.TLSMinVersion,
-			CAFile:             w.GetConfig().Loggers.KafkaProducer.CAFile,
-			CertFile:           w.GetConfig().Loggers.KafkaProducer.CertFile,
-			KeyFile:            w.GetConfig().Loggers.KafkaProducer.KeyFile,
+			InsecureSkipVerify: kafkaConfig.TLSInsecure,
+			MinVersion:         kafkaConfig.TLSMinVersion,
+			CAFile:             kafkaConfig.CAFile,
+			CertFile:           kafkaConfig.CertFile,
+			KeyFile:            kafkaConfig.KeyFile,
 		}
 
 		tlsConfig, err := netutils.TLSClientConfig(tlsOptions)
@@ -111,8 +110,7 @@ func (w *KafkaProducer) createDialer() *kafka.Dialer {
 	}
 
 	// SASL Support
-	if w.GetConfig().Loggers.KafkaProducer.SaslSupport {
-		kafkaConfig := w.GetConfig().Loggers.KafkaProducer
+	if kafkaConfig.SaslSupport {
 		username, password := kafkaConfig.SaslUsername, kafkaConfig.SaslPassword
 
 		switch kafkaConfig.SaslMechanism {
@@ -135,16 +133,17 @@ func (w *KafkaProducer) createDialer() *kafka.Dialer {
 }
 
 func (w *KafkaProducer) ConnectToKafka(ctx context.Context) {
-	topic := w.GetConfig().Loggers.KafkaProducer.Topic
-	partition := w.GetConfig().Loggers.KafkaProducer.Partition
+	kafkaConfig := w.GetConfig().Loggers.KafkaProducer
+	topic := kafkaConfig.Topic
+	partition := kafkaConfig.Partition
 
 	// Backoff exponentiel : 1s, 2s, 4s, 8s, 16s, 30s (max)
 	backoff := 1 * time.Second
 	maxBackoff := 30 * time.Second
 
 	// list of brokers to dial to
-	brokers := strings.Split(w.GetConfig().Loggers.KafkaProducer.RemoteAddress, ",")
-	port := w.GetConfig().Loggers.KafkaProducer.RemotePort
+	brokers := strings.Split(kafkaConfig.RemoteAddress, ",")
+	port := kafkaConfig.RemotePort
 
 	for {
 		select {
@@ -293,15 +292,17 @@ func (w *KafkaProducer) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 	msgs := []kafka.Message{}
 	buffer := new(bytes.Buffer)
 
+	kafkaConfig := w.GetConfig().Loggers.KafkaProducer
+	globalConfig := w.GetConfig().Global
 	for _, dm := range *buf {
 		var strDm string
-		switch w.GetConfig().Loggers.KafkaProducer.Mode {
+		switch kafkaConfig.Mode {
 		case pkgconfig.ModeText:
 			textBuf := w.GetTextBuffer() // get buffer from pool
 			err := dm.ToTextLine(
 				w.textFormat,
-				w.GetConfig().Global.TextFormatDelimiter,
-				w.GetConfig().Global.TextFormatBoundary,
+				globalConfig.TextFormatDelimiter,
+				globalConfig.TextFormatBoundary,
 				textBuf,
 			)
 			if err != nil {
@@ -336,7 +337,7 @@ func (w *KafkaProducer) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 	w.connMutex.RLock()
 	defer w.connMutex.RUnlock()
 
-	partition := w.GetConfig().Loggers.KafkaProducer.Partition
+	partition := kafkaConfig.Partition
 	var err error
 
 	if partition == nil {
@@ -368,7 +369,7 @@ func (w *KafkaProducer) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 		}
 
 		conn := w.kafkaConns[*w.lastPartitionIndex]
-		if w.GetConfig().Loggers.KafkaProducer.Compression == pkgconfig.CompressNone {
+		if kafkaConfig.Compression == pkgconfig.CompressNone {
 			_, err = conn.WriteMessages(msgs...)
 		} else {
 			_, err = conn.WriteCompressedMessages(w.compressCodec, msgs...)
@@ -424,7 +425,7 @@ func (w *KafkaProducer) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 			return
 		}
 
-		if w.GetConfig().Loggers.KafkaProducer.Compression == pkgconfig.CompressNone {
+		if kafkaConfig.Compression == pkgconfig.CompressNone {
 			_, err = conn.WriteMessages(msgs...)
 		} else {
 			_, err = conn.WriteCompressedMessages(w.compressCodec, msgs...)
