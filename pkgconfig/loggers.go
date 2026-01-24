@@ -293,6 +293,7 @@ type ConfigLoggers struct {
 	} `yaml:"redispub"`
 	KafkaProducer struct {
 		Enable            bool   `yaml:"enable" default:"false"`
+		ClientID          string `yaml:"client-id" default:""`
 		RemoteAddress     string `yaml:"remote-address" default:"127.0.0.1"`
 		RemotePort        int    `yaml:"remote-port" default:"9092"`
 		TLSSupport        bool   `yaml:"tls-support" default:"false"`

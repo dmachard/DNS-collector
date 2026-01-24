@@ -90,6 +90,7 @@ func (w *KafkaProducer) createDialer() *kafka.Dialer {
 	dialer := &kafka.Dialer{
 		Timeout:   time.Duration(kafkaConfig.ConnectTimeout) * time.Second,
 		DualStack: true,
+		ClientID:  kafkaConfig.ClientID,
 	}
 
 	// TLS Support

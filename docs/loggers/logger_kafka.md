@@ -18,6 +18,9 @@ Options:
   > Remote tcp port.
   > Specifies the remote TCP port to connect to.
 
+* `client-id` (string)
+  >Unique identifier for Kafka Client,Using Client IDs to manage client traffic on the Kafka server.
+
 * `connect-timeout` (integer)
   > Specifies the maximum time to wait for a connection attempt to complete.
 
