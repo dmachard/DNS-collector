@@ -4,6 +4,7 @@
   <img src="https://img.shields.io/badge/go%20tests-537-green" alt="Go tests"/>
   <img src="https://img.shields.io/badge/go%20coverage-70%25-green" alt="Go coverage"/>
   <img src="https://img.shields.io/badge/go%20bench-32-green" alt="Go bench"/>
+   <img src="https://img.shields.io/badge/go%fuzz-1-green" alt="Go Fuzz"/>
   <img src="https://img.shields.io/badge/go%20lines-15668-green" alt="Go lines"/>
 </p>
 

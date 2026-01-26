@@ -76,6 +76,16 @@ jobs:
     - name: Test ${{ matrix.package }}
       run: go test -timeout 240s -exec sudo ./${{ matrix.package }}/ -race -cover -v
       
+  fuzzing:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v6
+    - uses: actions/setup-go@v6
+      with:
+        go-version: "${{ env.GO_VERSION }}"
+    - name: Fuzzing
+      run: go test -fuzz=FuzzDecodeDNS -fuzztime=20s ./dnsutils
+
   config:
     needs: build_bin
     runs-on: ubuntu-24.04
