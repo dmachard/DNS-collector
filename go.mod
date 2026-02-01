@@ -24,8 +24,8 @@ require (
 	github.com/golang/snappy v1.0.0
 	github.com/google/gopacket v1.1.19
 	github.com/google/uuid v1.6.0
-	github.com/grafana/dskit v0.0.0-20250828173137-de14cf923eeb
-	github.com/grafana/loki/v3 v3.6.3
+	github.com/grafana/dskit v0.0.0-20250917065751-798f5a8fa154
+	github.com/grafana/loki/v3 v3.6.4
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/hpcloud/tail v1.0.0
 	github.com/influxdata/influxdb-client-go v1.4.0
