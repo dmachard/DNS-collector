@@ -13,7 +13,7 @@ require (
 	github.com/dmachard/go-dnstap-protobuf v1.4.0
 	github.com/dmachard/go-framestream v1.3.2
 	github.com/dmachard/go-logger v1.2.0
-	github.com/dmachard/go-netutils v1.8.1
+	github.com/dmachard/go-netutils v1.8.2
 	github.com/dmachard/go-powerdns-protobuf v1.6.1
 	github.com/dmachard/go-topmap v1.0.3
 	github.com/eclipse/paho.mqtt.golang v1.5.1
