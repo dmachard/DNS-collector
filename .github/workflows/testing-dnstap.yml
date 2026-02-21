@@ -20,7 +20,7 @@ permissions:
 env:
   Q_VERSION: "0.19.11"
   PYTHON_VERSION: "3.14"
-  GO_VERSION: "1.25"
+  GO_VERSION: "1.26"
   COLLECTOR_USER: "pdns"
 
 jobs:

@@ -21,7 +21,7 @@ env:
   PROM_VERSION: "3.7.3"
   GENTAP: "1.0.3"
   PYTHON_VERSION: '3.14'
-  GO_VERSION: '1.25'
+  GO_VERSION: '1.26'
 
 jobs:
   build_bin:
@@ -46,7 +46,7 @@ jobs:
     strategy:
       matrix:
         os-version: [ 'ubuntu-24.04' ]
-        go-version: [ '1.24', '1.25' ]
+        go-version: [ '1.24', '1.25', '1.26' ] 
         package:
           - '.'
           - 'pkgconfig'
