@@ -98,12 +98,12 @@ func (t *NormalizeTransform) ReplaceNonprintable(dm *dnsutils.DNSMessage) (int, 
 	for _, r := range qname {
 		if unicode.IsPrint(r) {
 			if unicode.IsSpace(r) {
-				builder.WriteString(fmt.Sprintf("\\%03d", r))
+				fmt.Fprintf(&builder, "\\%03d", r)
 			} else {
 				builder.WriteRune(r)
 			}
 		} else {
-			builder.WriteString(fmt.Sprintf("\\%03d", r))
+			fmt.Fprintf(&builder, "\\%03d", r)
 		}
 	}
 	dm.DNS.Qname = builder.String()

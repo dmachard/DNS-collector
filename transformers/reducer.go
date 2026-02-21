@@ -151,7 +151,7 @@ func (t *ReducerTransform) repetitiveTrafficDetector(dm *dnsutils.DNSMessage) (i
 			// Check if the field's kind is either int or string
 			switch value.Kind() {
 			case reflect.Int, reflect.String:
-				t.strBuilder.WriteString(fmt.Sprintf("%v", value.Interface())) // Append field value
+				fmt.Fprintf(&t.strBuilder, "%v", value.Interface()) // Append field value
 			default:
 				// Skip unsupported types
 				continue
