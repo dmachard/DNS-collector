@@ -4,12 +4,19 @@ Transformers are powerful middleware components that process, enrich, and modify
 
 ## Processing Pipeline Order
 
-Transformers execute in a specific sequence to ensure data consistency and optimal performance:
+Transformers execute in a specific sequence to ensure data consistency and optimal performance. 
+> [!IMPORTANT]
+> The execution order of transformers is currently hardcoded in the Go source and cannot be changed via the configuration file.
 
-1. Normalize - Standardizes DNS message format
-2. Traffic Filtering - Applies sampling and filtering rules
-3. Traffic Reducer - Deduplicates repetitive queries
-4. All Other Transformers - Applied in configuration order
+The logical processing order is as follows:
+
+1. **Normalization** - [Normalize](transformers/transform_normalize.md): Standardizes DNS message format.
+2. **Filtering** - [Traffic Filtering](transformers/transform_trafficfiltering.md): Applies sampling and filtering rules.
+3. **Enrichment** - Elements like [GeoIP](transformers/transform_geoip.md), [ATags](transformers/transform_atags.md), [Suspicious Traffic Detector](transformers/transform_suspiciousdetector.md), etc.
+4. **Anonymization** - [User Privacy](transformers/transform_userprivacy.md): Masking or hashing components.
+5. **Aggregation** - [Traffic Reducer](transformers/transform_trafficreducer.md): Deduplicates repetitive queries (terminal point).
+6. **Ordering** - [Reordering](transformers/transform_reordering.md): Sorts DNS messages (terminal point).
+
 
 
 ## Transformer Categories
