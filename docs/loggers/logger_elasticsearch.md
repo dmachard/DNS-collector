@@ -58,6 +58,21 @@ Options:
   > Maximum retry delay in seconds.  
   > Caps the exponential backoff to avoid excessively long waits.
 
+* `tls-insecure` (bool)
+  > Skip TLS verification (useful for self-signed certificates).
+
+* `tls-min-version` (string)
+  > Minimum TLS version (`1.1`, `1.2` or `1.3`).
+
+* `ca-file` (string)
+  > Path to the CA certificate file.
+
+* `cert-file` (string)
+  > Path to the client certificate file.
+
+* `key-file` (string)
+  > Path to the client key file.
+
 Defaults:
 
 ```yaml
@@ -79,6 +94,11 @@ Defaults:
     retry-max-attempts: 5
     retry-initial-delay: 1  # in seconds
     retry-max-delay: 30     # in seconds
+    tls-insecure: false
+    tls-min-version: "1.2"
+    ca-file: ""
+    cert-file: ""
+    key-file: ""
 ```
 
 > Could you explain the difference between `bulk-size` and `bulk-channel-size`?

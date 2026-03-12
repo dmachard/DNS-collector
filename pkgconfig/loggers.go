@@ -245,6 +245,11 @@ type ConfigLoggers struct {
 		RetryMaxAttempts  int    `yaml:"retry-max-attempts" default:"5"`
 		RetryInitialDelay int    `yaml:"retry-initial-delay" default:"1"`
 		RetryMaxDelay     int    `yaml:"retry-max-delay" default:"30"`
+		TLSInsecure       bool   `yaml:"tls-insecure" default:"false"`
+		TLSMinVersion     string `yaml:"tls-min-version" default:"1.2"`
+		CAFile            string `yaml:"ca-file" default:""`
+		CertFile          string `yaml:"cert-file" default:""`
+		KeyFile           string `yaml:"key-file" default:""`
 	} `yaml:"elasticsearch"`
 	OpenTelemetryClient struct {
 		Enable               bool   `yaml:"enable" default:"false"`

@@ -227,3 +227,33 @@ func Test_ElasticSearchClient_sendBulk_WithBasicAuth(t *testing.T) {
 	err := client.sendBulk([]byte("test payload"))
 	assert.NoError(t, err, "Unexpected error when sending request with Basic Auth")
 }
+
+func Test_ElasticSearchClient_TLSInsecure(t *testing.T) {
+	// Create a test HTTPS server to simulate Elasticsearch with self-signed cert
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"errors":false}`))
+	}))
+	defer server.Close()
+
+	t.Run("TLS verification enabled (default) - should fail", func(t *testing.T) {
+		config := pkgconfig.GetDefaultConfig()
+		config.Loggers.ElasticSearchClient.Server = server.URL
+		config.Loggers.ElasticSearchClient.TLSInsecure = false
+
+		client := NewElasticSearchClient(config, logger.New(false), "test-client-fail")
+		err := client.sendBulk([]byte("test payload"))
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "certificate signed by unknown authority")
+	})
+
+	t.Run("TLS verification disabled - should succeed", func(t *testing.T) {
+		config := pkgconfig.GetDefaultConfig()
+		config.Loggers.ElasticSearchClient.Server = server.URL
+		config.Loggers.ElasticSearchClient.TLSInsecure = true
+
+		client := NewElasticSearchClient(config, logger.New(false), "test-client-success")
+		err := client.sendBulk([]byte("test payload"))
+		assert.NoError(t, err)
+	})
+}

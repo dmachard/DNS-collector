@@ -223,8 +223,9 @@ pipelines:
 
   - name: "elasticsearch-output"
     elasticsearch:
-      server: "http://localhost:9200"
+      server: "https://localhost:9200"
       index: "dns-logs"
+      tls-insecure: true
 ```
 
 

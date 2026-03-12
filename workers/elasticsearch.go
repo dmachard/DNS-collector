@@ -11,6 +11,7 @@ import (
 	"github.com/dmachard/go-dnscollector/pkgconfig"
 	"github.com/dmachard/go-dnscollector/transformers"
 	"github.com/dmachard/go-logger"
+	"github.com/dmachard/go-netutils"
 
 	"net/http"
 	"net/url"
@@ -28,8 +29,8 @@ func NewElasticSearchClient(config *pkgconfig.Config, console *logger.Logger, na
 		bufSize = config.Loggers.ElasticSearchClient.ChannelBufferSize
 	}
 	w := &ElasticSearchClient{GenericWorker: NewGenericWorker(config, console, name, "elasticsearch", bufSize, pkgconfig.DefaultMonitor)}
-	w.ReadConfig()
 	w.httpClient = &http.Client{Timeout: 5 * time.Second}
+	w.ReadConfig()
 	return w
 }
 
@@ -54,6 +55,30 @@ func (w *ElasticSearchClient) ReadConfig() {
 	}
 	u.Path = path.Join(u.Path, w.index, "_bulk")
 	w.bulkURL = u.String()
+
+	// tls client config
+	tlsOptions := netutils.TLSOptions{
+		InsecureSkipVerify: w.GetConfig().Loggers.ElasticSearchClient.TLSInsecure,
+		MinVersion:         w.GetConfig().Loggers.ElasticSearchClient.TLSMinVersion,
+		CAFile:             w.GetConfig().Loggers.ElasticSearchClient.CAFile,
+		CertFile:           w.GetConfig().Loggers.ElasticSearchClient.CertFile,
+		KeyFile:            w.GetConfig().Loggers.ElasticSearchClient.KeyFile,
+	}
+
+	tlsConfig, err := netutils.TLSClientConfig(tlsOptions)
+	if err != nil {
+		w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "] elasticsearch - tls config failed: " + err.Error())
+	}
+
+	// prepare http client
+	tr := &http.Transport{
+		MaxIdleConns:       10,
+		IdleConnTimeout:    30 * time.Second,
+		DisableCompression: false,
+		TLSClientConfig:    tlsConfig,
+	}
+
+	w.httpClient.Transport = tr
 }
 
 func (w *ElasticSearchClient) StartCollect() {
