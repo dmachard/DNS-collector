@@ -750,12 +750,18 @@ func ParseTXT(rdata []byte) (string, error) {
 	if len(rdata) < 1 {
 		return "", ErrDecodeDNSAnswerRdataTooShort
 	}
-	length := int(rdata[0])
-	if len(rdata)-1 < length {
-		return "", ErrDecodeDNSAnswerRdataTooShort
+	var txt strings.Builder
+	offset := 0
+	for offset < len(rdata) {
+		length := int(rdata[offset])
+		offset++
+		if len(rdata) < offset+length {
+			return "", ErrDecodeDNSAnswerRdataTooShort
+		}
+		txt.Write(rdata[offset : offset+length])
+		offset += length
 	}
-	txt := string(rdata[1 : length+1])
-	return txt, nil
+	return txt.String(), nil
 }
 
 /*

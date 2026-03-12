@@ -3,6 +3,7 @@ package dnsutils
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/miekg/dns"
@@ -743,5 +744,50 @@ func TestDecodeRdataSVCB_params(t *testing.T) {
 		if answer[0].Rdata != rdata {
 			t.Errorf("invalid decode for rdata SVCB, want %s, got: %s", rdata, answer[0].Rdata)
 		}
+	}
+}
+
+func TestDecodeRdataTXT_Long(t *testing.T) {
+	fqdn := "test.example.com."
+
+	dm := new(dns.Msg)
+	dm.SetQuestion(fqdn, dns.TypeTXT)
+
+	// Create a long TXT record (> 255 bytes)
+	// Part A: 255 'A's
+	// Part B: 255 'B's
+	partA := strings.Repeat("A", 255)
+	partB := strings.Repeat("B", 255)
+	longData := partA + partB
+
+	// miekg/dns NewRR will split this into multiple strings if quoted correctly or if we use multiple strings
+	rr1, err := dns.NewRR(fmt.Sprintf("%s 3600 IN TXT \"%s\" \"%s\"", fqdn, partA, partB))
+	if err != nil {
+		t.Fatalf("failed to create RR: %v", err)
+	}
+	dm.Answer = append(dm.Answer, rr1)
+
+	payload, err := dm.Pack()
+	if err != nil {
+		t.Fatalf("failed to pack DNS message: %v", err)
+	}
+
+	_, _, _, offsetRR, err := DecodeQuestion(1, payload)
+	if err != nil {
+		t.Fatalf("failed to decode question: %v", err)
+	}
+
+	answer, _, err := DecodeAnswer(len(dm.Answer), offsetRR, payload)
+	if err != nil {
+		t.Fatalf("failed to decode answer: %v", err)
+	}
+
+	if len(answer) == 0 {
+		t.Fatal("no answers decoded")
+	}
+
+	if answer[0].Rdata != longData {
+		t.Errorf("invalid decode for long rdata TXT\nwant: %d bytes (%s...)\ngot:  %d bytes (%s...)",
+			len(longData), longData[:10], len(answer[0].Rdata), answer[0].Rdata[:10])
 	}
 }
