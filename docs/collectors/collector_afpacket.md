@@ -27,7 +27,7 @@ Options:
 * `enable-gre` (bool)
   > Enable GRE decoding protocol support
 
-* `enable-fragment-support` (bool)
+* `enable-defrag-ip` (bool)
   > Enable IP defrag support
 
 * `chan-buffer-size` (int)
