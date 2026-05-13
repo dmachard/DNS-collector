@@ -71,7 +71,11 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 	// init frame stream library
 	fsReader := bufio.NewReader(conn)
 	fsWriter := bufio.NewWriter(conn)
-	fs := framestream.NewFstrm(fsReader, fsWriter, conn, 5*time.Second, []byte("protobuf:dnstap.Dnstap"), true)
+	handshakeTimeout := time.Duration(w.GetConfig().Global.Framestream.HandshakeTimeout) * time.Second
+	contentType := []byte(w.GetConfig().Global.Framestream.ContentType)
+	fs := framestream.NewFstrm(fsReader, fsWriter, conn, handshakeTimeout, contentType, true)
+	fs.SetControlFrameMaxLength(w.GetConfig().Global.Framestream.ControlFrameMaxLength)
+	fs.SetDataFrameMaxLength(w.GetConfig().Global.Framestream.DataFrameMaxLength)
 
 	// framestream as receiver
 	if err := fs.InitReceiver(); err != nil {
