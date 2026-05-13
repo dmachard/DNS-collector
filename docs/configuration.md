@@ -151,6 +151,19 @@ global:
   text-format-boundary: "\""
 ```
 
+### Framestream
+
+Configure the Framestream protocol limits:
+
+```yaml
+global:
+  framestream:
+    control-frame-max-length: 4064     # Max length for control frames (default: 4064)
+    data-frame-max-length: 65536      # Max length for data frames (default: 65536)
+    handshake-timeout: 5              # Timeout in seconds for the handshake (default: 5)
+    content-type: "protobuf:dnstap.Dnstap" # Content type for the stream (default: protobuf:dnstap.Dnstap)
+```
+
 
 
 ## Pipelines

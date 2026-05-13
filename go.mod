@@ -9,7 +9,7 @@ require (
 	github.com/creasty/defaults v1.8.0
 	github.com/dmachard/go-clientsyslog v1.0.3
 	github.com/dmachard/go-dnstap-protobuf v1.4.1
-	github.com/dmachard/go-framestream v1.4.0
+	github.com/dmachard/go-framestream v1.5.0
 	github.com/dmachard/go-logger v1.2.0
 	github.com/dmachard/go-netutils v1.9.0
 	github.com/dmachard/go-powerdns-protobuf v1.6.1

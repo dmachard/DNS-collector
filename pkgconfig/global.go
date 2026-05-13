@@ -37,6 +37,12 @@ type ConfigGlobal struct {
 		BasicAuthLogin  string `yaml:"basic-auth-login" default:"admin"`
 		BasicAuthPwd    string `yaml:"basic-auth-pwd" default:"changeme"`
 	} `yaml:"telemetry"`
+	Framestream struct {
+		ControlFrameMaxLength uint32 `yaml:"control-frame-max-length" default:"4064"`
+		DataFrameMaxLength    uint32 `yaml:"data-frame-max-length" default:"65536"`
+		HandshakeTimeout      int    `yaml:"handshake-timeout" default:"5"`
+		ContentType           string `yaml:"content-type" default:"protobuf:dnstap.Dnstap"`
+	} `yaml:"framestream"`
 }
 
 func (c *ConfigGlobal) SetDefault() {

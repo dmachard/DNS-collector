@@ -271,7 +271,11 @@ func (w *DnstapSender) StartLogging() {
 			// frame stream library
 			fsReader := bufio.NewReader(w.transportConn)
 			fsWriter := bufio.NewWriter(w.transportConn)
-			w.fs = framestream.NewFstrm(fsReader, fsWriter, w.transportConn, 5*time.Second, []byte("protobuf:dnstap.Dnstap"), true)
+			handshakeTimeout := time.Duration(w.GetConfig().Global.Framestream.HandshakeTimeout) * time.Second
+			contentType := []byte(w.GetConfig().Global.Framestream.ContentType)
+			w.fs = framestream.NewFstrm(fsReader, fsWriter, w.transportConn, handshakeTimeout, contentType, true)
+			w.fs.SetControlFrameMaxLength(w.GetConfig().Global.Framestream.ControlFrameMaxLength)
+			w.fs.SetDataFrameMaxLength(w.GetConfig().Global.Framestream.DataFrameMaxLength)
 
 			// init framestream protocol
 			if err := w.fs.InitSender(); err != nil {

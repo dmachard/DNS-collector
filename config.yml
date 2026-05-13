@@ -28,8 +28,13 @@ global:
     tls-key-file: ""
     client-ca-file: ""
     basic-auth-enable: false
-    basic-auth-login: admin
-    basic-auth-pwd: changeme
+    basic-auth-login: "admin"
+    basic-auth-pwd: "changeme"
+  framestream:
+    control-frame-max-length: 4064
+    data-frame-max-length: 65536
+    handshake-timeout: 5
+    content-type: "protobuf:dnstap.Dnstap"
 
 ################################################
 # Pipelining configuration
