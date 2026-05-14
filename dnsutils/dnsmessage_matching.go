@@ -15,7 +15,7 @@ func (dm *DNSMessage) Matching(matching map[string]interface{}) (error, bool) {
 
 	dmValue := reflect.ValueOf(dm)
 
-	if dmValue.Kind() == reflect.Ptr {
+	if dmValue.Kind() == reflect.Pointer {
 		dmValue = dmValue.Elem()
 	}
 
@@ -449,7 +449,7 @@ func GetFieldByJSONTag(value reflect.Value, nestedKeys string) (reflect.Value, b
 			fieldValue := value.Field(i)
 
 			// Handle pointers safely
-			if fieldValue.Kind() == reflect.Ptr {
+			if fieldValue.Kind() == reflect.Pointer {
 				if fieldValue.IsNil() {
 					return reflect.Value{}, false
 				}

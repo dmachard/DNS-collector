@@ -85,4 +85,3 @@ func (t *ExtractTransform) addHexFields(dm *dnsutils.DNSMessage) (int, error) {
 	}
 	return ReturnKeep, nil
 }
-
