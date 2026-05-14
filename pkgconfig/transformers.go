@@ -76,8 +76,10 @@ type ConfigTransformers struct {
 		WhitelistDomains   []string `yaml:"whitelist-domains,flow" default:"[\"\\\\.ip6\\\\.arpa\"]"`
 	} `yaml:"suspicious"`
 	Extract struct {
-		Enable     bool `yaml:"enable" default:"false"`
-		AddPayload bool `yaml:"add-payload" default:"false"`
+		Enable       bool     `yaml:"enable" default:"false"`
+		AddPayload   bool     `yaml:"add-payload" default:"false"`
+		Base64Fields []string `yaml:"base64-fields,flow" default:"[]"`
+		HexFields    []string `yaml:"hex-fields,flow" default:"[]"`
 	} `yaml:"extract"`
 	MachineLearning struct {
 		Enable      bool `yaml:"enable" default:"false"`
