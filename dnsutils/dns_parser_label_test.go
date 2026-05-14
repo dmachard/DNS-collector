@@ -294,3 +294,34 @@ func TestDecodeDnsLabel_EndOffset_WithPtr(t *testing.T) {
 		t.Errorf("invalid end offset: %v", offset)
 	}
 }
+
+func TestParseLabels_NonUTF8(t *testing.T) {
+	// This test verifies that the DNS label parser preserves raw bytes even if they
+	// are not valid UTF-8. This is crucial for detecting DNS tunnels or handling
+	// legacy encodings like Latin-1.
+
+	// Payload breakdown (RFC 1035):
+	// - 0x11: length of the first label (17 bytes)
+	// - "test-request-": 13 bytes
+	// - 0xe4: the non-UTF-8 byte (\344 in octal)
+	// - "bcd": 3 bytes
+	// - 0x03: length of the second label (3 bytes: "com")
+	// - 0x00: null label (end of domain name)
+	payload := []byte{
+		0x11, 't', 'e', 's', 't', '-', 'r', 'e', 'q', 'u', 'e', 's', 't', '-', 0xe4, 'b', 'c', 'd',
+		0x03, 'c', 'o', 'm',
+		0x00,
+	}
+
+	qname, _, err := ParseLabels(0, payload)
+	if err != nil {
+		t.Fatalf("failed to parse labels: %v", err)
+	}
+
+	// Go strings are essentially containers for raw bytes.
+	// We expect ParseLabels to have correctly captured the 0xe4 byte.
+	expected := "test-request-\xe4bcd.com"
+	if qname != expected {
+		t.Errorf("qname mismatch, expected %s, got %s", expected, qname)
+	}
+}
