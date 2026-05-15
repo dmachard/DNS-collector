@@ -73,23 +73,48 @@ func NewTransforms(config *pkgconfig.ConfigTransformers, logger *logger.Logger, 
 
 	d := Transforms{config: config, logger: logger, name: name, instance: instance}
 
-	// order definition important
-	d.availableTransforms = append(d.availableTransforms, TransformEntry{NewExtractTransform(config, logger, name, instance, nextWorkers)})
-	d.availableTransforms = append(d.availableTransforms, TransformEntry{NewNormalizeTransform(config, logger, name, instance, nextWorkers)})
-	d.availableTransforms = append(d.availableTransforms, TransformEntry{NewFilteringTransform(config, logger, name, instance, nextWorkers)})
-	d.availableTransforms = append(d.availableTransforms, TransformEntry{NewDNSGeoIPTransform(config, logger, name, instance, nextWorkers)})
-	d.availableTransforms = append(d.availableTransforms, TransformEntry{NewATagsTransform(config, logger, name, instance, nextWorkers)})
-	d.availableTransforms = append(d.availableTransforms, TransformEntry{NewSuspiciousTransform(config, logger, name, instance, nextWorkers)})
-	d.availableTransforms = append(d.availableTransforms, TransformEntry{NewUserPrivacyTransform(config, logger, name, instance, nextWorkers)})
-	d.availableTransforms = append(d.availableTransforms, TransformEntry{NewMachineLearningTransform(config, logger, name, instance, nextWorkers)})
-	d.availableTransforms = append(d.availableTransforms, TransformEntry{NewRestTransform(config, logger, name, instance, nextWorkers)})
-	d.availableTransforms = append(d.availableTransforms, TransformEntry{NewRelabelTransform(config, logger, name, instance, nextWorkers)})
+	// order definition
+	pipelineOrder := config.Order
+	if len(pipelineOrder) == 0 {
+		pipelineOrder = pkgconfig.DefaultTransformersOrder
+	}
 
-	d.availableTransforms = append(d.availableTransforms, TransformEntry{NewLatencyTransform(config, logger, name, instance, nextWorkers)})
-	d.availableTransforms = append(d.availableTransforms, TransformEntry{NewRewriteTransform(config, logger, name, instance, nextWorkers)})
-	d.availableTransforms = append(d.availableTransforms, TransformEntry{NewNewDomainTrackerTransform(config, logger, name, instance, nextWorkers)})
-	d.availableTransforms = append(d.availableTransforms, TransformEntry{NewReducerTransform(config, logger, name, instance, nextWorkers)})
-	d.availableTransforms = append(d.availableTransforms, TransformEntry{NewReorderingTransform(config, logger, name, instance, nextWorkers)})
+	for _, nameTransform := range pipelineOrder {
+		switch nameTransform {
+		case "extract":
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewExtractTransform(config, logger, name, instance, nextWorkers)})
+		case "normalize":
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewNormalizeTransform(config, logger, name, instance, nextWorkers)})
+		case "filtering":
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewFilteringTransform(config, logger, name, instance, nextWorkers)})
+		case "geoip":
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewDNSGeoIPTransform(config, logger, name, instance, nextWorkers)})
+		case "atags":
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewATagsTransform(config, logger, name, instance, nextWorkers)})
+		case "suspicious":
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewSuspiciousTransform(config, logger, name, instance, nextWorkers)})
+		case "user-privacy":
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewUserPrivacyTransform(config, logger, name, instance, nextWorkers)})
+		case "machine-learning":
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewMachineLearningTransform(config, logger, name, instance, nextWorkers)})
+		case "rest":
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewRestTransform(config, logger, name, instance, nextWorkers)})
+		case "relabeling":
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewRelabelTransform(config, logger, name, instance, nextWorkers)})
+		case "latency":
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewLatencyTransform(config, logger, name, instance, nextWorkers)})
+		case "rewrite":
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewRewriteTransform(config, logger, name, instance, nextWorkers)})
+		case "new-domain-tracker":
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewNewDomainTrackerTransform(config, logger, name, instance, nextWorkers)})
+		case "reducer":
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewReducerTransform(config, logger, name, instance, nextWorkers)})
+		case "reordering":
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewReorderingTransform(config, logger, name, instance, nextWorkers)})
+		default:
+			d.LogError("unknown transformer name in order list: %s", nameTransform)
+		}
+	}
 
 	d.Prepare()
 	return d

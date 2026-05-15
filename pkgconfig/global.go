@@ -43,6 +43,7 @@ type ConfigGlobal struct {
 		HandshakeTimeout      int    `yaml:"handshake-timeout" default:"5"`
 		ContentType           string `yaml:"content-type" default:"protobuf:dnstap.Dnstap"`
 	} `yaml:"framestream"`
+	TransformersOrder []string `yaml:"transformers-order" default:"[]"`
 }
 
 func (c *ConfigGlobal) SetDefault() {

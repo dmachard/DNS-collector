@@ -35,6 +35,22 @@ global:
     data-frame-max-length: 65536
     handshake-timeout: 5
     content-type: "protobuf:dnstap.Dnstap"
+  transformers-order: 
+    - "extract"
+    - "normalize"
+    - "filtering"
+    - "geoip"
+    - "atags"
+    - "suspicious"
+    - "user-privacy"
+    - "machine-learning"
+    - "rest"
+    - "relabeling"
+    - "latency"
+    - "rewrite"
+    - "new-domain-tracker"
+    - "reducer"
+    - "reordering"
 
 ################################################
 # Pipelining configuration
