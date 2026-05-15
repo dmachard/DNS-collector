@@ -128,11 +128,13 @@ type LoggerOpenTelemetry struct {
 }
 
 type TransformDNSGeo struct {
-	City                   string `json:"city"`
-	Continent              string `json:"continent"`
-	CountryIsoCode         string `json:"country-isocode"`
-	AutonomousSystemNumber string `json:"as-number"`
-	AutonomousSystemOrg    string `json:"as-owner"`
+	City                   string  `json:"city"`
+	Continent              string  `json:"continent"`
+	CountryIsoCode         string  `json:"country-isocode"`
+	AutonomousSystemNumber string  `json:"as-number"`
+	AutonomousSystemOrg    string  `json:"as-owner"`
+	Latitude               float64 `json:"lat"`
+	Longitude              float64 `json:"lon"`
 }
 
 type TransformSuspicious struct {

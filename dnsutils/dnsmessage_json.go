@@ -140,6 +140,8 @@ func (dm *DNSMessage) Flatten() (map[string]interface{}, error) {
 		dnsFields["geoip.country-isocode"] = dm.Geo.CountryIsoCode
 		dnsFields["geoip.as-number"] = dm.Geo.AutonomousSystemNumber
 		dnsFields["geoip.as-owner"] = dm.Geo.AutonomousSystemOrg
+		dnsFields["geoip.lat"] = dm.Geo.Latitude
+		dnsFields["geoip.lon"] = dm.Geo.Longitude
 	}
 
 	// Add TransformSuspicious fields

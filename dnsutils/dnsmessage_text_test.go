@@ -543,10 +543,10 @@ func TestDnsMessage_TextFormat_Directives_Geo(t *testing.T) {
 		},
 		{
 			name:   "default",
-			format: "geoip-continent geoip-country geoip-city geoip-as-number geoip-as-owner",
+			format: "geoip-continent geoip-country geoip-city geoip-as-number geoip-as-owner geoip-lat geoip-lon",
 			dm: DNSMessage{Geo: &TransformDNSGeo{City: "Paris", Continent: "Europe",
-				CountryIsoCode: "FR", AutonomousSystemNumber: "AS1", AutonomousSystemOrg: "Google"}},
-			expected: "Europe FR Paris AS1 Google",
+				CountryIsoCode: "FR", AutonomousSystemNumber: "AS1", AutonomousSystemOrg: "Google", Latitude: 48.85836, Longitude: 2.29448}},
+			expected: "Europe FR Paris AS1 Google 48.85836 2.29448",
 		},
 	}
 

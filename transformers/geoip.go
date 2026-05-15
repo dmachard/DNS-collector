@@ -22,17 +22,22 @@ type MaxminddbRecord struct {
 	City struct {
 		Names map[string]string `maxminddb:"names"`
 	} `maxminddb:"city"`
+	Location struct {
+		Latitude  float64 `maxminddb:"latitude"`
+		Longitude float64 `maxminddb:"longitude"`
+	} `maxminddb:"location"`
 	AutonomousSystemNumber       int    `maxminddb:"autonomous_system_number"`
 	AutonomousSystemOrganization string `maxminddb:"autonomous_system_organization"`
 }
 
 type GeoRecord struct {
 	Continent, CountryISOCode, City, ASN, ASO string
+	Latitude, Longitude                       float64
 }
 
 type GeoIPTransform struct {
 	GenericTransformer
-	dbCountry, dbCity, dbAsn *maxminddb.Reader
+	dbCountry, dbCity, dbAsn, dbCoordinate *maxminddb.Reader
 }
 
 func NewDNSGeoIPTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan dnsutils.DNSMessage) *GeoIPTransform {
@@ -86,6 +91,14 @@ func (t *GeoIPTransform) Open() (err error) {
 		}
 		t.LogInfo("asn database loaded (%d records)", t.dbAsn.Metadata.NodeCount)
 	}
+
+	if len(t.config.GeoIP.DBCoordinateFile) > 0 {
+		t.dbCoordinate, err = maxminddb.Open(t.config.GeoIP.DBCoordinateFile)
+		if err != nil {
+			return err
+		}
+		t.LogInfo("coordinate database loaded (%d records)", t.dbCoordinate.Metadata.NodeCount)
+	}
 	return nil
 }
 
@@ -98,6 +111,9 @@ func (t *GeoIPTransform) Close() {
 	}
 	if t.dbAsn != nil {
 		t.dbAsn.Close()
+	}
+	if t.dbCoordinate != nil {
+		t.dbCoordinate.Close()
 	}
 }
 
@@ -131,6 +147,16 @@ func (t *GeoIPTransform) Lookup(ip string) (GeoRecord, error) {
 		rec.CountryISOCode = record.Country.ISOCode
 		rec.Continent = record.Continent.Code
 	}
+
+	if t.dbCoordinate != nil {
+		err := t.dbCoordinate.Lookup(net.ParseIP(ip), &record)
+		if err != nil {
+			return rec, err
+		}
+		rec.Latitude = record.Location.Latitude
+		rec.Longitude = record.Location.Longitude
+	}
+
 	return rec, nil
 }
 
@@ -159,6 +185,8 @@ func (t *GeoIPTransform) geoipTransform(dm *dnsutils.DNSMessage) (int, error) {
 	dm.Geo.City = geoInfo.City
 	dm.Geo.AutonomousSystemNumber = geoInfo.ASN
 	dm.Geo.AutonomousSystemOrg = geoInfo.ASO
+	dm.Geo.Latitude = geoInfo.Latitude
+	dm.Geo.Longitude = geoInfo.Longitude
 
 	return ReturnKeep, nil
 }

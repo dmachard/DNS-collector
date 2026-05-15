@@ -273,7 +273,9 @@ func TestDnsMessage_Json_Transforms_Reference(t *testing.T) {
 							"continent": "Europe",
 							"country-isocode": "FR",
 							"as-number": "1234",
-							"as-owner": "Internet"
+							"as-owner": "Internet",
+							"lat": 0,
+							"lon": 0
 						}
 					}`,
 		},
@@ -577,7 +579,9 @@ func TestDnsMessage_JsonFlatten_Transforms_Reference(t *testing.T) {
 						"geoip.continent": "Europe",
 						"geoip.country-isocode": "FR",
 						"geoip.as-number": "1234",
-						"geoip.as-owner": "Internet"
+						"geoip.as-owner": "Internet",
+						"geoip.lat": 0,
+						"geoip.lon": 0
 					}`,
 		},
 		{
