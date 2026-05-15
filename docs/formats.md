@@ -239,3 +239,11 @@ Protocol mapping:
 | DoH/TCP/443    | DNS UDP/443 (unencrypted)  |
 | DoT/TCP/853    | DNS UDP/853 (unencrypted)  |
 | DoQ/UDP/443    | DNS UDP/443 (unencrypted)  |
+
+## Data Encoding and UTF-8
+
+DNS-collector processes all textual fields (qname, rdata, etc.) as **UTF-8 strings**. 
+
+If a DNS message contains non-UTF-8 characters (for example, Latin-1 characters or raw binary data in a TXT record), these characters will be replaced by the UTF-8 replacement character () during processing and when outputting in Text or JSON formats.
+
+To preserve the original bytes of these fields, it is recommended to use the **Data Extractor** transformer with the `base64-fields` or `hex-fields` options enabled. This will provide the raw data in an encoded format that avoids any character loss.

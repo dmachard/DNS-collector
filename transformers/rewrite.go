@@ -29,7 +29,7 @@ func (t *RewriteTransform) GetTransforms() ([]Subtransform, error) {
 
 func (t *RewriteTransform) UpdateValues(dm *dnsutils.DNSMessage) (int, error) {
 	dmValue := reflect.ValueOf(dm)
-	if dmValue.Kind() == reflect.Ptr {
+	if dmValue.Kind() == reflect.Pointer {
 		dmValue = dmValue.Elem()
 	}
 
@@ -77,7 +77,7 @@ func getFieldByTag(value reflect.Value, nestedKeys string) (reflect.Value, bool)
 			if tagClean == jsonKey {
 				switch field.Type.Kind() {
 				// ptr
-				case reflect.Ptr:
+				case reflect.Pointer:
 					if fieldValue, found := getFieldByTag(value.Field(i).Elem(), listKeys[j+1]); found {
 						return fieldValue, true
 					}

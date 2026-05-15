@@ -10,6 +10,11 @@ linters:
     - staticcheck
     - unconvert
     - unused
+  settings:
+    goconst:
+      min-len: 10
+      min-occurrences: 10
+      ignore-tests: true
   exclusions:
     generated: lax
     presets:
@@ -21,6 +26,7 @@ linters:
       - third_party$
       - builtin$
       - examples$
+
 formatters:
   enable:
     - gofmt

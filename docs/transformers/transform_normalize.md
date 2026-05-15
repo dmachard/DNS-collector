@@ -8,6 +8,11 @@ is `co.uk` and the `TLD+1` is `amazon.co.uk`.
 - to use small text form. For example: `CLIENT_QUERY` will be replaced by `CQ`
 - to replace or remove non-printable characters
 
+> [!NOTE]
+> DNS-collector handles all strings (qname, rdata, etc.) as UTF-8. 
+> Any non-UTF-8 characters encountered during processing are replaced with the UTF-8 replacement character ``. 
+> If you need to preserve the original non-UTF-8 bytes, use the **Data Extractor** transformer with `base64-fields` or `hex-fields`.
+
 Options:
 
 * `qname-lowercase` (boolean)

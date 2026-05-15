@@ -165,6 +165,12 @@ func (dm *DNSMessage) Flatten() (map[string]interface{}, error) {
 	// Add TransformExtracted fields
 	if dm.Extracted != nil {
 		dnsFields["extracted.dns_payload"] = dm.Extracted.Base64Payload
+		for k, v := range dm.Extracted.Base64Fields {
+			dnsFields["extracted.base64_fields."+k] = v
+		}
+		for k, v := range dm.Extracted.HexFields {
+			dnsFields["extracted.hex_fields."+k] = v
+		}
 	}
 
 	// Add TransformReducer fields
