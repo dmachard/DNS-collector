@@ -38,7 +38,9 @@ func TestGeoIP_Json(t *testing.T) {
 					"continent":"-",
 					"country-isocode":"-",
 					"as-number":"-",
-					"as-owner":"-"
+					"as-owner":"-",
+					"lat": 0,
+					"lon": 0
 				}
 			}
 			`
@@ -156,4 +158,33 @@ func TestGeoIP_Lookup_ECS(t *testing.T) {
 
 	// Ensure the return code is ReturnKeep
 	require.Equal(t, ReturnKeep, returnCode, "unexpected return code")
+}
+
+func TestGeoIP_LookupCoordinate(t *testing.T) {
+	// enable geoip
+	config := pkgconfig.GetFakeConfigTransformers()
+	config.GeoIP.Enable = true
+	config.GeoIP.DBASNFile = "../tests/testsdata/GeoLite2-ASN.mmdb"
+
+	outChans := []chan dnsutils.DNSMessage{}
+
+	// init the processor
+	geoip := NewDNSGeoIPTransform(config, logger.New(false), "test", 0, outChans)
+	if err := geoip.Open(); err != nil {
+		t.Fatalf("geoip init failed: %v", err)
+	}
+	defer geoip.Close()
+
+	// lookup
+	geoInfo, err := geoip.Lookup("83.112.146.176")
+	if err != nil {
+		t.Errorf("geoip lookup failed: %v", err)
+	}
+
+	if geoInfo.Latitude != 0 {
+		t.Errorf("latitude invalid want: 0 got: %f", geoInfo.Latitude)
+	}
+	if geoInfo.Longitude != 0 {
+		t.Errorf("longitude invalid want: 0 got: %f", geoInfo.Longitude)
+	}
 }

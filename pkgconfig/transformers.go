@@ -59,11 +59,12 @@ type ConfigTransformers struct {
 		Downsample      int      `yaml:"downsample" default:"0"`
 	} `yaml:"filtering"`
 	GeoIP struct {
-		Enable        bool   `yaml:"enable" default:"false"`
-		LookupECS     bool   `yaml:"lookup-ecs" default:"false"`
-		DBCountryFile string `yaml:"mmdb-country-file" default:""`
-		DBCityFile    string `yaml:"mmdb-city-file" default:""`
-		DBASNFile     string `yaml:"mmdb-asn-file" default:""`
+		Enable           bool   `yaml:"enable" default:"false"`
+		LookupECS        bool   `yaml:"lookup-ecs" default:"false"`
+		DBCountryFile    string `yaml:"mmdb-country-file" default:""`
+		DBCityFile       string `yaml:"mmdb-city-file" default:""`
+		DBASNFile        string `yaml:"mmdb-asn-file" default:""`
+		DBCoordinateFile string `yaml:"mmdb-coordinate-file" default:""`
 	} `yaml:"geoip"`
 	Suspicious struct {
 		Enable             bool     `yaml:"enable" default:"false"`

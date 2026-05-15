@@ -17,6 +17,9 @@ Options:
 * `mmdb-asn-file` (string)
   > path file to your mmdb asn database
 
+* `mmdb-coordinate-file` (string)
+  > path file to your mmdb city database (used for latitude/longitude)
+
 * `lookup-ecs` (bool)
   > lookup for about the original client IP (or part of it) if provided
 
@@ -26,6 +29,7 @@ transforms:
     mmdb-country-file: "/GeoIP/GeoLite2-Country.mmdb"
     mmdb-city-file: ""
     mmdb-asn-file: ""
+    mmdb-coordinate-file: ""
     lookup-ecs: false
 ```
 
@@ -36,6 +40,8 @@ When the feature is enabled, the following json field are populated in your DNS 
 * `city`
 * `as-number`
 * `as-owner`
+* `lat`
+* `lon`
 
 Example:
 
@@ -46,7 +52,9 @@ Example:
     "continent": "-",
     "country-isocode": "-",
     "as-number": "1234",
-    "as-owner": "Orange"
+    "as-owner": "Orange",
+    "lat": 48.85836,
+    "lon": 2.29448
 },
 ```
 
@@ -57,3 +65,5 @@ Specific directives added:
 * `geoip-city`: city name
 * `geoip-as-number`: autonomous system number
 * `geoip-as-owner`: autonomous system organization/owner
+* `geoip-lat`: latitude
+* `geoip-lon`: longitude

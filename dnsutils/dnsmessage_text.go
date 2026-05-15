@@ -55,6 +55,10 @@ func (dm *DNSMessage) handleGeoIPDirectives(directive string, s *bytes.Buffer) e
 			s.WriteString(dm.Geo.AutonomousSystemNumber)
 		case "geoip-as-owner":
 			s.WriteString(dm.Geo.AutonomousSystemOrg)
+		case "geoip-lat":
+			s.WriteString(strconv.FormatFloat(dm.Geo.Latitude, 'f', -1, 64))
+		case "geoip-lon":
+			s.WriteString(strconv.FormatFloat(dm.Geo.Longitude, 'f', -1, 64))
 		default:
 			return errors.New(ErrorUnexpectedDirective + directive)
 		}
