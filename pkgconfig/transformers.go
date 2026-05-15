@@ -32,7 +32,7 @@ type RelabelingConfig struct {
 }
 
 type ConfigTransformers struct {
-	Order      []string `yaml:"order" default:"[]"`
+	Order       []string `yaml:"order" default:"[]"`
 	UserPrivacy struct {
 		Enable            bool   `yaml:"enable" default:"false"`
 		AnonymizeIP       bool   `yaml:"anonymize-ip" default:"false"`
