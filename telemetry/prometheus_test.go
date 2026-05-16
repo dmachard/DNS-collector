@@ -3,7 +3,7 @@ package telemetry
 import (
 	"testing"
 
-	"github.com/dmachard/go-dnscollector/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
 	"github.com/stretchr/testify/assert"
 )
 

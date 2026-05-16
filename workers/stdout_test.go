@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/dnsutils"
-	"github.com/dmachard/go-dnscollector/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/dnsutils"
+	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
 	"github.com/dmachard/go-logger"
 	"github.com/google/gopacket/pcapgo"
 )
@@ -209,7 +209,7 @@ func Test_StdoutPcapMode_NoDNSPayload(t *testing.T) {
 	}
 }
 
-// test for issue https://github.com/dmachard/go-dnscollector/issues/568
+// test for issue https://github.com/dmachard/go-dnscollector/v2/issues/568
 func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 	// redirect stdout output to bytes buffer
 	logsChan := make(chan logger.LogEntry, 10)

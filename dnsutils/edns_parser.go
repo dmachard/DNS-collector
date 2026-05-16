@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/dmachard/go-dnscollector/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
 )
 
 var ErrDecodeEdnsBadRootDomain = errors.New("edns, name MUST be 0 (root domain)")

@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/dnsutils"
-	"github.com/dmachard/go-dnscollector/pkgconfig"
-	"github.com/dmachard/go-dnscollector/telemetry"
+	"github.com/dmachard/go-dnscollector/v2/dnsutils"
+	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/telemetry"
 	"github.com/dmachard/go-dnstap-protobuf"
 	"github.com/dmachard/go-framestream"
 	"github.com/dmachard/go-logger"
@@ -144,7 +144,7 @@ func Test_DnstapCollector(t *testing.T) {
 	}
 }
 
-// Testcase for https://github.com/dmachard/go-dnscollector/issues/461
+// Testcase for https://github.com/dmachard/go-dnscollector/v2/issues/461
 // Support Bind9 with dnstap closing.
 func Test_DnstapCollector_CloseFrameStream(t *testing.T) {
 	// redirect stdout output to bytes buffer
@@ -546,7 +546,7 @@ func Test_DnstapProcessor_Extended(t *testing.T) {
 	}
 }
 
-// test for issue https://github.com/dmachard/go-dnscollector/issues/568
+// test for issue https://github.com/dmachard/go-dnscollector/v2/issues/568
 func Test_DnstapProcessor_BufferLoggerIsFull(t *testing.T) {
 	// run the consumer with a fake logger
 	fl := GetWorkerForTest(pkgconfig.DefaultBufferOne)

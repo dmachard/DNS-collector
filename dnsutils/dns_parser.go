@@ -7,7 +7,7 @@ import (
 	"net"
 	"strings"
 
-	"github.com/dmachard/go-dnscollector/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
 )
 
 const DNSLen = 12
