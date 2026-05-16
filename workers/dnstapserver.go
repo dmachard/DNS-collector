@@ -501,7 +501,7 @@ func (w *DNSTapProcessor) StartCollect() {
 			// decode query zone if provided
 			queryZone := dt.GetMessage().GetQueryZone()
 			if len(queryZone) > 0 {
-				qz, _, err := dnsutils.ParseLabels(0, queryZone)
+				qz, _, err := dnsutils.ParseLabels(0, queryZone, true)
 				if err != nil {
 					w.LogError("invalid query zone: %v - %v", err, queryZone)
 				}

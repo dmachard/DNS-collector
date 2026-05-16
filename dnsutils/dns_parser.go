@@ -345,7 +345,7 @@ func DecodeQuestion(qdcount int, payload []byte) (string, int, int, int, error) 
 		// processing the packet from right offset.
 		var err error
 		// Decode QNAME
-		qname, offset, err = ParseLabels(offset, payload)
+		qname, offset, err = ParseLabels(offset, payload, true)
 		if err != nil {
 			return "", 0, 0, 0, err
 		}
@@ -402,7 +402,7 @@ func DecodeAnswer(ancount int, startOffset int, payload []byte) ([]DNSAnswer, in
 
 	for i := 0; i < ancount; i++ {
 		// Decode NAME
-		name, offsetNext, err := ParseLabels(offset, payload)
+		name, offsetNext, err := ParseLabels(offset, payload, true)
 		if err != nil {
 			return answers, offset, err
 		}
@@ -440,7 +440,7 @@ func DecodeAnswer(ancount int, startOffset int, payload []byte) ([]DNSAnswer, in
 		if int(rdlength) == 0 && len(rdata) == 0 {
 			rdataString = ""
 		} else {
-			rdataString, err = ParseRdata(rdatatype, rdata, payload[:offsetNext+10+int(rdlength)], offsetNext+10)
+			rdataString, err = ParseRdata(rdatatype, rdata, payload, offsetNext+10, true)
 			if err != nil {
 				return answers, offset, err
 			}
@@ -462,7 +462,7 @@ func DecodeAnswer(ancount int, startOffset int, payload []byte) ([]DNSAnswer, in
 	return answers, offset, nil
 }
 
-func ParseLabels(offset int, payload []byte) (string, int, error) {
+func ParseLabels(offset int, payload []byte, allowCompression bool) (string, int, error) {
 	if offset < 0 {
 		return "", 0, ErrDecodeDNSLabelInvalidOffset
 	}
@@ -500,6 +500,9 @@ func ParseLabels(offset int, payload []byte) (string, int, error) {
 
 		// Compression Pointer (0xc0)
 		if length&0xc0 == 0xc0 {
+			if !allowCompression {
+				return "", 0, ErrDecodeDNSLabelInvalidPointer
+			}
 			if offset+2 > len(payload) {
 				return "", 0, ErrDecodeDNSLabelTooShort
 			}
@@ -557,7 +560,7 @@ func ParseLabels(offset int, payload []byte) (string, int, error) {
 	return string(nameBuffer), endOffset, nil
 }
 
-func ParseRdata(rdatatype string, rdata []byte, payload []byte, rdataOffset int) (string, error) {
+func ParseRdata(rdatatype string, rdata []byte, payload []byte, rdataOffset int, allowCompression bool) (string, error) {
 	var ret string
 	var err error
 	switch rdatatype {
@@ -566,19 +569,19 @@ func ParseRdata(rdatatype string, rdata []byte, payload []byte, rdataOffset int)
 	case "AAAA":
 		ret, err = ParseIP(rdata, net.IPv6len)
 	case "CNAME":
-		ret, err = ParseCNAME(rdataOffset, payload)
+		ret, err = ParseCNAME(rdataOffset, payload, allowCompression)
 	case "MX":
-		ret, err = ParseMX(rdataOffset, payload)
+		ret, err = ParseMX(rdataOffset, payload, allowCompression)
 	case "SRV":
-		ret, err = ParseSRV(rdataOffset, payload)
+		ret, err = ParseSRV(rdataOffset, payload, allowCompression)
 	case "NS":
-		ret, err = ParseNS(rdataOffset, payload)
+		ret, err = ParseNS(rdataOffset, payload, allowCompression)
 	case "TXT":
 		ret, err = ParseTXT(rdata)
 	case "PTR":
-		ret, err = ParsePTR(rdataOffset, payload)
+		ret, err = ParsePTR(rdataOffset, payload, allowCompression)
 	case "SOA":
-		ret, err = ParseSOA(rdataOffset, payload)
+		ret, err = ParseSOA(rdataOffset, payload, allowCompression)
 	case "HTTPS", "SVCB":
 		ret, err = ParseSVCB(rdata)
 	default:
@@ -612,15 +615,15 @@ SOA
 |                                               |
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 */
-func ParseSOA(rdataOffset int, payload []byte) (string, error) {
+func ParseSOA(rdataOffset int, payload []byte, allowCompression bool) (string, error) {
 	var offset int
 
-	primaryNS, offset, err := ParseLabels(rdataOffset, payload)
+	primaryNS, offset, err := ParseLabels(rdataOffset, payload, allowCompression)
 	if err != nil {
 		return "", err
 	}
 
-	respMailbox, offset, err := ParseLabels(offset, payload)
+	respMailbox, offset, err := ParseLabels(offset, payload, allowCompression)
 	if err != nil {
 		return "", err
 	}
@@ -662,8 +665,8 @@ CNAME
 /                                               /
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 */
-func ParseCNAME(rdataOffset int, payload []byte) (string, error) {
-	cname, _, err := ParseLabels(rdataOffset, payload)
+func ParseCNAME(rdataOffset int, payload []byte, allowCompression bool) (string, error) {
+	cname, _, err := ParseLabels(rdataOffset, payload, allowCompression)
 	if err != nil {
 		return "", err
 	}
@@ -679,14 +682,14 @@ MX
 /                                               /
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 */
-func ParseMX(rdataOffset int, payload []byte) (string, error) {
+func ParseMX(rdataOffset int, payload []byte, allowCompression bool) (string, error) {
 	// ensure there is enough data for preference and at least
 	// one byte for label
 	if len(payload) < rdataOffset+3 {
 		return "", ErrDecodeDNSAnswerRdataTooShort
 	}
 	pref := binary.BigEndian.Uint16(payload[rdataOffset : rdataOffset+2])
-	host, _, err := ParseLabels(rdataOffset+2, payload)
+	host, _, err := ParseLabels(rdataOffset+2, payload, allowCompression)
 	if err != nil {
 		return "", err
 	}
@@ -707,14 +710,14 @@ SRV
 |                    TARGET                     |
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 */
-func ParseSRV(rdataOffset int, payload []byte) (string, error) {
+func ParseSRV(rdataOffset int, payload []byte, allowCompression bool) (string, error) {
 	if len(payload) < rdataOffset+7 {
 		return "", ErrDecodeDNSAnswerRdataTooShort
 	}
 	priority := binary.BigEndian.Uint16(payload[rdataOffset : rdataOffset+2])
 	weight := binary.BigEndian.Uint16(payload[rdataOffset+2 : rdataOffset+4])
 	port := binary.BigEndian.Uint16(payload[rdataOffset+4 : rdataOffset+6])
-	target, _, err := ParseLabels(rdataOffset+6, payload)
+	target, _, err := ParseLabels(rdataOffset+6, payload, allowCompression)
 	if err != nil {
 		return "", err
 	}
@@ -729,8 +732,8 @@ NS
 /                                               /
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 */
-func ParseNS(rdataOffset int, payload []byte) (string, error) {
-	ns, _, err := ParseLabels(rdataOffset, payload)
+func ParseNS(rdataOffset int, payload []byte, allowCompression bool) (string, error) {
+	ns, _, err := ParseLabels(rdataOffset, payload, allowCompression)
 	if err != nil {
 		return "", err
 	}
@@ -770,8 +773,8 @@ PTR
 /                   PTRDNAME                    /
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 */
-func ParsePTR(rdataOffset int, payload []byte) (string, error) {
-	ptr, _, err := ParseLabels(rdataOffset, payload)
+func ParsePTR(rdataOffset int, payload []byte, allowCompression bool) (string, error) {
+	ptr, _, err := ParseLabels(rdataOffset, payload, allowCompression)
 	if err != nil {
 		return "", err
 	}
@@ -794,7 +797,8 @@ func ParseSVCB(rdata []byte) (string, error) {
 		return "", ErrDecodeDNSAnswerRdataTooShort
 	}
 	svcPriority := binary.BigEndian.Uint16(rdata[0:2])
-	targetName, offset, err := ParseLabels(2, rdata)
+	// RFC 9460: TargetName MUST NOT be compressed
+	targetName, offset, err := ParseLabels(2, rdata, false)
 	if err != nil {
 		return "", err
 	}
