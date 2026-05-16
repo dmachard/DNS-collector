@@ -90,3 +90,56 @@ func TestTransforms_ProcessOrder(t *testing.T) {
 		t.Errorf("Ipv6 anonymization failed, got %s", dm.NetworkInfo.QueryIP)
 	}
 }
+
+func TestTransforms_ConfigurableOrder(t *testing.T) {
+	config := pkgconfig.GetFakeConfigTransformers()
+	config.Order = []string{"geoip", "normalize"}
+	config.GeoIP.Enable = true
+	config.Normalize.Enable = true
+	config.Normalize.QnameLowerCase = true
+
+	subprocessors := NewTransforms(config, logger.New(false), "test", []chan dnsutils.DNSMessage{}, 0)
+
+	if len(subprocessors.activeTransforms) != 2 {
+		t.Fatalf("expected 2 active transforms, got %d", len(subprocessors.activeTransforms))
+	}
+
+	st0, _ := subprocessors.activeTransforms[0].GetTransforms()
+	if st0[0].name != "geoip:lookup" {
+		t.Errorf("expected geoip:lookup first, got %s", st0[0].name)
+	}
+
+	// find the qname-lowercase subtransform in normalize
+	st1, _ := subprocessors.activeTransforms[1].GetTransforms()
+	found := false
+	for _, st := range st1 {
+		if st.name == "normalize:qname-lowercase" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected normalize:qname-lowercase second, but not found")
+	}
+
+	// Reverse order
+	config.Order = []string{"normalize", "geoip"}
+	subprocessors = NewTransforms(config, logger.New(false), "test", []chan dnsutils.DNSMessage{}, 0)
+
+	st0, _ = subprocessors.activeTransforms[0].GetTransforms()
+	found = false
+	for _, st := range st0 {
+		if st.name == "normalize:qname-lowercase" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected normalize:qname-lowercase first, but not found")
+	}
+
+	st1, _ = subprocessors.activeTransforms[1].GetTransforms()
+	if st1[0].name != "geoip:lookup" {
+		t.Errorf("expected geoip:lookup second, got %s", st1[0].name)
+	}
+}

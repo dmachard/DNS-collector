@@ -149,6 +149,25 @@ func ReloadConfig(configPath string, config *Config) error {
 	if err := d.Decode(&config); err != nil {
 		return err
 	}
+
+	// Propagate global transformers order to all transformer sections if local order is empty
+	if len(config.Global.TransformersOrder) > 0 {
+		if len(config.IngoingTransformers.Order) == 0 {
+			config.IngoingTransformers.Order = config.Global.TransformersOrder
+		}
+		if len(config.OutgoingTransformers.Order) == 0 {
+			config.OutgoingTransformers.Order = config.Global.TransformersOrder
+		}
+		for i := range config.Pipelines {
+			if config.Pipelines[i].Transforms == nil {
+				config.Pipelines[i].Transforms = make(map[string]interface{})
+			}
+			if _, ok := config.Pipelines[i].Transforms["order"]; !ok {
+				config.Pipelines[i].Transforms["order"] = config.Global.TransformersOrder
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -175,6 +194,24 @@ func LoadConfig(configPath string) (*Config, error) {
 
 	if err := d.Decode(&config); err != nil {
 		return nil, err
+	}
+
+	// Propagate global transformers order to all transformer sections if local order is empty
+	if len(config.Global.TransformersOrder) > 0 {
+		if len(config.IngoingTransformers.Order) == 0 {
+			config.IngoingTransformers.Order = config.Global.TransformersOrder
+		}
+		if len(config.OutgoingTransformers.Order) == 0 {
+			config.OutgoingTransformers.Order = config.Global.TransformersOrder
+		}
+		for i := range config.Pipelines {
+			if config.Pipelines[i].Transforms == nil {
+				config.Pipelines[i].Transforms = make(map[string]interface{})
+			}
+			if _, ok := config.Pipelines[i].Transforms["order"]; !ok {
+				config.Pipelines[i].Transforms["order"] = config.Global.TransformersOrder
+			}
+		}
 	}
 
 	return config, nil

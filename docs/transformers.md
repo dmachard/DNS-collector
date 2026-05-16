@@ -4,18 +4,50 @@ Transformers are powerful middleware components that process, enrich, and modify
 
 ## Processing Pipeline Order
 
-Transformers execute in a specific sequence to ensure data consistency and optimal performance. 
-> [!IMPORTANT]
-> The execution order of transformers is currently hardcoded in the Go source and cannot be changed via the configuration file.
+Transformers execute in a specific sequence to ensure data consistency and optimal performance. By default, the execution order is predefined, but it can be customized in the configuration file.
 
-The logical processing order is as follows:
+### Customizing the Order
 
-1. **Normalization** - [Normalize](transformers/transform_normalize.md): Standardizes DNS message format.
-2. **Filtering** - [Traffic Filtering](transformers/transform_trafficfiltering.md): Applies sampling and filtering rules.
-3. **Enrichment** - Elements like [GeoIP](transformers/transform_geoip.md), [ATags](transformers/transform_atags.md), [Suspicious Traffic Detector](transformers/transform_suspiciousdetector.md), etc.
-4. **Anonymization** - [User Privacy](transformers/transform_userprivacy.md): Masking or hashing components.
-5. **Aggregation** - [Traffic Reducer](transformers/transform_trafficreducer.md): Deduplicates repetitive queries (terminal point).
-6. **Ordering** - [Reordering](transformers/transform_reordering.md): Sorts DNS messages (terminal point).
+You can define a global execution order in the `global` section, which will be applied to all transformer pipelines by default.
+
+```yaml
+global:
+  transformers-order: [ "extract", "normalize", "filtering", "geoip", "atags", "suspicious", "user-privacy", "machine-learning", "rest", "relabeling", "latency", "rewrite", "new-domain-tracker", "reducer", "reordering" ]
+```
+
+You can also override this order for a specific pipeline using the `order` key in the `transformers` section. 
+
+```yaml
+pipelines:
+  - name: my-pipeline
+    transforms:
+      order: [ "geoip", "normalize" ]
+```
+
+If both are omitted, the default order is used.
+
+> [!NOTE]
+> When defining a custom `order`, only the listed transformers will be initialized. Any transformer enabled in the configuration but missing from the `order` list will be ignored. If an unknown name is provided, an error will be logged during startup.
+
+### Default Order
+
+The default logical processing order is:
+
+1. **extract** - [Data Extractor](transformers/transform_dataextractor.md): Full DNS payload preservation.
+2. **normalize** - [Normalize](transformers/transform_normalize.md): Standardizes DNS message format.
+3. **filtering** - [Traffic Filtering](transformers/transform_trafficfiltering.md): Applies sampling and filtering rules.
+4. **geoip** - [GeoIP Metadata](transformers/transform_geoip.md): Geographic traffic analysis.
+5. **atags** - [Additional Tags](transformers/transform_atags.md): Custom metadata.
+6. **suspicious** - [Suspicious Traffic Detector](transformers/transform_suspiciousdetector.md): Malformed packets, tunneling attempts, etc.
+7. **user-privacy** - [User Privacy](transformers/transform_userprivacy.md): Masking or hashing components.
+8. **machine-learning** - [Traffic Prediction](transformers/transform_trafficprediction.md): ML-ready data preparation.
+9. **rest** - [REST Lookup](transformers/transform_rest.md): Custom data addition.
+10. **relabeling** - [JSON Relabeling](transformers/transform_relabeling.md): Standardize JSON keys.
+11. **latency** - [Latency Computing](transformers/transform_latency.md): Measure DNS resolution speed.
+12. **rewrite** - [DNS Message Rewrite](transformers/transform_rewrite.md): Change DNS record data.
+13. **new-domain-tracker** - [Newly Observed Domains](transformers/transform_newdomaintracker.md): Track first-time domain appearances.
+14. **reducer** - [Traffic Reducer](transformers/transform_trafficreducer.md): Deduplicates repetitive queries.
+15. **reordering** - [Reordering](transformers/transform_reordering.md): Sorts DNS messages by timestamp.
 
 
 

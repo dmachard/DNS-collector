@@ -6,12 +6,33 @@ import (
 	"github.com/creasty/defaults"
 )
 
+var (
+	DefaultTransformersOrder = []string{
+		"extract",
+		"normalize",
+		"filtering",
+		"geoip",
+		"atags",
+		"suspicious",
+		"user-privacy",
+		"machine-learning",
+		"rest",
+		"relabeling",
+		"latency",
+		"rewrite",
+		"new-domain-tracker",
+		"reducer",
+		"reordering",
+	}
+)
+
 type RelabelingConfig struct {
 	Regex       string `yaml:"regex"`
 	Replacement string `yaml:"replacement"`
 }
 
 type ConfigTransformers struct {
+	Order       []string `yaml:"order" default:"[]"`
 	UserPrivacy struct {
 		Enable            bool   `yaml:"enable" default:"false"`
 		AnonymizeIP       bool   `yaml:"anonymize-ip" default:"false"`
