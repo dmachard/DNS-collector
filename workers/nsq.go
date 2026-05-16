@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"github.com/dmachard/go-dnscollector/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
 	"github.com/dmachard/go-logger"
 	"github.com/nsqio/go-nsq"
 )

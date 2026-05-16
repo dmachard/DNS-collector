@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/pkgconfig"
-	"github.com/dmachard/go-dnscollector/transformers"
+	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"

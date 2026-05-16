@@ -158,8 +158,8 @@ func (c *Config) SetDefault() {
 package workers
 
 import (
-	"github.com/dmachard/go-dnscollector/pkgconfig"
-	"github.com/dmachard/go-dnscollector/pkgutils"
+	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkgutils"
 	"github.com/dmachard/go-logger"
 )
 

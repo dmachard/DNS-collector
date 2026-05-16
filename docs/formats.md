@@ -206,7 +206,7 @@ Single-level key-value pairs for easier processing:
 
 ### Jinja Templating
 
-**Tip:** For a complete list of available field names and their structure, visit: https://pkg.go.dev/github.com/dmachard/go-dnscollector/dnsutils#DNSMessage
+**Tip:** For a complete list of available field names and their structure, visit: https://pkg.go.dev/github.com/dmachard/go-dnscollector/v2/dnsutils#DNSMessage
 
 For maximum flexibility, use Jinja2 templates:
 

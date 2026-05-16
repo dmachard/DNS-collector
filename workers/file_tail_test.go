@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
 	"github.com/dmachard/go-logger"
 )
 

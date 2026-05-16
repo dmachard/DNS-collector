@@ -3,9 +3,9 @@ package pkginit
 import (
 	"fmt"
 
-	"github.com/dmachard/go-dnscollector/pkgconfig"
-	"github.com/dmachard/go-dnscollector/telemetry"
-	"github.com/dmachard/go-dnscollector/workers"
+	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/telemetry"
+	"github.com/dmachard/go-dnscollector/v2/workers"
 	"github.com/dmachard/go-logger"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
@@ -56,8 +56,12 @@ func GetStanzaConfig(config *pkgconfig.Config, item pkgconfig.ConfigPipelines) *
 
 	// add transformers
 	for k, v := range item.Transforms {
-		v.(map[string]interface{})["enable"] = true
-		cfg[section+"-transformers"].(map[string]interface{})[k] = v
+		if transformerConfig, ok := v.(map[string]interface{}); ok {
+			transformerConfig["enable"] = true
+			cfg[section+"-transformers"].(map[string]interface{})[k] = transformerConfig
+		} else {
+			cfg[section+"-transformers"].(map[string]interface{})[k] = v
+		}
 	}
 
 	// copy global config
