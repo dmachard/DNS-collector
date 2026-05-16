@@ -73,21 +73,21 @@ func BenchmarkParseRdata_Original(b *testing.B) {
 	b.Run("TypeA", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			rdatatype := RdatatypeToString(1) // "A"
-			_, _ = ParseRdata(rdatatype, ipv4Rdata, nil, 0)
+			_, _ = ParseRdata(rdatatype, ipv4Rdata, nil, 0, true)
 		}
 	})
 
 	b.Run("TypeAAAA", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			rdatatype := RdatatypeToString(28) // "AAAA"
-			_, _ = ParseRdata(rdatatype, ipv6Rdata, nil, 0)
+			_, _ = ParseRdata(rdatatype, ipv6Rdata, nil, 0, true)
 		}
 	})
 
 	b.Run("TypeCNAME", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			rdatatype := RdatatypeToString(5) // "CNAME"
-			_, _ = ParseRdata(rdatatype, cnameRdata, cnamePayload, 12)
+			_, _ = ParseRdata(rdatatype, cnameRdata, cnamePayload, 12, true)
 		}
 	})
 }

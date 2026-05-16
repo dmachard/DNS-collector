@@ -14,7 +14,7 @@ func BenchmarkDnsParseLabels(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _, err := ParseLabels(0, payload)
+		_, _, err := ParseLabels(0, payload, true)
 		if err != nil {
 			b.Fatalf("could not parse labels: %v\n", err)
 		}
@@ -24,7 +24,7 @@ func BenchmarkDnsParseLabels(b *testing.B) {
 func TestDecodeDnsLabel_InvalidOffset_NegativeOffset(t *testing.T) {
 	payload := []byte{0x01, 0x61, 0x00}
 
-	_, _, err := ParseLabels(-1, payload)
+	_, _, err := ParseLabels(-1, payload, true)
 	if !errors.Is(err, ErrDecodeDNSLabelInvalidOffset) {
 		t.Errorf("bad error returned: %v", err)
 	}
@@ -33,7 +33,7 @@ func TestDecodeDnsLabel_InvalidOffset_NegativeOffset(t *testing.T) {
 func TestDecodeDnsLabel_InvalidOffset_StartOutOfBounds(t *testing.T) {
 	payload := []byte{0x01, 0x61, 0x00}
 
-	_, _, err := ParseLabels(4, payload)
+	_, _, err := ParseLabels(4, payload, true)
 	if !errors.Is(err, ErrDecodeDNSLabelTooShort) {
 		t.Errorf("bad error returned: %v", err)
 	}
@@ -42,7 +42,7 @@ func TestDecodeDnsLabel_InvalidOffset_StartOutOfBounds(t *testing.T) {
 func TestDecodeDnsLabel_InvalidOffset_RunOutOfBounds(t *testing.T) {
 	payload := []byte{0x01, 0x61}
 
-	_, _, err := ParseLabels(0, payload)
+	_, _, err := ParseLabels(0, payload, true)
 	if !errors.Is(err, ErrDecodeDNSLabelTooShort) {
 		t.Errorf("bad error returned: %v", err)
 	}
@@ -51,7 +51,7 @@ func TestDecodeDnsLabel_InvalidOffset_RunOutOfBounds(t *testing.T) {
 func TestDecodeDnsLabel_InvalidOffset_PointerByteOutOfBounds(t *testing.T) {
 	payload := []byte{0x01, 0x61, 0xc0}
 
-	_, _, err := ParseLabels(0, payload)
+	_, _, err := ParseLabels(0, payload, true)
 	if !errors.Is(err, ErrDecodeDNSLabelTooShort) {
 		t.Errorf("bad error returned: %v", err)
 	}
@@ -60,7 +60,7 @@ func TestDecodeDnsLabel_InvalidOffset_PointerByteOutOfBounds(t *testing.T) {
 func TestDecodeDnsLabel_LabelTooShort(t *testing.T) {
 	payload := []byte{0x01}
 
-	_, _, err := ParseLabels(0, payload)
+	_, _, err := ParseLabels(0, payload, true)
 	if !errors.Is(err, ErrDecodeDNSLabelTooShort) {
 		t.Errorf("bad error returned: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestDecodeDnsLabel_LabelTooShort(t *testing.T) {
 func TestDecodeDnsLabel_NoExtraDotAfterPtr(t *testing.T) {
 	payload := []byte{0x00, 0x01, 0x61, 0xc0, 0x00}
 
-	label, _, _ := ParseLabels(1, payload)
+	label, _, _ := ParseLabels(1, payload, true)
 	if label != "a" {
 		t.Errorf("bad label parsed: %v", label)
 	}
@@ -78,7 +78,7 @@ func TestDecodeDnsLabel_NoExtraDotAfterPtr(t *testing.T) {
 func TestDecodeDnsLabel_InvalidLabelLengthByte1(t *testing.T) {
 	payload := []byte{0x40}
 
-	_, _, err := ParseLabels(0, payload)
+	_, _, err := ParseLabels(0, payload, true)
 	if !errors.Is(err, ErrDecodeDNSLabelInvalidData) {
 		t.Errorf("bad error returned: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestDecodeDnsLabel_InvalidLabelLengthByte1(t *testing.T) {
 func TestDecodeDnsLabel_InvalidLabelLengthByte2(t *testing.T) {
 	payload := []byte{0x80}
 
-	_, _, err := ParseLabels(0, payload)
+	_, _, err := ParseLabels(0, payload, true)
 	if !errors.Is(err, ErrDecodeDNSLabelInvalidData) {
 		t.Errorf("bad error returned: %v", err)
 	}
@@ -131,7 +131,7 @@ func TestDecodeDnsLabel_ValidTotalLength(t *testing.T) {
 	}
 	valid := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
-	label, _, _ := ParseLabels(0, payload)
+	label, _, _ := ParseLabels(0, payload, true)
 	if label != valid {
 		t.Errorf("bad name parsed: %v", label)
 	}
@@ -173,7 +173,7 @@ func TestDecodeDnsLabel_InvalidTotalLength_WithoutPtr(t *testing.T) {
 		0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61,
 		0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x00,
 	}
-	_, _, err := ParseLabels(0, payload)
+	_, _, err := ParseLabels(0, payload, true)
 	if !errors.Is(err, ErrDecodeDNSLabelTooLong) {
 		t.Errorf("bad error returned: %v", err)
 	}
@@ -216,7 +216,7 @@ func TestDecodeDnsLabel_InvalidTotalLength_WithPtr(t *testing.T) {
 		0x61, 0x61, 0x61, 0x61, 0x61, 0x61, 0x00, 0x01,
 		0x61, 0xc0, 0x00,
 	}
-	_, _, err := ParseLabels(255, payload)
+	_, _, err := ParseLabels(255, payload, true)
 	if !errors.Is(err, ErrDecodeDNSLabelTooLong) {
 		t.Errorf("bad error returned: %v", err)
 	}
@@ -225,7 +225,7 @@ func TestDecodeDnsLabel_InvalidTotalLength_WithPtr(t *testing.T) {
 func TestDecodeDnsLabel_InvalidPtr_SimpleLoop(t *testing.T) {
 	payload := []byte{0x01, 0x61, 0xc0, 0x00}
 
-	_, _, err := ParseLabels(0, payload)
+	_, _, err := ParseLabels(0, payload, true)
 	if !errors.Is(err, ErrDecodeDNSLabelInvalidPointer) {
 		t.Errorf("bad error returned: %v", err)
 	}
@@ -234,7 +234,7 @@ func TestDecodeDnsLabel_InvalidPtr_SimpleLoop(t *testing.T) {
 func TestDecodeDnsLabel_InvalidPtr_Forwards(t *testing.T) {
 	payload := []byte{0xc0, 0x02, 0x00}
 
-	_, _, err := ParseLabels(0, payload)
+	_, _, err := ParseLabels(0, payload, true)
 	if !errors.Is(err, ErrDecodeDNSLabelInvalidPointer) {
 		t.Errorf("bad error returned: %v", err)
 	}
@@ -243,7 +243,7 @@ func TestDecodeDnsLabel_InvalidPtr_Forwards(t *testing.T) {
 func TestDecodeDnsLabel_InvalidPtr_BackwardsInsideCurrentLabel1(t *testing.T) {
 	payload := []byte{0x01, 0x02, 0xc0, 0x01, 0x00}
 
-	_, _, err := ParseLabels(0, payload)
+	_, _, err := ParseLabels(0, payload, true)
 	if !errors.Is(err, ErrDecodeDNSLabelInvalidPointer) {
 		t.Errorf("bad error returned: %v", err)
 	}
@@ -252,7 +252,7 @@ func TestDecodeDnsLabel_InvalidPtr_BackwardsInsideCurrentLabel1(t *testing.T) {
 func TestDecodeDnsLabel_InvalidPtr_BackwardsOverlappingLoop(t *testing.T) {
 	payload := []byte{0x01, 0x61, 0x01, 0x61, 0xc0, 0x00}
 
-	_, _, err := ParseLabels(2, payload)
+	_, _, err := ParseLabels(2, payload, true)
 	if !errors.Is(err, ErrDecodeDNSLabelInvalidPointer) {
 		t.Errorf("bad error returned: %v", err)
 	}
@@ -261,7 +261,7 @@ func TestDecodeDnsLabel_InvalidPtr_BackwardsOverlappingLoop(t *testing.T) {
 func TestDecodeDnsLabel_InvalidPtr_BackwardsOverlappingTerminating(t *testing.T) {
 	payload := []byte{0x01, 0x01, 0x00, 0xc0, 0x00}
 
-	_, _, err := ParseLabels(1, payload)
+	_, _, err := ParseLabels(1, payload, true)
 	if !errors.Is(err, ErrDecodeDNSLabelInvalidPointer) {
 		t.Errorf("bad error returned: %v", err)
 	}
@@ -271,7 +271,7 @@ func TestDecodeDnsLabel_InvalidPtr_BackwardsOverlappingPtr(t *testing.T) {
 	// The second pointer byte overlaps the beginning of the label that starts at payload[3]
 	payload := []byte{0x00, 0x00, 0xc0, 0x01, 0x00, 0xc0, 0x02}
 
-	_, _, err := ParseLabels(3, payload)
+	_, _, err := ParseLabels(3, payload, true)
 	if !errors.Is(err, ErrDecodeDNSLabelInvalidPointer) {
 		t.Errorf("bad error returned: %v", err)
 	}
@@ -280,7 +280,7 @@ func TestDecodeDnsLabel_InvalidPtr_BackwardsOverlappingPtr(t *testing.T) {
 func TestDecodeDnsLabel_EndOffset_WithoutPtr(t *testing.T) {
 	payload := []byte{0x02, 0x61, 0x61, 0x00}
 
-	_, offset, _ := ParseLabels(0, payload)
+	_, offset, _ := ParseLabels(0, payload, true)
 	if offset != 4 {
 		t.Errorf("invalid end offset: %v", offset)
 	}
@@ -289,7 +289,7 @@ func TestDecodeDnsLabel_EndOffset_WithoutPtr(t *testing.T) {
 func TestDecodeDnsLabel_EndOffset_WithPtr(t *testing.T) {
 	payload := []byte{0x01, 0x61, 0x00, 0x02, 0x61, 0x61, 0xc0, 0x00}
 
-	_, offset, _ := ParseLabels(3, payload)
+	_, offset, _ := ParseLabels(3, payload, true)
 	if offset != 8 {
 		t.Errorf("invalid end offset: %v", offset)
 	}
@@ -313,7 +313,7 @@ func TestParseLabels_NonUTF8(t *testing.T) {
 		0x00,
 	}
 
-	qname, _, err := ParseLabels(0, payload)
+	qname, _, err := ParseLabels(0, payload, true)
 	if err != nil {
 		t.Fatalf("failed to parse labels: %v", err)
 	}

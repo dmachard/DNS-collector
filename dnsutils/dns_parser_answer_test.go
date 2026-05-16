@@ -206,3 +206,35 @@ func TestDecodeDnsAnswer_InvalidPtr_Loop2(t *testing.T) {
 		t.Errorf("bad error returned: %v", err)
 	}
 }
+
+func TestDecodeDnsAnswer_SVCB_Compressed(t *testing.T) {
+	// Payload with 1 Question (A) and 1 Answer (SVCB)
+	// The SVCB Answer has Priority=1 and TargetName=CompressionPointer(0xC0 0x00)
+	// RFC 9460 forbids compression for SVCB TargetName.
+	payload := []byte{
+		0x12, 0x34, 0x81, 0x80, // ID, Flags
+		0x00, 0x01, 0x00, 0x01, // QDCOUNT=1, ANCOUNT=1
+		0x00, 0x00, 0x00, 0x00, // NSCOUNT, ARCOUNT
+		// Question: "a." A IN (offset 12)
+		0x01, 'a', 0x00,
+		0x00, 0x01, 0x00, 0x01,
+		// Answer: NAME=ptr->12, TYPE=64(SVCB), CLASS=IN, TTL=60, RDLEN=4
+		0xC0, 0x0C, 0x00, 0x40, 0x00, 0x01,
+		0x00, 0x00, 0x00, 0x3C, 0x00, 0x04,
+		// SVCB RDATA: Priority=1, TargetName=0xC000 (Pointer to offset 0)
+		0x00, 0x01, 0xC0, 0x00,
+	}
+
+	_, _, _, offsetRR, _ := DecodeQuestion(1, payload)
+	answers, _, err := DecodeAnswer(1, offsetRR, payload)
+
+	if err != nil {
+		// If it returns an error, it means it's already protected (not the case currently)
+		return
+	}
+
+	// If it didn't return an error, check if the rdata is corrupted (the "1 ." result)
+	if len(answers) > 0 && answers[0].Rdata == "1 ." {
+		t.Errorf("VULN-2 PROVEN: SVCB compressed TargetName was accepted and corrupted to %q", answers[0].Rdata)
+	}
+}

@@ -63,7 +63,7 @@ func DecodeEDNS(arcount int, startOffset int, payload []byte) (DNSExtended, int,
 
 	for i := 0; i < arcount; i++ {
 		// Decode NAME
-		name, offsetNext, err := ParseLabels(offset, payload)
+		name, offsetNext, err := ParseLabels(offset, payload, true)
 		if err != nil {
 			return edns, offset, err
 		}
