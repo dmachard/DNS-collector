@@ -156,9 +156,9 @@ type TransformPublicSuffix struct {
 }
 
 type TransformExtracted struct {
-	Base64Payload []byte            `json:"dns_payload"`
-	Base64Fields  map[string][]byte `json:"base64_fields,omitempty"`
-	HexFields     map[string]string `json:"hex_fields,omitempty"`
+	Base64Payload []byte                 `json:"dns_payload"`
+	Base64Fields  map[string]interface{} `json:"base64_fields,omitempty"`
+	HexFields     map[string]interface{} `json:"hex_fields,omitempty"`
 }
 
 type TransformReducer struct {

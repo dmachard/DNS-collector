@@ -47,7 +47,7 @@ func (t *ExtractTransform) addBase64Fields(dm *dnsutils.DNSMessage) (int, error)
 		dm.Extracted = &dnsutils.TransformExtracted{}
 	}
 	if dm.Extracted.Base64Fields == nil {
-		dm.Extracted.Base64Fields = make(map[string][]byte)
+		dm.Extracted.Base64Fields = make(map[string]interface{})
 	}
 
 	dmValue := reflect.ValueOf(dm).Elem()
@@ -58,6 +58,21 @@ func (t *ExtractTransform) addBase64Fields(dm *dnsutils.DNSMessage) (int, error)
 				dm.Extracted.Base64Fields[field] = []byte(value.String())
 			case reflect.Int:
 				dm.Extracted.Base64Fields[field] = []byte(fmt.Sprintf("%d", value.Int()))
+			case reflect.Slice, reflect.Array:
+				var encodedSlice [][]byte
+				for i := 0; i < value.Len(); i++ {
+					elem := value.Index(i)
+					if elem.Kind() == reflect.Interface {
+						elem = elem.Elem()
+					}
+					switch elem.Kind() {
+					case reflect.String:
+						encodedSlice = append(encodedSlice, []byte(elem.String()))
+					case reflect.Int:
+						encodedSlice = append(encodedSlice, []byte(fmt.Sprintf("%d", elem.Int())))
+					}
+				}
+				dm.Extracted.Base64Fields[field] = encodedSlice
 			}
 		}
 	}
@@ -69,7 +84,7 @@ func (t *ExtractTransform) addHexFields(dm *dnsutils.DNSMessage) (int, error) {
 		dm.Extracted = &dnsutils.TransformExtracted{}
 	}
 	if dm.Extracted.HexFields == nil {
-		dm.Extracted.HexFields = make(map[string]string)
+		dm.Extracted.HexFields = make(map[string]interface{})
 	}
 
 	dmValue := reflect.ValueOf(dm).Elem()
@@ -80,6 +95,21 @@ func (t *ExtractTransform) addHexFields(dm *dnsutils.DNSMessage) (int, error) {
 				dm.Extracted.HexFields[field] = hex.EncodeToString([]byte(value.String()))
 			case reflect.Int:
 				dm.Extracted.HexFields[field] = hex.EncodeToString([]byte(fmt.Sprintf("%d", value.Int())))
+			case reflect.Slice, reflect.Array:
+				var encodedSlice []string
+				for i := 0; i < value.Len(); i++ {
+					elem := value.Index(i)
+					if elem.Kind() == reflect.Interface {
+						elem = elem.Elem()
+					}
+					switch elem.Kind() {
+					case reflect.String:
+						encodedSlice = append(encodedSlice, hex.EncodeToString([]byte(elem.String())))
+					case reflect.Int:
+						encodedSlice = append(encodedSlice, hex.EncodeToString([]byte(fmt.Sprintf("%d", elem.Int()))))
+					}
+				}
+				dm.Extracted.HexFields[field] = encodedSlice
 			}
 		}
 	}

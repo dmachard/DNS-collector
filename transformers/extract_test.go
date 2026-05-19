@@ -119,3 +119,98 @@ func TestExtract_Base64AndHexFields(t *testing.T) {
 		t.Errorf("JSON should contain the correct Hex encoded qname")
 	}
 }
+
+func TestExtract_WildcardSliceFields(t *testing.T) {
+	// enable feature
+	config := pkgconfig.GetFakeConfigTransformers()
+	config.Extract.Enable = true
+	config.Extract.Base64Fields = []string{"dns.resource-records.an.*.rdata"}
+	config.Extract.HexFields = []string{"dns.resource-records.an.*.rdata"}
+
+	outChans := []chan dnsutils.DNSMessage{}
+	outChans = append(outChans, make(chan dnsutils.DNSMessage, 1))
+
+	// get dns message
+	dm := dnsutils.GetFakeDNSMessage()
+	// add multiple resource records (answers) with non-UTF8 rdata (Latin-1 \344)
+	dm.DNS.DNSRRs.Answers = []dnsutils.DNSAnswer{
+		{
+			Name:      "google.com",
+			Rdatatype: "TXT",
+			Rdata:     "test-\xe4bcd",
+		},
+		{
+			Name:      "google.com",
+			Rdatatype: "TXT",
+			Rdata:     "another-\xe4bcd",
+		},
+	}
+
+	// init transform
+	extract := NewExtractTransform(config, logger.New(false), "test", 0, outChans)
+	extract.GetTransforms()
+
+	// process
+	extract.addBase64Fields(&dm)
+	extract.addHexFields(&dm)
+
+	// Check results in Extracted struct
+	if dm.Extracted == nil {
+		t.Fatalf("Extracted struct is nil")
+	}
+
+	// Base64 check
+	// "test-\xe4bcd" -> "dGVzdC3kYmNk"
+	// "another-\xe4bcd" -> "YW5vdGhlci3kYmNk"
+	expectedBase64_1 := "dGVzdC3kYmNk"
+	expectedBase64_2 := "YW5vdGhlci3kYmNk"
+
+	b64FieldVal, ok := dm.Extracted.Base64Fields["dns.resource-records.an.*.rdata"]
+	if !ok {
+		t.Fatalf("dns.resource-records.an.*.rdata missing from base64_fields")
+	}
+	sliceB64, ok := b64FieldVal.([][]byte)
+	if !ok {
+		t.Fatalf("base64 field dns.resource-records.an.*.rdata is not a [][]byte slice")
+	}
+	if len(sliceB64) != 2 {
+		t.Fatalf("expected 2 base64 values, got %d", len(sliceB64))
+	}
+	if string(sliceB64[0]) != "test-\xe4bcd" || string(sliceB64[1]) != "another-\xe4bcd" {
+		t.Errorf("base64 values mismatch, got: %s and %s", sliceB64[0], sliceB64[1])
+	}
+
+	// Hex check
+	// "test-\xe4bcd" -> "746573742de4626364"
+	// "another-\xe4bcd" -> "616e6f746865722de4626364"
+	expectedHex_1 := "746573742de4626364"
+	expectedHex_2 := "616e6f746865722de4626364"
+
+	hexFieldVal, ok := dm.Extracted.HexFields["dns.resource-records.an.*.rdata"]
+	if !ok {
+		t.Fatalf("dns.resource-records.an.*.rdata missing from hex_fields")
+	}
+	sliceHex, ok := hexFieldVal.([]string)
+	if !ok {
+		t.Fatalf("hex field dns.resource-records.an.*.rdata is not a []string slice")
+	}
+	if len(sliceHex) != 2 {
+		t.Fatalf("expected 2 hex values, got %d", len(sliceHex))
+	}
+	if sliceHex[0] != expectedHex_1 || sliceHex[1] != expectedHex_2 {
+		t.Errorf("hex values mismatch, got: %s and %s", sliceHex[0], sliceHex[1])
+	}
+
+	// Marshalling to JSON to verify the "replacement character" behavior and our new fields
+	jsonStr := dm.ToJSON()
+
+	// 1. Verify JSON contains Base64 values (inside list/array)
+	if !strings.Contains(jsonStr, expectedBase64_1) || !strings.Contains(jsonStr, expectedBase64_2) {
+		t.Errorf("JSON should contain the correct Base64 encoded values in array")
+	}
+
+	// 2. Verify JSON contains Hex values (inside list/array)
+	if !strings.Contains(jsonStr, expectedHex_1) || !strings.Contains(jsonStr, expectedHex_2) {
+		t.Errorf("JSON should contain the correct Hex encoded values in array")
+	}
+}
