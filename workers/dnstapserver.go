@@ -81,7 +81,11 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 	if err := fs.InitReceiver(); err != nil {
 		w.LogError("conn #%d - stream initialization: %s", connID, err)
 	} else {
-		w.LogInfo("conn #%d - receiver framestream initialized", connID)
+		w.LogInfo("conn #%d - receiver framestream initialized (data-frame-max-length: %d, control-frame-max-length: %d)",
+			connID,
+			w.GetConfig().Global.Framestream.DataFrameMaxLength,
+			w.GetConfig().Global.Framestream.ControlFrameMaxLength,
+		)
 	}
 
 	// process incoming frame and send it to dnstap consumer channel

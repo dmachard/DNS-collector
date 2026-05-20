@@ -90,7 +90,11 @@ func (w *DnstapProxifier) HandleConn(conn net.Conn, connID uint64, forceClose ch
 		w.LogError("error stream receiver initialization: %s", err)
 		return
 	} else {
-		w.LogInfo("receiver framestream initialized")
+		w.LogInfo("conn #%d - receiver framestream initialized (data-frame-max-length: %d, control-frame-max-length: %d)",
+			connID,
+			w.GetConfig().Global.Framestream.DataFrameMaxLength,
+			w.GetConfig().Global.Framestream.ControlFrameMaxLength,
+		)
 	}
 
 	// goroutine to close the connection properly
