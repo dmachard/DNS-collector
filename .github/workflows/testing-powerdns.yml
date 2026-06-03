@@ -49,6 +49,7 @@ jobs:
         component: 
           - { name: 'dnsdist', version: '19' }
           - { name: 'dnsdist2', version: '20' }
+          - { name: 'dnsdist2', version: '21' }
           - { name: 'recursor', version: '52' }
           - { name: 'recursor', version: '53' }
 

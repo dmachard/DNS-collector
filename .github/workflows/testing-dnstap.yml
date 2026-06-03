@@ -56,6 +56,8 @@ jobs:
           - { service: "dnsdist", version: "19", mode: "doq" }
           - { service: "dnsdist2", version: "20", mode: "tcp" }
           - { service: "dnsdist2", version: "20", mode: "doq" }
+          - { service: "dnsdist2", version: "21", mode: "tcp" }
+          - { service: "dnsdist2", version: "21", mode: "doq" }
           - { service: "knotresolver", version: "6.0.16", mode: "unix" }
           # - { service: "bind9", version: "9.20.16-r0", mode: "unix" }
 
