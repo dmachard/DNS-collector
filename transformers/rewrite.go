@@ -10,13 +10,111 @@ import (
 	"github.com/dmachard/go-logger"
 )
 
+type MutatorFunc func(dm *dnsutils.DNSMessage) error
+
 type RewriteTransform struct {
 	GenericTransformer
+	mutators []MutatorFunc
 }
 
 func NewRewriteTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan dnsutils.DNSMessage) *RewriteTransform {
 	t := &RewriteTransform{GenericTransformer: NewTransformer(config, logger, "rewrite", name, instance, nextWorkers)}
+	t.initMutators()
 	return t
+}
+
+func (t *RewriteTransform) ReloadConfig(config *pkgconfig.ConfigTransformers) {
+	t.GenericTransformer.ReloadConfig(config)
+	t.initMutators()
+}
+
+func (t *RewriteTransform) initMutators() {
+	t.mutators = make([]MutatorFunc, 0, len(t.config.Rewrite.Identifiers))
+	for nestedKeys, value := range t.config.Rewrite.Identifiers {
+		t.mutators = append(t.mutators, getMutator(nestedKeys, value))
+	}
+}
+
+func getMutator(nestedKeys string, val interface{}) MutatorFunc {
+	switch nestedKeys {
+	case "network.query-ip":
+		if s, ok := val.(string); ok {
+			return func(dm *dnsutils.DNSMessage) error { dm.NetworkInfo.QueryIP = s; return nil }
+		}
+	case "network.response-ip":
+		if s, ok := val.(string); ok {
+			return func(dm *dnsutils.DNSMessage) error { dm.NetworkInfo.ResponseIP = s; return nil }
+		}
+	case "dns.qname":
+		if s, ok := val.(string); ok {
+			return func(dm *dnsutils.DNSMessage) error { dm.DNS.Qname = s; return nil }
+		}
+	case "dns.qtype":
+		if s, ok := val.(string); ok {
+			return func(dm *dnsutils.DNSMessage) error { dm.DNS.Qtype = s; return nil }
+		}
+	case "dns.length":
+		if i, ok := val.(int); ok {
+			return func(dm *dnsutils.DNSMessage) error { dm.DNS.Length = i; return nil }
+		}
+	case "dns.id":
+		if i, ok := val.(int); ok {
+			return func(dm *dnsutils.DNSMessage) error { dm.DNS.ID = i; return nil }
+		}
+	case "dns.opcode":
+		if i, ok := val.(int); ok {
+			return func(dm *dnsutils.DNSMessage) error { dm.DNS.Opcode = i; return nil }
+		}
+	case "dns.rcode":
+		if s, ok := val.(string); ok {
+			return func(dm *dnsutils.DNSMessage) error { dm.DNS.Rcode = s; return nil }
+		}
+	case "dns.qclass":
+		if s, ok := val.(string); ok {
+			return func(dm *dnsutils.DNSMessage) error { dm.DNS.Qclass = s; return nil }
+		}
+	case "network.family":
+		if s, ok := val.(string); ok {
+			return func(dm *dnsutils.DNSMessage) error { dm.NetworkInfo.Family = s; return nil }
+		}
+	case "network.protocol":
+		if s, ok := val.(string); ok {
+			return func(dm *dnsutils.DNSMessage) error { dm.NetworkInfo.Protocol = s; return nil }
+		}
+	case "network.query-port":
+		if s, ok := val.(string); ok {
+			return func(dm *dnsutils.DNSMessage) error { dm.NetworkInfo.QueryPort = s; return nil }
+		}
+	case "network.response-port":
+		if s, ok := val.(string); ok {
+			return func(dm *dnsutils.DNSMessage) error { dm.NetworkInfo.ResponsePort = s; return nil }
+		}
+	case "dnstap.identity":
+		if s, ok := val.(string); ok {
+			return func(dm *dnsutils.DNSMessage) error { dm.DNSTap.Identity = s; return nil }
+		}
+	}
+
+	// Fallback to reflection if not standard
+	return func(dm *dnsutils.DNSMessage) error {
+		dmValue := reflect.ValueOf(dm)
+		if dmValue.Kind() == reflect.Pointer {
+			dmValue = dmValue.Elem()
+		}
+		realValue, found := getFieldByTag(dmValue, nestedKeys)
+		if !found {
+			return errors.New("field not found: " + nestedKeys)
+		}
+		if !realValue.CanSet() {
+			return errors.New("field cannot be set: " + nestedKeys)
+		}
+		newValue := reflect.ValueOf(val)
+		if realValue.Kind() != newValue.Kind() {
+			return errors.New("unable to set value (" + newValue.Type().String() + ") for " + nestedKeys + "(" + realValue.Type().String() + ")")
+		}
+		realValue.Set(newValue)
+		return nil
+	}
 }
 
 func (t *RewriteTransform) GetTransforms() ([]Subtransform, error) {
@@ -28,36 +126,11 @@ func (t *RewriteTransform) GetTransforms() ([]Subtransform, error) {
 }
 
 func (t *RewriteTransform) UpdateValues(dm *dnsutils.DNSMessage) (int, error) {
-	dmValue := reflect.ValueOf(dm)
-	if dmValue.Kind() == reflect.Pointer {
-		dmValue = dmValue.Elem()
-	}
-
-	for nestedKeys, value := range t.config.Rewrite.Identifiers {
-		realValue, found := getFieldByTag(dmValue, nestedKeys)
-		switch {
-		case !found:
-			return 0, errors.New("field not found: " + nestedKeys)
-		case !realValue.CanSet():
-			return 0, errors.New("field cannot be set: " + nestedKeys)
-		default:
-			newValue := reflect.ValueOf(value)
-
-			switch realValue.Kind() {
-			case reflect.Int, reflect.String:
-				if realValue.Kind() == newValue.Kind() {
-					realValue.Set(newValue)
-				} else {
-					return 0, errors.New("unable to set value (" + newValue.Type().String() + ") for " + nestedKeys + "(" + realValue.Type().String() + ")")
-				}
-			default:
-				// Ignore unsupported types
-				continue
-			}
-
+	for _, mutator := range t.mutators {
+		if err := mutator(dm); err != nil {
+			return 0, err
 		}
 	}
-
 	return ReturnKeep, nil
 }
 

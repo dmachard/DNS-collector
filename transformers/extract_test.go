@@ -214,3 +214,24 @@ func TestExtract_WildcardSliceFields(t *testing.T) {
 		t.Errorf("JSON should contain the correct Hex encoded values in array")
 	}
 }
+
+func BenchmarkExtract_AddBase64AndHexFields(b *testing.B) {
+	config := pkgconfig.GetFakeConfigTransformers()
+	config.Extract.Enable = true
+	config.Extract.Base64Fields = []string{"dns.qname", "network.query-ip"}
+	config.Extract.HexFields = []string{"dns.qname", "network.query-ip"}
+
+	outChans := []chan dnsutils.DNSMessage{}
+	extract := NewExtractTransform(config, logger.New(false), "test", 0, outChans)
+	extract.GetTransforms()
+
+	dm := dnsutils.GetFakeDNSMessage()
+	dm.DNS.Qname = "test-request-abcd.com"
+	dm.NetworkInfo.QueryIP = "192.168.1.2"
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = extract.addBase64Fields(&dm)
+		_, _ = extract.addHexFields(&dm)
+	}
+}
