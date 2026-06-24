@@ -12,7 +12,12 @@ import (
 	"github.com/oschwald/maxminddb-golang"
 )
 
-type MaxminddbRecord struct {
+type ASNRecord struct {
+	AutonomousSystemNumber       int    `maxminddb:"autonomous_system_number"`
+	AutonomousSystemOrganization string `maxminddb:"autonomous_system_organization"`
+}
+
+type CityRecord struct {
 	Continent struct {
 		Code string `maxminddb:"code"`
 	} `maxminddb:"continent"`
@@ -20,14 +25,26 @@ type MaxminddbRecord struct {
 		ISOCode string `maxminddb:"iso_code"`
 	} `maxminddb:"country"`
 	City struct {
-		Names map[string]string `maxminddb:"names"`
+		Names struct {
+			En string `maxminddb:"en"`
+		} `maxminddb:"names"`
 	} `maxminddb:"city"`
+}
+
+type CountryRecord struct {
+	Continent struct {
+		Code string `maxminddb:"code"`
+	} `maxminddb:"continent"`
+	Country struct {
+		ISOCode string `maxminddb:"iso_code"`
+	} `maxminddb:"country"`
+}
+
+type CoordinateRecord struct {
 	Location struct {
 		Latitude  float64 `maxminddb:"latitude"`
 		Longitude float64 `maxminddb:"longitude"`
 	} `maxminddb:"location"`
-	AutonomousSystemNumber       int    `maxminddb:"autonomous_system_number"`
-	AutonomousSystemOrganization string `maxminddb:"autonomous_system_organization"`
 }
 
 type GeoRecord struct {
@@ -118,11 +135,23 @@ func (t *GeoIPTransform) Close() {
 }
 
 func (t *GeoIPTransform) Lookup(ip string) (GeoRecord, error) {
-	record := &MaxminddbRecord{}
+	parsedIP := net.ParseIP(ip)
+	if parsedIP == nil {
+		return GeoRecord{Continent: "-", CountryISOCode: "-", City: "-", ASN: "-", ASO: "-"}, fmt.Errorf("invalid IP: %s", ip)
+	}
+	return t.LookupParsed(parsedIP)
+}
+
+func (t *GeoIPTransform) LookupParsed(parsedIP net.IP) (GeoRecord, error) {
+	if parsedIP == nil {
+		return GeoRecord{Continent: "-", CountryISOCode: "-", City: "-", ASN: "-", ASO: "-"}, fmt.Errorf("nil IP")
+	}
+
 	rec := GeoRecord{Continent: "-", CountryISOCode: "-", City: "-", ASN: "-", ASO: "-"}
 
 	if t.dbAsn != nil {
-		err := t.dbAsn.Lookup(net.ParseIP(ip), &record)
+		var record ASNRecord
+		err := t.dbAsn.Lookup(parsedIP, &record)
 		if err != nil {
 			return rec, err
 		}
@@ -131,16 +160,18 @@ func (t *GeoIPTransform) Lookup(ip string) (GeoRecord, error) {
 	}
 
 	if t.dbCity != nil {
-		err := t.dbCity.Lookup(net.ParseIP(ip), &record)
+		var record CityRecord
+		err := t.dbCity.Lookup(parsedIP, &record)
 		if err != nil {
 			return rec, err
 		}
-		rec.City = record.City.Names["en"]
+		rec.City = record.City.Names.En
 		rec.CountryISOCode = record.Country.ISOCode
 		rec.Continent = record.Continent.Code
 
 	} else if t.dbCountry != nil {
-		err := t.dbCountry.Lookup(net.ParseIP(ip), &record)
+		var record CountryRecord
+		err := t.dbCountry.Lookup(parsedIP, &record)
 		if err != nil {
 			return rec, err
 		}
@@ -149,7 +180,8 @@ func (t *GeoIPTransform) Lookup(ip string) (GeoRecord, error) {
 	}
 
 	if t.dbCoordinate != nil {
-		err := t.dbCoordinate.Lookup(net.ParseIP(ip), &record)
+		var record CoordinateRecord
+		err := t.dbCoordinate.Lookup(parsedIP, &record)
 		if err != nil {
 			return rec, err
 		}
@@ -165,17 +197,18 @@ func (t *GeoIPTransform) geoipTransform(dm *dnsutils.DNSMessage) (int, error) {
 		dm.Geo = &dnsutils.TransformDNSGeo{CountryIsoCode: "-", City: "-", Continent: "-", AutonomousSystemNumber: "-", AutonomousSystemOrg: "-"}
 	}
 
-	clientIP := dm.NetworkInfo.QueryIP
+	var parsedIP net.IP
 
 	// lookup ecs ip instead of the query ip?
 	if t.config.GeoIP.LookupECS && len(dm.EDNS.Options) > 0 {
-		ecsIP := lookupECSIP(dm)
-		if ecsIP != "" {
-			clientIP = ecsIP
-		}
+		parsedIP = lookupECSIP(dm)
 	}
 
-	geoInfo, err := t.Lookup(clientIP)
+	if parsedIP == nil {
+		parsedIP = net.ParseIP(dm.NetworkInfo.QueryIP)
+	}
+
+	geoInfo, err := t.LookupParsed(parsedIP)
 	if err != nil {
 		return ReturnKeep, err
 	}
@@ -191,15 +224,15 @@ func (t *GeoIPTransform) geoipTransform(dm *dnsutils.DNSMessage) (int, error) {
 	return ReturnKeep, nil
 }
 
-// lookupECSIP extracts the ECS IP from the EDNS options if available and valid.
-func lookupECSIP(dm *dnsutils.DNSMessage) string {
+// lookupECSIP extracts and parses the ECS IP from the EDNS options if available and valid.
+func lookupECSIP(dm *dnsutils.DNSMessage) net.IP {
 	for _, opt := range dm.EDNS.Options {
 		if opt.Code == 8 {
 			ecsIP := strings.Split(opt.Data, "/")[0]
-			if net.ParseIP(ecsIP) != nil {
-				return ecsIP
+			if ip := net.ParseIP(ecsIP); ip != nil {
+				return ip
 			}
 		}
 	}
-	return ""
+	return nil
 }
