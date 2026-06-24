@@ -13,6 +13,7 @@ import (
 type ReorderingTransform struct {
 	GenericTransformer
 	buffer      []dnsutils.DNSMessage
+	backBuffer  []dnsutils.DNSMessage
 	mutex       sync.Mutex
 	flushTicker *time.Ticker
 	flushSignal chan struct{}
@@ -39,7 +40,8 @@ func (t *ReorderingTransform) GetTransforms() ([]Subtransform, error) {
 		subtransforms = append(subtransforms, Subtransform{name: "reordering:sort-by-timestamp", processFunc: t.ReorderLogs})
 		// Start a goroutine to handle periodic flushing.
 		t.flushTicker = time.NewTicker(time.Duration(t.config.Reordering.FlushInterval) * time.Second)
-		t.buffer = make([]dnsutils.DNSMessage, 0)
+		t.buffer = make([]dnsutils.DNSMessage, 0, t.config.Reordering.MaxBufferSize)
+		t.backBuffer = make([]dnsutils.DNSMessage, 0, t.config.Reordering.MaxBufferSize)
 		go t.flushPeriodically()
 
 	}
@@ -48,12 +50,21 @@ func (t *ReorderingTransform) GetTransforms() ([]Subtransform, error) {
 
 // ReorderLogs adds a log to the buffer and flushes if the buffer is full.
 func (t *ReorderingTransform) ReorderLogs(dm *dnsutils.DNSMessage) (int, error) {
+	// If Timestamp is not set (e.g. in tests or certain collectors), parse RFC3339 once.
+	if dm.DNSTap.Timestamp == 0 && dm.DNSTap.TimestampRFC3339 != "" && dm.DNSTap.TimestampRFC3339 != "-" {
+		if ti, err := time.Parse(time.RFC3339Nano, dm.DNSTap.TimestampRFC3339); err == nil {
+			dm.DNSTap.Timestamp = ti.UnixNano()
+		}
+	}
+
 	// Add the log to the buffer.
 	t.mutex.Lock()
 	t.buffer = append(t.buffer, *dm)
+	isFull := len(t.buffer) >= t.config.Reordering.MaxBufferSize
 	t.mutex.Unlock()
+
 	// If the buffer exceeds a certain size, flush it.
-	if len(t.buffer) >= t.config.Reordering.MaxBufferSize {
+	if isFull {
 		select {
 		case t.flushSignal <- struct{}{}:
 		default:
@@ -90,25 +101,23 @@ func (t *ReorderingTransform) flushPeriodically() {
 // flushBuffer sorts and sends the logs in the buffer to the next workers.
 func (t *ReorderingTransform) flushBuffer() {
 	t.mutex.Lock()
-	defer t.mutex.Unlock()
-
 	if len(t.buffer) == 0 {
+		t.mutex.Unlock()
 		return
 	}
 
+	// Swap buffers and clear the active one
+	t.buffer, t.backBuffer = t.backBuffer, t.buffer
+	t.buffer = t.buffer[:0]
+	t.mutex.Unlock()
+
 	// Sort the buffer by timestamp.
-	sort.SliceStable(t.buffer, func(i, j int) bool {
-		ti, err1 := time.Parse(time.RFC3339Nano, t.buffer[i].DNSTap.TimestampRFC3339)
-		tj, err2 := time.Parse(time.RFC3339Nano, t.buffer[j].DNSTap.TimestampRFC3339)
-		if err1 != nil || err2 != nil {
-			// If timestamps are invalid, maintain the original order.
-			return false
-		}
-		return ti.Before(tj)
+	sort.SliceStable(t.backBuffer, func(i, j int) bool {
+		return t.backBuffer[i].DNSTap.Timestamp < t.backBuffer[j].DNSTap.Timestamp
 	})
 
 	// Send sorted logs to the next workers.
-	for _, sortedMsg := range t.buffer {
+	for _, sortedMsg := range t.backBuffer {
 		for _, worker := range t.nextWorkers {
 			// Non-blocking send to avoid worker congestion.
 			select {
@@ -119,7 +128,4 @@ func (t *ReorderingTransform) flushBuffer() {
 			}
 		}
 	}
-
-	// Clear the buffer.
-	t.buffer = t.buffer[:0]
 }
