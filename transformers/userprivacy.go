@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"strings"
@@ -18,17 +19,14 @@ import (
 func HashIP(ip string, algo string) string {
 	switch algo {
 	case "sha1":
-		hash := sha1.New()
-		hash.Write([]byte(ip))
-		return fmt.Sprintf("%x", hash.Sum(nil))
+		sum := sha1.Sum([]byte(ip))
+		return hex.EncodeToString(sum[:])
 	case "sha256":
-		hash := sha256.New()
-		hash.Write([]byte(ip))
-		return fmt.Sprintf("%x", hash.Sum(nil))
+		sum := sha256.Sum256([]byte(ip))
+		return hex.EncodeToString(sum[:])
 	case "sha512": // nolint
-		hash := sha512.New()
-		hash.Write([]byte(ip))
-		return fmt.Sprintf("%x", hash.Sum(nil))
+		sum := sha512.Sum512([]byte(ip))
+		return hex.EncodeToString(sum[:])
 	default:
 		return ip
 	}

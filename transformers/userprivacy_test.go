@@ -268,3 +268,27 @@ func TestUserPrivacy_AnonymizeIPRemove(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkHashIP_Sha1(b *testing.B) {
+	ip := "192.168.1.2"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = HashIP(ip, "sha1")
+	}
+}
+
+func BenchmarkHashIP_Sha256(b *testing.B) {
+	ip := "192.168.1.2"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = HashIP(ip, "sha256")
+	}
+}
+
+func BenchmarkHashIP_Sha512(b *testing.B) {
+	ip := "192.168.1.2"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = HashIP(ip, "sha512")
+	}
+}
