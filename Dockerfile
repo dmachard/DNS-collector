@@ -7,7 +7,7 @@ COPY . .
 RUN apk add git && \ 
     CGO_ENABLED=0 go build -ldflags="-s -w -X 'github.com/prometheus/common/version.Version=$VERSION'"
 
-FROM alpine:3.23.4
+FROM alpine:3.24.1
 
 RUN apk add --no-cache tzdata \
     && mkdir -p /etc/dnscollector/ /var/dnscollector/ \
