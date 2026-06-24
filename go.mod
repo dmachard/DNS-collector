@@ -4,7 +4,7 @@ go 1.26.2
 
 require (
 	github.com/IBM/fluent-forward-go v0.4.0
-	github.com/IBM/sarama v1.50.1
+	github.com/IBM/sarama v1.50.3
 	github.com/cilium/ebpf v0.21.0
 	github.com/creasty/defaults v1.8.0
 	github.com/dmachard/go-clientsyslog v1.0.4
@@ -127,7 +127,7 @@ require (
 	github.com/opentracing-contrib/go-stdlib v1.1.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
-	github.com/pierrec/lz4/v4 v4.1.26 // indirect
+	github.com/pierrec/lz4/v4 v4.1.27 // indirect
 	github.com/pires/go-proxyproto v0.8.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/exporter-toolkit v0.15.1 // indirect
