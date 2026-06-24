@@ -212,7 +212,7 @@ require (
 	github.com/prometheus/client_model v0.6.2
 	github.com/prometheus/common v0.68.0
 	github.com/prometheus/procfs v0.19.2 // indirect
-	github.com/prometheus/prometheus v0.311.2-0.20260410083055-07c6232d159b
+	github.com/prometheus/prometheus v0.311.3
 	golang.org/x/mod v0.35.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
 	golang.org/x/tools v0.44.0 // indirect
