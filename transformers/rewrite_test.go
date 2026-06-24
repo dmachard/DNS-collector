@@ -61,3 +61,22 @@ func TestRewrite_UpdateFields_InvalidType(t *testing.T) {
 		t.Errorf("invalid error: %s", err)
 	}
 }
+
+func BenchmarkRewrite_UpdateValues(b *testing.B) {
+	config := pkgconfig.GetFakeConfigTransformers()
+	config.Rewrite.Enable = true
+	config.Rewrite.Identifiers = make(map[string]interface{})
+	config.Rewrite.Identifiers["dns.qname"] = "rewritten.qname.com"
+	config.Rewrite.Identifiers["network.query-ip"] = "1.1.1.1"
+
+	outChans := []chan dnsutils.DNSMessage{}
+	rewrite := NewRewriteTransform(config, logger.New(false), "test", 0, outChans)
+	rewrite.GetTransforms()
+
+	dm := dnsutils.GetFakeDNSMessage()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = rewrite.UpdateValues(&dm)
+	}
+}
