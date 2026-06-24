@@ -19,6 +19,7 @@ type FilteringTransform struct {
 	ipsetDrop, ipsetKeep, rDataIpsetKeep   *netaddr.IPSet
 	listFqdns, listKeepFqdns               map[string]bool
 	listDomainsRegex, listKeepDomainsRegex map[string]*regexp.Regexp
+	combinedDropRegex, combinedKeepRegex   *regexp.Regexp
 	downsample, downsampleCount            int
 }
 
@@ -205,6 +206,33 @@ func (t *FilteringTransform) LoadDomainsList() error {
 			t.LogInfo("loaded with %d domains to the keep list", len(t.listKeepDomainsRegex))
 		}
 	}
+
+	t.combinedDropRegex = nil
+	if len(t.listDomainsRegex) > 0 {
+		var dropPatterns []string
+		for p := range t.listDomainsRegex {
+			dropPatterns = append(dropPatterns, "(?:"+p+")")
+		}
+		var err error
+		t.combinedDropRegex, err = regexp.Compile(strings.Join(dropPatterns, "|"))
+		if err != nil {
+			return fmt.Errorf("unable to compile combined drop regex: %w", err)
+		}
+	}
+
+	t.combinedKeepRegex = nil
+	if len(t.listKeepDomainsRegex) > 0 {
+		var keepPatterns []string
+		for p := range t.listKeepDomainsRegex {
+			keepPatterns = append(keepPatterns, "(?:"+p+")")
+		}
+		var err error
+		t.combinedKeepRegex, err = regexp.Compile(strings.Join(keepPatterns, "|"))
+		if err != nil {
+			return fmt.Errorf("unable to compile combined keep regex: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -344,11 +372,8 @@ func (t *FilteringTransform) dropFqdnFilter(dm *dnsutils.DNSMessage) (int, error
 }
 
 func (t *FilteringTransform) dropDomainRegexFilter(dm *dnsutils.DNSMessage) (int, error) {
-	// partial fqdn with regexp
-	for _, d := range t.listDomainsRegex {
-		if d.MatchString(dm.DNS.Qname) {
-			return ReturnDrop, nil
-		}
+	if t.combinedDropRegex != nil && t.combinedDropRegex.MatchString(dm.DNS.Qname) {
+		return ReturnDrop, nil
 	}
 	return ReturnKeep, nil
 }
@@ -361,11 +386,8 @@ func (t *FilteringTransform) keepFqdnFilter(dm *dnsutils.DNSMessage) (int, error
 }
 
 func (t *FilteringTransform) keepDomainRegexFilter(dm *dnsutils.DNSMessage) (int, error) {
-	// partial fqdn with regexp
-	for _, d := range t.listKeepDomainsRegex {
-		if d.MatchString(dm.DNS.Qname) {
-			return ReturnKeep, nil
-		}
+	if t.combinedKeepRegex != nil && t.combinedKeepRegex.MatchString(dm.DNS.Qname) {
+		return ReturnKeep, nil
 	}
 	return ReturnDrop, nil
 }
