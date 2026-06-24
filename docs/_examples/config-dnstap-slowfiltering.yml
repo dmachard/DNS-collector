@@ -27,8 +27,8 @@ pipelines:
       matching:
         include:
           dnstap.operation: "CLIENT_RESPONSE"
-          dnstap.latency:
-            greater-than: 0.2
+          dnstap.latency_ms:
+            greater-than: 200
     routing-policy:
       forward: [outputfile-slowresponses]
 
