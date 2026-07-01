@@ -5,7 +5,7 @@ go 1.26.2
 require (
 	github.com/IBM/fluent-forward-go v0.4.0
 	github.com/IBM/sarama v1.50.3
-	github.com/cilium/ebpf v0.21.0
+	github.com/cilium/ebpf v0.22.0
 	github.com/creasty/defaults v1.8.0
 	github.com/dmachard/go-clientsyslog v1.0.4
 	github.com/dmachard/go-dnstap-protobuf v1.4.1
