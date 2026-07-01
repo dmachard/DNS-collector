@@ -120,8 +120,8 @@ github.com/dmachard/go-clientsyslog v1.0.4 h1:LqzsVpP0yilF4JvIej8vu7ra1X/0jhPqrK
 github.com/dmachard/go-clientsyslog v1.0.4/go.mod h1:lDVvlzEcEnOPq8DavCoWMdQrZQRE8OMMiYm02MGkA70=
 github.com/dmachard/go-dnstap-protobuf v1.4.1 h1:mm+m/0oO12cjD8TU767s3GF6jecL3apnZd4edCoXJpc=
 github.com/dmachard/go-dnstap-protobuf v1.4.1/go.mod h1:EPruFCeBLVMzB9C2Vf7JeCR5eJP31QYrcJtNtn/Vr7I=
-github.com/dmachard/go-framestream v1.6.0 h1:BsU1MZOvmfGIEXtTCrnNvz4qjkTragiFtgU4WsIXvg8=
-github.com/dmachard/go-framestream v1.6.0/go.mod h1:JpPjDSHwsoLWPVucGeGFYkKQgKqlhrfolYm3VM8SroQ=
+github.com/dmachard/go-framestream v1.7.0 h1:JwW2V0h/YNkKHzhChJf9ug+ADQ+c3315Hcg5P+hPRRU=
+github.com/dmachard/go-framestream v1.7.0/go.mod h1:JpPjDSHwsoLWPVucGeGFYkKQgKqlhrfolYm3VM8SroQ=
 github.com/dmachard/go-logger v1.2.0 h1:Sc0hu3ky4KYWPaU3fmCd/7DQFhyDeNnPwiDe5D9eMO8=
 github.com/dmachard/go-logger v1.2.0/go.mod h1:vg6cMQBmx+SgH45XsqEyqScXp9eJhS6yuvvJZOgBbvU=
 github.com/dmachard/go-netutils v1.9.1 h1:i8VvTc57yyk0epPD2rLDAsJxun/62sZ4Ck7IcoDrtZ4=
