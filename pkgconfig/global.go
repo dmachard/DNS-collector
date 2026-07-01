@@ -59,12 +59,19 @@ func (c *ConfigGlobal) Check(userCfg map[string]interface{}) error {
 		return err
 	}
 
-	if c.Telemetry.SockPath != "" {
-		if c.Telemetry.TLSSupport {
-			return errors.Errorf("telemetry: tls-support is not supported with sock-path, remove tls-support or use web-listen")
-		}
-		if _, err := strconv.ParseUint(c.Telemetry.SockMode, 8, 32); err != nil {
-			return errors.Errorf("telemetry: invalid sock-mode %q: %s", c.Telemetry.SockMode, err)
+	// Telemetry unix-socket constraints. Read from userCfg (the parsed YAML), not
+	// the struct: Check runs against a defaults-only ConfigGlobal, so the user's
+	// values live only in the map.
+	if tel, ok := userCfg["telemetry"].(map[string]interface{}); ok {
+		if sockPath, _ := tel["sock-path"].(string); sockPath != "" {
+			if tlsSupport, _ := tel["tls-support"].(bool); tlsSupport {
+				return errors.Errorf("telemetry: tls-support is not supported with sock-path, remove tls-support or use web-listen")
+			}
+			if sockMode, ok := tel["sock-mode"].(string); ok && sockMode != "" {
+				if _, err := strconv.ParseUint(sockMode, 8, 32); err != nil {
+					return errors.Errorf("telemetry: invalid sock-mode %q: %s", sockMode, err)
+				}
+			}
 		}
 	}
 

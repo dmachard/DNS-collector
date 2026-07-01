@@ -43,35 +43,34 @@ func TestConfigGlobalSetDefault(t *testing.T) {
 }
 
 func TestConfigGlobalCheck_TelemetrySockPath(t *testing.T) {
+	// Check() runs against a defaults-only ConfigGlobal with the parsed YAML
+	// passed as a map (see Config.IsValid -> Global.Check), so the telemetry
+	// values must be validated from the map, not the struct. Drive the test the
+	// same way the real config-load path does.
 	tests := []struct {
-		name       string
-		sockPath   string
-		sockMode   string
-		tlsSupport bool
-		wantErr    bool
+		name      string
+		telemetry map[string]interface{}
+		wantErr   bool
 	}{
 		{
-			name:       "sock-path and tls-support both set",
-			sockPath:   "/run/dnscollector/telemetry.sock",
-			sockMode:   "0660",
-			tlsSupport: true,
-			wantErr:    true,
+			name:      "sock-path and tls-support both set",
+			telemetry: map[string]interface{}{"sock-path": "/run/dnscollector/telemetry.sock", "sock-mode": "0660", "tls-support": true},
+			wantErr:   true,
 		},
 		{
-			name:     "sock-path with invalid sock-mode",
-			sockPath: "/run/dnscollector/telemetry.sock",
-			sockMode: "not-an-octal",
-			wantErr:  true,
+			name:      "sock-path with invalid sock-mode",
+			telemetry: map[string]interface{}{"sock-path": "/run/dnscollector/telemetry.sock", "sock-mode": "not-an-octal"},
+			wantErr:   true,
 		},
 		{
-			name:     "sock-path with valid sock-mode, no tls",
-			sockPath: "/run/dnscollector/telemetry.sock",
-			sockMode: "0600",
-			wantErr:  false,
+			name:      "sock-path with valid sock-mode, no tls",
+			telemetry: map[string]interface{}{"sock-path": "/run/dnscollector/telemetry.sock", "sock-mode": "0600"},
+			wantErr:   false,
 		},
 		{
-			name:    "defaults, no sock-path",
-			wantErr: false,
+			name:      "no sock-path",
+			telemetry: map[string]interface{}{"web-listen": "127.0.0.1:9165"},
+			wantErr:   false,
 		},
 	}
 
@@ -79,13 +78,9 @@ func TestConfigGlobalCheck_TelemetrySockPath(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			config := ConfigGlobal{}
 			config.SetDefault()
-			config.Telemetry.SockPath = tt.sockPath
-			if tt.sockMode != "" {
-				config.Telemetry.SockMode = tt.sockMode
-			}
-			config.Telemetry.TLSSupport = tt.tlsSupport
 
-			err := config.Check(nil)
+			userCfg := map[string]interface{}{"telemetry": tt.telemetry}
+			err := config.Check(userCfg)
 			if tt.wantErr && err == nil {
 				t.Errorf("expected an error, got nil")
 			}
