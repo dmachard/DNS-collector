@@ -2,8 +2,10 @@ package pkgconfig
 
 import (
 	"reflect"
+	"strconv"
 
 	"github.com/creasty/defaults"
+	"github.com/pkg/errors"
 )
 
 type ConfigGlobal struct {
@@ -28,6 +30,8 @@ type ConfigGlobal struct {
 		Enabled         bool   `yaml:"enabled" default:"false"`
 		WebPath         string `yaml:"web-path" default:"/metrics"`
 		WebListen       string `yaml:"web-listen" default:":9165"`
+		SockPath        string `yaml:"sock-path" default:""`
+		SockMode        string `yaml:"sock-mode" default:"0660"`
 		PromPrefix      string `yaml:"prometheus-prefix" default:"dnscollector_exporter"`
 		TLSSupport      bool   `yaml:"tls-support" default:"false"`
 		TLSCertFile     string `yaml:"tls-cert-file" default:""`
@@ -51,5 +55,18 @@ func (c *ConfigGlobal) SetDefault() {
 }
 
 func (c *ConfigGlobal) Check(userCfg map[string]interface{}) error {
-	return CheckConfigWithTags(reflect.ValueOf(*c), userCfg)
+	if err := CheckConfigWithTags(reflect.ValueOf(*c), userCfg); err != nil {
+		return err
+	}
+
+	if c.Telemetry.SockPath != "" {
+		if c.Telemetry.TLSSupport {
+			return errors.Errorf("telemetry: tls-support is not supported with sock-path, remove tls-support or use web-listen")
+		}
+		if _, err := strconv.ParseUint(c.Telemetry.SockMode, 8, 32); err != nil {
+			return errors.Errorf("telemetry: invalid sock-mode %q: %s", c.Telemetry.SockMode, err)
+		}
+	}
+
+	return nil
 }

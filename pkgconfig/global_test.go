@@ -32,4 +32,66 @@ func TestConfigGlobalSetDefault(t *testing.T) {
 	if config.Framestream.ContentType != "protobuf:dnstap.Dnstap" {
 		t.Errorf("content-type should be protobuf:dnstap.Dnstap")
 	}
+
+	if config.Telemetry.SockPath != "" {
+		t.Errorf("sock-path should be empty by default")
+	}
+
+	if config.Telemetry.SockMode != "0660" {
+		t.Errorf("sock-mode should be 0660 by default")
+	}
+}
+
+func TestConfigGlobalCheck_TelemetrySockPath(t *testing.T) {
+	tests := []struct {
+		name       string
+		sockPath   string
+		sockMode   string
+		tlsSupport bool
+		wantErr    bool
+	}{
+		{
+			name:       "sock-path and tls-support both set",
+			sockPath:   "/run/dnscollector/telemetry.sock",
+			sockMode:   "0660",
+			tlsSupport: true,
+			wantErr:    true,
+		},
+		{
+			name:     "sock-path with invalid sock-mode",
+			sockPath: "/run/dnscollector/telemetry.sock",
+			sockMode: "not-an-octal",
+			wantErr:  true,
+		},
+		{
+			name:     "sock-path with valid sock-mode, no tls",
+			sockPath: "/run/dnscollector/telemetry.sock",
+			sockMode: "0600",
+			wantErr:  false,
+		},
+		{
+			name:    "defaults, no sock-path",
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := ConfigGlobal{}
+			config.SetDefault()
+			config.Telemetry.SockPath = tt.sockPath
+			if tt.sockMode != "" {
+				config.Telemetry.SockMode = tt.sockMode
+			}
+			config.Telemetry.TLSSupport = tt.tlsSupport
+
+			err := config.Check(nil)
+			if tt.wantErr && err == nil {
+				t.Errorf("expected an error, got nil")
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("expected no error, got %v", err)
+			}
+		})
+	}
 }
