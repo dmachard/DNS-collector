@@ -1,4 +1,4 @@
-# DNS-collector - Architecture
+# Architecture
 
 ## Architecture Overview
 

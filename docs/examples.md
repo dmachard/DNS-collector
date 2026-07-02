@@ -1,56 +1,93 @@
-
-# DNS-collector - Configuration examples
+# Configuration Examples
 
 Get started quickly with these ready-to-use configuration examples covering common use cases and deployment scenarios.
 
-- **Pipelines running mode with DNS Message filters**
-  - [x] [Advanced example with DNSmessage collector](./_examples/config-dnstap-add-tags.yml)
-  - [x] [How can I log only slow responses and errors?"](./_examples/config-dnstap-slowfiltering.yml)
-  - [x] [Filter DNStap messages where the response ip address is 0.0.0.0](./_examples/config-dnstap-matching.yml)
-  - [x] [Detect Newly Observed Domains](./_examples/config-dnstap-dnd.yml)
+<div class="grid-2-cols" style="margin-top: 2rem;">
+  
+  <div class="feature-box">
+    <h3>Pipelines & Filtering</h3>
+    <p>Enrich and filter DNS messages at the pipeline level.</p>
+    <ul style="margin-top: 0.75rem; padding-left: 1.25rem;">
+      <li><a href="./_examples/config-dnstap-add-tags.yml">Advanced tagging & metadata</a></li>
+      <li><a href="./_examples/config-dnstap-slowfiltering.yml">Filter slow responses & errors</a></li>
+      <li><a href="./_examples/config-dnstap-matching.yml">Filter by Response IP (0.0.0.0)</a></li>
+      <li><a href="./_examples/config-dnstap-dnd.yml">Detect newly observed domains</a></li>
+    </ul>
+  </div>
 
-- **Capture DNS traffic from incoming DNSTap streams**
-  - [x] [Read from UNIX DNSTap socket and forward it to TLS stream](./_examples/config-dnstap_unix-to-dnstap_tls.yml)
-  - [x] [Relays DNSTap stream to multiple remote destination without decoding](./_examples/config_dnstap_to_multidnstap.yml)
-  - [x] [Aggregate several DNSTap stream and forward it to the same file](./_examples/config-multidnstap-to-file.yml)
-  - [x] [Send to syslog TLS](./_examples/config-dnstap-to-syslog.yml)
+  <div class="feature-box">
+    <h3>Ingestion & Routing</h3>
+    <p>Forward, relay, and aggregate various streaming protocols.</p>
+    <ul style="margin-top: 0.75rem; padding-left: 1.25rem;">
+      <li><a href="./_examples/config-dnstap_unix-to-dnstap_tls.yml">UNIX Socket to TLS Stream Relayer</a></li>
+      <li><a href="./_examples/config_dnstap_to_multidnstap.yml">Zero-Decoded DNStap Relay</a></li>
+      <li><a href="./_examples/config-multidnstap-to-file.yml">Multi-Stream Aggregator to File</a></li>
+      <li><a href="./_examples/config-dnstap-to-syslog.yml">Syslog over TLS Logger</a></li>
+    </ul>
+  </div>
 
-- **Capture DNS traffic and make format conversion on it**
-  - [x] [Convert to text format output](./_examples/config-dnstap-to-text.yml)
-  - [x] [Convert to CSV output style](./_examples/config-dnstap-transforms.yml)
-  - [x] [Convert to text format with dig style, based on Jinja templating](./_examples/config-dnstap-to-jinja.yml)
-  - [x] [Transform DNSTap as input to JSON format as output](./_examples/config-dnstap-to-console.yml)
-  - [x] [Convert to JSON key/value format output](./_examples/config-dnstap-to-flatjson.yml)
+  <div class="feature-box">
+    <h3>Format Conversions</h3>
+    <p>Output DNS traffic into multiple formats for downstream processing.</p>
+    <ul style="margin-top: 0.75rem; padding-left: 1.25rem;">
+      <li><a href="./_examples/config-dnstap-to-text.yml">Custom text output format</a></li>
+      <li><a href="./_examples/config-dnstap-transforms.yml">CSV style output format</a></li>
+      <li><a href="./_examples/config-dnstap-to-jinja.yml">Dig-style template (Jinja2)</a></li>
+      <li><a href="./_examples/config-dnstap-to-console.yml">Standard JSON lines output</a></li>
+      <li><a href="./_examples/config-dnstap-to-flatjson.yml">Flat JSON for indexing engines</a></li>
+    </ul>
+  </div>
 
-- **Capture DNS traffic from PowerDNS products**
-  - [x] [Capture multiple PowerDNS streams](./_examples/config-multipowerdns-to-file.yml)
-  - [x] [PowerDNS to DNStap](./_examples/config-powerdns-to-dnstap.yml)
+  <div class="feature-box">
+    <h3>Transformations & Enrichment</h3>
+    <p>Perform inline edits, hashing, and lookups on query streams.</p>
+    <ul style="margin-top: 0.75rem; padding-left: 1.25rem;">
+      <li><a href="./_examples/config-dnstap_anonymize-to-console.yml">User Privacy / IP Anonymization</a></li>
+      <li><a href="./_examples/config-dnstap_filtering-to-console.yml">Downsampling & domain whitelists</a></li>
+      <li><a href="./_examples/config-dnstap-to-console_lowercase.yml">Domain name lowercasing</a></li>
+      <li><a href="./_examples/config-dnstap_geoip-to-console.yml">GeoIP enrichment (country, AS)</a></li>
+      <li><a href="./_examples/config-dnstap-repetitive.yml">Deduplicate repetitive queries</a></li>
+    </ul>
+  </div>
 
-- **Observe your DNS traffic from logs**
-  - [x] [Observe DNS metrics with Prometheus and Grafana](./_examples/config-dnstap-to-prometheus.yml.yml)
-  - [x] [Follow DNS traffic with Loki and Grafana](./_examples/config-dnstap-to-loki.yml)
+  <div class="feature-box">
+    <h3>File & PCAP Ingestion</h3>
+    <p>Ingest, replay, and capture traffic via files.</p>
+    <ul style="margin-top: 0.75rem; padding-left: 1.25rem;">
+      <li><a href="./_examples/config-dnstap-to-dnstap.yml">Save stream to raw DNStap file</a></li>
+      <li><a href="./_examples/config-dnstap-to-dnstap_file.yml">Read raw DNStap files as input</a></li>
+      <li><a href="./_examples/config-dnstap-to-file.yml">Dual file logger (Text & PCAP)</a></li>
+      <li><a href="./_examples/config-pcap-to-console.yml">Offline PCAP parser to JSON</a></li>
+    </ul>
+  </div>
 
-- **Apply some transformations**
-  - [x] [Capture DNSTap stream and apply user privacy on it](./_examples/config-dnstap_anonymize-to-console.yml)
-  - [x] [Filtering incoming traffic with downsample and whitelist of domains](./_examples/config-dnstap_filtering-to-console.yml)
-  - [x] [Transform all domains to lowercase](./_examples/config-dnstap-to-console_lowercase.yml)
-  - [x] [Add geographical metadata with GeoIP](./_examples/config-dnstap_geoip-to-console.yml)
-  - [x] [Count the number of evicted queries](./_examples/config-dnstap-to-console-and-prometheus.yml)
-  - [x] [Detect repetitive traffic and log it only once](./_examples/config-dnstap-repetitive.yml)
+  <div class="feature-box">
+    <h3>PowerDNS Integration</h3>
+    <p>Ingest and route native PowerDNS logging streams.</p>
+    <ul style="margin-top: 0.75rem; padding-left: 1.25rem;">
+      <li><a href="./_examples/config-multipowerdns-to-file.yml">Capture multiple PowerDNS streams</a></li>
+      <li><a href="./_examples/config-powerdns-to-dnstap.yml">PowerDNS Protobuf to DNStap</a></li>
+    </ul>
+  </div>
 
-- Capture DNS traffic from FRSTRM/dnstap files
-  - [x] [Save incoming DNStap streams to file (frstrm)](./_examples/config-dnstap-to-dnstap.yml)
-  - [x] [Watch for DNStap files as input](./_examples/config-dnstap-to-dnstap_file.yml)
+  <div class="feature-box">
+    <h3>Observability & Monitoring</h3>
+    <p>Expose metrics and stream logs to monitoring stacks.</p>
+    <ul style="margin-top: 0.75rem; padding-left: 1.25rem;">
+      <li><a href="./_examples/config-dnstap-to-prometheus.yml">Prometheus metrics & Grafana</a></li>
+      <li><a href="./_examples/config-dnstap-to-loki.yml">Loki log streaming & Grafana</a></li>
+      <li><a href="./_examples/config-dnstap-to-console-and-prometheus.yml">Evicted queries count metric</a></li>
+    </ul>
+  </div>
 
-- Capture DNS traffic from PCAP files
-  - [x] [Capture DNSTap stream and backup-it to text and pcap files](./_examples/config-dnstap-to-file.yml)
-  - [x] [Watch for PCAP files as input and JSON as output](./_examples/config-pcap-to-console.yml)
+  <div class="feature-box">
+    <h3>Security & Advanced Protocols</h3>
+    <p>Detect anomalies and ingest proprietary capture protocols.</p>
+    <ul style="margin-top: 0.75rem; padding-left: 1.25rem;">
+      <li><a href="./_examples/config-dnstap-detect-suspicious.yml">Suspicious DNS traffic detector</a></li>
+      <li><a href="./_examples/config-tzsp-to-console.yml">Mikrotik TZSP stream to JSON</a></li>
+      <li><a href="./_examples/config-dnstap-to-opentelemetry.yml">OpenTelemetry pipeline tracing</a></li>
+    </ul>
+  </div>
 
-- Capture DNS traffic from Mikrotik device
-  - [x] [Capture TZSP packets containing DNS packets and process them as json](./_examples/config-tzsp-to-console.yml)
-
-- Security: suspicious traffic detector
-  - [x] [Capture DNS packets and flag suspicious traffic](./_examples/config-dnstap-detect-suspicious.yml)
-
-- Telemetry
-  - [x] [Opentelemetry tracing of your DNS traffic](./_examples/config-dnstap-to-opentelemetry.yml)
+</div>

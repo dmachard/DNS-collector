@@ -1,12 +1,5 @@
-# DNS-collector - Configuration Guide
+# Configuration Guide
 
-## Table of Contents
-
-1. [Quick Start](#quick-start)
-2. [Configuration Structure](#configuration-structure)
-3. [Global Settings](#global-settings)
-4. [Pipelines](#pipelines)
-6. [Validation and Reloading](#validation-and-reloading)
 
 ## Quick Start
 

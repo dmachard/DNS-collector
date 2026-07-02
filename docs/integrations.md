@@ -1,4 +1,4 @@
-# DNS-collector - Integration Guide
+# Integration Guide
 
 This guide covers compatibility, configuration, and integration examples.
 

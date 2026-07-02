@@ -1,4 +1,4 @@
-# DNS-collector - Transformers
+# Transformers
 
 Transformers are powerful middleware components that process, enrich, and modify DNS traffic data as it flows through your DNS-collector pipeline. They enable real-time data transformation, filtering, analysis, and privacy protection without requiring external processing tools.
 

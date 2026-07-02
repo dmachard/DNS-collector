@@ -1,4 +1,4 @@
-# DNS-collector - Enhanced DNStap
+# Enhanced DNStap
 
 The DNScollector adds enhancements to the DNStap protocol with compression, TLS and extended metadata support.
 These features can be only used between two `DNS-collector` instance.

@@ -1,7 +1,4 @@
-# DNS-collector - Docker Deployment Guide
-
-- [Docker](#docker)
-- [Docker Compose](#docker-compose-recommended)
+# Docker Deployment Guide
 
 ## Quick Start with Docker Compose (Recommended)
 

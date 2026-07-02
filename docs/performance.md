@@ -1,4 +1,4 @@
-# DNS-collector - Performance tuning
+# Performance Tuning
 
 
 ## Overview

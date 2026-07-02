@@ -1,4 +1,4 @@
-# DNS-collector - Workers
+# Workers
 
 ## Supported Collectors
 

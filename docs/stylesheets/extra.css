@@ -1,0 +1,177 @@
+/* Custom CSS for DNS-collector docs */
+:root {
+  --md-primary-fg-color: #0f172a !important;
+  /* Sleek Slate 900 */
+  --md-primary-fg-color--dark: #020617 !important;
+  --md-accent-fg-color: #f59e0b !important;
+  /* Vibrant Amber/Gold 500 */
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #0b0f19 !important;
+  --md-primary-fg-color--dark: #030712 !important;
+  --md-accent-fg-color: #fbbf24 !important;
+}
+
+/* Glassmorphism for Header */
+.md-header {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background-color: rgba(15, 23, 42, 0.8) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-md-color-scheme="default"] .md-header {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  color: #0f172a !important;
+}
+
+[data-md-color-scheme="default"] .md-header a,
+[data-md-color-scheme="default"] .md-header label {
+  color: #0f172a !important;
+}
+
+/* Smooth transitions */
+* {
+  transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Stunning Hero Section card */
+.hero-card {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, rgba(15, 23, 42, 0.06) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.15);
+  border-radius: 16px;
+  padding: 1.75rem 2rem;
+  margin-top: -1.5rem;
+  margin-bottom: 2.5rem;
+  text-align: center;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
+}
+
+[data-md-color-scheme="slate"] .hero-card {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.04) 0%, rgba(15, 23, 42, 0.04) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hero-title {
+  font-size: 3.2rem;
+  font-weight: 800;
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-top: 0.5rem;
+  letter-spacing: -0.025em;
+}
+
+/* Custom cards for features grid */
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.feature-box {
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  padding: 1.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+[data-md-color-scheme="slate"] .feature-box {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.feature-box:hover {
+  transform: translateY(-5px);
+  border-color: rgba(245, 158, 11, 0.5) !important;
+  box-shadow: 0 12px 30px rgba(245, 158, 11, 0.15) !important;
+}
+
+.feature-box h3 {
+  margin-top: 0 !important;
+  margin-bottom: 0.75rem !important;
+  color: var(--md-accent-fg-color) !important;
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+}
+
+.feature-box p {
+  font-size: 0.925rem;
+  line-height: 1.6;
+  margin: 0;
+  color: var(--md-typeset-color);
+}
+
+/* Beautiful buttons */
+.btn-primary {
+  display: inline-block;
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+  color: white !important;
+  padding: 0.8rem 2rem;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-decoration: none !important;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
+}
+
+[data-md-color-scheme="slate"] .btn-secondary {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #e2e8f0 !important;
+}
+
+[data-md-color-scheme="default"] .btn-secondary {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  color: #1e293b !important;
+}
+
+.btn-secondary:hover {
+  background: rgba(245, 158, 11, 0.1) !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+  transform: translateY(-2px);
+}
+
+/* 2-column grid layout */
+.grid-2-cols {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+@media screen and (min-width: 768px) {
+  .grid-2-cols {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Fix active and hovered navigation / TOC links visibility (especially in dark mode) */
+.md-nav__link:hover,
+.md-nav__link--active {
+  color: var(--md-accent-fg-color) !important;
+}
+
+/* Hide site title in the header next to the logo */
+.md-header__title .md-header__topic:first-child {
+  display: none !important;
+}
+
+/* Make the header logo fit perfectly in the top bar */
+.md-header__button.md-logo img {
+  height: 1.8rem !important;
+  width: auto !important;
+  vertical-align: middle;
+}
