@@ -237,7 +237,8 @@ func InitTelemetryServer(config *pkgconfig.Config, logger *logger.Logger) (*http
 			}
 
 			// start server
-			if config.Global.Telemetry.SockPath != "" {
+			switch {
+			case config.Global.Telemetry.SockPath != "":
 				sockMode, err := strconv.ParseUint(config.Global.Telemetry.SockMode, 8, 32)
 				if err != nil {
 					errChan <- fmt.Errorf("invalid telemetry sock-mode %q: %w", config.Global.Telemetry.SockMode, err)
@@ -251,11 +252,11 @@ func InitTelemetryServer(config *pkgconfig.Config, logger *logger.Logger) (*http
 				if err := promServer.Serve(listener); err != nil && err != http.ErrServerClosed {
 					errChan <- err
 				}
-			} else if config.Global.Telemetry.TLSSupport {
+			case config.Global.Telemetry.TLSSupport:
 				if err := promServer.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
 					errChan <- err
 				}
-			} else {
+			default:
 				if err := promServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 					errChan <- err
 				}
