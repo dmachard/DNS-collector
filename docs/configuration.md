@@ -128,7 +128,12 @@ global:
     web-path: "/metrics"
     web-listen: ":9165"
     prometheus-prefix: "dnscollector"
-    
+
+    # Optional: serve over a unix socket instead of web-listen.
+    # Either/or - setting sock-path is a config error together with tls-support.
+    sock-path: ""
+    sock-mode: "0660"
+
     # Optional TLS configuration
     tls-support: false
     tls-cert-file: ""
@@ -139,6 +144,23 @@ global:
     basic-auth-login: "admin"
     basic-auth-pwd: "changeme"
 ```
+
+`sock-path` is an alternative to `web-listen`: when set, the endpoint serves
+plain HTTP over the unix socket instead of TCP. `tls-support` must be `false`
+(setting both is a startup error).
+
+Access is governed by `sock-mode` and the socket's parent directory — keep the
+socket in a dedicated directory owned by the daemon, not `/tmp`:
+
+```yaml
+global:
+  telemetry:
+    sock-path: "/run/dnscollector/telemetry.sock"  # dir mode 0750
+    sock-mode: "0660"
+```
+
+`basic-auth-enable` still applies but travels in cleartext over the socket —
+defense-in-depth, not a replacement for `sock-mode`.
 
 ### Default Output Format
 

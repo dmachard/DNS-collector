@@ -154,7 +154,11 @@ func main() {
 
 	// // telemetry
 	if config.Global.Telemetry.Enabled {
-		logger.Info("main - telemetry enabled on local address: %s", config.Global.Telemetry.WebListen)
+		if config.Global.Telemetry.SockPath != "" {
+			logger.Info("main - telemetry enabled on unix socket: %s", config.Global.Telemetry.SockPath)
+		} else {
+			logger.Info("main - telemetry enabled on local address: %s", config.Global.Telemetry.WebListen)
+		}
 	}
 	promServer, metrics, errTelemetry := telemetry.InitTelemetryServer(config, logger)
 

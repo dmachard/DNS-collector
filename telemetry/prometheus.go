@@ -4,9 +4,11 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"sync"
 	"time"
 
@@ -234,12 +236,27 @@ func InitTelemetryServer(config *pkgconfig.Config, logger *logger.Logger) (*http
 				promServer.Handler = http.DefaultServeMux
 			}
 
-			// start https server
-			if config.Global.Telemetry.TLSSupport {
+			// start server
+			switch {
+			case config.Global.Telemetry.SockPath != "":
+				sockMode, err := strconv.ParseUint(config.Global.Telemetry.SockMode, 8, 32)
+				if err != nil {
+					errChan <- fmt.Errorf("invalid telemetry sock-mode %q: %w", config.Global.Telemetry.SockMode, err)
+					return
+				}
+				listener, err := prepareUnixSocket(config.Global.Telemetry.SockPath, os.FileMode(sockMode))
+				if err != nil {
+					errChan <- err
+					return
+				}
+				if err := promServer.Serve(listener); err != nil && err != http.ErrServerClosed {
+					errChan <- err
+				}
+			case config.Global.Telemetry.TLSSupport:
 				if err := promServer.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
 					errChan <- err
 				}
-			} else {
+			default:
 				if err := promServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 					errChan <- err
 				}
@@ -248,6 +265,34 @@ func InitTelemetryServer(config *pkgconfig.Config, logger *logger.Logger) (*http
 	}
 
 	return promServer, metrics, errChan
+}
+
+// prepareUnixSocket listens on a unix socket at path. It refuses to delete a
+// pre-existing non-socket file (a misconfigured sock-path must not clobber a
+// real file), clears a stale socket left by a crash, and sets the socket mode
+// deterministically before the caller starts serving.
+func prepareUnixSocket(path string, mode os.FileMode) (net.Listener, error) {
+	if fi, err := os.Lstat(path); err == nil {
+		if fi.Mode()&os.ModeSocket == 0 {
+			return nil, fmt.Errorf("telemetry sock-path %q exists and is not a socket", path)
+		}
+		if err := os.Remove(path); err != nil {
+			return nil, err
+		}
+	} else if !os.IsNotExist(err) {
+		return nil, err
+	}
+
+	listener, err := net.Listen("unix", path)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := os.Chmod(path, mode); err != nil {
+		listener.Close()
+		return nil, err
+	}
+	return listener, nil
 }
 
 // BasicAuth middleware
