@@ -54,8 +54,8 @@ global:
 
 ################################################
 # Pipelining configuration
-#   more details: https://github.com/dmachard/DNS-collector/blob/main/docs/running_mode.md#pipelining
-#   workers: https://github.com/dmachard/DNS-collector/blob/main/docs/workers.md
+#   more details: https://github.com/dmachard/DNS-collector/blob/main/docs/pipelines.md
+#   components: https://github.com/dmachard/DNS-collector/blob/main/docs/components.md
 #   transformers: https://github.com/dmachard/DNS-collector/blob/main/docs/transformers.md
 ################################################
 pipelines:

@@ -64,8 +64,11 @@ nav:
       - Configuration: configuration.md
       - Docker: docker.md
       - Examples: examples.md
-  - Pipeline:
-      - Workers Overview: workers.md
+  - DNS Processing:
+      - Concept & Routing: pipelines.md
+      - Supported Components: components.md
+      - Output Formats: formats.md
+      - Extended DNStap: extended_dnstap.md
       - Collectors (Inputs):
           - AFPacket: collectors/collector_afpacket.md
           - DNS Message: collectors/collector_dnsmessage.md
@@ -115,12 +118,12 @@ nav:
           - Traffic Prediction: transformers/transform_trafficprediction.md
           - Traffic Reducer: transformers/transform_trafficreducer.md
           - User Privacy: transformers/transform_userprivacy.md
-  - Advanced:
-      - Integrations: integrations.md
-      - Extended DNStap: extended_dnstap.md
+  - Sources & Sinks:
+      - DNS Server Compatibility: platforms/dns_servers.md
+      - Sinks & Observability: platforms/sinks.md
+  - Deployment & Operations:
       - Telemetry & Monitoring: telemetry.md
       - REST API Reference: api.md
-      - Output Formats: formats.md
       - Performance Tuning: performance.md
   - Contributing:
       - Architecture: architecture.md

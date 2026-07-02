@@ -26,3 +26,4 @@ docs/_integration/elasticsearch/data/
 docs/_integration/kafka/data/
 docs/_integration/fluentd/data/
 docs/_integration/loki/data/
+/site/

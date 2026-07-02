@@ -2,7 +2,7 @@
 
 The DNS-collector REST API logger worker exposes several endpoints to query collected statistics, metrics, client IPs, domain lists, and flagged suspicious traffic in real-time.
 
-Below is the interactive API documentation rendered from [swagger.yml](../swagger.yml).
+Below is the interactive API documentation rendered from [swagger.yml](swagger.yml).
 
 <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
 <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>

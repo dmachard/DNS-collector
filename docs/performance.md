@@ -59,18 +59,6 @@ and are **not specific to dnscollector**:
 
 - `process_cpu_seconds_total`  
   Total user and system CPU time spent in seconds.
-
-### Grafana Dashboard
-
-A pre-built Grafana dashboard is available for comprehensive monitoring:
-
-```bash
-# Import the dashboard JSON
-curl -O https://raw.githubusercontent.com/dmachard/DNS-collector/main/docs/dashboards/grafana_exporter.json
-```
-
-![Performance Dashboard](docs/_images/dashboard_global.png)
-
 ## Buffer Optimization
 
 ### Understanding Buffers

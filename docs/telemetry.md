@@ -2,7 +2,7 @@
 
 DNS-collector exposes extensive telemetry metrics, allowing you to monitor pipeline health, traffic throughput, error rates, and resource utilization in real-time.
 
-## 📊 Grafana Dashboards
+## Grafana Dashboards
 
 Pre-configured Grafana dashboards are available in the repository. You can import these directly into your Grafana instance to monitor your DNS pipelines:
 
@@ -30,7 +30,7 @@ Pre-configured Grafana dashboards are available in the repository. You can impor
 
 ---
 
-## ⚙️ Enabling Metrics (Prometheus)
+## Enabling Metrics (Prometheus)
 
 To start exposing Prometheus metrics, enable telemetry in the `global` section of your configuration:
 
@@ -47,8 +47,13 @@ Once enabled, you can access the raw Prometheus metrics at `http://localhost:916
 
 ---
 
-## 🖼️ Dashboard Preview
+## Dashboard Previews
 
-Below is a preview of the Prometheus metrics dashboard running in Grafana:
-
+### Prometheus Metrics Dashboard
 ![Grafana Prometheus Dashboard](_images/dashboard_prometheus.png)
+
+### Go Runtime Exporter Dashboard
+![Grafana Exporter Dashboard](_images/dashboard_global.png)
+
+### Loki Log Analytics Dashboard
+![Grafana Loki Dashboard](_images/dashboard_loki.png)

@@ -9,45 +9,40 @@ Highly customizable text output using field directives:
 
 #### Available Directives
 
-**Time**
-- `timestamp-rfc3339ns` - RFC3339 timestamp with nanoseconds
-- `timestamp-unixms` - Unix timestamp (milliseconds)
-- `localtime` - Local time format
-- `latency` - Query/response latency in second(s)
-- `latency_ms` - Query/response latency in millisecond(s)
-
-**Network Details**
-- `queryip` / `responseip` - IP addresses
-- `queryport` / `responseport` - Port numbers
-- `family` - IP version (IPv4/IPv6)
-- `protocol` - Transport protocol (UDP/TCP)
-- `length` / `length-unit` - Packet size
-- `peer-name` - Sender hostname/IP
-- `identity` - DNStap identity
-
-**DNS Flags**
-- `qr` - Query/Response flag
-- `aa` - Authoritative Answer
-- `tc` - Truncated
-- `rd` - Recursion Desired
-- `ra` - Recursion Available
-- `ad` - Authenticated Data
-
-**DNS Information**
-- `operation` - DNStap operation (CLIENT_QUERY, etc.)
-- `rcode` - DNS response code
-- `rdatatype` - DNS response type (A, AAAA, etc.)
-- `rdatatypes` - DNS response types (semicolon separated)
-- `qname` - Query domain name
-- `qtype` - Query type (A, AAAA, etc.)
-- `qclass` - Query class
-- `opcode` - DNS opcode
-- `id` - DNS transaction ID
-- `answer` - First answer record
-- `answer-ip` - First A/AAAA answer
-- `answer-ips` - All A/AAAA answers (comma-separated)
-- `ttl` - Answer TTL
-- `edns-csubnet` - EDNS Client Subnet
+| Category | Directive | Description |
+|---|---|---|
+| **Time** | `timestamp-rfc3339ns` | RFC3339 timestamp with nanoseconds |
+| | `timestamp-unixms` | Unix timestamp (milliseconds) |
+| | `localtime` | Local time format |
+| | `latency` | Query/response latency in second(s) |
+| | `latency_ms` | Query/response latency in millisecond(s) |
+| **Network Details** | `queryip` / `responseip` | Client / Resolver IP addresses |
+| | `queryport` / `responseport` | Client / Resolver port numbers |
+| | `family` | IP version (IPv4 or IPv6) |
+| | `protocol` | Transport protocol (UDP or TCP) |
+| | `length` / `length-unit` | Packet size in bytes |
+| | `peer-name` | Sender hostname or IP |
+| | `identity` | DNStap identity string |
+| **DNS Flags** | `qr` | Query/Response flag |
+| | `aa` | Authoritative Answer flag |
+| | `tc` | Truncated flag |
+| | `rd` | Recursion Desired flag |
+| | `ra` | Recursion Available flag |
+| | `ad` | Authenticated Data flag |
+| **DNS Information** | `operation` | DNStap operation (e.g. `CLIENT_QUERY`, `CLIENT_RESPONSE`) |
+| | `rcode` | DNS response code (e.g. `NOERROR`, `NXDOMAIN`) |
+| | `rdatatype` | DNS response type (A, AAAA, TXT, etc.) |
+| | `rdatatypes` | DNS response types (semicolon separated) |
+| | `qname` | Query domain name |
+| | `qtype` | Query type (A, AAAA, TXT, etc.) |
+| | `qclass` | Query class (typically `IN`) |
+| | `opcode` | DNS opcode (typically `QUERY`) |
+| | `id` | DNS transaction ID |
+| | `answer` | First answer record |
+| | `answer-ip` | First A/AAAA answer |
+| | `answer-ips` | All A/AAAA answers (comma-separated) |
+| | `ttl` | Answer Time-To-Live (TTL) |
+| | `edns-csubnet` | EDNS Client Subnet (ECS) |
 
 #### Text Format Examples
 
