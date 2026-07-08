@@ -78,7 +78,7 @@ Update package dependencies
 make dep
 ```
 
-### Running python tests
+### Running basic Python tests
 
 ```bash
 # set python env
@@ -91,4 +91,44 @@ make build
 
 # run tests
 python3 -m unittest tests.config -v
+```
+
+### Running Local DNS Integration Tests
+
+You can also run full integration tests locally with actual DNS servers deployed via Docker. A helper script `tests/run_local_dns_tests.sh` (and associated Makefile targets) automates the process of generating certificates, spinning up docker containers, executing query tests, and cleaning up.
+
+Prerequisites: `docker`, `openssl`, `python3`, `go`, `dig` (dnsutils).
+
+#### Quick start:
+
+Run the default test case (`unbound` over `tcp`):
+```bash
+make test-dns
+```
+
+Run all matrix configurations (`unbound`, `coredns`, `dnsdist2`, `knotresolver` in all modes):
+```bash
+make test-dns-all
+```
+
+Clean up temporary files, certificates, virtualenv, and containers:
+```bash
+make test-dns-clean
+```
+
+#### Advanced usage:
+
+You can invoke the script directly to target a specific service, mode, or docker image version:
+```bash
+# Run coredns over TLS
+./tests/run_local_dns_tests.sh -s coredns -m tls
+
+# Run dnsdist2 over DoQ with a specific version
+./tests/run_local_dns_tests.sh -s dnsdist2 -m doq -v 21
+
+# Skip rebuilding the binary (if already compiled)
+./tests/run_local_dns_tests.sh -s unbound -m tcp --no-build
+
+# Show help options
+./tests/run_local_dns_tests.sh --help
 ```
