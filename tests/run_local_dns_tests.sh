@@ -283,8 +283,12 @@ deploy_container() {
                 "powerdns/dnsdist-${version}" -C /etc/dnsdist/dnsdist.yml
             ;;
         "knotresolver")
+            local config_file="$pwd_dir/tests/testsdata/knot/knotresolver_${mode}.yml"
+            if [ "$version" = "6.4.0" ]; then
+                config_file="$pwd_dir/tests/testsdata/knot/knotresolver_${mode}_6.4.yml"
+            fi
             $DOCKER_CMD run -d --network="host" --name=dnsserver \
-                --volume="$pwd_dir/tests/testsdata/knot/knotresolver_${mode}.yml:/etc/knot-resolver/config.yaml:z" \
+                --volume="${config_file}:/etc/knot-resolver/config.yaml:z" \
                 -v /tmp/dnstap-socket/:/tmp/ \
                 "cznic/knot-resolver:v${version}"
             ;;
