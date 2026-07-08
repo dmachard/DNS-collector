@@ -18,14 +18,14 @@ permissions:
   contents: read
 
 env:
-  Q_VERSION: "0.19.11"
+  Q_VERSION: "0.19.12"
   PYTHON_VERSION: "3.14"
   GO_VERSION: "1.26"
   COLLECTOR_USER: "pdns"
 
 jobs:
   build_bin:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
@@ -44,21 +44,20 @@ jobs:
 
   tests_logging:
     needs: build_bin
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     strategy:
       matrix:
         config:
           - { service: "unbound", version: "1.24.2", mode: "tcp" }
-          - { service: "coredns", version: "1.13.2", mode: "tcp" }
-          - { service: "coredns", version: "1.13.2", mode: "tls" }
-          - { service: "dnsdist", version: "19", mode: "tcp" }
-          - { service: "dnsdist", version: "19", mode: "unix" }
-          - { service: "dnsdist", version: "19", mode: "doq" }
+          - { service: "unbound", version: "1.25.0", mode: "tcp" }
+          - { service: "coredns", version: "1.14.4", mode: "tcp" }
+          - { service: "coredns", version: "1.14.4", mode: "tls" }
           - { service: "dnsdist2", version: "20", mode: "tcp" }
           - { service: "dnsdist2", version: "20", mode: "doq" }
           - { service: "dnsdist2", version: "21", mode: "tcp" }
           - { service: "dnsdist2", version: "21", mode: "doq" }
           - { service: "knotresolver", version: "6.0.16", mode: "unix" }
+          - { service: "knotresolver", version: "6.4.0", mode: "unix" }
           # - { service: "bind9", version: "9.20.16-r0", mode: "unix" }
 
     steps:

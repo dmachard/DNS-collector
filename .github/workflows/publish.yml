@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   dockerhub:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
     - uses: actions/checkout@v7
     - uses: docker/setup-qemu-action@v4

@@ -18,14 +18,14 @@ permissions:
   contents: read
 
 env:
-  PROM_VERSION: "3.7.3"
-  GENTAP: "1.0.3"
+  PROM_VERSION: "3.13.0"
+  GENTAP: "1.1.1"
   PYTHON_VERSION: '3.14'
   GO_VERSION: '1.26'
 
 jobs:
   build_bin:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
@@ -45,7 +45,7 @@ jobs:
   testunit:
     strategy:
       matrix:
-        os-version: [ 'ubuntu-24.04' ]
+        os-version: [ 'ubuntu-26.04' ]
         go-version: [ '1.26' ] 
         package:
           - '.'
@@ -77,7 +77,7 @@ jobs:
       run: go test -timeout 240s -exec sudo ./${{ matrix.package }}/ -race -cover -v
       
   fuzzing:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
     - uses: actions/checkout@v7
     - uses: actions/setup-go@v6
@@ -88,7 +88,7 @@ jobs:
 
   config:
     needs: build_bin
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     steps:
     - uses: actions/checkout@v7
@@ -111,7 +111,7 @@ jobs:
 
   metrics:
     needs: build_bin
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     steps:
     - uses: actions/checkout@v7
@@ -141,7 +141,7 @@ jobs:
         curl -u admin:changeme http://127.0.0.1:8081/metrics | ./promtool check metrics
 
   count:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     steps:
     - name: Checkout repository

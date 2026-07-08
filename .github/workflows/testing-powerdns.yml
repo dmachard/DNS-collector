@@ -23,7 +23,7 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
@@ -42,7 +42,7 @@ jobs:
 
   test_protobuf:
     needs: build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     strategy:
       matrix:
@@ -50,8 +50,8 @@ jobs:
           - { name: 'dnsdist', version: '19' }
           - { name: 'dnsdist2', version: '20' }
           - { name: 'dnsdist2', version: '21' }
-          - { name: 'recursor', version: '52' }
           - { name: 'recursor', version: '53' }
+          - { name: 'recursor', version: '54' }
 
     steps:
       - uses: actions/checkout@v7
