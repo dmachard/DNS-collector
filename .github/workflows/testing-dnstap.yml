@@ -122,7 +122,11 @@ jobs:
               sudo docker run -d --network="host" --name=dnsserver --volume=$PWD/tests/testsdata/powerdns/dnsdist2_${{ matrix.config.mode }}.yml:/etc/dnsdist/dnsdist.yml:z --volume=$PWD/tests/testsdata/dnscollector.key:/etc/dnsdist/server.key:z --volume=$PWD/tests/testsdata/dnscollector.crt:/etc/dnsdist/server.crt:z -v /tmp/dnstap-socket/:/tmp/ powerdns/dnsdist-${{ matrix.config.version }} -C /etc/dnsdist/dnsdist.yml
               ;;
             "knotresolver")
-              sudo docker run -d --network="host" --name=dnsserver --volume=$PWD/tests/testsdata/knot/knotresolver_${{ matrix.config.mode }}.yml:/etc/knot-resolver/config.yaml:z -v /tmp/dnstap-socket/:/tmp/ cznic/knot-resolver:v${{ matrix.config.version }}
+              CONFIG_FILE="$PWD/tests/testsdata/knot/knotresolver_${{ matrix.config.mode }}.yml"
+              if [ "${{ matrix.config.version }}" = "6.4.0" ]; then
+                CONFIG_FILE="$PWD/tests/testsdata/knot/knotresolver_${{ matrix.config.mode }}_6.4.yml"
+              fi
+              sudo docker run -d --network="host" --name=dnsserver --volume="$CONFIG_FILE:/etc/knot-resolver/config.yaml:z" -v /tmp/dnstap-socket/:/tmp/ cznic/knot-resolver:v${{ matrix.config.version }}
               ;;
             # "bind9")
             #   sudo docker run -d --network="host" --name=dnsserver --volume=$PWD/tests/testsdata/bind/bind9_${{ matrix.config.mode }}.conf:/etc/bind/named.conf:z -v /tmp/dnstap-socket/:/tmp/ dmachard/bind9:${{ matrix.config.version }}
