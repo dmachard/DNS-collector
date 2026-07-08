@@ -175,3 +175,37 @@
   width: auto !important;
   vertical-align: middle;
 }
+
+/* Black text for specific feature boxes in light mode */
+[data-md-color-scheme="default"] .black-text-box h3 {
+  color: #000000 !important;
+}
+
+[data-md-color-scheme="default"] .black-text-box p {
+  color: #000000 !important;
+}
+
+/* Make standard content links visually distinct */
+.md-typeset a:not(.btn-primary):not(.btn-secondary):not(.feature-box) {
+  color: var(--md-accent-fg-color);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.md-typeset a:not(.btn-primary):not(.btn-secondary):not(.feature-box):hover {
+  color: var(--md-accent-fg-color);
+  opacity: 0.85;
+}
+
+/* Indent nested sidebar navigation links for a clear visual hierarchy */
+.md-nav[data-md-level="3"] .md-nav__link,
+.md-nav__list .md-nav__list .md-nav__list .md-nav__link {
+  padding-left: 0.5rem !important;
+}
+
+/* Hide the active section title (e.g. "Sources & Sinks") in the sidebar on desktop */
+.md-sidebar--primary .md-nav[data-md-level="1"]>.md-nav__title,
+.md-sidebar--primary .md-nav__title[for^="__nav_"],
+.md-sidebar--primary .md-nav[data-md-level="0"]>.md-nav__list>.md-nav__item>.md-nav__link {
+  display: none !important;
+}

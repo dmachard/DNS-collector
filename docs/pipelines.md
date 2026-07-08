@@ -1,6 +1,12 @@
-# Pipeline Flow & Routing
+# Pipeline Routing
 
-Pipelines define the flow of DNS data from collectors to loggers. Each pipeline is a named processing stage.
+DNS-collector's architecture is modular and built around three distinct types of components that can be chained together inside a pipeline:
+
+* **Collectors (Inputs)**: Capture, sniff, or receive DNS traffic from various live streams (DNStap, PCAP network captures, UNIX/TCP sockets, tailing files, etc.).
+* **Transformers (Processors)**: Intercept DNS message streams to perform inline normalization, traffic filtering, GeoIP enrichment, lowercasing, relabeling, and user privacy anonymization.
+* **Loggers (Outputs)**: Output, route, and store the collected DNS events into file logs, databases (ClickHouse, InfluxDB), log management engines (Loki, Elasticsearch), message queues (Kafka, Redis), or dashboard systems.
+
+Each component is configured under its respective section within a pipeline, allowing you to build extremely flexible data flow routing topologies.
 
 ## Basic Pipeline Structure
 

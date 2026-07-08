@@ -65,10 +65,9 @@ nav:
       - Docker: docker.md
       - Examples: examples.md
   - DNS Processing:
-      - Concept & Routing: pipelines.md
-      - Supported Components: components.md
+      - Pipeline Routing: pipelines.md
+      - Component Matrix: components.md
       - Output Formats: formats.md
-      - Extended DNStap: extended_dnstap.md
       - Collectors (Inputs):
           - AFPacket: collectors/collector_afpacket.md
           - DNS Message: collectors/collector_dnsmessage.md
@@ -119,13 +118,29 @@ nav:
           - Traffic Reducer: transformers/transform_trafficreducer.md
           - User Privacy: transformers/transform_userprivacy.md
   - Sources & Sinks:
-      - DNS Server Compatibility: platforms/dns_servers.md
-      - Sinks & Observability: platforms/sinks.md
-  - Deployment & Operations:
+      - DNS Servers:
+          - Overview: platforms/dns_servers.md
+          - DNStap: platforms/dnstap.md
+          - Enhanced DNStap: platforms/extended_dnstap.md
+      - Sinks:
+          - Overview: platforms/sinks.md
+          - Loki & Grafana: platforms/sinks_loki.md
+          - Elasticsearch & Kibana: platforms/sinks_elasticsearch.md
+          - Prometheus: platforms/sinks_prometheus.md
+          - Fluentd: platforms/sinks_fluentd.md
+          - Kafka: platforms/sinks_kafka.md
+          - InfluxDB: platforms/sinks_influxdb.md
+  - Deployment:
+      - Overview: deployment/index.md
+      - Edge Deployment: deployment/edge.md
+      - Centralized Deployment: deployment/centralized.md
+  - Operations:
       - Telemetry & Monitoring: telemetry.md
       - REST API Reference: api.md
-      - Performance Tuning: performance.md
-  - Contributing:
+  - Performance:
+      - Tuning Guide: performance/tuning.md
+      - Metrics: performance/metrics.md
+  - For Developers:
       - Architecture: architecture.md
-      - Guidelines: development.md
-  - Download: https://github.com/dmachard/DNS-collector/releases
+      - Development Setup: development.md
+      - How-to Guides: extending.md

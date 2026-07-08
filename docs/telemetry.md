@@ -1,32 +1,16 @@
 # Telemetry & Monitoring
 
-DNS-collector exposes extensive telemetry metrics, allowing you to monitor pipeline health, traffic throughput, error rates, and resource utilization in real-time.
+DNS-collector exposes extensive internal telemetry metrics, allowing you to monitor the health, performance, CPU usage, memory allocations, and active goroutines of the DNS-collector process itself.
 
-## Grafana Dashboards
+## Grafana Dashboard
 
-Pre-configured Grafana dashboards are available in the repository. You can import these directly into your Grafana instance to monitor your DNS pipelines:
+To help visualize the internal metrics of the DNS-collector binary, a pre-configured Grafana dashboard is available:
 
-<div class="grid-2-cols" style="margin-top: 1.5rem; margin-bottom: 2rem;">
+* **Go Runtime Exporter Dashboard** — Tracks CPU usage, memory allocations, garbage collection cycles, and active goroutines of the DNS-collector process.
 
-  <div class="feature-box">
-    <h3>Prometheus Metrics</h3>
-    <p>Provides a comprehensive view of DNS query types, RCODE distribution, latency statistics, and worker queue depths.</p>
-    <a href="https://raw.githubusercontent.com/dmachard/DNS-collector/main/docs/dashboards/grafana_prometheus.json" class="btn-primary" style="display: inline-block; margin-top: 1rem; text-decoration: none;">Download JSON</a>
-  </div>
+You can download the raw dashboard configuration directly:
 
-  <div class="feature-box">
-    <h3>Loki Log Analytics</h3>
-    <p>Visualizes query details, client distribution, TLDs, and allows real-time searching through DNS logging streams.</p>
-    <a href="https://raw.githubusercontent.com/dmachard/DNS-collector/main/docs/dashboards/grafana_loki.json" class="btn-primary" style="display: inline-block; margin-top: 1rem; text-decoration: none;">Download JSON</a>
-  </div>
-
-  <div class="feature-box">
-    <h3>Go Runtime Exporter</h3>
-    <p>Tracks CPU usage, memory allocations, garbage collection cycles, and active goroutines of the DNS-collector process.</p>
-    <a href="https://raw.githubusercontent.com/dmachard/DNS-collector/main/docs/dashboards/grafana_exporter.json" class="btn-primary" style="display: inline-block; margin-top: 1rem; text-decoration: none;">Download JSON</a>
-  </div>
-
-</div>
+<a href="https://raw.githubusercontent.com/dmachard/DNS-collector/main/docs/dashboards/grafana_exporter.json" class="btn-primary" style="display: inline-block; margin-top: 0.5rem; margin-bottom: 1.5rem; text-decoration: none;">Download JSON</a>
 
 ---
 
@@ -47,13 +31,30 @@ Once enabled, you can access the raw Prometheus metrics at `http://localhost:916
 
 ---
 
-## Dashboard Previews
-
-### Prometheus Metrics Dashboard
-![Grafana Prometheus Dashboard](_images/dashboard_prometheus.png)
+## Dashboard Preview
 
 ### Go Runtime Exporter Dashboard
 ![Grafana Exporter Dashboard](_images/dashboard_global.png)
 
-### Loki Log Analytics Dashboard
-![Grafana Loki Dashboard](_images/dashboard_loki.png)
+---
+
+## Process Performance Metrics
+
+In addition to standard Go runtime metrics, the telemetry endpoint exposes internal pipeline metrics to track performance and detect bottlenecks:
+
+### Pipeline & Worker Throughput
+
+- **`dnscollector_worker_ingress_traffic_total`**  
+  Total number of DNS messages received by each pipeline worker. This reflects successful handoff to the next internal processing stage.
+  
+- **`dnscollector_worker_egress_traffic_total`**  
+  Total number of DNS messages successfully forwarded out by each worker. *Note: This does not guarantee delivery to the remote external systems.*
+  
+- **`dnscollector_worker_discarded_traffic_total`**  
+  The number of messages dropped when worker output channels/buffers are full (e.g., due to slow loggers or network bottlenecks).
+
+- **`dnscollector_policy_forwarded_total`**  
+  Total number of DNS messages forwarded after matching policy rules.
+
+- **`dnscollector_policy_dropped_total`**  
+  Total number of DNS messages dropped by active policy rules.

@@ -49,20 +49,20 @@ hide:
 ## Where to Start?
 
 <div class="grid-container" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
-  <a href="installation/" class="feature-box" style="text-decoration: none; color: inherit; display: block;">
-    <h3>1. Installation</h3>
+  <a href="installation/" class="feature-box black-text-box" style="text-decoration: none; color: inherit; display: block;">
+    <h3>Installation</h3>
     <p>Download precompiled binaries, run Docker containers, or build from source.</p>
   </a>
-  <a href="configuration/" class="feature-box" style="text-decoration: none; color: inherit; display: block;">
-    <h3>2. Configuration</h3>
+  <a href="configuration/" class="feature-box black-text-box" style="text-decoration: none; color: inherit; display: block;">
+    <h3>Configuration</h3>
     <p>Complete documentation for configuration options and parameters.</p>
   </a>
-  <a href="workers/" class="feature-box" style="text-decoration: none; color: inherit; display: block;">
-    <h3>3. Workers Setup</h3>
+  <a href="workers/" class="feature-box black-text-box" style="text-decoration: none; color: inherit; display: block;">
+    <h3>Workers Setup</h3>
     <p>Learn how to connect inputs (collectors) to outputs (loggers).</p>
   </a>
-  <a href="transformers/" class="feature-box" style="text-decoration: none; color: inherit; display: block;">
-    <h3>4. Transformers</h3>
+  <a href="transformers/" class="feature-box black-text-box" style="text-decoration: none; color: inherit; display: block;">
+    <h3>Transformers</h3>
     <p>Add filters, privacy masking, and threat intelligence enrichments.</p>
   </a>
 </div>
@@ -70,7 +70,7 @@ hide:
 <h2 style="margin-top: 4rem; margin-bottom: 1.5rem;">More DNS tools?</h2>
 
 <div class="grid-2-cols" style="margin-top: 1rem;">
-  <a href="https://github.com/dmachard/CoreDNS-GSLB" target="_blank" class="feature-box" style="text-decoration: none; color: inherit; display: block;">
+  <a href="https://dmachard.github.io/CoreDNS-GSLB/" target="_blank" class="feature-box" style="text-decoration: none; color: inherit; display: block;">
     <h3 style="margin-top: 0;">CoreDNS-GSLB</h3>
     <p style="margin-bottom: 0; font-size: 0.95rem; line-height: 1.5;">An open-source Global Server Load Balancing (GSLB) plugin for CoreDNS, providing traffic routing for VMs and hybrid environments.</p>
   </a>

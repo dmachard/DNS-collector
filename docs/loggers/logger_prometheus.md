@@ -171,11 +171,13 @@ See the [full list of metrics](./../metrics.txt).
 
 ## Grafana dashboard with prometheus datasource
 
-The following [build-in](https://grafana.com/grafana/dashboards/16630) dashboard is available
+The following [built-in](https://grafana.com/grafana/dashboards/16630) dashboard is available.
 
-<p align="center">
-  <img src="../_images/dashboard_prometheus.png" alt="dnscollector"/>
-</p>
+You can also download the raw dashboard configuration directly:
+
+<a href="https://raw.githubusercontent.com/dmachard/DNS-collector/main/docs/dashboards/grafana_prometheus.json" class="btn-primary" style="display: inline-block; margin-top: 0.5rem; margin-bottom: 1.5rem; text-decoration: none;">Download JSON</a>
+
+![Grafana Prometheus Dashboard](../_images/dashboard_prometheus.png)
 
 # Merge streams for metrics computation
 

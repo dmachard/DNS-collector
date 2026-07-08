@@ -17,12 +17,32 @@ The DNS-collector uses a pipeline architecture where:
 
 ## Pipeline Flow
 
-```
-[DNS Sources] → [Collectors] → [Transformers] → [Loggers] → [Destinations]
-     ↓              ↓              ↓              ↓           ↓
-  DNStap        Ingestion     Processing      Routing    Your Stack
-  PCAP          Parsing      Filtering       Formatting   (ELK, etc.)
-  Live Cap      Decoding     Enrichment      Delivery
+```mermaid
+flowchart LR
+    subgraph Sources ["DNS Sources"]
+        dns_src["• DNStap<br/>• Network PCAP<br/>• Live Capture"]
+    end
+    
+    subgraph Colls ["Collectors (Inputs)"]
+        coll["• Ingestion<br/>• Parsing<br/>• Decoding"]
+    end
+    
+    subgraph Trans ["Transformers (Processors)"]
+        trans["• Traffic Filtering<br/>• GeoIP Enrichment<br/>• Anonymization"]
+    end
+    
+    subgraph Logs ["Loggers (Outputs)"]
+        log["• Routing<br/>• Formatting<br/>• Delivery"]
+    end
+    
+    subgraph Dests ["Destinations"]
+        dest["• Loki / Grafana<br/>• Elasticsearch / Kibana<br/>• ClickHouse / Kafka"]
+    end
+
+    dns_src --> coll
+    coll --> trans
+    trans --> log
+    log --> dest
 ```
 
 ## DNS parser
@@ -50,3 +70,5 @@ The following options are decoded:
 
 - [Extended DNS Errors](https://www.rfc-editor.org/rfc/rfc8914.html)
 - [Client Subnet](https://www.rfc-editor.org/rfc/rfc7871.html)
+
+
