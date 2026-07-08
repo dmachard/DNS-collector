@@ -19,7 +19,7 @@ permissions:
 
 env:
   PROM_VERSION: "3.13.0"
-  GENTAP: "1.1.1"
+  GENTAP: "1.1.2"
   PYTHON_VERSION: '3.14'
   GO_VERSION: '1.26'
 
