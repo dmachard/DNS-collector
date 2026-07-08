@@ -57,11 +57,11 @@ To get started quickly, you can use this default [`config.yml`](config.yml).
 |-------|-------------|
 | [📝 Formats](docs/formats.md) | Supported output formats (text, JSON, PCAP, Jinja2, etc.) |
 | [🔧 Configuration](docs/configuration.md) | Complete config reference |
-| [📤 Workers](docs/workers.md) | Input sources and output destinations setup |
+| [📤 Components](docs/components.md) | Input sources and output destinations setup |
 | [🔄 Transformers](docs/transformers.md) | Data enrichment options |
 | [🐳 Docker](docs/docker.md) | Container deployment |
 | [🔍 Examples](docs/examples.md) | Ready-to-use configs |
-| [🔗 Integrations](docs/integrations.md) | Integration with popular tools and DNS servers |
+| [🔗 Sources & Sinks](docs/platforms/dns_servers.md) | Integration with popular tools and DNS servers |
 | [⭐ Extended DNStap](docs/extended_dnstap.md) | Extended DNSTap |
 | [📊 Telemetry](docs/telemetry.md) | REST API and Prometheus metrics |
 | [⚡ Performance](docs/performance.md) | Tuning guide |

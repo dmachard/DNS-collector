@@ -1,4 +1,10 @@
-# DNS-collector - Workers
+# Component Matrix
+
+Below is a comprehensive matrix of all supported Collectors (Inputs) and Loggers (Outputs) within DNS-collector, along with their production readiness status.
+
+For a detailed explanation of how these components are configured and chained together, see [Pipeline Routing](pipelines.md).
+
+---
 
 ## Supported Collectors
 

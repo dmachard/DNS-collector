@@ -9,8 +9,8 @@ If you are in DNSTap mode, the collector search for files with the `.fstrm` exte
 
 For config examples, take a look to the following links:
 
-- [dnstap](../examples/use-case-14.yml)
-- [pcap](../examples/use-case-15.yml)
+- [dnstap](../examples/config-dnstap-to-dnstap_file.yml)
+- [pcap](../examples/config-pcap-to-console.yml)
 
 Options:
 

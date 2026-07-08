@@ -63,7 +63,7 @@ Options:
   > Specifies the output format for Kafka messages. Output format: `text`, `json`, or `flat-json`.
 
 * `text-format` (string)
-  > output text format, please refer to the default text format to see all available [text directives](../dnsconversions.md#text-format-inline), use this parameter if you want a specific format
+  > output text format, please refer to the default text format to see all available [text directives](../formats.md#available-directives), use this parameter if you want a specific format
 
 * `batch-size` (integer)
   > Specifies the size of the batch for DNS messages before they are sent to Kafka.

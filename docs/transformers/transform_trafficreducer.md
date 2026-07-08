@@ -26,7 +26,7 @@ Options:
 * `unique-fields` (array of strings)  
   > Define custom fields for uniqueness matching (limited to string and integer values). 
   > This allows greater flexibility in detecting repetitive traffic.
-  > Complete list of [fields](../dnsconversions.md#json-encoding) available.
+  > Complete list of [fields](../formats.md#json-format) available.
 
 Default values:
 

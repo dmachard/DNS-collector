@@ -1,7 +1,7 @@
 # Transformer: Relabeling
 
 Use this transformer to remove or rename some JSON keys.
-This transformation is only applied to the [`flat-json`](../dnsjson.md#flat-json-format-recommended) output format.
+This transformation is only applied to the [`flat-json`](../formats.md#flat-json-format) output format.
 
 Options:
 

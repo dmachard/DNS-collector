@@ -13,10 +13,10 @@ Options:
   > output format: `text`, `jinja`, `json`, `flat-json` or `pcap`
 
 * `text-format` (string)
-  > output text format, please refer to the default text format to see all available [text directives](../dnsconversions.md#text-format-inline) use this parameter if you want a specific format
+  > output text format, please refer to the default text format to see all available [text directives](../formats.md#available-directives) use this parameter if you want a specific format
 
 * `jinja-format` (string)
-  > jinja template, please refer [Jinja templating](../dnsconversions.md#jinja-templating) to see all available directives 
+  > jinja template, please refer [Jinja templating](../formats.md#jinja-templating) to see all available directives 
   
 * `chan-buffer-size` (integer)
   > Specifies the maximum number of packets that can be buffered before discard additional packets.

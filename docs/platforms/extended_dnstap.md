@@ -1,4 +1,4 @@
-# DNS-collector - Enhanced DNStap
+# Enhanced DNStap
 
 The DNScollector adds enhancements to the DNStap protocol with compression, TLS and extended metadata support.
 These features can be only used between two `DNS-collector` instance.
@@ -20,7 +20,7 @@ The following codec are supported:
 
 DNSTAP message can be extended by incorporating additional metadata added through transformations, such as filtering, geo, ATags.
 
-These metadata are encoded in the extra field with the following [protobuf structure](../dnsutils/extended_dnstap.proto).
+These metadata are encoded in the extra field with the following [protobuf structure](https://github.com/dmachard/DNS-collector/blob/main/dnsutils/extended_dnstap.proto).
 
 The following transformers are supported:
 

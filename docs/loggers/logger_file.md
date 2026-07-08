@@ -1,57 +1,11 @@
 # Logger: File
 
-- [Configuration Options](#overview)
-- [Log Compression](#log-compression)
-- [Postrotate command](#postrotate-command)
-- [To PCAP](#save-to-pcap-files)
-- [To DNStap](#save-to-dnstap-files)
-
-## Overview
-
-The File Logger allows you to log DNS traffic to a file in various formats, with support for rotation, compression, custom formatting, and the ability to execute scripts after file rotation.
-
-**Key Features**
-- **File Rotation**: Automatically rotates log files based on size.
-- **Supported Formats**: Supports multiple output formats - `text`, `jinja`, `json` and `flat json`, `pcap` or `dnstap`
-- **Compression**: Optional gzip compression for rotated log files.
-- **Post-Rotate Command**: Run external scripts after each file rotation.
-- **Custom Text Formatting**: Configure custom output text formats.
-
-## Configuration Options
-
-* `file-path` (string)
-  > output logfile name
-
-* `mode` (string)
-  > output format: `text`, `jinja`, `json` and `flat-json`, `pcap` or `dnstap`
-
-* `max-size`: (integer)
-  > maximum size in megabytes of the file before rotation, 
-  > A minimum of max-size*max-files megabytes of space disk must be available.
-
-* `max-files` (integer)
-  > maximum number of files to retain. Set to zero if you want to disable this feature
-
-* `max-batch-size` (integer)
-  > Buffers data up to the specified size (in bytes) before writing to the file.
-
-* `rotation-interval`: (integer)
-  > rotate files after specified number of seconds.
-  > If both max-size and rotation-interval are set, then file rotation occurs
-  > whenever the first condition is met, and rotation interval is reset.
-
-* `flush-interval` (integer)
-  > flush buffer to log file every X seconds
-
-* `compress` (boolean)
-  > Enables gzip compression for rotated log files.
-
 * `text-format` (string)
   > output text format, please refer to the default text format to see all
-  > available [text directives](../dnsconversions.md#text-format-inline), use this parameter if you want a specific format.
+  > available [text directives](../formats.md#available-directives), use this parameter if you want a specific format.
 
 * `jinja-format` (string)
-  > jinja template, please refer [Jinja templating](../dnsconversions.md#jinja-templating) to see all available directives 
+  > jinja template, please refer [Jinja templating](../formats.md#jinja-templating) to see all available directives 
 
 * `postrotate-command` (string)
   > Specifies a command or script to run after each file rotation.
@@ -88,9 +42,9 @@ logfile:
 
 ## Full configuration examples
 
-* [`Text format`](../_examples/use-case-7.yml)
-* [`Dnstap format`](../_examples/use-case-13.yml)
-* [`PCAP format`](../_examples/use-case-1.yml)
+* [`Text format`](../examples/config-dnstap-to-text.yml)
+* [`Dnstap format`](../examples/config-dnstap-to-dnstap.yml)
+* [`PCAP format`](../examples/config-dnstap-to-pcap.yml)
 
 
 ## Log Compression

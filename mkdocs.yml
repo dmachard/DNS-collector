@@ -1,0 +1,146 @@
+site_name: DNS-collector
+site_description: Capture DNS traffic, process it intelligently, and stream it downstream
+site_author: dmachard
+site_url: https://dmachard.github.io/DNS-collector/
+repo_name: dmachard/DNS-collector
+repo_url: https://github.com/dmachard/DNS-collector
+
+theme:
+  name: material
+  logo: dns-collector_logo.png
+  font:
+    text: Outfit
+    code: JetBrains Mono
+  palette:
+    # Light mode (default)
+    - scheme: default
+      primary: slate
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Dark mode
+    - scheme: slate
+      primary: slate
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+watch:
+  - docs
+
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - attr_list
+  - md_in_html
+
+nav:
+  - Home: index.md
+  - Get Started:
+      - Installation: installation.md
+      - Configuration: configuration.md
+      - Docker: docker.md
+      - Examples: examples.md
+  - DNS Processing:
+      - Pipeline Routing: pipelines.md
+      - Component Matrix: components.md
+      - Output Formats: formats.md
+      - Collectors (Inputs):
+          - AFPacket: collectors/collector_afpacket.md
+          - DNS Message: collectors/collector_dnsmessage.md
+          - DNStap: collectors/collector_dnstap.md
+          - File Ingestor: collectors/collector_fileingestor.md
+          - PowerDNS: collectors/collector_powerdns.md
+          - Tail: collectors/collector_tail.md
+          - TZSP: collectors/collector_tzsp.md
+          - Webhook: collectors/collector_webhook.md
+          - XDP: collectors/collector_xdp.md
+      - Loggers (Outputs):
+          - Clickhouse: loggers/logger_clickhouse.md
+          - DevNull: loggers/logger_devnull.md
+          - DNStap: loggers/logger_dnstap.md
+          - Elasticsearch: loggers/logger_elasticsearch.md
+          - Falco: loggers/logger_falco.md
+          - File: loggers/logger_file.md
+          - Fluentd: loggers/logger_fluentd.md
+          - InfluxDB: loggers/logger_influxdb.md
+          - Kafka: loggers/logger_kafka.md
+          - Loki: loggers/logger_loki.md
+          - MQTT: loggers/logger_mqtt.md
+          - NSQ: loggers/logger_nsq.md
+          - OpenTelemetry: loggers/logger_opentelemetry.md
+          - Prometheus: loggers/logger_prometheus.md
+          - Redis: loggers/logger_redis.md
+          - REST API: loggers/logger_restapi.md
+          - Scalyr: loggers/logger_scalyr.md
+          - StatsD: loggers/logger_statsd.md
+          - Stdout: loggers/logger_stdout.md
+          - Syslog: loggers/logger_syslog.md
+          - TCP/Unix: loggers/logger_tcp.md
+      - Transformers:
+          - Overview: transformers.md
+          - Atags: transformers/transform_atags.md
+          - Data Extractor: transformers/transform_dataextractor.md
+          - GeoIP: transformers/transform_geoip.md
+          - Latency: transformers/transform_latency.md
+          - New Domain Tracker: transformers/transform_newdomaintracker.md
+          - Normalize: transformers/transform_normalize.md
+          - Relabeling: transformers/transform_relabeling.md
+          - Reordering: transformers/transform_reordering.md
+          - REST API: transformers/transform_rest.md
+          - Rewrite: transformers/transform_rewrite.md
+          - Suspicious Detector: transformers/transform_suspiciousdetector.md
+          - Traffic Filtering: transformers/transform_trafficfiltering.md
+          - Traffic Prediction: transformers/transform_trafficprediction.md
+          - Traffic Reducer: transformers/transform_trafficreducer.md
+          - User Privacy: transformers/transform_userprivacy.md
+  - Sources & Sinks:
+      - DNS Servers:
+          - Overview: platforms/dns_servers.md
+          - DNStap: platforms/dnstap.md
+          - Enhanced DNStap: platforms/extended_dnstap.md
+      - Sinks:
+          - Overview: platforms/sinks.md
+          - Loki & Grafana: platforms/sinks_loki.md
+          - Elasticsearch & Kibana: platforms/sinks_elasticsearch.md
+          - Prometheus: platforms/sinks_prometheus.md
+          - Fluentd: platforms/sinks_fluentd.md
+          - Kafka: platforms/sinks_kafka.md
+          - InfluxDB: platforms/sinks_influxdb.md
+  - Deployment:
+      - Overview: deployment/index.md
+      - Edge Deployment: deployment/edge.md
+      - Centralized Deployment: deployment/centralized.md
+  - Operations:
+      - Telemetry & Monitoring: telemetry.md
+      - REST API Reference: api.md
+  - Performance:
+      - Tuning Guide: performance/tuning.md
+      - Metrics: performance/metrics.md
+  - For Developers:
+      - Architecture: architecture.md
+      - Development Setup: development.md
+      - How-to Guides: extending.md

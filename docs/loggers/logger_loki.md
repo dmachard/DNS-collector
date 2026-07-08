@@ -23,7 +23,7 @@ Options:
   > interval in second between before to retry to send batch
 
 * `text-format` (string)
-  > output text format, please refer to the default text format to see all available [text directives](../dnsconversions.md#text-format-inline), use this parameter if you want a specific format
+  > output text format, please refer to the default text format to see all available [text directives](../formats.md#available-directives), use this parameter if you want a specific format
 
 * `proxy-url` (string)
   > Proxy URL
@@ -89,8 +89,10 @@ lokiclient:
 
 ## Grafana dashboard with Loki datasource
 
-The following [build-in](https://grafana.com/grafana/dashboards/15415) dashboard is available
+The following [built-in](https://grafana.com/grafana/dashboards/15415) dashboard is available.
 
-<p align="center">
-  <img src="../_images/dashboard_loki.png" alt="dnscollector"/>
-</p>
+You can also download the raw dashboard configuration directly:
+
+<a href="https://raw.githubusercontent.com/dmachard/DNS-collector/main/docs/dashboards/grafana_loki.json" class="btn-primary" style="display: inline-block; margin-top: 0.5rem; margin-bottom: 1.5rem; text-decoration: none;">Download JSON</a>
+
+![Grafana Loki Dashboard](../_images/dashboard_loki.png)

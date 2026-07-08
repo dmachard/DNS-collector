@@ -28,7 +28,7 @@ ifndef $(GOPATH)
 	export GOPATH
 endif
 
-.PHONY: all check-go dep lint build clean goversion stats
+.PHONY: all check-go dep lint build clean goversion stats docs-serve
 
 # This target depends on dep and build.
 all: check-go dep build
@@ -99,3 +99,10 @@ stats:
 clean: check-go
 	@go clean
 	@rm -f $(BINARY_NAME)
+
+.PHONY: docs-serve
+docs-serve:
+	@echo "Starting documentation server locally via Docker..."
+	@echo "Open http://localhost:8000 in your browser."
+	docker run --rm -it -p 8000:8000 -v $$(pwd):/docs squidfunk/mkdocs-material serve --dev-addr 0.0.0.0:8000 --livereload
+
