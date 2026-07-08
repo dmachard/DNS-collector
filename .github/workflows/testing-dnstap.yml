@@ -50,8 +50,8 @@ jobs:
         config:
           - { service: "unbound", version: "1.24.2", mode: "tcp" }
           - { service: "unbound", version: "1.25.0", mode: "tcp" }
-          - { service: "coredns", version: "1.13.2", mode: "tcp" }
-          - { service: "coredns", version: "1.13.2", mode: "tls" }
+          - { service: "coredns", version: "1.14.4", mode: "tcp" }
+          - { service: "coredns", version: "1.14.4", mode: "tls" }
           - { service: "dnsdist2", version: "20", mode: "tcp" }
           - { service: "dnsdist2", version: "20", mode: "doq" }
           - { service: "dnsdist2", version: "21", mode: "tcp" }
