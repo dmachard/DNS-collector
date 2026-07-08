@@ -8,6 +8,38 @@ DNS-collector's architecture is modular and built around three distinct types of
 
 Each component is configured under its respective section within a pipeline, allowing you to build extremely flexible data flow routing topologies.
 
+## Pipeline Flow
+
+Here is a visual overview of how DNS data flows from its sources, through collectors and transformers, to the loggers and final destinations:
+
+```mermaid
+flowchart LR
+    subgraph Sources ["DNS Sources"]
+        dns_src["• DNStap<br/>• Network PCAP<br/>• Live Capture"]
+    end
+    
+    subgraph Colls ["Collectors (Inputs)"]
+        coll["• Ingestion<br/>• Parsing<br/>• Decoding"]
+    end
+    
+    subgraph Trans ["Transformers (Processors)"]
+        trans["• Traffic Filtering<br/>• GeoIP Enrichment<br/>• Anonymization"]
+    end
+    
+    subgraph Logs ["Loggers (Outputs)"]
+        log["• Routing<br/>• Formatting<br/>• Delivery"]
+    end
+    
+    subgraph Dests ["Destinations"]
+        dest["• Loki / Grafana<br/>• Elasticsearch / Kibana<br/>• ClickHouse / Kafka"]
+    end
+
+    dns_src --> coll
+    coll --> trans
+    trans --> log
+    log --> dest
+```
+
 ## Basic Pipeline Structure
 
 ```yaml

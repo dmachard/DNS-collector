@@ -1,7 +1,7 @@
 # Development
 
 To compile DNS-collector, we assume you have a working Go setup.
-First, make sure your golang version is `1.21` or higher
+First, make sure your golang version is `1.26` or higher
 
 
 ## Build and run from source
@@ -69,7 +69,7 @@ go test -run=^$ -bench=.
 Update go version
 
 ```bash
-go mod edit -go=1.24
+go mod edit -go=1.26
 ```
 
 Update package dependencies

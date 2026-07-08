@@ -64,11 +64,15 @@ nav:
       - Configuration: configuration.md
       - Docker: docker.md
       - Examples: examples.md
-  - DNS Processing:
+  - Features:
+      - DNS Logging: dns_logging.md
       - Pipeline Routing: pipelines.md
-      - Component Matrix: components.md
       - Output Formats: formats.md
+      - DNS Parser: dns_parser.md
+      - Enhanced DNStap: platforms/extended_dnstap.md
+  - DNS Processing:
       - Collectors (Inputs):
+          - Overview: collectors.md
           - AFPacket: collectors/collector_afpacket.md
           - DNS Message: collectors/collector_dnsmessage.md
           - DNStap: collectors/collector_dnstap.md
@@ -79,6 +83,7 @@ nav:
           - Webhook: collectors/collector_webhook.md
           - XDP: collectors/collector_xdp.md
       - Loggers (Outputs):
+          - Overview: loggers.md
           - Clickhouse: loggers/logger_clickhouse.md
           - DevNull: loggers/logger_devnull.md
           - DNStap: loggers/logger_dnstap.md
@@ -121,7 +126,6 @@ nav:
       - DNS Servers:
           - Overview: platforms/dns_servers.md
           - DNStap: platforms/dnstap.md
-          - Enhanced DNStap: platforms/extended_dnstap.md
       - Sinks:
           - Overview: platforms/sinks.md
           - Loki & Grafana: platforms/sinks_loki.md
@@ -136,11 +140,9 @@ nav:
       - Centralized Deployment: deployment/centralized.md
   - Operations:
       - Telemetry & Monitoring: telemetry.md
-      - REST API Reference: api.md
   - Performance:
       - Tuning Guide: performance/tuning.md
       - Metrics: performance/metrics.md
   - For Developers:
-      - Architecture: architecture.md
       - Development Setup: development.md
       - How-to Guides: extending.md

@@ -37,6 +37,11 @@
   transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* Disable transitions on SVG and Mermaid elements to fix layout rendering bugs */
+svg, svg *, .mermaid, .mermaid * {
+  transition: none !important;
+}
+
 /* Stunning Hero Section card */
 .hero-card {
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, rgba(15, 23, 42, 0.06) 100%);
