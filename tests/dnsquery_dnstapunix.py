@@ -72,6 +72,22 @@ class TestDnstap(unittest.TestCase):
             transport_collector, protocol_collector =  await loop.subprocess_exec(lambda: ProcessProtocol(is_ready, is_clientresponse),
                                                                                        *args, stdout=asyncio.subprocess.PIPE)
 
+            # Wait for socket file to be created, then chmod 777 it
+            import os
+            import time
+            for _ in range(50):
+                if os.path.exists('/tmp/dnstap-socket/dnstap.sock'):
+                    try:
+                        if can_use_sudo():
+                            subprocess.run(["sudo", "chmod", "777", "/tmp/dnstap-socket/dnstap.sock"], check=True)
+                        else:
+                            os.chmod('/tmp/dnstap-socket/dnstap.sock', 0o777)
+                        print("Chmodded UNIX socket to 777 successfully.")
+                        break
+                    except Exception as e:
+                        print("Chmod error: ", e)
+                time.sleep(0.1)
+
             print("Restarting DNS server container...")
             subprocess.run(get_docker_restart_cmd(), check=True)
 
