@@ -57,14 +57,15 @@ To get started quickly, you can use this default [`config.yml`](config.yml).
 |-------|-------------|
 | [📝 Formats](docs/formats.md) | Supported output formats (text, JSON, PCAP, Jinja2, etc.) |
 | [🔧 Configuration](docs/configuration.md) | Complete config reference |
-| [📤 Components](docs/components.md) | Input sources and output destinations setup |
+| [📥 Collectors](docs/collectors.md) | Input sources (network packet sniffer, DNStap server, etc.) |
+| [📤 Loggers](docs/loggers.md) | Output destinations (Kafka, Prometheus, syslog, Loki, etc.) |
 | [🔄 Transformers](docs/transformers.md) | Data enrichment options |
 | [🐳 Docker](docs/docker.md) | Container deployment |
 | [🔍 Examples](docs/examples.md) | Ready-to-use configs |
 | [🔗 Sources & Sinks](docs/platforms/dns_servers.md) | Integration with popular tools and DNS servers |
-| [⭐ Extended DNStap](docs/extended_dnstap.md) | Extended DNSTap |
+| [⭐ Enhanced DNStap](docs/platforms/extended_dnstap.md) | Enhanced DNSTap features |
 | [📊 Telemetry](docs/telemetry.md) | REST API and Prometheus metrics |
-| [⚡ Performance](docs/performance.md) | Tuning guide |
+| [⚡ Performance Tuning](docs/performance/tuning.md) | Performance tuning guide |
 
 ## 👥 Contributions
 

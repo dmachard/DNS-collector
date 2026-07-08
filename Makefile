@@ -82,6 +82,15 @@ tests: check-go
 
 	@rm -f test_output.json coverage.out
 
+test-dns:
+	./tests/run_local_dns_tests.sh
+
+test-dns-all:
+	./tests/run_local_dns_tests.sh --all
+
+test-dns-clean:
+	./tests/run_local_dns_tests.sh --clean
+
 stats:
 	@echo "Calculating Go code statistics (excluding tests)..."
 	@find . -name '*.go' ! -name '*_test.go' -print0 > files.tmp; \

@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   makefile-build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     
     strategy:
       matrix:
@@ -49,15 +49,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-24.04, macos-latest, windows-latest]
+        os: [ubuntu-26.04, macos-latest, windows-latest]
         go-version: ['1.26']
         goos: [linux, freebsd, darwin, windows]
         exclude:
           - { os: macos-latest, goos: linux }
           - { os: macos-latest, goos: freebsd }
           - { os: macos-latest, goos: windows }
-          - { os: ubuntu-24.04, goos: darwin }
-          - { os: ubuntu-24.04, goos: windows }
+          - { os: ubuntu-26.04, goos: darwin }
+          - { os: ubuntu-26.04, goos: windows }
           - { os: windows-latest, goos: linux }
           - { os: windows-latest, goos: freebsd }
           - { os: windows-latest, goos: darwin }
@@ -84,7 +84,7 @@ jobs:
         shell: bash
 
   docker-build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: docker/setup-qemu-action@v4

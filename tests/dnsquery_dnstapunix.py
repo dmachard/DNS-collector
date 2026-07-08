@@ -41,6 +41,20 @@ class ProcessProtocol(asyncio.SubprocessProtocol):
             self.proc.kill()
         except ProcessLookupError: pass
         
+def can_use_sudo():
+    try:
+        return subprocess.run(["sudo", "-n", "true"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+    except:
+        return False
+
+def get_docker_restart_cmd():
+    try:
+        if subprocess.run(["docker", "info"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+            return ["docker", "restart", "dnsserver"]
+    except:
+        pass
+    return ["sudo", "docker", "restart", "dnsserver"]
+
 class TestDnstap(unittest.TestCase):
     def test_stdout_recv(self):
         """test to receive dnstap response in stdout"""
@@ -51,12 +65,42 @@ class TestDnstap(unittest.TestCase):
 
             # run collector
             print("Starting collector with current user: ", COLLECTOR_USER)
-            args = ( "sudo", "-u", COLLECTOR_USER, "-s", "./dnscollector", "-config", "./tests/testsdata/config_stdout_dnstapunix.yml",)
+            if can_use_sudo():
+                args = ( "sudo", "-u", COLLECTOR_USER, "-s", "./dnscollector", "-config", "./tests/testsdata/config_stdout_dnstapunix.yml",)
+            else:
+                args = ( "./dnscollector", "-config", "./tests/testsdata/config_stdout_dnstapunix.yml",)
             transport_collector, protocol_collector =  await loop.subprocess_exec(lambda: ProcessProtocol(is_ready, is_clientresponse),
                                                                                        *args, stdout=asyncio.subprocess.PIPE)
 
+            # Wait for socket file to be created, then chmod 777 it
+            import os
+            import time
+            for _ in range(50):
+                if os.path.exists('/tmp/dnstap-socket/dnstap.sock'):
+                    try:
+                        if can_use_sudo():
+                            subprocess.run(["sudo", "chmod", "777", "/tmp/dnstap-socket/dnstap.sock"], check=True)
+                        else:
+                            os.chmod('/tmp/dnstap-socket/dnstap.sock', 0o777)
+                        print("Chmodded UNIX socket to 777 successfully.")
+                        break
+                    except Exception as e:
+                        print("Chmod error: ", e)
+                time.sleep(0.1)
+
             print("Restarting DNS server container...")
-            subprocess.run(["sudo", "docker", "restart", "dnsserver"], check=True)
+            subprocess.run(get_docker_restart_cmd(), check=True)
+
+            # Wait for Knot Resolver to be ready on port 5553
+            import time
+            print("Waiting for DNS server to be ready on port 5553...")
+            for _ in range(30):
+                try:
+                    my_resolver.resolve('www.github.com', 'a')
+                    print("DNS server is ready.")
+                    break
+                except Exception:
+                    time.sleep(1.0)
 
             # Trigger first batch of DNS queries
             for i in range(20):
