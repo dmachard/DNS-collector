@@ -101,7 +101,7 @@ jobs:
     - name: Make Binary Executable
       run: chmod +x dnscollector
 
-    - uses: actions/setup-python@v6
+    - uses: actions/setup-python@v7
       with:
         python-version: "${{ env.PYTHON_VERSION }}"
 
