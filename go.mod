@@ -12,7 +12,7 @@ require (
 	github.com/dmachard/go-framestream v1.7.0
 	github.com/dmachard/go-logger v1.2.0
 	github.com/dmachard/go-netutils v1.9.1
-	github.com/dmachard/go-powerdns-protobuf v1.6.1
+	github.com/dmachard/go-powerdns-protobuf v1.7.0
 	github.com/dmachard/go-topmap v1.0.3
 	github.com/eclipse/paho.mqtt.golang v1.5.1
 	github.com/farsightsec/golang-framestream v0.3.0
