@@ -218,7 +218,7 @@ func DecodePayload(dm *DNSMessage, header *DNSHeader, config *pkgconfig.Config) 
 
 	// decode DNS answers
 	if header.Ancount > 0 {
-		answers, offset, err := DecodeAnswer(header.Ancount, payloadOffset, dm.DNS.Payload)
+		answers, offset, err := DecodeAnswerInto(dm.DNS.DNSRRs.Answers, header.Ancount, payloadOffset, dm.DNS.Payload)
 		if err == nil { // nolint
 			dm.DNS.DNSRRs.Answers = answers
 			payloadOffset = offset
@@ -234,7 +234,7 @@ func DecodePayload(dm *DNSMessage, header *DNSHeader, config *pkgconfig.Config) 
 
 	// decode authoritative answers
 	if header.Nscount > 0 {
-		answers, offsetrr, err := DecodeAnswer(header.Nscount, payloadOffset, dm.DNS.Payload)
+		answers, offsetrr, err := DecodeAnswerInto(dm.DNS.DNSRRs.Nameservers, header.Nscount, payloadOffset, dm.DNS.Payload)
 		if err == nil { // nolint
 			dm.DNS.DNSRRs.Nameservers = answers
 			payloadOffset = offsetrr
@@ -250,7 +250,7 @@ func DecodePayload(dm *DNSMessage, header *DNSHeader, config *pkgconfig.Config) 
 
 	// decode additional answers
 	if header.Arcount > 0 {
-		answers, _, err := DecodeAnswer(header.Arcount, payloadOffset, dm.DNS.Payload)
+		answers, _, err := DecodeAnswerInto(dm.DNS.DNSRRs.Records, header.Arcount, payloadOffset, dm.DNS.Payload)
 		if err == nil { // nolint
 			dm.DNS.DNSRRs.Records = answers
 		} else if dm.DNS.Flags.TC && (errors.Is(err, ErrDecodeDNSAnswerTooShort) || errors.Is(err, ErrDecodeDNSAnswerRdataTooShort) || errors.Is(err, ErrDecodeDNSLabelTooShort)) {
@@ -260,6 +260,7 @@ func DecodePayload(dm *DNSMessage, header *DNSHeader, config *pkgconfig.Config) 
 			dm.DNS.MalformedPacket = true
 			return &decodingError{part: "additional records", err: err}
 		}
+
 		// decode EDNS options, if there are any
 		edns, _, err := DecodeEDNS(header.Arcount, payloadOffset, dm.DNS.Payload)
 		if err == nil { // nolint
@@ -360,8 +361,17 @@ PTR can be used on NAME for compression
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 */
 func DecodeAnswer(ancount int, startOffset int, payload []byte) ([]DNSAnswer, int, error) {
+	return DecodeAnswerInto(nil, ancount, startOffset, payload)
+}
+
+func DecodeAnswerInto(buf []DNSAnswer, ancount int, startOffset int, payload []byte) ([]DNSAnswer, int, error) {
 	offset := startOffset
-	answers := make([]DNSAnswer, 0, ancount)
+	var answers []DNSAnswer
+	if cap(buf) >= ancount {
+		answers = buf[:0]
+	} else {
+		answers = make([]DNSAnswer, 0, ancount)
+	}
 	var rdataString string
 
 	for i := 0; i < ancount; i++ {
