@@ -404,7 +404,7 @@ func DecodeAnswer(ancount int, startOffset int, payload []byte) ([]DNSAnswer, in
 		if int(rdlength) == 0 && len(rdata) == 0 {
 			rdataString = ""
 		} else {
-			rdataString, err = ParseRdata(rdatatype, rdata, payload, offsetNext+10, true)
+			rdataString, err = ParseRdata(int(t), rdata, payload, offsetNext+10, true)
 			if err != nil {
 				return answers, offset, err
 			}
@@ -525,29 +525,29 @@ func ParseLabels(offset int, payload []byte, allowCompression bool) (string, int
 	return string(nameBuffer), endOffset, nil
 }
 
-func ParseRdata(rdatatype string, rdata []byte, payload []byte, rdataOffset int, allowCompression bool) (string, error) {
+func ParseRdata(rrtype int, rdata []byte, payload []byte, rdataOffset int, allowCompression bool) (string, error) {
 	var ret string
 	var err error
-	switch rdatatype {
-	case "A":
+	switch rrtype {
+	case 1: // A
 		ret, err = ParseIP(rdata, net.IPv4len)
-	case "AAAA":
+	case 28: // AAAA
 		ret, err = ParseIP(rdata, net.IPv6len)
-	case "CNAME":
+	case 5: // CNAME
 		ret, err = ParseCNAME(rdataOffset, payload, allowCompression)
-	case "MX":
+	case 15: // MX
 		ret, err = ParseMX(rdataOffset, payload, allowCompression)
-	case "SRV":
+	case 33: // SRV
 		ret, err = ParseSRV(rdataOffset, payload, allowCompression)
-	case "NS":
+	case 2: // NS
 		ret, err = ParseNS(rdataOffset, payload, allowCompression)
-	case "TXT":
+	case 16: // TXT
 		ret, err = ParseTXT(rdata)
-	case "PTR":
+	case 12: // PTR
 		ret, err = ParsePTR(rdataOffset, payload, allowCompression)
-	case "SOA":
+	case 6: // SOA
 		ret, err = ParseSOA(rdataOffset, payload, allowCompression)
-	case "HTTPS", "SVCB":
+	case 64, 65: // SVCB, HTTPS
 		ret, err = ParseSVCB(rdata)
 	default:
 		ret = "-"

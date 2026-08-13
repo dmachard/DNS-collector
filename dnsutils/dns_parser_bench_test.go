@@ -68,7 +68,7 @@ func BenchmarkParseRdata_TypeA(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_, _ = ParseRdata("A", rdata, nil, 0, false)
+		_, _ = ParseRdata(1, rdata, nil, 0, false)
 	}
 }
 
@@ -77,7 +77,7 @@ func BenchmarkParseRdata_TypeAAAA(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_, _ = ParseRdata("AAAA", rdata, nil, 0, false)
+		_, _ = ParseRdata(28, rdata, nil, 0, false)
 	}
 }
 
