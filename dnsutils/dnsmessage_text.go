@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"log"
 	"regexp"
 	"strconv"
@@ -406,11 +405,11 @@ func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBo
 		case directive == "timestamp-rfc3339ns", directive == "timestamp":
 			s.WriteString(dm.DNSTap.TimestampRFC3339)
 		case directive == "timestamp-unixms":
-			fmt.Fprintf(s, "%d", dm.DNSTap.Timestamp/1000000)
+			s.WriteString(strconv.FormatInt(dm.DNSTap.Timestamp/1000000, 10))
 		case directive == "timestamp-unixus":
-			fmt.Fprintf(s, "%d", dm.DNSTap.Timestamp/1000)
+			s.WriteString(strconv.FormatInt(dm.DNSTap.Timestamp/1000, 10))
 		case directive == "timestamp-unixns":
-			fmt.Fprintf(s, "%d", dm.DNSTap.Timestamp)
+			s.WriteString(strconv.FormatInt(dm.DNSTap.Timestamp, 10))
 		case directive == "localtime":
 			ts := time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec))
 			s.WriteString(ts.Format("2006-01-02 15:04:05.999999999"))
@@ -473,7 +472,8 @@ func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBo
 		case directive == "protocol":
 			s.WriteString(dm.NetworkInfo.Protocol)
 		case directive == "length-unit":
-			s.WriteString(strconv.Itoa(dm.DNS.Length) + "b")
+			s.WriteString(strconv.Itoa(dm.DNS.Length))
+			s.WriteString("b")
 		case directive == "length":
 			s.WriteString(strconv.Itoa(dm.DNS.Length))
 		case directive == "qtype":
@@ -484,13 +484,13 @@ func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBo
 			if dm.DNS.Type == DNSQuery {
 				s.WriteByte('-')
 			} else {
-				fmt.Fprintf(s, "%.9f", dm.DNSTap.Latency)
+				s.WriteString(strconv.FormatFloat(dm.DNSTap.Latency, 'f', 9, 64))
 			}
 		case directive == "latency_ms":
 			if dm.DNS.Type == DNSQuery {
 				s.WriteByte('-')
 			} else {
-				fmt.Fprintf(s, "%d", dm.DNSTap.LatencyMs)
+				s.WriteString(strconv.Itoa(dm.DNSTap.LatencyMs))
 			}
 		case directive == "malformed":
 			if dm.DNS.MalformedPacket {

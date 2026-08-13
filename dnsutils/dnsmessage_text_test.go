@@ -3,44 +3,10 @@ package dnsutils
 import (
 	"bytes"
 	"strings"
-	sync "sync"
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
 )
-
-var textBufferPool = sync.Pool{
-	New: func() interface{} {
-		return bytes.NewBuffer(make([]byte, 0, 512))
-	},
-}
-
-func BenchmarkDnsMessage_ToTextFormat(b *testing.B) {
-	dm := DNSMessage{}
-	dm.Init()
-	dm.InitTransforms()
-
-	textFormat := []string{
-		"timestamp-rfc3339ns", "identity",
-		"operation", "rcode", "queryip", "queryport", "family",
-		"protocol", "length-unit", "qname", "qtype", "latency", "latency_ms",
-	}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		// Get a buffer from the pool
-		buf := textBufferPool.Get().(*bytes.Buffer)
-		buf.Reset()
-
-		err := dm.ToTextLine(textFormat, " ", "\"", buf)
-		if err != nil {
-			b.Fatalf("could not encode to text format: %v\n", err)
-		}
-
-		// return the buffer to the pool
-		textBufferPool.Put(buf)
-	}
-}
 
 // Tests for TEXT format
 func TestDnsMessage_TextFormat_ToString(t *testing.T) {
