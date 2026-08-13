@@ -242,7 +242,7 @@ Protocol mapping:
 
 ### Comparison Guide: JSON vs. Flat JSON
 
-- **Choose `json` (Nested)** if you want **maximum Go application throughput** (~13x faster generation in Go) and your consuming application natively supports nested JSON objects.
+- **Choose `json` (Nested)** if you want **maximum Go application throughput** (~3.4x faster generation in Go) and your consuming application natively supports nested JSON objects.
 - **Choose `flat-json`** if you are streaming logs to indexing and analytics engines like **Elasticsearch, Loki, OpenSearch, ClickHouse, or Grafana**. Flat JSON converts all fields to a single 1-level key-value format (e.g. `"dns.flags.aa": false`), making indexing, aggregation, and dashboard querying significantly faster and easier downstream.
 
 ## Data Encoding and UTF-8
