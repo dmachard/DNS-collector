@@ -81,34 +81,37 @@ func BenchmarkParseRdata_TypeAAAA(b *testing.B) {
 	}
 }
 
-var exampleDNSPacket = []byte{
-	0x12, 0x34, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-	// Question: example.com
-	0x07, 'e', 'x', 'a', 'm', 'p', 'l', 'e', 0x03, 'c', 'o', 'm', 0x00,
-	0x00, 0x01, 0x00, 0x01,
-	// Answer: example.com (pointer) -> A -> 60s -> 4 bytes
-	0xc0, 0x0c, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x3c, 0x00, 0x04, 0x5d, 0xb8, 0xd8, 0x22,
-}
 var resultMsg *DNSMessage
 
 func BenchmarkCustomDecodeDNS(b *testing.B) {
+	pkt, err := GetDNSResponsePacket()
+	if err != nil {
+		b.Fatalf("failed to pack DNS response: %v", err)
+	}
 	config := &pkgconfig.Config{}
 	dm := &DNSMessage{}
-	dm.DNS.Payload = exampleDNSPacket
+	dm.DNS.Payload = pkt
 
 	b.ResetTimer()
+	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		header, _ := DecodeDNS(exampleDNSPacket)
+		header, _ := DecodeDNS(pkt)
 		_ = DecodePayload(dm, &header, config)
 		resultMsg = dm
 	}
 }
 
 func BenchmarkMiekgDecodeDNS(b *testing.B) {
+	pkt, err := GetDNSResponsePacket()
+	if err != nil {
+		b.Fatalf("failed to pack DNS response: %v", err)
+	}
 	msg := new(dns.Msg)
+
 	b.ResetTimer()
+	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		if err := msg.Unpack(exampleDNSPacket); err != nil {
+		if err := msg.Unpack(pkt); err != nil {
 			b.Fatal(err)
 		}
 	}
