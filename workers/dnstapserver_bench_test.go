@@ -14,10 +14,11 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func Benchmark_DNSTapProcessor(b *testing.B) {
+func benchmarkDNSTapProcessorWithWorkers(b *testing.B, numWorkers int) {
 	config := pkgconfig.GetDefaultConfig()
 	config.Collectors.Dnstap.DisableDNSParser = false
 	config.Collectors.Dnstap.ChannelBufferSize = 65536
+	config.Collectors.Dnstap.NumWorkers = numWorkers
 
 	devNull := NewDevNull(config, logger.New(false), "devnull")
 	go devNull.StartCollect()
@@ -47,6 +48,22 @@ func Benchmark_DNSTapProcessor(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		dataChan <- data
 	}
+}
+
+func Benchmark_DNSTapProcessor(b *testing.B) {
+	benchmarkDNSTapProcessorWithWorkers(b, 0)
+}
+
+func Benchmark_DNSTapProcessor_MonoThread(b *testing.B) {
+	benchmarkDNSTapProcessorWithWorkers(b, 0)
+}
+
+func Benchmark_DNSTapProcessor_WorkerPool_4(b *testing.B) {
+	benchmarkDNSTapProcessorWithWorkers(b, 4)
+}
+
+func Benchmark_DNSTapProcessor_WorkerPool_8(b *testing.B) {
+	benchmarkDNSTapProcessorWithWorkers(b, 8)
 }
 
 func Test_DNSTapProcessor_FramestreamBehavior(t *testing.T) {

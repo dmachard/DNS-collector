@@ -45,6 +45,11 @@ Options:
   > Specifies the maximum number of packets that can be buffered before discard additional packets.
   > Set to zero to use the default global value.
 
+* `num-workers` (int)
+  > Specifies the number of worker goroutines for parallel frame processing per connection.
+  > Set to zero (default) to run single-threaded per connection, which guarantees strict packet ordering and is optimal for typical workloads.
+  > Enabling worker threads (e.g. `num-workers: 4` or `8`) is recommended for high-throughput DNS servers/resolvers sending massive traffic over a single socket (>500k pkts/sec) to distribute processing across multiple CPU cores.
+
 * `disable-dnsparser"` (bool)
   > Disable the minimalist DNS parser. Some JSON keys should not be available, such as `dns.id`, `dns.flags`, ...
 
@@ -72,6 +77,7 @@ Defaults:
     sock-read-buffer-size: 65536
     reset-conn: true
     chan-buffer-size: 0
+    num-workers: 0
     disable-dnsparser: true
     extended-support: false
     compression: none

@@ -320,271 +320,331 @@ func (w *DNSTapProcessor) StartCollect() {
 	w.LogInfo("starting data collection")
 	defer w.CollectDone()
 
-	dt := &dnstap.Dnstap{}
-	edt := &dnsutils.ExtendedDnstap{}
-
 	// prepare next channels
 	defaultRoutes, defaultNames := GetRoutes(w.GetDefaultRoutes())
 	droppedRoutes, droppedNames := GetRoutes(w.GetDroppedRoutes())
 
-	// prepare enabled transformers
-	transforms := transformers.NewTransforms(&w.GetConfig().IngoingTransformers, w.GetLogger(), w.GetName(), defaultRoutes, w.ConnID)
+	numWorkers := w.GetConfig().Collectors.Dnstap.NumWorkers
+	if numWorkers > 0 {
+		var wg sync.WaitGroup
+		workerCfgChans := make([]chan *pkgconfig.Config, numWorkers)
 
-	// read incoming dns message
-	for {
-		select {
-		case cfg := <-w.NewConfig():
-			w.SetConfig(cfg)
-			transforms.ReloadConfig(&cfg.IngoingTransformers)
+		for i := 0; i < numWorkers; i++ {
+			cfgChan := make(chan *pkgconfig.Config, 10)
+			workerCfgChans[i] = cfgChan
+			wg.Add(1)
 
-		case <-w.OnStop():
-			transforms.Reset()
-			close(w.GetDataChannel())
-			return
+			go func(cChan chan *pkgconfig.Config) {
+				defer wg.Done()
 
-		case data, opened := <-w.GetDataChannel():
-			if !opened {
-				w.LogInfo("channel closed, exit")
+				dt := &dnstap.Dnstap{}
+				edt := &dnsutils.ExtendedDnstap{}
+				transforms := transformers.NewTransforms(&w.GetConfig().IngoingTransformers, w.GetLogger(), w.GetName(), defaultRoutes, w.ConnID)
+
+				for {
+					select {
+					case cfg := <-cChan:
+						transforms.ReloadConfig(&cfg.IngoingTransformers)
+
+					case data, opened := <-w.GetDataChannel():
+						if !opened {
+							transforms.Reset()
+							return
+						}
+						w.processFrame(data, dt, edt, &transforms, defaultRoutes, defaultNames, droppedRoutes, droppedNames)
+					}
+				}
+			}(cfgChan)
+		}
+
+		for {
+			select {
+			case cfg := <-w.NewConfig():
+				w.SetConfig(cfg)
+				for _, ch := range workerCfgChans {
+					ch <- cfg
+				}
+
+			case <-w.OnStop():
+				close(w.GetDataChannel())
+				wg.Wait()
 				return
 			}
-			// count global messages
-			w.CountIngressTraffic()
+		}
+	} else {
+		dt := &dnstap.Dnstap{}
+		edt := &dnsutils.ExtendedDnstap{}
+		transforms := transformers.NewTransforms(&w.GetConfig().IngoingTransformers, w.GetLogger(), w.GetName(), defaultRoutes, w.ConnID)
 
-			err := proto.Unmarshal(data, dt)
-			if err != nil {
-				continue
-			}
+		// read incoming dns message
+		for {
+			select {
+			case cfg := <-w.NewConfig():
+				w.SetConfig(cfg)
+				transforms.ReloadConfig(&cfg.IngoingTransformers)
 
-			// init dns message
-			dm := dnsutils.DNSMessage{}
-			dm.Init()
+			case <-w.OnStop():
+				transforms.Reset()
+				close(w.GetDataChannel())
+				return
 
-			dm.DNSTap.PeerName = w.PeerName
-
-			// init dns message with additional parts
-			identity := dt.GetIdentity()
-			if len(identity) > 0 {
-				dm.DNSTap.Identity = string(identity)
-			}
-
-			version := dt.GetVersion()
-			if len(version) > 0 {
-				dm.DNSTap.Version = string(version)
-			}
-
-			msgType := dt.GetMessage().GetType()
-			dm.DNSTap.Operation = msgType.String()
-
-			// extended extra field ?
-			if w.GetConfig().Collectors.Dnstap.ExtendedSupport {
-				err := proto.Unmarshal(dt.GetExtra(), edt)
-				if err != nil {
-					continue
+			case data, opened := <-w.GetDataChannel():
+				if !opened {
+					w.LogInfo("channel closed, exit")
+					return
 				}
-
-				// get original extra value
-				originalExtra := string(edt.GetOriginalDnstapExtra())
-				if len(originalExtra) > 0 {
-					dm.DNSTap.Extra = originalExtra
-				}
-
-				// get atags
-				atags := edt.GetAtags()
-				if atags != nil {
-					dm.ATags = &dnsutils.TransformATags{
-						Tags: atags.GetTags(),
-					}
-				}
-
-				// get public suffix
-				norm := edt.GetNormalize()
-				if norm != nil {
-					dm.PublicSuffix = &dnsutils.TransformPublicSuffix{}
-					if len(norm.GetTld()) > 0 {
-						dm.PublicSuffix.QnamePublicSuffix = norm.GetTld()
-					}
-					if len(norm.GetEtldPlusOne()) > 0 {
-						dm.PublicSuffix.QnameEffectiveTLDPlusOne = norm.GetEtldPlusOne()
-					}
-				}
-
-				// filtering
-				sampleRate := edt.GetFiltering()
-				if sampleRate != nil {
-					dm.Filtering = &dnsutils.TransformFiltering{}
-					dm.Filtering.SampleRate = int(sampleRate.SampleRate)
-				}
-			} else {
-				extra := string(dt.GetExtra())
-				if len(extra) > 0 {
-					dm.DNSTap.Extra = extra
-				}
+				w.processFrame(data, dt, edt, &transforms, defaultRoutes, defaultNames, droppedRoutes, droppedNames)
 			}
-
-			switch dt.GetMessage().GetSocketFamily() {
-			case dnstap.SocketFamily_INET:
-				dm.NetworkInfo.Family = "INET"
-			case dnstap.SocketFamily_INET6:
-				dm.NetworkInfo.Family = "INET6"
-			default:
-				dm.NetworkInfo.Family = pkgconfig.StrUnknown
-			}
-
-			switch dt.GetMessage().GetSocketProtocol() {
-			case dnstap.SocketProtocol_UDP:
-				dm.NetworkInfo.Protocol = "UDP"
-			case dnstap.SocketProtocol_TCP:
-				dm.NetworkInfo.Protocol = "TCP"
-			case dnstap.SocketProtocol_DOT:
-				dm.NetworkInfo.Protocol = "DOT"
-			case dnstap.SocketProtocol_DOH:
-				dm.NetworkInfo.Protocol = "DOH"
-			case dnstap.SocketProtocol_DNSCryptUDP:
-				dm.NetworkInfo.Protocol = "DNSCryptUDP"
-			case dnstap.SocketProtocol_DNSCryptTCP:
-				dm.NetworkInfo.Protocol = "DNSCryptTCP"
-			case dnstap.SocketProtocol_DOQ:
-				dm.NetworkInfo.Protocol = "DOQ"
-			default:
-				dm.NetworkInfo.Protocol = pkgconfig.StrUnknown
-			}
-
-			// decode query address and port
-			queryip := dt.GetMessage().GetQueryAddress()
-			if len(queryip) > 0 {
-				dm.NetworkInfo.QueryIP = net.IP(queryip).String()
-			}
-			queryport := dt.GetMessage().GetQueryPort()
-			if queryport > 0 {
-				dm.NetworkInfo.QueryPort = strconv.FormatUint(uint64(queryport), 10)
-			}
-
-			// decode response address and port
-			responseip := dt.GetMessage().GetResponseAddress()
-			if len(responseip) > 0 {
-				dm.NetworkInfo.ResponseIP = net.IP(responseip).String()
-			}
-			responseport := dt.GetMessage().GetResponsePort()
-			if responseport > 0 {
-				dm.NetworkInfo.ResponsePort = strconv.FormatUint(uint64(responseport), 10)
-			}
-
-			// get dns payload and timestamp according to the type (query or response)
-			op := int(msgType)
-			if op%2 == 1 {
-				dnsPayload := dt.GetMessage().GetQueryMessage()
-				dm.DNS.Payload = dnsPayload
-				dm.DNS.Length = len(dnsPayload)
-				dm.DNS.Type = dnsutils.DNSQuery
-				dm.DNSTap.TimeSec = int(dt.GetMessage().GetQueryTimeSec())
-				dm.DNSTap.TimeNsec = int(dt.GetMessage().GetQueryTimeNsec())
-			} else {
-				dnsPayload := dt.GetMessage().GetResponseMessage()
-				dm.DNS.Payload = dnsPayload
-				dm.DNS.Length = len(dnsPayload)
-				dm.DNS.Type = dnsutils.DNSReply
-				dm.DNSTap.TimeSec = int(dt.GetMessage().GetResponseTimeSec())
-				dm.DNSTap.TimeNsec = int(dt.GetMessage().GetResponseTimeNsec())
-
-				tsQuery := float64(dt.GetMessage().GetQueryTimeSec()) + float64(dt.GetMessage().GetQueryTimeNsec())/1e9
-				tsReply := float64(dt.GetMessage().GetResponseTimeSec()) + float64(dt.GetMessage().GetResponseTimeNsec())/1e9
-
-				// compute latency
-				if tsQuery != 0 && tsReply >= tsQuery {
-					dm.DNSTap.Latency = tsReply - tsQuery
-					dm.DNSTap.LatencyMs = int((tsReply - tsQuery) * 1000)
-				}
-			}
-
-			// policy
-			policyType := dt.GetMessage().GetPolicy().GetType()
-			if len(policyType) > 0 {
-				dm.DNSTap.PolicyType = policyType
-			}
-
-			policyRule := string(dt.GetMessage().GetPolicy().GetRule())
-			if len(policyRule) > 0 {
-				dm.DNSTap.PolicyRule = policyRule
-			}
-
-			policyAction := dt.GetMessage().GetPolicy().GetAction().String()
-			if len(policyAction) > 0 {
-				dm.DNSTap.PolicyAction = policyAction
-			}
-
-			policyMatch := dt.GetMessage().GetPolicy().GetMatch().String()
-			if len(policyMatch) > 0 {
-				dm.DNSTap.PolicyMatch = policyMatch
-			}
-
-			policyValue := string(dt.GetMessage().GetPolicy().GetValue())
-			if len(policyValue) > 0 {
-				dm.DNSTap.PolicyValue = policyValue
-			}
-
-			// get http protocol
-			httpProtocol := dt.GetMessage().GetHttpProtocol().String()
-			if len(httpProtocol) > 0 {
-				dm.DNSTap.HttpProtocol = httpProtocol
-			}
-
-			// decode query zone if provided
-			queryZone := dt.GetMessage().GetQueryZone()
-			if len(queryZone) > 0 {
-				qz, _, err := dnsutils.ParseLabels(0, queryZone, true)
-				if err != nil {
-					w.LogError("invalid query zone: %v - %v", err, queryZone)
-				}
-				dm.DNSTap.QueryZone = qz
-			}
-
-			// compute timestamp
-			ts := time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec))
-			dm.DNSTap.Timestamp = ts.UnixNano()
-			dm.DNSTap.TimestampRFC3339 = ts.UTC().Format(time.RFC3339Nano)
-
-			// decode payload if provided
-			if !w.GetConfig().Collectors.Dnstap.DisableDNSParser && len(dm.DNS.Payload) > 0 {
-				dnsHeader, err := dnsutils.DecodeDNS(dm.DNS.Payload)
-				if err != nil {
-					dm.DNS.MalformedPacket = true
-					if w.GetConfig().Global.Trace.LogMalformed {
-						w.LogWarning("dns header parser stopped: %s", err)
-						w.LogWarning("dump dns packet: %v", dm)
-						w.LogWarning("dump dns payload: %v", dm.DNS.Payload)
-					}
-				}
-
-				dm.DNS.QdCount = dnsHeader.Qdcount
-				dm.DNS.AnCount = dnsHeader.Ancount
-				dm.DNS.ArCount = dnsHeader.Arcount
-				dm.DNS.NsCount = dnsHeader.Nscount
-
-				if err = dnsutils.DecodePayload(&dm, &dnsHeader, w.GetConfig()); err != nil {
-					dm.DNS.MalformedPacket = true
-					if w.GetConfig().Global.Trace.LogMalformed {
-						w.LogWarning("dns payload parser stopped: %s", err)
-						w.LogWarning("dump dns packet: %v", dm)
-						w.LogWarning("dump dns payload: %v", dm.DNS.Payload)
-					}
-				}
-			}
-
-			// count output packets
-			w.CountEgressTraffic()
-
-			// apply all enabled transformers
-			transformResult, err := transforms.ProcessMessage(&dm)
-			if err != nil {
-				w.LogError(err.Error())
-			}
-			if transformResult == transformers.ReturnDrop {
-				w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-				continue
-			}
-
-			// dispatch dns message to connected routes
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
 		}
 	}
+}
+
+func (w *DNSTapProcessor) processFrame(
+	data []byte,
+	dt *dnstap.Dnstap,
+	edt *dnsutils.ExtendedDnstap,
+	transforms *transformers.Transforms,
+	defaultRoutes []chan dnsutils.DNSMessage,
+	defaultNames []string,
+	droppedRoutes []chan dnsutils.DNSMessage,
+	droppedNames []string,
+) {
+	// count global messages
+	w.CountIngressTraffic()
+
+	err := proto.Unmarshal(data, dt)
+	if err != nil {
+		return
+	}
+
+	// init dns message
+	dm := dnsutils.DNSMessage{}
+	dm.Init()
+
+	dm.DNSTap.PeerName = w.PeerName
+
+	// init dns message with additional parts
+	identity := dt.GetIdentity()
+	if len(identity) > 0 {
+		dm.DNSTap.Identity = string(identity)
+	}
+
+	version := dt.GetVersion()
+	if len(version) > 0 {
+		dm.DNSTap.Version = string(version)
+	}
+
+	msgType := dt.GetMessage().GetType()
+	dm.DNSTap.Operation = msgType.String()
+
+	// extended extra field ?
+	if w.GetConfig().Collectors.Dnstap.ExtendedSupport {
+		err := proto.Unmarshal(dt.GetExtra(), edt)
+		if err != nil {
+			return
+		}
+
+		// get original extra value
+		originalExtra := string(edt.GetOriginalDnstapExtra())
+		if len(originalExtra) > 0 {
+			dm.DNSTap.Extra = originalExtra
+		}
+
+		// get atags
+		atags := edt.GetAtags()
+		if atags != nil {
+			dm.ATags = &dnsutils.TransformATags{
+				Tags: atags.GetTags(),
+			}
+		}
+
+		// get public suffix
+		norm := edt.GetNormalize()
+		if norm != nil {
+			dm.PublicSuffix = &dnsutils.TransformPublicSuffix{}
+			if len(norm.GetTld()) > 0 {
+				dm.PublicSuffix.QnamePublicSuffix = norm.GetTld()
+			}
+			if len(norm.GetEtldPlusOne()) > 0 {
+				dm.PublicSuffix.QnameEffectiveTLDPlusOne = norm.GetEtldPlusOne()
+			}
+		}
+
+		// filtering
+		sampleRate := edt.GetFiltering()
+		if sampleRate != nil {
+			dm.Filtering = &dnsutils.TransformFiltering{}
+			dm.Filtering.SampleRate = int(sampleRate.SampleRate)
+		}
+	} else {
+		extra := string(dt.GetExtra())
+		if len(extra) > 0 {
+			dm.DNSTap.Extra = extra
+		}
+	}
+
+	switch dt.GetMessage().GetSocketFamily() {
+	case dnstap.SocketFamily_INET:
+		dm.NetworkInfo.Family = "INET"
+	case dnstap.SocketFamily_INET6:
+		dm.NetworkInfo.Family = "INET6"
+	default:
+		dm.NetworkInfo.Family = pkgconfig.StrUnknown
+	}
+
+	switch dt.GetMessage().GetSocketProtocol() {
+	case dnstap.SocketProtocol_UDP:
+		dm.NetworkInfo.Protocol = "UDP"
+	case dnstap.SocketProtocol_TCP:
+		dm.NetworkInfo.Protocol = "TCP"
+	case dnstap.SocketProtocol_DOT:
+		dm.NetworkInfo.Protocol = "DOT"
+	case dnstap.SocketProtocol_DOH:
+		dm.NetworkInfo.Protocol = "DOH"
+	case dnstap.SocketProtocol_DNSCryptUDP:
+		dm.NetworkInfo.Protocol = "DNSCryptUDP"
+	case dnstap.SocketProtocol_DNSCryptTCP:
+		dm.NetworkInfo.Protocol = "DNSCryptTCP"
+	case dnstap.SocketProtocol_DOQ:
+		dm.NetworkInfo.Protocol = "DOQ"
+	default:
+		dm.NetworkInfo.Protocol = pkgconfig.StrUnknown
+	}
+
+	// decode query address and port
+	queryip := dt.GetMessage().GetQueryAddress()
+	if len(queryip) > 0 {
+		dm.NetworkInfo.QueryIP = net.IP(queryip).String()
+	}
+	queryport := dt.GetMessage().GetQueryPort()
+	if queryport > 0 {
+		dm.NetworkInfo.QueryPort = strconv.FormatUint(uint64(queryport), 10)
+	}
+
+	// decode response address and port
+	responseip := dt.GetMessage().GetResponseAddress()
+	if len(responseip) > 0 {
+		dm.NetworkInfo.ResponseIP = net.IP(responseip).String()
+	}
+	responseport := dt.GetMessage().GetResponsePort()
+	if responseport > 0 {
+		dm.NetworkInfo.ResponsePort = strconv.FormatUint(uint64(responseport), 10)
+	}
+
+	// get dns payload and timestamp according to the type (query or response)
+	op := int(msgType)
+	if op%2 == 1 {
+		dnsPayload := dt.GetMessage().GetQueryMessage()
+		dm.DNS.Payload = dnsPayload
+		dm.DNS.Length = len(dnsPayload)
+		dm.DNS.Type = dnsutils.DNSQuery
+		dm.DNSTap.TimeSec = int(dt.GetMessage().GetQueryTimeSec())
+		dm.DNSTap.TimeNsec = int(dt.GetMessage().GetQueryTimeNsec())
+	} else {
+		dnsPayload := dt.GetMessage().GetResponseMessage()
+		dm.DNS.Payload = dnsPayload
+		dm.DNS.Length = len(dnsPayload)
+		dm.DNS.Type = dnsutils.DNSReply
+		dm.DNSTap.TimeSec = int(dt.GetMessage().GetResponseTimeSec())
+		dm.DNSTap.TimeNsec = int(dt.GetMessage().GetResponseTimeNsec())
+
+		tsQuery := float64(dt.GetMessage().GetQueryTimeSec()) + float64(dt.GetMessage().GetQueryTimeNsec())/1e9
+		tsReply := float64(dt.GetMessage().GetResponseTimeSec()) + float64(dt.GetMessage().GetResponseTimeNsec())/1e9
+
+		// compute latency
+		if tsQuery != 0 && tsReply >= tsQuery {
+			dm.DNSTap.Latency = tsReply - tsQuery
+			dm.DNSTap.LatencyMs = int((tsReply - tsQuery) * 1000)
+		}
+	}
+
+	// policy
+	policyType := dt.GetMessage().GetPolicy().GetType()
+	if len(policyType) > 0 {
+		dm.DNSTap.PolicyType = policyType
+	}
+
+	policyRule := string(dt.GetMessage().GetPolicy().GetRule())
+	if len(policyRule) > 0 {
+		dm.DNSTap.PolicyRule = policyRule
+	}
+
+	policyAction := dt.GetMessage().GetPolicy().GetAction().String()
+	if len(policyAction) > 0 {
+		dm.DNSTap.PolicyAction = policyAction
+	}
+
+	policyMatch := dt.GetMessage().GetPolicy().GetMatch().String()
+	if len(policyMatch) > 0 {
+		dm.DNSTap.PolicyMatch = policyMatch
+	}
+
+	policyValue := string(dt.GetMessage().GetPolicy().GetValue())
+	if len(policyValue) > 0 {
+		dm.DNSTap.PolicyValue = policyValue
+	}
+
+	// get http protocol
+	httpProtocol := dt.GetMessage().GetHttpProtocol().String()
+	if len(httpProtocol) > 0 {
+		dm.DNSTap.HttpProtocol = httpProtocol
+	}
+
+	// decode query zone if provided
+	queryZone := dt.GetMessage().GetQueryZone()
+	if len(queryZone) > 0 {
+		qz, _, err := dnsutils.ParseLabels(0, queryZone, true)
+		if err != nil {
+			w.LogError("invalid query zone: %v - %v", err, queryZone)
+		}
+		dm.DNSTap.QueryZone = qz
+	}
+
+	// compute timestamp
+	ts := time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec))
+	dm.DNSTap.Timestamp = ts.UnixNano()
+	dm.DNSTap.TimestampRFC3339 = ts.UTC().Format(time.RFC3339Nano)
+
+	// decode payload if provided
+	if !w.GetConfig().Collectors.Dnstap.DisableDNSParser && len(dm.DNS.Payload) > 0 {
+		dnsHeader, err := dnsutils.DecodeDNS(dm.DNS.Payload)
+		if err != nil {
+			dm.DNS.MalformedPacket = true
+			if w.GetConfig().Global.Trace.LogMalformed {
+				w.LogWarning("dns header parser stopped: %s", err)
+				w.LogWarning("dump dns packet: %v", dm)
+				w.LogWarning("dump dns payload: %v", dm.DNS.Payload)
+			}
+		}
+
+		dm.DNS.QdCount = dnsHeader.Qdcount
+		dm.DNS.AnCount = dnsHeader.Ancount
+		dm.DNS.ArCount = dnsHeader.Arcount
+		dm.DNS.NsCount = dnsHeader.Nscount
+
+		if err = dnsutils.DecodePayload(&dm, &dnsHeader, w.GetConfig()); err != nil {
+			dm.DNS.MalformedPacket = true
+			if w.GetConfig().Global.Trace.LogMalformed {
+				w.LogWarning("dns payload parser stopped: %s", err)
+				w.LogWarning("dump dns packet: %v", dm)
+				w.LogWarning("dump dns payload: %v", dm.DNS.Payload)
+			}
+		}
+	}
+
+	// count output packets
+	w.CountEgressTraffic()
+
+	// apply all enabled transformers
+	transformResult, err := transforms.ProcessMessage(&dm)
+	if err != nil {
+		w.LogError(err.Error())
+	}
+	if transformResult == transformers.ReturnDrop {
+		w.SendDroppedTo(droppedRoutes, droppedNames, dm)
+		return
+	}
+
+	// dispatch dns message to connected routes
+	w.SendForwardedTo(defaultRoutes, defaultNames, dm)
 }
