@@ -620,6 +620,70 @@ func ParseIP(r []byte, size int) (string, error) {
 	if len(r) < size {
 		return "", ErrDecodeDNSAnswerRdataTooShort
 	}
+	if size == 4 {
+		b0, b1, b2, b3 := r[0], r[1], r[2], r[3]
+		var buf [15]byte
+		n := 0
+		if b0 >= 100 {
+			buf[n] = b0/100 + '0'
+			n++
+			b0 %= 100
+			buf[n] = b0/10 + '0'
+			n++
+		} else if b0 >= 10 {
+			buf[n] = b0/10 + '0'
+			n++
+		}
+		buf[n] = b0%10 + '0'
+		n++
+		buf[n] = '.'
+		n++
+
+		if b1 >= 100 {
+			buf[n] = b1/100 + '0'
+			n++
+			b1 %= 100
+			buf[n] = b1/10 + '0'
+			n++
+		} else if b1 >= 10 {
+			buf[n] = b1/10 + '0'
+			n++
+		}
+		buf[n] = b1%10 + '0'
+		n++
+		buf[n] = '.'
+		n++
+
+		if b2 >= 100 {
+			buf[n] = b2/100 + '0'
+			n++
+			b2 %= 100
+			buf[n] = b2/10 + '0'
+			n++
+		} else if b2 >= 10 {
+			buf[n] = b2/10 + '0'
+			n++
+		}
+		buf[n] = b2%10 + '0'
+		n++
+		buf[n] = '.'
+		n++
+
+		if b3 >= 100 {
+			buf[n] = b3/100 + '0'
+			n++
+			b3 %= 100
+			buf[n] = b3/10 + '0'
+			n++
+		} else if b3 >= 10 {
+			buf[n] = b3/10 + '0'
+			n++
+		}
+		buf[n] = b3%10 + '0'
+		n++
+
+		return string(buf[:n]), nil
+	}
 	return net.IP(r[:size]).String(), nil
 }
 

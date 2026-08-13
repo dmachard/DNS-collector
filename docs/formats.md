@@ -231,12 +231,12 @@ Protocol mapping:
 
 | Output Format | CPU Encoding Speed | Memory Impact | Human Readability | Best Use Cases / Target Systems |
 |---|---|---|---|---|
-| **DNStap (Protobuf)** | ⚡⚡⚡⚡⚡ Ultra Fast | 💧 Minimal | 🔬 Binary | High-speed forwarding, DNStap relays, remote collector pipelines |
-| **Text (CSV / Custom)** | ⚡⚡⚡⚡ Very Fast | 💧 Minimal | 👁️👁️👁️ Excellent | Console output, Syslog, local log files, Grep / AWK scripts |
-| **JSON (Nested)** | ⚡⚡⚡⚡ Fast (~1µs) | 💧 Minimal | 👁️👁️ Good | Webhooks, REST APIs, Application storage with nested JSON support |
-| **Flat JSON** | ⚡⚡ Fast (~11µs) | 💧 Low | 👁️ Fair | Elasticsearch, OpenSearch, Loki, ClickHouse, Scalyr, Grafana |
-| **Jinja Template** | ⚡ Moderate | 💧 Moderate | 👁️👁️👁️ Custom | Complex custom human-readable log formatting |
-| **PCAP** | ⚡⚡⚡ Fast | 💧 Minimal | 🔬 Wireshark | Traffic analysis, Network forensics & troubleshooting |
+| **DNStap (Protobuf)** | Ultra Fast | Minimal | Binary | High-speed forwarding, DNStap relays, remote collector pipelines |
+| **Text (CSV / Custom)** | Very Fast | Minimal | Excellent | Console output, Syslog, local log files, Grep / AWK scripts |
+| **JSON (Nested)** | Fast (~1µs) | Minimal | Good | Webhooks, REST APIs, Application storage with nested JSON support |
+| **Flat JSON** | Fast (~3.4µs) | Low | Fair | Elasticsearch, OpenSearch, Loki, ClickHouse, Scalyr, Grafana |
+| **Jinja Template** | Moderate | Moderate | Custom | Complex custom human-readable log formatting |
+| **PCAP** | Fast | Minimal | Wireshark | Traffic analysis, Network forensics & troubleshooting |
 
 > **Note on I/O Bottlenecks**: The table above reflects **CPU encoding speed in Go**. When writing to local disk files or remote network sinks, overall throughput is also constrained by disk I/O (HDD vs. NVMe SSD) and network latency. For high-throughput file logging, consider tuning `flush-interval`, `batch-size`, and `chan-buffer-size`.
 
