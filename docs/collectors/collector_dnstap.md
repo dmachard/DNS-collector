@@ -34,6 +34,10 @@ Options:
   > This advanced parameter allows fine-tuning of network performance by adjusting the amount of data the socket can receive before signaling to the sender to slow down. Sets the socket receive buffer in bytes SO_RCVBUF.
   > Set to zero to use the default system value.
 
+* `sock-read-buffer-size` (int)
+  > Sets the internal Go read buffer size for the socket in bytes (used by `bufio.Reader`). Increasing this (e.g., to 65536) reduces system call overhead under high throughput.
+  > Default is 65536 bytes (64 KB).
+
 * `reset-conn` (bool)
   > Set whether to send a TCP Reset to force the cleanup of the connection on the remote side when the server exits.
 
@@ -65,6 +69,7 @@ Defaults:
     cert-file: ""
     key-file: ""
     sock-rcvbuf: 0
+    sock-read-buffer-size: 65536
     reset-conn: true
     chan-buffer-size: 0
     disable-dnsparser: true

@@ -68,8 +68,11 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 	dnstapProcessor.SetDefaultDropped(w.GetDroppedRoutes())
 	go dnstapProcessor.StartCollect()
 
-	// init frame stream library
-	fsReader := bufio.NewReader(conn)
+	readBufSize := w.GetConfig().Collectors.Dnstap.ReadBufferSize
+	if readBufSize <= 0 {
+		readBufSize = 4096
+	}
+	fsReader := bufio.NewReaderSize(conn, readBufSize)
 	fsWriter := bufio.NewWriter(conn)
 	handshakeTimeout := time.Duration(w.GetConfig().Global.Framestream.HandshakeTimeout) * time.Second
 	contentType := []byte(w.GetConfig().Global.Framestream.ContentType)

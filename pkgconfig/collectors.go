@@ -33,6 +33,7 @@ type ConfigCollectors struct {
 		CertFile          string `yaml:"cert-file" default:""`
 		KeyFile           string `yaml:"key-file" default:""`
 		RcvBufSize        int    `yaml:"sock-rcvbuf" default:"0"`
+		ReadBufferSize    int    `yaml:"sock-read-buffer-size" default:"65536"`
 		ResetConn         bool   `yaml:"reset-conn" default:"true"`
 		ChannelBufferSize int    `yaml:"chan-buffer-size" default:"0"`
 		DisableDNSParser  bool   `yaml:"disable-dnsparser" default:"false"`
