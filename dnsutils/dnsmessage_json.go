@@ -5,16 +5,29 @@ import (
 	"encoding/json"
 	"strconv"
 	"strings"
+	"sync"
 )
 
+var jsonBufferPool = sync.Pool{
+	New: func() interface{} {
+		return bytes.NewBuffer(make([]byte, 0, 512))
+	},
+}
+
 func (dm *DNSMessage) ToJSON() string {
-	buffer := new(bytes.Buffer)
+	buffer := jsonBufferPool.Get().(*bytes.Buffer)
+	buffer.Reset()
+	defer jsonBufferPool.Put(buffer)
+
 	json.NewEncoder(buffer).Encode(dm)
 	return buffer.String()
 }
 
 func (dm *DNSMessage) ToFlatJSON() (string, error) {
-	buffer := new(bytes.Buffer)
+	buffer := jsonBufferPool.Get().(*bytes.Buffer)
+	buffer.Reset()
+	defer jsonBufferPool.Put(buffer)
+
 	flat, err := dm.Flatten()
 	if err != nil {
 		return "", err
@@ -24,54 +37,53 @@ func (dm *DNSMessage) ToFlatJSON() (string, error) {
 }
 
 func (dm *DNSMessage) Flatten() (map[string]interface{}, error) {
-	dnsFields := map[string]interface{}{
-		"dns.flags.aa":               dm.DNS.Flags.AA,
-		"dns.flags.ad":               dm.DNS.Flags.AD,
-		"dns.flags.qr":               dm.DNS.Flags.QR,
-		"dns.flags.ra":               dm.DNS.Flags.RA,
-		"dns.flags.tc":               dm.DNS.Flags.TC,
-		"dns.flags.rd":               dm.DNS.Flags.RD,
-		"dns.flags.cd":               dm.DNS.Flags.CD,
-		"dns.length":                 dm.DNS.Length,
-		"dns.malformed-packet":       dm.DNS.MalformedPacket,
-		"dns.id":                     dm.DNS.ID,
-		"dns.opcode":                 dm.DNS.Opcode,
-		"dns.qname":                  dm.DNS.Qname,
-		"dns.qtype":                  dm.DNS.Qtype,
-		"dns.qclass":                 dm.DNS.Qclass,
-		"dns.rcode":                  dm.DNS.Rcode,
-		"dns.qdcount":                dm.DNS.QdCount,
-		"dns.ancount":                dm.DNS.AnCount,
-		"dns.arcount":                dm.DNS.ArCount,
-		"dns.nscount":                dm.DNS.NsCount,
-		"dnstap.identity":            dm.DNSTap.Identity,
-		"dnstap.latency":             dm.DNSTap.Latency,
-		"dnstap.latency_ms":          dm.DNSTap.LatencyMs,
-		"dnstap.operation":           dm.DNSTap.Operation,
-		"dnstap.timestamp-rfc3339ns": dm.DNSTap.TimestampRFC3339,
-		"dnstap.version":             dm.DNSTap.Version,
-		"dnstap.extra":               dm.DNSTap.Extra,
-		"dnstap.policy-rule":         dm.DNSTap.PolicyRule,
-		"dnstap.policy-type":         dm.DNSTap.PolicyType,
-		"dnstap.policy-action":       dm.DNSTap.PolicyAction,
-		"dnstap.policy-match":        dm.DNSTap.PolicyMatch,
-		"dnstap.policy-value":        dm.DNSTap.PolicyValue,
-		"dnstap.peer-name":           dm.DNSTap.PeerName,
-		"dnstap.query-zone":          dm.DNSTap.QueryZone,
-		"edns.optionscount":          len(dm.EDNS.Options),
-		"edns.dnssec-ok":             dm.EDNS.Do,
-		"edns.rcode":                 dm.EDNS.ExtendedRcode,
-		"edns.udp-size":              dm.EDNS.UDPSize,
-		"edns.version":               dm.EDNS.Version,
-		"network.family":             dm.NetworkInfo.Family,
-		"network.ip-defragmented":    dm.NetworkInfo.IPDefragmented,
-		"network.protocol":           dm.NetworkInfo.Protocol,
-		"network.query-ip":           dm.NetworkInfo.QueryIP,
-		"network.query-port":         dm.NetworkInfo.QueryPort,
-		"network.response-ip":        dm.NetworkInfo.ResponseIP,
-		"network.response-port":      dm.NetworkInfo.ResponsePort,
-		"network.tcp-reassembled":    dm.NetworkInfo.TCPReassembled,
-	}
+	dnsFields := make(map[string]interface{}, 80)
+	dnsFields["dns.flags.aa"] = dm.DNS.Flags.AA
+	dnsFields["dns.flags.ad"] = dm.DNS.Flags.AD
+	dnsFields["dns.flags.qr"] = dm.DNS.Flags.QR
+	dnsFields["dns.flags.ra"] = dm.DNS.Flags.RA
+	dnsFields["dns.flags.tc"] = dm.DNS.Flags.TC
+	dnsFields["dns.flags.rd"] = dm.DNS.Flags.RD
+	dnsFields["dns.flags.cd"] = dm.DNS.Flags.CD
+	dnsFields["dns.length"] = dm.DNS.Length
+	dnsFields["dns.malformed-packet"] = dm.DNS.MalformedPacket
+	dnsFields["dns.id"] = dm.DNS.ID
+	dnsFields["dns.opcode"] = dm.DNS.Opcode
+	dnsFields["dns.qname"] = dm.DNS.Qname
+	dnsFields["dns.qtype"] = dm.DNS.Qtype
+	dnsFields["dns.qclass"] = dm.DNS.Qclass
+	dnsFields["dns.rcode"] = dm.DNS.Rcode
+	dnsFields["dns.qdcount"] = dm.DNS.QdCount
+	dnsFields["dns.ancount"] = dm.DNS.AnCount
+	dnsFields["dns.arcount"] = dm.DNS.ArCount
+	dnsFields["dns.nscount"] = dm.DNS.NsCount
+	dnsFields["dnstap.identity"] = dm.DNSTap.Identity
+	dnsFields["dnstap.latency"] = dm.DNSTap.Latency
+	dnsFields["dnstap.latency_ms"] = dm.DNSTap.LatencyMs
+	dnsFields["dnstap.operation"] = dm.DNSTap.Operation
+	dnsFields["dnstap.timestamp-rfc3339ns"] = dm.DNSTap.TimestampRFC3339
+	dnsFields["dnstap.version"] = dm.DNSTap.Version
+	dnsFields["dnstap.extra"] = dm.DNSTap.Extra
+	dnsFields["dnstap.policy-rule"] = dm.DNSTap.PolicyRule
+	dnsFields["dnstap.policy-type"] = dm.DNSTap.PolicyType
+	dnsFields["dnstap.policy-action"] = dm.DNSTap.PolicyAction
+	dnsFields["dnstap.policy-match"] = dm.DNSTap.PolicyMatch
+	dnsFields["dnstap.policy-value"] = dm.DNSTap.PolicyValue
+	dnsFields["dnstap.peer-name"] = dm.DNSTap.PeerName
+	dnsFields["dnstap.query-zone"] = dm.DNSTap.QueryZone
+	dnsFields["edns.optionscount"] = len(dm.EDNS.Options)
+	dnsFields["edns.dnssec-ok"] = dm.EDNS.Do
+	dnsFields["edns.rcode"] = dm.EDNS.ExtendedRcode
+	dnsFields["edns.udp-size"] = dm.EDNS.UDPSize
+	dnsFields["edns.version"] = dm.EDNS.Version
+	dnsFields["network.family"] = dm.NetworkInfo.Family
+	dnsFields["network.ip-defragmented"] = dm.NetworkInfo.IPDefragmented
+	dnsFields["network.protocol"] = dm.NetworkInfo.Protocol
+	dnsFields["network.query-ip"] = dm.NetworkInfo.QueryIP
+	dnsFields["network.query-port"] = dm.NetworkInfo.QueryPort
+	dnsFields["network.response-ip"] = dm.NetworkInfo.ResponseIP
+	dnsFields["network.response-port"] = dm.NetworkInfo.ResponsePort
+	dnsFields["network.tcp-reassembled"] = dm.NetworkInfo.TCPReassembled
 
 	// Helper function to build RR fields
 	buildRRFields := func(rrs []DNSAnswer) (names, rdatatypes, rdatas, ttls, classes string) {
