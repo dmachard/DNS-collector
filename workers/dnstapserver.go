@@ -366,11 +366,14 @@ func (w *DNSTapProcessor) StartCollect() {
 			if len(identity) > 0 {
 				dm.DNSTap.Identity = string(identity)
 			}
+
 			version := dt.GetVersion()
 			if len(version) > 0 {
 				dm.DNSTap.Version = string(version)
 			}
-			dm.DNSTap.Operation = dt.GetMessage().GetType().String()
+
+			msgType := dt.GetMessage().GetType()
+			dm.DNSTap.Operation = msgType.String()
 
 			// extended extra field ?
 			if w.GetConfig().Collectors.Dnstap.ExtendedSupport {
@@ -418,13 +421,33 @@ func (w *DNSTapProcessor) StartCollect() {
 				}
 			}
 
-			if ipVersion, valid := netutils.IPVersion[dt.GetMessage().GetSocketFamily().String()]; valid {
-				dm.NetworkInfo.Family = ipVersion
-			} else {
+			switch dt.GetMessage().GetSocketFamily() {
+			case dnstap.SocketFamily_INET:
+				dm.NetworkInfo.Family = "INET"
+			case dnstap.SocketFamily_INET6:
+				dm.NetworkInfo.Family = "INET6"
+			default:
 				dm.NetworkInfo.Family = pkgconfig.StrUnknown
 			}
 
-			dm.NetworkInfo.Protocol = dt.GetMessage().GetSocketProtocol().String()
+			switch dt.GetMessage().GetSocketProtocol() {
+			case dnstap.SocketProtocol_UDP:
+				dm.NetworkInfo.Protocol = "UDP"
+			case dnstap.SocketProtocol_TCP:
+				dm.NetworkInfo.Protocol = "TCP"
+			case dnstap.SocketProtocol_DOT:
+				dm.NetworkInfo.Protocol = "DOT"
+			case dnstap.SocketProtocol_DOH:
+				dm.NetworkInfo.Protocol = "DOH"
+			case dnstap.SocketProtocol_DNSCryptUDP:
+				dm.NetworkInfo.Protocol = "DNSCryptUDP"
+			case dnstap.SocketProtocol_DNSCryptTCP:
+				dm.NetworkInfo.Protocol = "DNSCryptTCP"
+			case dnstap.SocketProtocol_DOQ:
+				dm.NetworkInfo.Protocol = "DOQ"
+			default:
+				dm.NetworkInfo.Protocol = pkgconfig.StrUnknown
+			}
 
 			// decode query address and port
 			queryip := dt.GetMessage().GetQueryAddress()
@@ -447,7 +470,7 @@ func (w *DNSTapProcessor) StartCollect() {
 			}
 
 			// get dns payload and timestamp according to the type (query or response)
-			op := dnstap.Message_Type_value[dm.DNSTap.Operation]
+			op := int(msgType)
 			if op%2 == 1 {
 				dnsPayload := dt.GetMessage().GetQueryMessage()
 				dm.DNS.Payload = dnsPayload
@@ -522,8 +545,6 @@ func (w *DNSTapProcessor) StartCollect() {
 
 			// decode payload if provided
 			if !w.GetConfig().Collectors.Dnstap.DisableDNSParser && len(dm.DNS.Payload) > 0 {
-				// decode the dns payload to get id, rcode and the number of question
-				// number of answer, ignore invalid packet
 				dnsHeader, err := dnsutils.DecodeDNS(dm.DNS.Payload)
 				if err != nil {
 					dm.DNS.MalformedPacket = true
@@ -534,7 +555,6 @@ func (w *DNSTapProcessor) StartCollect() {
 					}
 				}
 
-				// get number of questions
 				dm.DNS.QdCount = dnsHeader.Qdcount
 				dm.DNS.AnCount = dnsHeader.Ancount
 				dm.DNS.ArCount = dnsHeader.Arcount
