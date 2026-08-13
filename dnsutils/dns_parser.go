@@ -46,70 +46,34 @@ func RdatatypeToString(rrtype int) string {
 	}
 }
 
+var rcodes = [24]string{
+	0: "NOERROR", 1: "FORMERR", 2: "SERVFAIL", 3: "NXDOMAIN",
+	4: "NOTIMP", 5: "REFUSED", 6: "YXDOMAIN", 7: "YXRRSET",
+	8: "NXRRSET", 9: "NOTAUTH", 10: "NOTZONE", 11: "DSOTYPENI",
+	16: "BADSIG", 17: "BADKEY", 18: "BADTIME", 19: "BADMODE",
+	20: "BADNAME", 21: "BADALG", 22: "BADTRUNC", 23: "BADCOOKIE",
+}
+
 func RcodeToString(rcode int) string {
-	switch rcode {
-	case 0:
-		return "NOERROR"
-	case 1:
-		return "FORMERR"
-	case 2:
-		return "SERVFAIL"
-	case 3:
-		return "NXDOMAIN"
-	case 4:
-		return "NOTIMP"
-	case 5:
-		return "REFUSED"
-	case 6:
-		return "YXDOMAIN"
-	case 7:
-		return "YXRRSET"
-	case 8:
-		return "NXRRSET"
-	case 9:
-		return "NOTAUTH"
-	case 10:
-		return "NOTZONE"
-	case 11:
-		return "DSOTYPENI"
-	case 16:
-		return "BADSIG"
-	case 17:
-		return "BADKEY"
-	case 18:
-		return "BADTIME"
-	case 19:
-		return "BADMODE"
-	case 20:
-		return "BADNAME"
-	case 21:
-		return "BADALG"
-	case 22:
-		return "BADTRUNC"
-	case 23:
-		return "BADCOOKIE"
-	default:
-		return UNKNOWN
+	if rcode >= 0 && rcode < len(rcodes) {
+		if val := rcodes[rcode]; val != "" {
+			return val
+		}
 	}
+	return UNKNOWN
+}
+
+var classes = [256]string{
+	1: "IN", 2: "CS", 3: "CH", 4: "HS", 254: "NONE", 255: "ANY",
 }
 
 func ClassToString(class int) string {
-	switch class {
-	case 1:
-		return "IN"
-	case 2:
-		return "CS"
-	case 3:
-		return "CH"
-	case 4:
-		return "HS"
-	case 254:
-		return "NONE"
-	case 255:
-		return "ANY"
-	default:
-		return UNKNOWN
+	if class >= 0 && class < len(classes) {
+		if val := classes[class]; val != "" {
+			return val
+		}
 	}
+	return UNKNOWN
 }
 
 // Various errors returned during DNS packet decoding
@@ -467,8 +431,9 @@ func ParseLabels(offset int, payload []byte, allowCompression bool) (string, int
 		return "", 0, ErrDecodeDNSLabelInvalidOffset
 	}
 
-	// Pre-allocate buffer to store the domain name (Optimization)
-	nameBuffer := make([]byte, 0, 64)
+	// Stack-allocated buffer to store the domain name (Max DNS FQDN length is 255 bytes)
+	var stackBuf [256]byte
+	nameBuffer := stackBuf[:0]
 	// Where the current decoding run has started. Set after on every pointer jump.
 	startOffset := offset
 	// Track where the current decoding run is allowed to advance. Set after every pointer jump.
