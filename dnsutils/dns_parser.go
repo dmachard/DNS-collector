@@ -218,7 +218,7 @@ func DecodePayload(dm *DNSMessage, header *DNSHeader, config *pkgconfig.Config) 
 
 	// decode DNS answers
 	if header.Ancount > 0 {
-		answers, offset, err := DecodeAnswer(header.Ancount, payloadOffset, dm.DNS.Payload)
+		answers, offset, err := DecodeAnswerInto(dm.DNS.DNSRRs.Answers, header.Ancount, payloadOffset, dm.DNS.Payload)
 		if err == nil { // nolint
 			dm.DNS.DNSRRs.Answers = answers
 			payloadOffset = offset
@@ -234,7 +234,7 @@ func DecodePayload(dm *DNSMessage, header *DNSHeader, config *pkgconfig.Config) 
 
 	// decode authoritative answers
 	if header.Nscount > 0 {
-		answers, offsetrr, err := DecodeAnswer(header.Nscount, payloadOffset, dm.DNS.Payload)
+		answers, offsetrr, err := DecodeAnswerInto(dm.DNS.DNSRRs.Nameservers, header.Nscount, payloadOffset, dm.DNS.Payload)
 		if err == nil { // nolint
 			dm.DNS.DNSRRs.Nameservers = answers
 			payloadOffset = offsetrr
@@ -250,7 +250,7 @@ func DecodePayload(dm *DNSMessage, header *DNSHeader, config *pkgconfig.Config) 
 
 	// decode additional answers
 	if header.Arcount > 0 {
-		answers, _, err := DecodeAnswer(header.Arcount, payloadOffset, dm.DNS.Payload)
+		answers, _, err := DecodeAnswerInto(dm.DNS.DNSRRs.Records, header.Arcount, payloadOffset, dm.DNS.Payload)
 		if err == nil { // nolint
 			dm.DNS.DNSRRs.Records = answers
 		} else if dm.DNS.Flags.TC && (errors.Is(err, ErrDecodeDNSAnswerTooShort) || errors.Is(err, ErrDecodeDNSAnswerRdataTooShort) || errors.Is(err, ErrDecodeDNSLabelTooShort)) {
@@ -260,6 +260,7 @@ func DecodePayload(dm *DNSMessage, header *DNSHeader, config *pkgconfig.Config) 
 			dm.DNS.MalformedPacket = true
 			return &decodingError{part: "additional records", err: err}
 		}
+
 		// decode EDNS options, if there are any
 		edns, _, err := DecodeEDNS(header.Arcount, payloadOffset, dm.DNS.Payload)
 		if err == nil { // nolint
@@ -360,8 +361,17 @@ PTR can be used on NAME for compression
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 */
 func DecodeAnswer(ancount int, startOffset int, payload []byte) ([]DNSAnswer, int, error) {
+	return DecodeAnswerInto(nil, ancount, startOffset, payload)
+}
+
+func DecodeAnswerInto(buf []DNSAnswer, ancount int, startOffset int, payload []byte) ([]DNSAnswer, int, error) {
 	offset := startOffset
-	answers := make([]DNSAnswer, 0, ancount)
+	var answers []DNSAnswer
+	if cap(buf) >= ancount {
+		answers = buf[:0]
+	} else {
+		answers = make([]DNSAnswer, 0, ancount)
+	}
 	var rdataString string
 
 	for i := 0; i < ancount; i++ {
@@ -404,7 +414,7 @@ func DecodeAnswer(ancount int, startOffset int, payload []byte) ([]DNSAnswer, in
 		if int(rdlength) == 0 && len(rdata) == 0 {
 			rdataString = ""
 		} else {
-			rdataString, err = ParseRdata(rdatatype, rdata, payload, offsetNext+10, true)
+			rdataString, err = ParseRdata(int(t), rdata, payload, offsetNext+10, true)
 			if err != nil {
 				return answers, offset, err
 			}
@@ -525,29 +535,29 @@ func ParseLabels(offset int, payload []byte, allowCompression bool) (string, int
 	return string(nameBuffer), endOffset, nil
 }
 
-func ParseRdata(rdatatype string, rdata []byte, payload []byte, rdataOffset int, allowCompression bool) (string, error) {
+func ParseRdata(rrtype int, rdata []byte, payload []byte, rdataOffset int, allowCompression bool) (string, error) {
 	var ret string
 	var err error
-	switch rdatatype {
-	case "A":
+	switch rrtype {
+	case 1: // A
 		ret, err = ParseIP(rdata, net.IPv4len)
-	case "AAAA":
+	case 28: // AAAA
 		ret, err = ParseIP(rdata, net.IPv6len)
-	case "CNAME":
+	case 5: // CNAME
 		ret, err = ParseCNAME(rdataOffset, payload, allowCompression)
-	case "MX":
+	case 15: // MX
 		ret, err = ParseMX(rdataOffset, payload, allowCompression)
-	case "SRV":
+	case 33: // SRV
 		ret, err = ParseSRV(rdataOffset, payload, allowCompression)
-	case "NS":
+	case 2: // NS
 		ret, err = ParseNS(rdataOffset, payload, allowCompression)
-	case "TXT":
+	case 16: // TXT
 		ret, err = ParseTXT(rdata)
-	case "PTR":
+	case 12: // PTR
 		ret, err = ParsePTR(rdataOffset, payload, allowCompression)
-	case "SOA":
+	case 6: // SOA
 		ret, err = ParseSOA(rdataOffset, payload, allowCompression)
-	case "HTTPS", "SVCB":
+	case 64, 65: // SVCB, HTTPS
 		ret, err = ParseSVCB(rdata)
 	default:
 		ret = "-"
@@ -619,6 +629,70 @@ IPv4 or IPv6
 func ParseIP(r []byte, size int) (string, error) {
 	if len(r) < size {
 		return "", ErrDecodeDNSAnswerRdataTooShort
+	}
+	if size == 4 {
+		b0, b1, b2, b3 := r[0], r[1], r[2], r[3]
+		var buf [15]byte
+		n := 0
+		if b0 >= 100 {
+			buf[n] = b0/100 + '0'
+			n++
+			b0 %= 100
+			buf[n] = b0/10 + '0'
+			n++
+		} else if b0 >= 10 {
+			buf[n] = b0/10 + '0'
+			n++
+		}
+		buf[n] = b0%10 + '0'
+		n++
+		buf[n] = '.'
+		n++
+
+		if b1 >= 100 {
+			buf[n] = b1/100 + '0'
+			n++
+			b1 %= 100
+			buf[n] = b1/10 + '0'
+			n++
+		} else if b1 >= 10 {
+			buf[n] = b1/10 + '0'
+			n++
+		}
+		buf[n] = b1%10 + '0'
+		n++
+		buf[n] = '.'
+		n++
+
+		if b2 >= 100 {
+			buf[n] = b2/100 + '0'
+			n++
+			b2 %= 100
+			buf[n] = b2/10 + '0'
+			n++
+		} else if b2 >= 10 {
+			buf[n] = b2/10 + '0'
+			n++
+		}
+		buf[n] = b2%10 + '0'
+		n++
+		buf[n] = '.'
+		n++
+
+		if b3 >= 100 {
+			buf[n] = b3/100 + '0'
+			n++
+			b3 %= 100
+			buf[n] = b3/10 + '0'
+			n++
+		} else if b3 >= 10 {
+			buf[n] = b3/10 + '0'
+			n++
+		}
+		buf[n] = b3%10 + '0'
+		n++
+
+		return string(buf[:n]), nil
 	}
 	return net.IP(r[:size]).String(), nil
 }

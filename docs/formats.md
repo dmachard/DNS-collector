@@ -227,6 +227,24 @@ Protocol mapping:
 | DoT/TCP/853    | DNS UDP/853 (unencrypted)  |
 | DoQ/UDP/443    | DNS UDP/443 (unencrypted)  |
 
+## Which Output Format Should I Choose?
+
+| Output Format | CPU Encoding Speed | Memory Impact | Human Readability | Best Use Cases / Target Systems |
+|---|---|---|---|---|
+| **DNStap (Protobuf)** | Ultra Fast | Minimal | Binary | High-speed forwarding, DNStap relays, remote collector pipelines |
+| **Text (CSV / Custom)** | Very Fast | Minimal | Excellent | Console output, Syslog, local log files, Grep / AWK scripts |
+| **JSON (Nested)** | Fast (~1µs) | Minimal | Good | Webhooks, REST APIs, Application storage with nested JSON support |
+| **Flat JSON** | Fast (~3.4µs) | Low | Fair | Elasticsearch, OpenSearch, Loki, ClickHouse, Scalyr, Grafana |
+| **Jinja Template** | Moderate | Moderate | Custom | Complex custom human-readable log formatting |
+| **PCAP** | Fast | Minimal | Wireshark | Traffic analysis, Network forensics & troubleshooting |
+
+> **Note on I/O Bottlenecks**: The table above reflects **CPU encoding speed in Go**. When writing to local disk files or remote network sinks, overall throughput is also constrained by disk I/O (HDD vs. NVMe SSD) and network latency. For high-throughput file logging, consider tuning `flush-interval`, `batch-size`, and `chan-buffer-size`.
+
+### Comparison Guide: JSON vs. Flat JSON
+
+- **Choose `json` (Nested)** if you want **maximum Go application throughput** (~3.4x faster generation in Go) and your consuming application natively supports nested JSON objects.
+- **Choose `flat-json`** if you are streaming logs to indexing and analytics engines like **Elasticsearch, Loki, OpenSearch, ClickHouse, or Grafana**. Flat JSON converts all fields to a single 1-level key-value format (e.g. `"dns.flags.aa": false`), making indexing, aggregation, and dashboard querying significantly faster and easier downstream.
+
 ## Data Encoding and UTF-8
 
 DNS-collector processes all textual fields (qname, rdata, etc.) as **UTF-8 strings**. 
