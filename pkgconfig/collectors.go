@@ -36,6 +36,7 @@ type ConfigCollectors struct {
 		ReadBufferSize    int    `yaml:"sock-read-buffer-size" default:"65536"`
 		ResetConn         bool   `yaml:"reset-conn" default:"true"`
 		ChannelBufferSize int    `yaml:"chan-buffer-size" default:"0"`
+		NumWorkers        int    `yaml:"num-workers" default:"0"`
 		DisableDNSParser  bool   `yaml:"disable-dnsparser" default:"false"`
 		ExtendedSupport   bool   `yaml:"extended-support" default:"false"`
 		Compression       string `yaml:"compression" default:"none"`
