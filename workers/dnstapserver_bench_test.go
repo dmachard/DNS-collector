@@ -3,6 +3,7 @@ package workers
 import (
 	"bufio"
 	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -46,6 +47,50 @@ func Benchmark_DNSTapProcessor(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		dataChan <- data
 	}
+}
+
+func Test_DNSTapProcessor_FramestreamBehavior(t *testing.T) {
+	config := pkgconfig.GetDefaultConfig()
+	config.Collectors.Dnstap.DisableDNSParser = false
+	config.Collectors.Dnstap.ChannelBufferSize = 1000
+
+	devNull := NewDevNull(config, logger.New(false), "devnull")
+	go devNull.StartCollect()
+	defer devNull.Stop()
+
+	dnsquery, err := dnsutils.GetFakeDNS()
+	if err != nil {
+		t.Fatalf("dns question pack error: %v", err)
+	}
+
+	dtQuery := GetFakeDNSTap(dnsquery)
+	data, err := proto.Marshal(dtQuery)
+	if err != nil {
+		t.Fatalf("dnstap proto marshal error: %v", err)
+	}
+
+	proc := NewDNSTapProcessor(1, "test-peer", config, logger.New(false), "test-proc", 1000)
+	proc.SetDefaultRoutes([]Worker{devNull})
+	go proc.StartCollect()
+	defer proc.Stop()
+
+	dataChan := proc.GetDataChannel()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+
+		for i := 0; i < 500; i++ {
+			buf := make([]byte, len(data))
+			copy(buf, data)
+			dataChan <- buf
+			time.Sleep(10 * time.Microsecond)
+		}
+	}()
+
+	wg.Wait()
 }
 
 func benchmarkDnstapServerReadBuf(b *testing.B, readBufSize int) {
