@@ -588,4 +588,3 @@ func (w *DNSTapProcessor) StartCollect() {
 		}
 	}
 }
-
