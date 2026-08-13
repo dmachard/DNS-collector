@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strconv"
 
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
 )
@@ -15,42 +16,77 @@ var ErrDecodeEdnsOptionTooShort = errors.New("edns, not enough data to decode op
 var ErrDecodeEdnsOptionCsubnetBadFamily = errors.New("edns, csubnet option bad family")
 var ErrDecodeEdnsTooManyOpts = errors.New("edns, packet contained too many OPT RRs")
 
-var (
-	OptCodes = map[int]string{
-		3: "NSID", 8: "CSUBNET", 9: "EXPIRE", 10: "COOKIE", 11: "KEEPALIVE", 12: "PADDING", 15: "ERRORS",
-	}
-	ErrorCodeToString = map[int]string{
-		0:  "Other",
-		1:  "Unsupported DNSKEY Algorithm",
-		2:  "Unsupported DS Digest Type",
-		3:  "Stale Answer",
-		4:  "Forged Answer",
-		5:  "DNSSEC Indeterminate",
-		6:  "DNSSEC Bogus",
-		7:  "Signature Expired",
-		8:  "Signature Not Yet Valid",
-		9:  "DNSKEY Missing",
-		10: "RRSIGs Missing",
-		11: "No Zone Key Bit Set",
-		12: "NSEC Missing",
-		13: "Cached Error",
-		14: "Not Ready",
-		15: "Blocked",
-		16: "Censored",
-		17: "Filtered",
-		18: "Prohibited",
-		19: "Stale NXDOMAIN Answer",
-		20: "Not Authoritative",
-		21: "Not Supported",
-		22: "No Reachable Authority",
-		23: "Network Error",
-		24: "Invalid Data",
-	}
-)
+var optCodesArray = [16]string{
+	3: "NSID", 8: "CSUBNET", 9: "EXPIRE", 10: "COOKIE", 11: "KEEPALIVE", 12: "PADDING", 15: "ERRORS",
+}
+
+var errorCodesArray = [25]string{
+	0:  "Other",
+	1:  "Unsupported DNSKEY Algorithm",
+	2:  "Unsupported DS Digest Type",
+	3:  "Stale Answer",
+	4:  "Forged Answer",
+	5:  "DNSSEC Indeterminate",
+	6:  "DNSSEC Bogus",
+	7:  "Signature Expired",
+	8:  "Signature Not Yet Valid",
+	9:  "DNSKEY Missing",
+	10: "RRSIGs Missing",
+	11: "No Zone Key Bit Set",
+	12: "NSEC Missing",
+	13: "Cached Error",
+	14: "Not Ready",
+	15: "Blocked",
+	16: "Censored",
+	17: "Filtered",
+	18: "Prohibited",
+	19: "Stale NXDOMAIN Answer",
+	20: "Not Authoritative",
+	21: "Not Supported",
+	22: "No Reachable Authority",
+	23: "Network Error",
+	24: "Invalid Data",
+}
+
+// Deprecated: kept for backward compatibility
+var OptCodes = map[int]string{
+	3: "NSID", 8: "CSUBNET", 9: "EXPIRE", 10: "COOKIE", 11: "KEEPALIVE", 12: "PADDING", 15: "ERRORS",
+}
+
+// Deprecated: kept for backward compatibility
+var ErrorCodeToString = map[int]string{
+	0:  "Other",
+	1:  "Unsupported DNSKEY Algorithm",
+	2:  "Unsupported DS Digest Type",
+	3:  "Stale Answer",
+	4:  "Forged Answer",
+	5:  "DNSSEC Indeterminate",
+	6:  "DNSSEC Bogus",
+	7:  "Signature Expired",
+	8:  "Signature Not Yet Valid",
+	9:  "DNSKEY Missing",
+	10: "RRSIGs Missing",
+	11: "No Zone Key Bit Set",
+	12: "NSEC Missing",
+	13: "Cached Error",
+	14: "Not Ready",
+	15: "Blocked",
+	16: "Censored",
+	17: "Filtered",
+	18: "Prohibited",
+	19: "Stale NXDOMAIN Answer",
+	20: "Not Authoritative",
+	21: "Not Supported",
+	22: "No Reachable Authority",
+	23: "Network Error",
+	24: "Invalid Data",
+}
 
 func OptCodeToString(rcode int) string {
-	if value, ok := OptCodes[rcode]; ok {
-		return value
+	if rcode >= 0 && rcode < len(optCodesArray) {
+		if val := optCodesArray[rcode]; val != "" {
+			return val
+		}
 	}
 	return pkgconfig.StrUnknown
 }
@@ -199,10 +235,10 @@ func ParseErrors(d []byte) (string, error) {
 	}
 	code := int(binary.BigEndian.Uint16(d[:2]))
 	infoCode := ""
-	if s, ok := ErrorCodeToString[code]; ok {
-		infoCode = fmt.Sprintf("%d %s", code, s)
+	if code >= 0 && code < len(errorCodesArray) && errorCodesArray[code] != "" {
+		infoCode = strconv.Itoa(code) + " " + errorCodesArray[code]
 	} else {
-		infoCode = fmt.Sprintf("%d -", code)
+		infoCode = strconv.Itoa(code) + " -"
 	}
 
 	extraText := "-"

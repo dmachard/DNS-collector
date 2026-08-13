@@ -35,6 +35,15 @@ func BenchmarkLookupClassToString(b *testing.B) {
 	}
 }
 
+func BenchmarkOptCodeToString(b *testing.B) {
+	// Simulate EDNS Cookie (10) or CSUBNET (8)
+	input := 10
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = OptCodeToString(input)
+	}
+}
+
 func BenchmarkParseIP_v4(b *testing.B) {
 	// simulate IPv4 rdata (4 octets)
 	input := []byte{192, 168, 1, 1}
