@@ -230,8 +230,8 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 	go g.StartCollect()
 
 	// add a shot of dnsmessages to collector
-	dmIn := dnsutils.GetFakeDNSMessage()
 	for range 512 {
+		dmIn := dnsutils.GetFakeDNSMessage()
 		g.GetInputChannel() <- &dmIn
 	}
 
@@ -254,6 +254,7 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 
 	// send second shot of packets to consumer
 	for range 1024 {
+		dmIn := dnsutils.GetFakeDNSMessage()
 		g.GetInputChannel() <- &dmIn
 	}
 

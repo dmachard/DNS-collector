@@ -100,6 +100,36 @@ func DnstapOperationToString(op int) string {
 	return UNKNOWN
 }
 
+func FastIPv4ToString(ip []byte) string {
+	if len(ip) != 4 {
+		return net.IP(ip).String()
+	}
+	var buf [15]byte
+	n := 0
+	for i := 0; i < 4; i++ {
+		if i > 0 {
+			buf[n] = '.'
+			n++
+		}
+		b := ip[i]
+		if b >= 100 {
+			buf[n] = '0' + b/100
+			n++
+			b %= 100
+			buf[n] = '0' + b/10
+			n++
+			b %= 10
+		} else if b >= 10 {
+			buf[n] = '0' + b/10
+			n++
+			b %= 10
+		}
+		buf[n] = '0' + b
+		n++
+	}
+	return string(buf[:n])
+}
+
 // Various errors returned during DNS packet decoding
 var ErrDecodeDNSHeaderTooShort = errors.New("malformed pkt, dns payload too short to decode header")
 var ErrDecodeDNSLabelTooLong = errors.New("malformed pkt, label too long")

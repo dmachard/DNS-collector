@@ -72,8 +72,8 @@ func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 	go c.StartCollect()
 
 	// add a shot of dnsmessages to collector
-	dmIn := dnsutils.GetFakeDNSMessage()
 	for i := 0; i < 512; i++ {
+		dmIn := dnsutils.GetFakeDNSMessage()
 		c.GetInputChannel() <- &dmIn
 	}
 
@@ -96,6 +96,7 @@ func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 
 	// send second shot of packets to consumer
 	for i := 0; i < 1024; i++ {
+		dmIn := dnsutils.GetFakeDNSMessage()
 		c.GetInputChannel() <- &dmIn
 	}
 

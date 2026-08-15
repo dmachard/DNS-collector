@@ -157,3 +157,21 @@ func Benchmark_TimeFormatRFC3339Nano(b *testing.B) {
 		_ = ts.UTC().Format(time.RFC3339Nano)
 	}
 }
+
+func Benchmark_NetIPString(b *testing.B) {
+	ip := net.ParseIP("192.168.1.100").To4()
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = net.IP(ip).String()
+	}
+}
+
+func Benchmark_FastIPv4ToString(b *testing.B) {
+	ip := []byte{192, 168, 1, 100}
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = FastIPv4ToString(ip)
+	}
+}
