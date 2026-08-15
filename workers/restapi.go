@@ -693,12 +693,8 @@ func (w *RestAPI) StartCollect() {
 				continue
 			}
 
-			// send to output channel
-			w.CountEgressTraffic()
-			w.GetOutputChannel() <- dm
-
-			// send to next ?
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+			// send to output channel and forward
+			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
 		}
 	}
 }

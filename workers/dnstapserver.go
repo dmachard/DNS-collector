@@ -517,7 +517,11 @@ func (w *DNSTapProcessor) processFrame(
 	}
 	queryport := dt.GetMessage().GetQueryPort()
 	if queryport > 0 {
-		dm.NetworkInfo.QueryPort = strconv.FormatUint(uint64(queryport), 10)
+		if queryport == 53 {
+			dm.NetworkInfo.QueryPort = "53"
+		} else {
+			dm.NetworkInfo.QueryPort = strconv.FormatUint(uint64(queryport), 10)
+		}
 	}
 
 	// decode response address and port
@@ -527,7 +531,11 @@ func (w *DNSTapProcessor) processFrame(
 	}
 	responseport := dt.GetMessage().GetResponsePort()
 	if responseport > 0 {
-		dm.NetworkInfo.ResponsePort = strconv.FormatUint(uint64(responseport), 10)
+		if responseport == 53 {
+			dm.NetworkInfo.ResponsePort = "53"
+		} else {
+			dm.NetworkInfo.ResponsePort = strconv.FormatUint(uint64(responseport), 10)
+		}
 	}
 
 	// get dns payload and timestamp according to the type (query or response)
