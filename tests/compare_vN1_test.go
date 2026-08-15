@@ -30,20 +30,53 @@ type ProcessStats struct {
 	Throughput    float64
 }
 
+func isStableTag(tag string) bool {
+	tagLower := strings.ToLower(tag)
+	return !strings.Contains(tagLower, "beta") &&
+		!strings.Contains(tagLower, "alpha") &&
+		!strings.Contains(tagLower, "rc") &&
+		!strings.Contains(tagLower, "dev")
+}
+
 // TestCompare_VersionN1 compares the current workspace build against the latest N-1 git tag.
 func TestCompare_VersionN1(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping comparison test in short mode")
 	}
 
-	// 1. Determine N-1 Tag
+	// 1. Determine N-1 Tag (Stable release only)
 	prevTag := os.Getenv("PREV_TAG")
 	if prevTag == "" {
-		out, err := exec.Command("git", "describe", "--tags", "--abbrev=0").Output()
-		if err != nil {
-			t.Fatalf("failed to detect git tag: %v", err)
+		outRemote, errRemote := exec.Command("git", "ls-remote", "--tags", "--refs", "https://github.com/dmachard/DNS-collector.git").Output()
+		if errRemote == nil {
+			lines := strings.Split(strings.TrimSpace(string(outRemote)), "\n")
+			for i := len(lines) - 1; i >= 0; i-- {
+				parts := strings.Split(lines[i], "refs/tags/")
+				if len(parts) == 2 {
+					tagCandidate := strings.TrimSpace(parts[1])
+					if isStableTag(tagCandidate) {
+						prevTag = tagCandidate
+						break
+					}
+				}
+			}
 		}
-		prevTag = strings.TrimSpace(string(out))
+		if prevTag == "" {
+			out, err := exec.Command("git", "tag", "-l", "--sort=-v:refname").Output()
+			if err == nil {
+				tags := strings.Split(strings.TrimSpace(string(out)), "\n")
+				for _, tName := range tags {
+					tName = strings.TrimSpace(tName)
+					if tName != "" && isStableTag(tName) {
+						prevTag = tName
+						break
+					}
+				}
+			}
+		}
+		if prevTag == "" {
+			t.Fatalf("failed to detect a stable git tag")
+		}
 	}
 	t.Logf("Comparing Current Workspace against Tag: %s", prevTag)
 

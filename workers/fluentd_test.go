@@ -57,9 +57,9 @@ func Test_FluentdClient(t *testing.T) {
 			time.Sleep(time.Second)
 
 			// send fake dns message to logger
-			dm := dnsutils.GetFakeDNSMessage()
 			maxDm := 256
 			for i := 0; i < maxDm; i++ {
+				dm := dnsutils.GetFakeDNSMessage()
 				g.GetInputChannel() <- &dm
 			}
 			time.Sleep(time.Second)

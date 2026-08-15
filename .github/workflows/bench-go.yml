@@ -49,3 +49,7 @@ jobs:
       run: |
         cd transformers/
         go test -benchmem -run=^$ -bench=^BenchmarkUserPrivacy.*\|BenchmarkTransforms.*\|BenchmarkNormalize.*\|BenchmarkReducer.*\|BenchmarkReordering.*\|BenchmarkExtract_.*\|BenchmarkRewrite_.*\|BenchmarkGeoIP_.*$
+
+    - name: Compare performance with latest release tag
+      run: |
+        NUM_FRAMES=1000000 go test -count=1 -v -run=TestCompare_VersionN1 ./tests
