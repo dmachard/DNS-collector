@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 var (
@@ -261,6 +262,17 @@ func (dm *DNSMessage) Release() {
 		dm.Reset()
 		DNSMessagePool.Put(dm)
 	}
+}
+
+func (dm *DNSMessage) GetTimestampRFC3339() string {
+	if len(dm.DNSTap.TimestampRFC3339) > 0 && dm.DNSTap.TimestampRFC3339 != "-" {
+		return dm.DNSTap.TimestampRFC3339
+	}
+	if dm.DNSTap.Timestamp > 0 {
+		dm.DNSTap.TimestampRFC3339 = time.Unix(0, dm.DNSTap.Timestamp).UTC().Format(time.RFC3339Nano)
+		return dm.DNSTap.TimestampRFC3339
+	}
+	return "-"
 }
 
 func (dm *DNSMessage) Reset() {

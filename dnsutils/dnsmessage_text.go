@@ -403,7 +403,7 @@ func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBo
 	for i, directive := range format {
 		switch {
 		case directive == "timestamp-rfc3339ns", directive == "timestamp":
-			s.WriteString(dm.DNSTap.TimestampRFC3339)
+			s.WriteString(dm.GetTimestampRFC3339())
 		case directive == "timestamp-unixms":
 			s.WriteString(strconv.FormatInt(dm.DNSTap.Timestamp/1000000, 10))
 		case directive == "timestamp-unixus":

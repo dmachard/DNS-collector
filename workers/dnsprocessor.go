@@ -51,7 +51,7 @@ func (w *DNSProcessor) StartCollect() {
 			// compute timestamp
 			ts := time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec))
 			dm.DNSTap.Timestamp = ts.UnixNano()
-			dm.DNSTap.TimestampRFC3339 = ts.UTC().Format(time.RFC3339Nano)
+			dm.DNSTap.TimestampRFC3339 = "-"
 
 			// decode the dns payload
 			dnsHeader, err := dnsutils.DecodeDNS(dm.DNS.Payload)

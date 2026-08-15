@@ -3,9 +3,10 @@ package dnsutils
 import (
 	"net"
 	"testing"
+	"time"
 
-	dnstap "github.com/dmachard/go-dnstap-protobuf"
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	dnstap "github.com/dmachard/go-dnstap-protobuf"
 	"github.com/miekg/dns"
 )
 
