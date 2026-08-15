@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnstap-protobuf"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // ProcessStats holds CPU and memory metrics measured during execution.
@@ -248,7 +248,7 @@ func runBenchmark(t *testing.T, binPath, configPath string, port int, frame []by
 			maxRSS = rusage.Maxrss
 			// On Linux, rusage.Maxrss is in Kilobytes
 			if runtime.GOOS == "darwin" {
-				maxRSS = maxRSS / 1024
+				maxRSS /= 1024
 			}
 		}
 	}

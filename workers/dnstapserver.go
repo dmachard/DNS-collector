@@ -434,7 +434,7 @@ func (w *DNSTapProcessor) processFrame(
 	}
 
 	msgType := dt.GetMessage().GetType()
-	dm.DNSTap.Operation = msgType.String()
+	dm.DNSTap.Operation = dnsutils.DnstapOperationToString(int(msgType))
 
 	// extended extra field ?
 	if w.GetConfig().Collectors.Dnstap.ExtendedSupport {

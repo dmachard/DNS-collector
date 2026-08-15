@@ -76,6 +76,30 @@ func ClassToString(class int) string {
 	return UNKNOWN
 }
 
+var DnstapMessageTypes = [13]string{
+	1:  "AUTH_QUERY",
+	2:  "AUTH_RESPONSE",
+	3:  "RESOLVER_QUERY",
+	4:  "RESOLVER_RESPONSE",
+	5:  "CLIENT_QUERY",
+	6:  "CLIENT_RESPONSE",
+	7:  "FORWARDER_QUERY",
+	8:  "FORWARDER_RESPONSE",
+	9:  "STUB_QUERY",
+	10: "STUB_RESPONSE",
+	11: "TOOL_QUERY",
+	12: "TOOL_RESPONSE",
+}
+
+func DnstapOperationToString(op int) string {
+	if op >= 1 && op < len(DnstapMessageTypes) {
+		if val := DnstapMessageTypes[op]; val != "" {
+			return val
+		}
+	}
+	return UNKNOWN
+}
+
 // Various errors returned during DNS packet decoding
 var ErrDecodeDNSHeaderTooShort = errors.New("malformed pkt, dns payload too short to decode header")
 var ErrDecodeDNSLabelTooLong = errors.New("malformed pkt, label too long")
