@@ -80,8 +80,7 @@ func (dm *DNSMessage) EncodeFlatJSON(buffer *bytes.Buffer) {
 
 	writeString := func(key string, val string) {
 		writeKey(key)
-		b, _ := json.Marshal(val)
-		buffer.Write(b)
+		WriteJSONString(buffer, val)
 	}
 
 	// Boolean flags
@@ -552,4 +551,26 @@ func (dm *DNSMessage) Flatten() (map[string]interface{}, error) {
 	}
 
 	return dnsFields, nil
+}
+
+func WriteJSONString(buf *bytes.Buffer, s string) {
+	buf.WriteByte('"')
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c == '"' || c == '\\' {
+			buf.WriteByte('\\')
+			buf.WriteByte(c)
+		} else if c == '\n' {
+			buf.WriteString(`\n`)
+		} else if c == '\r' {
+			buf.WriteString(`\r`)
+		} else if c == '\t' {
+			buf.WriteString(`\t`)
+		} else if c < 0x20 {
+			fmt.Fprintf(buf, `\u%04x`, c)
+		} else {
+			buf.WriteByte(c)
+		}
+	}
+	buf.WriteByte('"')
 }
