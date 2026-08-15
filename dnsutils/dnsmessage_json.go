@@ -16,6 +16,7 @@ var jsonBufferPool = sync.Pool{
 }
 
 func (dm *DNSMessage) ToJSON() string {
+	dm.GetTimestampRFC3339()
 	buffer := jsonBufferPool.Get().(*bytes.Buffer)
 	buffer.Reset()
 	defer jsonBufferPool.Put(buffer)
@@ -25,6 +26,7 @@ func (dm *DNSMessage) ToJSON() string {
 }
 
 func (dm *DNSMessage) ToFlatJSON() (string, error) {
+	dm.GetTimestampRFC3339()
 	buffer := jsonBufferPool.Get().(*bytes.Buffer)
 	buffer.Reset()
 	defer jsonBufferPool.Put(buffer)

@@ -88,10 +88,9 @@ func Test_DnsProcessor_BufferLoggerIsFull(t *testing.T) {
 	consumer.AddDroppedRoute(fl)
 	go consumer.StartCollect()
 
-	dm := dnsutils.GetFakeDNSMessageWithPayload()
-
 	// add packets to consumer
 	for i := 0; i < 512; i++ {
+		dm := dnsutils.GetFakeDNSMessageWithPayload()
 		consumer.GetInputChannel() <- &dm
 	}
 
@@ -114,6 +113,7 @@ func Test_DnsProcessor_BufferLoggerIsFull(t *testing.T) {
 
 	// send second shot of packets to consumer
 	for i := 0; i < 1024; i++ {
+		dm := dnsutils.GetFakeDNSMessageWithPayload()
 		consumer.GetInputChannel() <- &dm
 	}
 
