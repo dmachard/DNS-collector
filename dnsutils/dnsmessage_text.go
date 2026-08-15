@@ -656,56 +656,56 @@ func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBo
 			}
 
 		// more directives from loggers
-		case OtelDirectives.MatchString(directive):
+		case strings.HasPrefix(directive, "otel-"):
 			err := dm.handleOpenTelemetryDirectives(directive, s)
 			if err != nil {
 				return err
 			}
 
 		// more directives from collectors
-		case PdnsDirectives.MatchString(directive):
+		case strings.HasPrefix(directive, "powerdns-"):
 			err := dm.handlePdnsDirectives(directive, s)
 			if err != nil {
 				return err
 			}
 
 		// more directives from transformers
-		case ReducerDirectives.MatchString(directive):
+		case strings.HasPrefix(directive, "reducer-"):
 			err := dm.handleReducerDirectives(directive, s)
 			if err != nil {
 				return err
 			}
-		case GeoIPDirectives.MatchString(directive):
+		case strings.HasPrefix(directive, "geoip-"):
 			err := dm.handleGeoIPDirectives(directive, s)
 			if err != nil {
 				return err
 			}
-		case SuspiciousDirectives.MatchString(directive):
+		case strings.HasPrefix(directive, "suspicious-"):
 			err := dm.handleSuspiciousDirectives(directive, s)
 			if err != nil {
 				return err
 			}
-		case PublicSuffixDirectives.MatchString(directive):
+		case strings.HasPrefix(directive, "publicsuffix-"):
 			err := dm.handlePublicSuffixDirectives(directive, s)
 			if err != nil {
 				return err
 			}
-		case ExtractedDirectives.MatchString(directive):
+		case strings.HasPrefix(directive, "extracted-"):
 			err := dm.handleExtractedDirectives(directive, s)
 			if err != nil {
 				return err
 			}
-		case MachineLearningDirectives.MatchString(directive):
+		case strings.HasPrefix(directive, "ml-"):
 			err := dm.handleMachineLearningDirectives(directive, s)
 			if err != nil {
 				return err
 			}
-		case FilteringDirectives.MatchString(directive):
+		case strings.HasPrefix(directive, "filtering-"):
 			err := dm.handleFilteringDirectives(directive, s)
 			if err != nil {
 				return err
 			}
-		case ATagsDirectives.MatchString(directive):
+		case strings.HasPrefix(directive, "atags"):
 			err := dm.handleATagsDirectives(directive, s)
 			if err != nil {
 				return err

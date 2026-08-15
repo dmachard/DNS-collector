@@ -291,26 +291,31 @@ func (dm *DNSMessage) Reset() {
 	dm.Init()
 }
 
+var (
+	emptyAnswers = []DNSAnswer{}
+	emptyOptions = []DNSOption{}
+)
+
 func (dm *DNSMessage) Init() {
 	if dm.DNS.DNSRRs.Answers != nil {
 		dm.DNS.DNSRRs.Answers = dm.DNS.DNSRRs.Answers[:0]
 	} else {
-		dm.DNS.DNSRRs.Answers = []DNSAnswer{}
+		dm.DNS.DNSRRs.Answers = emptyAnswers
 	}
 	if dm.DNS.DNSRRs.Nameservers != nil {
 		dm.DNS.DNSRRs.Nameservers = dm.DNS.DNSRRs.Nameservers[:0]
 	} else {
-		dm.DNS.DNSRRs.Nameservers = []DNSAnswer{}
+		dm.DNS.DNSRRs.Nameservers = emptyAnswers
 	}
 	if dm.DNS.DNSRRs.Records != nil {
 		dm.DNS.DNSRRs.Records = dm.DNS.DNSRRs.Records[:0]
 	} else {
-		dm.DNS.DNSRRs.Records = []DNSAnswer{}
+		dm.DNS.DNSRRs.Records = emptyAnswers
 	}
 	if dm.EDNS.Options != nil {
 		dm.EDNS.Options = dm.EDNS.Options[:0]
 	} else {
-		dm.EDNS.Options = []DNSOption{}
+		dm.EDNS.Options = emptyOptions
 	}
 
 	dm.NetworkInfo = DNSNetInfo{
@@ -361,18 +366,64 @@ func (dm *DNSMessage) Init() {
 }
 
 func (dm *DNSMessage) InitTransforms() {
-	// init transforms
-	dm.ATags = &TransformATags{}
-	dm.Rest = &TransformRest{}
-	dm.Filtering = &TransformFiltering{}
-	dm.MachineLearning = &TransformML{}
-	dm.Reducer = &TransformReducer{}
-	dm.Extracted = &TransformExtracted{}
-	dm.PublicSuffix = &TransformPublicSuffix{}
-	dm.Suspicious = &TransformSuspicious{}
-	dm.Geo = &TransformDNSGeo{}
-	dm.Relabeling = &TransformRelabeling{}
-	// init collectors & loggers
-	dm.PowerDNS = &CollectorPowerDNS{}
-	dm.OpenTelemetry = &LoggerOpenTelemetry{}
+	if dm.ATags == nil {
+		dm.ATags = &TransformATags{}
+	} else {
+		*dm.ATags = TransformATags{}
+	}
+	if dm.Rest == nil {
+		dm.Rest = &TransformRest{}
+	} else {
+		*dm.Rest = TransformRest{}
+	}
+	if dm.Filtering == nil {
+		dm.Filtering = &TransformFiltering{}
+	} else {
+		*dm.Filtering = TransformFiltering{}
+	}
+	if dm.MachineLearning == nil {
+		dm.MachineLearning = &TransformML{}
+	} else {
+		*dm.MachineLearning = TransformML{}
+	}
+	if dm.Reducer == nil {
+		dm.Reducer = &TransformReducer{}
+	} else {
+		*dm.Reducer = TransformReducer{}
+	}
+	if dm.Extracted == nil {
+		dm.Extracted = &TransformExtracted{}
+	} else {
+		*dm.Extracted = TransformExtracted{}
+	}
+	if dm.PublicSuffix == nil {
+		dm.PublicSuffix = &TransformPublicSuffix{}
+	} else {
+		*dm.PublicSuffix = TransformPublicSuffix{}
+	}
+	if dm.Suspicious == nil {
+		dm.Suspicious = &TransformSuspicious{}
+	} else {
+		*dm.Suspicious = TransformSuspicious{}
+	}
+	if dm.Geo == nil {
+		dm.Geo = &TransformDNSGeo{}
+	} else {
+		*dm.Geo = TransformDNSGeo{}
+	}
+	if dm.Relabeling == nil {
+		dm.Relabeling = &TransformRelabeling{}
+	} else {
+		*dm.Relabeling = TransformRelabeling{}
+	}
+	if dm.PowerDNS == nil {
+		dm.PowerDNS = &CollectorPowerDNS{}
+	} else {
+		*dm.PowerDNS = CollectorPowerDNS{}
+	}
+	if dm.OpenTelemetry == nil {
+		dm.OpenTelemetry = &LoggerOpenTelemetry{}
+	} else {
+		*dm.OpenTelemetry = LoggerOpenTelemetry{}
+	}
 }
