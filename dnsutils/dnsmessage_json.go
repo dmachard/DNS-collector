@@ -557,19 +557,25 @@ func WriteJSONString(buf *bytes.Buffer, s string) {
 	buf.WriteByte('"')
 	for i := 0; i < len(s); i++ {
 		c := s[i]
-		if c == '"' || c == '\\' {
+		switch c {
+		case '"', '\\':
 			buf.WriteByte('\\')
 			buf.WriteByte(c)
-		} else if c == '\n' {
+		case '\n':
 			buf.WriteString(`\n`)
-		} else if c == '\r' {
+		case '\r':
 			buf.WriteString(`\r`)
-		} else if c == '\t' {
+		case '\t':
 			buf.WriteString(`\t`)
-		} else if c < 0x20 {
-			fmt.Fprintf(buf, `\u%04x`, c)
-		} else {
-			buf.WriteByte(c)
+		default:
+			if c < 0x20 {
+				buf.WriteString(`\u00`)
+				const hexDigit = "0123456789abcdef"
+				buf.WriteByte(hexDigit[c>>4])
+				buf.WriteByte(hexDigit[c&0xf])
+			} else {
+				buf.WriteByte(c)
+			}
 		}
 	}
 	buf.WriteByte('"')
