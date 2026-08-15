@@ -294,15 +294,23 @@ func (dm *DNSMessage) Reset() {
 func (dm *DNSMessage) Init() {
 	if dm.DNS.DNSRRs.Answers != nil {
 		dm.DNS.DNSRRs.Answers = dm.DNS.DNSRRs.Answers[:0]
+	} else {
+		dm.DNS.DNSRRs.Answers = []DNSAnswer{}
 	}
 	if dm.DNS.DNSRRs.Nameservers != nil {
 		dm.DNS.DNSRRs.Nameservers = dm.DNS.DNSRRs.Nameservers[:0]
+	} else {
+		dm.DNS.DNSRRs.Nameservers = []DNSAnswer{}
 	}
 	if dm.DNS.DNSRRs.Records != nil {
 		dm.DNS.DNSRRs.Records = dm.DNS.DNSRRs.Records[:0]
+	} else {
+		dm.DNS.DNSRRs.Records = []DNSAnswer{}
 	}
 	if dm.EDNS.Options != nil {
 		dm.EDNS.Options = dm.EDNS.Options[:0]
+	} else {
+		dm.EDNS.Options = []DNSOption{}
 	}
 
 	dm.NetworkInfo = DNSNetInfo{
