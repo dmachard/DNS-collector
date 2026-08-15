@@ -12,17 +12,17 @@ import (
 
 type ReorderingTransform struct {
 	GenericTransformer
-	buffer      []dnsutils.DNSMessage
-	backBuffer  []dnsutils.DNSMessage
+	buffer      []*dnsutils.DNSMessage
+	backBuffer  []*dnsutils.DNSMessage
 	mutex       sync.Mutex
 	flushTicker *time.Ticker
 	flushSignal chan struct{}
 	stopChan    chan struct{}
-	nextWorkers []chan dnsutils.DNSMessage
+	nextWorkers []chan *dnsutils.DNSMessage
 }
 
 // NewLogReorderTransform creates an instance of the transformer.
-func NewReorderingTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan dnsutils.DNSMessage) *ReorderingTransform {
+func NewReorderingTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessage) *ReorderingTransform {
 	t := &ReorderingTransform{
 		GenericTransformer: NewTransformer(config, logger, "reordering", name, instance, nextWorkers),
 		stopChan:           make(chan struct{}),
@@ -40,8 +40,8 @@ func (t *ReorderingTransform) GetTransforms() ([]Subtransform, error) {
 		subtransforms = append(subtransforms, Subtransform{name: "reordering:sort-by-timestamp", processFunc: t.ReorderLogs})
 		// Start a goroutine to handle periodic flushing.
 		t.flushTicker = time.NewTicker(time.Duration(t.config.Reordering.FlushInterval) * time.Second)
-		t.buffer = make([]dnsutils.DNSMessage, 0, t.config.Reordering.MaxBufferSize)
-		t.backBuffer = make([]dnsutils.DNSMessage, 0, t.config.Reordering.MaxBufferSize)
+		t.buffer = make([]*dnsutils.DNSMessage, 0, t.config.Reordering.MaxBufferSize)
+		t.backBuffer = make([]*dnsutils.DNSMessage, 0, t.config.Reordering.MaxBufferSize)
 		go t.flushPeriodically()
 
 	}
@@ -59,7 +59,8 @@ func (t *ReorderingTransform) ReorderLogs(dm *dnsutils.DNSMessage) (int, error) 
 
 	// Add the log to the buffer.
 	t.mutex.Lock()
-	t.buffer = append(t.buffer, *dm)
+	dm.Retain(1)
+	t.buffer = append(t.buffer, dm)
 	isFull := len(t.buffer) >= t.config.Reordering.MaxBufferSize
 	t.mutex.Unlock()
 
@@ -118,11 +119,15 @@ func (t *ReorderingTransform) flushBuffer() {
 
 	// Send sorted logs to the next workers.
 	for _, sortedMsg := range t.backBuffer {
+		if len(t.nextWorkers) > 1 {
+			sortedMsg.Retain(int32(len(t.nextWorkers) - 1))
+		}
 		for _, worker := range t.nextWorkers {
 			// Non-blocking send to avoid worker congestion.
 			select {
 			case worker <- sortedMsg:
 			default:
+				sortedMsg.Release()
 				// Log or handle if the worker channel is full.
 				t.logger.Info("Worker channel is full, dropping message")
 			}

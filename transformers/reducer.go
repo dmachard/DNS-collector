@@ -24,14 +24,14 @@ type MapTraffic struct {
 	sync.RWMutex
 	ttl          time.Duration
 	kv           map[string]*dnsutils.DNSMessage
-	channels     []chan dnsutils.DNSMessage
+	channels     []chan *dnsutils.DNSMessage
 	expiredKeys  *list.List
 	droppedCount int
 	logInfo      func(msg string, v ...interface{})
 	logError     func(msg string, v ...interface{})
 }
 
-func NewMapTraffic(ttl time.Duration, channels []chan dnsutils.DNSMessage,
+func NewMapTraffic(ttl time.Duration, channels []chan *dnsutils.DNSMessage,
 	logInfo func(msg string, v ...interface{}), logError func(msg string, v ...interface{})) MapTraffic {
 	return MapTraffic{
 		ttl:         ttl,
@@ -59,6 +59,7 @@ func (mp *MapTraffic) Set(key string, dm *dnsutils.DNSMessage) {
 
 	dm.Reducer.Occurrences = 1
 	dm.Reducer.CumulativeLength = dm.DNS.Length
+	dm.Retain(1)
 	mp.kv[key] = dm
 
 	expTime := time.Now().Add(mp.ttl)
@@ -100,8 +101,11 @@ func (mp *MapTraffic) ProcessExpiredKeys() {
 	mp.Unlock()
 
 	for _, dm := range expiredMessages {
+		if len(mp.channels) > 1 {
+			dm.Retain(int32(len(mp.channels) - 1))
+		}
 		for i := range mp.channels {
-			mp.channels[i] <- *dm
+			mp.channels[i] <- dm
 		}
 	}
 }
@@ -161,7 +165,7 @@ type ReducerTransform struct {
 	accessors  []FieldAccessor
 }
 
-func NewReducerTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan dnsutils.DNSMessage) *ReducerTransform {
+func NewReducerTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessage) *ReducerTransform {
 	t := &ReducerTransform{GenericTransformer: NewTransformer(config, logger, "reducer", name, instance, nextWorkers)}
 	t.mapTraffic = NewMapTraffic(time.Duration(config.Reducer.WatchInterval)*time.Second, nextWorkers, t.LogInfo, t.LogError)
 	t.initAccessors(config.Reducer.UniqueFields)

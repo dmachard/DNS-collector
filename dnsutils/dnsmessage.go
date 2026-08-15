@@ -2,6 +2,8 @@ package dnsutils
 
 import (
 	"regexp"
+	"sync"
+	"sync/atomic"
 )
 
 var (
@@ -228,9 +230,95 @@ type DNSMessage struct {
 	ATags           *TransformATags        `json:"atags,omitempty"`
 	Rest            *TransformRest         `json:"rest,omitempty"`
 	Relabeling      *TransformRelabeling   `json:"-"`
+	RefCount        int32                  `json:"-"`
+}
+
+var DNSMessagePool = sync.Pool{
+	New: func() interface{} {
+		dm := &DNSMessage{}
+		dm.Init()
+		return dm
+	},
+}
+
+func AcquireDNSMessage() *DNSMessage {
+	dm := DNSMessagePool.Get().(*DNSMessage)
+	dm.Init()
+	dm.RefCount = 1
+	return dm
+}
+
+func (dm *DNSMessage) Retain(n int32) {
+	if n > 0 {
+		atomic.AddInt32(&dm.RefCount, n)
+	}
+}
+
+func (dm *DNSMessage) Release() {
+	if dm == nil {
+		return
+	}
+	if atomic.AddInt32(&dm.RefCount, -1) <= 0 {
+		dm.Reset()
+		DNSMessagePool.Put(dm)
+	}
+}
+
+func (dm *DNSMessage) Reset() {
+	dm.PowerDNS = nil
+	dm.OpenTelemetry = nil
+	dm.Geo = nil
+	dm.Suspicious = nil
+	dm.PublicSuffix = nil
+	dm.Extracted = nil
+	dm.Reducer = nil
+	dm.MachineLearning = nil
+	dm.Filtering = nil
+	dm.ATags = nil
+	dm.Rest = nil
+	dm.Relabeling = nil
+
+	// reuse slice memory if available
+	if dm.DNS.DNSRRs.Answers != nil {
+		dm.DNS.DNSRRs.Answers = dm.DNS.DNSRRs.Answers[:0]
+	}
+	if dm.DNS.DNSRRs.Nameservers != nil {
+		dm.DNS.DNSRRs.Nameservers = dm.DNS.DNSRRs.Nameservers[:0]
+	}
+	if dm.DNS.DNSRRs.Records != nil {
+		dm.DNS.DNSRRs.Records = dm.DNS.DNSRRs.Records[:0]
+	}
+	if dm.EDNS.Options != nil {
+		dm.EDNS.Options = dm.EDNS.Options[:0]
+	}
 }
 
 func (dm *DNSMessage) Init() {
+	answers := dm.DNS.DNSRRs.Answers
+	if answers != nil {
+		answers = answers[:0]
+	} else {
+		answers = []DNSAnswer{}
+	}
+	nameservers := dm.DNS.DNSRRs.Nameservers
+	if nameservers != nil {
+		nameservers = nameservers[:0]
+	} else {
+		nameservers = []DNSAnswer{}
+	}
+	records := dm.DNS.DNSRRs.Records
+	if records != nil {
+		records = records[:0]
+	} else {
+		records = []DNSAnswer{}
+	}
+	options := dm.EDNS.Options
+	if options != nil {
+		options = options[:0]
+	} else {
+		options = []DNSOption{}
+	}
+
 	dm.NetworkInfo = DNSNetInfo{
 		Family:         "-",
 		Protocol:       "-",
@@ -265,11 +353,11 @@ func (dm *DNSMessage) Init() {
 		Qtype:           "-",
 		Qname:           "-",
 		Qclass:          "-",
-		DNSRRs:          DNSRRs{Answers: []DNSAnswer{}, Nameservers: []DNSAnswer{}, Records: []DNSAnswer{}},
+		DNSRRs:          DNSRRs{Answers: answers, Nameservers: nameservers, Records: records},
 	}
 
 	dm.EDNS = DNSExtended{
-		Options: []DNSOption{},
+		Options: options,
 	}
 }
 

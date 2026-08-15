@@ -404,9 +404,9 @@ func (w *DNSTapProcessor) processFrame(
 	dt *dnstap.Dnstap,
 	edt *dnsutils.ExtendedDnstap,
 	transforms *transformers.Transforms,
-	defaultRoutes []chan dnsutils.DNSMessage,
+	defaultRoutes []chan *dnsutils.DNSMessage,
 	defaultNames []string,
-	droppedRoutes []chan dnsutils.DNSMessage,
+	droppedRoutes []chan *dnsutils.DNSMessage,
 	droppedNames []string,
 ) {
 	// count global messages
@@ -417,9 +417,8 @@ func (w *DNSTapProcessor) processFrame(
 		return
 	}
 
-	// init dns message
-	dm := dnsutils.DNSMessage{}
-	dm.Init()
+	// init dns message from pool
+	dm := dnsutils.AcquireDNSMessage()
 
 	dm.DNSTap.PeerName = w.PeerName
 
@@ -622,7 +621,7 @@ func (w *DNSTapProcessor) processFrame(
 		dm.DNS.ArCount = dnsHeader.Arcount
 		dm.DNS.NsCount = dnsHeader.Nscount
 
-		if err = dnsutils.DecodePayload(&dm, &dnsHeader, w.GetConfig()); err != nil {
+		if err = dnsutils.DecodePayload(dm, &dnsHeader, w.GetConfig()); err != nil {
 			dm.DNS.MalformedPacket = true
 			if w.GetConfig().Global.Trace.LogMalformed {
 				w.LogWarning("dns payload parser stopped: %s", err)
@@ -636,7 +635,7 @@ func (w *DNSTapProcessor) processFrame(
 	w.CountEgressTraffic()
 
 	// apply all enabled transformers
-	transformResult, err := transforms.ProcessMessage(&dm)
+	transformResult, err := transforms.ProcessMessage(dm)
 	if err != nil {
 		w.LogError(err.Error())
 	}

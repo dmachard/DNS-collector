@@ -128,7 +128,7 @@ func (w *FluentdClient) ConnectToRemote() {
 	}
 }
 
-func (w *FluentdClient) FlushBuffer(buf *[]dnsutils.DNSMessage) {
+func (w *FluentdClient) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 
 	entries := []protocol.EntryExt{}
 
@@ -144,6 +144,7 @@ func (w *FluentdClient) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 			Timestamp: protocol.EventTime{Time: timestamp},
 			Record:    flatDm,
 		})
+		dm.Release()
 	}
 
 	// send all entries with tag, check error on write ?
@@ -198,7 +199,7 @@ func (w *FluentdClient) StartCollect() {
 			w.CountIngressTraffic()
 
 			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(&dm)
+			transformResult, err := subprocessors.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
@@ -222,7 +223,7 @@ func (w *FluentdClient) StartLogging() {
 	defer w.LoggingDone()
 
 	// init buffer
-	bufferDm := []dnsutils.DNSMessage{}
+	bufferDm := []*dnsutils.DNSMessage{}
 
 	// init flush timer for buffer
 	flushInterval := time.Duration(w.GetConfig().Loggers.Fluentd.FlushInterval) * time.Second
@@ -248,6 +249,7 @@ func (w *FluentdClient) StartLogging() {
 			// to block the channel
 			if !w.writerReady {
 				w.CountEgressDiscarded()
+				dm.Release()
 				continue
 			}
 
@@ -262,8 +264,9 @@ func (w *FluentdClient) StartLogging() {
 		// flush the buffer
 		case <-flushTimer.C:
 			if !w.writerReady && len(bufferDm) > 0 {
-				for range bufferDm {
+				for _, dm := range bufferDm {
 					w.CountEgressDiscarded()
+					dm.Release()
 				}
 				bufferDm = nil
 			}

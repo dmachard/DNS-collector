@@ -29,7 +29,7 @@ func (w *DevNull) StartCollect() {
 		case <-w.OnStop():
 			return
 
-		case _, opened := <-w.GetInputChannel():
+		case dm, opened := <-w.GetInputChannel():
 			if !opened {
 				w.LogInfo("run: input channel closed!")
 				return
@@ -37,6 +37,7 @@ func (w *DevNull) StartCollect() {
 
 			// count global messages
 			w.CountIngressTraffic()
+			dm.Release()
 
 		}
 	}

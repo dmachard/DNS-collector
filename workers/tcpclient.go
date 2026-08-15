@@ -147,7 +147,14 @@ func (w *TCPClient) ConnectToRemote() {
 	}
 }
 
-func (w *TCPClient) FlushBuffer(buf *[]dnsutils.DNSMessage) {
+func (w *TCPClient) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
+	defer func() {
+		for _, dm := range *buf {
+			dm.Release()
+		}
+		*buf = nil
+	}()
+
 	for _, dm := range *buf {
 		if w.GetConfig().Loggers.TCPClient.Mode == pkgconfig.ModeText {
 			textBuf := w.GetTextBuffer() // get buffer from pool
@@ -194,9 +201,6 @@ func (w *TCPClient) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 			break
 		}
 	}
-
-	// reset buffer
-	*buf = nil
 }
 
 func (w *TCPClient) StartCollect() {
@@ -239,7 +243,7 @@ func (w *TCPClient) StartCollect() {
 			w.CountIngressTraffic()
 
 			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(&dm)
+			transformResult, err := subprocessors.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
@@ -263,7 +267,7 @@ func (w *TCPClient) StartLogging() {
 	defer w.LoggingDone()
 
 	// init buffer
-	bufferDm := []dnsutils.DNSMessage{}
+	bufferDm := []*dnsutils.DNSMessage{}
 
 	// init flush timer for buffer
 	flushInterval := time.Duration(w.GetConfig().Loggers.TCPClient.FlushInterval) * time.Second
@@ -299,6 +303,7 @@ func (w *TCPClient) StartLogging() {
 			// to block the channel
 			if !w.writerReady {
 				w.CountEgressDiscarded()
+				dm.Release()
 				continue
 			}
 
@@ -313,8 +318,9 @@ func (w *TCPClient) StartLogging() {
 		// flush the buffer
 		case <-flushTimer.C:
 			if !w.writerReady && len(bufferDm) > 0 {
-				for range bufferDm {
+				for _, dm := range bufferDm {
 					w.CountEgressDiscarded()
+					dm.Release()
 				}
 				bufferDm = nil
 			}
@@ -325,7 +331,6 @@ func (w *TCPClient) StartLogging() {
 
 			// restart timer
 			flushTimer.Reset(flushInterval)
-
 		}
 	}
 }

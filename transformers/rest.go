@@ -17,7 +17,7 @@ type RestTransform struct {
 	httpclient *http.Client
 }
 
-func NewRestTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan dnsutils.DNSMessage) *RestTransform {
+func NewRestTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessage) *RestTransform {
 	t := &RestTransform{GenericTransformer: NewTransformer(config, logger, "rest", name, instance, nextWorkers)}
 	return t
 }

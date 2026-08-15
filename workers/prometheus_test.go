@@ -89,7 +89,7 @@ func getMetricsTestCase(config *pkgconfig.Config, labels map[string]string) func
 		noErrorRecord.NetworkInfo.Family = IPv4
 		noErrorRecord.DNS.Length = 123
 
-		g.Record(noErrorRecord)
+		g.Record(&noErrorRecord)
 
 		// compute metrics, this function is called every second
 		g.ComputeEventsPerSecond()
@@ -102,7 +102,7 @@ func getMetricsTestCase(config *pkgconfig.Config, labels map[string]string) func
 		nxRecord.DNS.Length = 123
 		nxRecord.DNSTap.Latency = 0.05
 
-		g.Record(nxRecord)
+		g.Record(&nxRecord)
 
 		sfRecord := dnsutils.GetFakeDNSMessage()
 		sfRecord.DNS.Type = dnsutils.DNSReply
@@ -112,11 +112,11 @@ func getMetricsTestCase(config *pkgconfig.Config, labels map[string]string) func
 		sfRecord.DNS.Length = 123
 		sfRecord.DNSTap.Latency = 0.05
 
-		g.Record(sfRecord)
+		g.Record(&sfRecord)
 
 		// Generate records for a different stream id
 		noErrorRecord.DNSTap.Identity = "other_collector"
-		g.Record(noErrorRecord)
+		g.Record(&noErrorRecord)
 
 		// call ComputeMetrics for the second time, to calculate per-second metrics
 		g.ComputeEventsPerSecond()
@@ -170,7 +170,7 @@ func TestPrometheus_EPS_Counters(t *testing.T) {
 	// record one dns message to simulate some incoming data
 	noErrorRecord := dnsutils.GetFakeDNSMessage()
 	noErrorRecord.DNS.Type = dnsutils.DNSQuery
-	g.Record(noErrorRecord)
+	g.Record(&noErrorRecord)
 	// Zero second elapsed, initialize EPS
 	g.ComputeEventsPerSecond()
 	mf := getMetrics(g, t)
@@ -178,15 +178,15 @@ func TestPrometheus_EPS_Counters(t *testing.T) {
 
 	// Simulate processing two more messages, that will be two events per second
 	// after next ComputeEventsPerSecond call
-	g.Record(noErrorRecord)
-	g.Record(noErrorRecord)
+	g.Record(&noErrorRecord)
+	g.Record(&noErrorRecord)
 	g.ComputeEventsPerSecond()
 	mf = getMetrics(g, t)
 	ensureMetricValue(t, mf, "dnscollector_throughput_ops", map[string]string{"stream_id": "collector"}, 2)
 	ensureMetricValue(t, mf, "dnscollector_throughput_ops_max", map[string]string{"stream_id": "collector"}, 2)
 
 	// During next 'second' we see only 1 event. EPS counter changes, EPS Max counter keeps its value
-	g.Record(noErrorRecord)
+	g.Record(&noErrorRecord)
 	g.ComputeEventsPerSecond()
 
 	mf = getMetrics(g, t)
@@ -216,10 +216,10 @@ func TestPrometheus_ConfirmDifferentResolvers(t *testing.T) {
 	noErrorRecord := dnsutils.GetFakeDNSMessage()
 	noErrorRecord.DNS.Length = 123
 	noErrorRecord.NetworkInfo.ResponseIP = "1.2.3.4"
-	g.Record(noErrorRecord)
+	g.Record(&noErrorRecord)
 	noErrorRecord.DNS.Length = 999
 	noErrorRecord.NetworkInfo.ResponseIP = "10.10.10.10"
-	g.Record(noErrorRecord)
+	g.Record(&noErrorRecord)
 	mf := getMetrics(g, t)
 
 	ensureMetricValue(t, mf, "dnscollector_bytes_total", map[string]string{"resolver": "1.2.3.4"}, 123)
@@ -243,10 +243,10 @@ func TestPrometheus_Etldplusone(t *testing.T) {
 	noErrorRecord.NetworkInfo.Family = IPv4
 	noErrorRecord.DNS.Length = 123
 
-	g.Record(noErrorRecord)
+	g.Record(&noErrorRecord)
 	// The next would be a different TLD+1
 	noErrorRecord.PublicSuffix.QnameEffectiveTLDPlusOne = "anotherdomain.co.uk"
-	g.Record(noErrorRecord)
+	g.Record(&noErrorRecord)
 
 	mf := getMetrics(g, t)
 	ensureMetricValue(t, mf, "dnscollector_total_etlds_plusone_lru", map[string]string{"stream_id": "collector"}, 2)
@@ -330,19 +330,19 @@ func TestPrometheus_QnameInvalidChars(t *testing.T) {
 	// record one dns message to simulate some incoming data
 	dm := dnsutils.GetFakeDNSMessage()
 	dm.DNS.Qname = qnameInvalid
-	g.Record(dm)
+	g.Record(&dm)
 
 	// record one dns message to simulate some incoming data
 	dmNx := dnsutils.GetFakeDNSMessage()
 	dmNx.DNS.Qname = qnameInvalid
 	dmNx.DNS.Rcode = "NXDOMAIN"
-	g.Record(dmNx)
+	g.Record(&dmNx)
 
 	// record one dns message to simulate some incoming data
 	dmSf := dnsutils.GetFakeDNSMessage()
 	dmSf.DNS.Qname = qnameInvalid
 	dmSf.DNS.Rcode = "SERVFAIL"
-	g.Record(dmSf)
+	g.Record(&dmSf)
 
 	mf := getMetrics(g, t)
 	if !ensureMetricValue(t, mf, "dnscollector_top_domains", map[string]string{"domain": qnameValidUTF8}, 3) {

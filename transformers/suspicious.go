@@ -15,7 +15,7 @@ type SuspiciousTransform struct {
 	whitelistDomainsRegex map[string]*regexp.Regexp
 }
 
-func NewSuspiciousTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan dnsutils.DNSMessage) *SuspiciousTransform {
+func NewSuspiciousTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessage) *SuspiciousTransform {
 	t := &SuspiciousTransform{GenericTransformer: NewTransformer(config, logger, "suspicious", name, instance, nextWorkers)}
 	t.commonQtypes = make(map[string]bool)
 	t.whitelistDomainsRegex = make(map[string]*regexp.Regexp)

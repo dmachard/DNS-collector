@@ -33,11 +33,11 @@ func TestDnsMessage_RoutingPolicy(t *testing.T) {
 
 	// this message should be kept by the collector
 	dm := dnsutils.GetFakeDNSMessage()
-	c.GetInputChannel() <- dm
+	c.GetInputChannel() <- &dm
 
 	// this message should dropped by the collector
 	dm.DNS.Qname = "dropped.collector"
-	c.GetInputChannel() <- dm
+	c.GetInputChannel() <- &dm
 
 	// the 1er message should be in th k worker
 	dmKept := <-kept.GetInputChannel()
@@ -73,7 +73,7 @@ func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 	// add a shot of dnsmessages to collector
 	dmIn := dnsutils.GetFakeDNSMessage()
 	for i := 0; i < 512; i++ {
-		c.GetInputChannel() <- dmIn
+		c.GetInputChannel() <- &dmIn
 	}
 
 	// waiting monitor to run in consumer
@@ -95,7 +95,7 @@ func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 
 	// send second shot of packets to consumer
 	for i := 0; i < 1024; i++ {
-		c.GetInputChannel() <- dmIn
+		c.GetInputChannel() <- &dmIn
 	}
 
 	// waiting monitor to run in consumer

@@ -16,8 +16,8 @@ import (
 func TestExtract_Json(t *testing.T) {
 	// enable feature
 	config := pkgconfig.GetFakeConfigTransformers()
-	outChans := []chan dnsutils.DNSMessage{}
-	outChans = append(outChans, make(chan dnsutils.DNSMessage, 1))
+	outChans := []chan *dnsutils.DNSMessage{}
+	outChans = append(outChans, make(chan *dnsutils.DNSMessage, 1))
 
 	// get dns message
 	dm := dnsutils.GetFakeDNSMessageWithPayload()
@@ -71,8 +71,8 @@ func TestExtract_Base64AndHexFields(t *testing.T) {
 	config.Extract.Base64Fields = []string{"dns.qname"}
 	config.Extract.HexFields = []string{"dns.qname"}
 
-	outChans := []chan dnsutils.DNSMessage{}
-	outChans = append(outChans, make(chan dnsutils.DNSMessage, 1))
+	outChans := []chan *dnsutils.DNSMessage{}
+	outChans = append(outChans, make(chan *dnsutils.DNSMessage, 1))
 
 	// get dns message with non-UTF8 qname (Latin-1 \344)
 	dm := dnsutils.GetFakeDNSMessage()
@@ -127,8 +127,8 @@ func TestExtract_WildcardSliceFields(t *testing.T) {
 	config.Extract.Base64Fields = []string{"dns.resource-records.an.*.rdata"}
 	config.Extract.HexFields = []string{"dns.resource-records.an.*.rdata"}
 
-	outChans := []chan dnsutils.DNSMessage{}
-	outChans = append(outChans, make(chan dnsutils.DNSMessage, 1))
+	outChans := []chan *dnsutils.DNSMessage{}
+	outChans = append(outChans, make(chan *dnsutils.DNSMessage, 1))
 
 	// get dns message
 	dm := dnsutils.GetFakeDNSMessage()
@@ -221,7 +221,7 @@ func BenchmarkExtract_AddBase64AndHexFields(b *testing.B) {
 	config.Extract.Base64Fields = []string{"dns.qname", "network.query-ip"}
 	config.Extract.HexFields = []string{"dns.qname", "network.query-ip"}
 
-	outChans := []chan dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessage{}
 	extract := NewExtractTransform(config, logger.New(false), "test", 0, outChans)
 	extract.GetTransforms()
 

@@ -17,7 +17,7 @@ type RewriteTransform struct {
 	mutators []MutatorFunc
 }
 
-func NewRewriteTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan dnsutils.DNSMessage) *RewriteTransform {
+func NewRewriteTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessage) *RewriteTransform {
 	t := &RewriteTransform{GenericTransformer: NewTransformer(config, logger, "rewrite", name, instance, nextWorkers)}
 	t.initMutators()
 	return t

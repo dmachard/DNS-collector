@@ -72,7 +72,7 @@ func TestRestAPI_MethodNotAllowed(t *testing.T) {
 	dm.PublicSuffix.QnamePublicSuffix = "collector"
 
 	// record the dns message
-	g.RecordDNSMessage(dm)
+	g.RecordDNSMessage(&dm)
 
 	tt := []struct {
 		name       string
@@ -289,7 +289,7 @@ func TestRestAPI_GetMethod(t *testing.T) {
 				dm.DNS.Qname = "dns:collector"
 				dm.Suspicious = &dnsutils.TransformSuspicious{Score: 1}
 			}
-			g.RecordDNSMessage(dm)
+			g.RecordDNSMessage(&dm)
 
 			// init httptest
 			request := httptest.NewRequest(tc.method, tc.uri, strings.NewReader(""))

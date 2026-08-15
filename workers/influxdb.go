@@ -65,7 +65,7 @@ func (w *InfluxDBClient) StartCollect() {
 			w.CountIngressTraffic()
 
 			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(&dm)
+			transformResult, err := subprocessors.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
@@ -151,6 +151,7 @@ func (w *InfluxDBClient) StartLogging() {
 
 			// write asynchronously
 			w.writeAPI.WritePoint(p)
+			dm.Release()
 		}
 	}
 }

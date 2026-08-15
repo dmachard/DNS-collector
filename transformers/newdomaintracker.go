@@ -121,7 +121,7 @@ type NewDomainTrackerTransform struct {
 }
 
 // NewNewDomainTransform creates a new instance of the transformer
-func NewNewDomainTrackerTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan dnsutils.DNSMessage) *NewDomainTrackerTransform {
+func NewNewDomainTrackerTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessage) *NewDomainTrackerTransform {
 	t := &NewDomainTrackerTransform{GenericTransformer: NewTransformer(config, logger, "new-domain-tracker", name, instance, nextWorkers)}
 	t.listDomainsRegex = make(map[string]*regexp.Regexp)
 	return t

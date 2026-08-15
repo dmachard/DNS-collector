@@ -36,18 +36,19 @@ func (w *DnstapProxifier) CheckConfig() {
 	}
 }
 
-func (w *DnstapProxifier) HandleFrame(recvFrom chan []byte, sendTo []chan dnsutils.DNSMessage) {
+func (w *DnstapProxifier) HandleFrame(recvFrom chan []byte, sendTo []chan *dnsutils.DNSMessage) {
 	defer w.LogInfo("frame handler terminated")
 
-	dm := dnsutils.DNSMessage{}
-
 	for data := range recvFrom {
-		// init DNS message container
+		dm := dnsutils.AcquireDNSMessage()
 		dm.Init()
 
 		// register payload
 		dm.DNSTap.Payload = data
 
+		if len(sendTo) > 1 {
+			dm.Retain(int32(len(sendTo) - 1))
+		}
 		// forward to outputs
 		for i := range sendTo {
 			sendTo[i] <- dm

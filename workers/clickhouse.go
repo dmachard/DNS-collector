@@ -78,7 +78,7 @@ func (w *ClickhouseClient) StartCollect() {
 			w.CountIngressTraffic()
 
 			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(&dm)
+			transformResult, err := subprocessors.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
@@ -145,6 +145,7 @@ func (w *ClickhouseClient) StartLogging() {
 			if errReq != nil {
 				w.LogError(errReq.Error())
 			}
+			dm.Release()
 		}
 	}
 }

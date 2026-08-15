@@ -92,7 +92,7 @@ func Test_ElasticSearchClient_BulkSize_Exceeded(t *testing.T) {
 
 			dm := dnsutils.GetFakeDNSMessage()
 			for i := 0; i < tc.inputSize; i++ {
-				g.GetInputChannel() <- dm
+				g.GetInputChannel() <- &dm
 			}
 
 			try := 0
@@ -148,7 +148,7 @@ func Test_ElasticSearchClient_FlushInterval_Exceeded(t *testing.T) {
 			// send DNSmessage
 			dm := dnsutils.GetFakeDNSMessage()
 			for i := 0; i < tc.inputSize; i++ {
-				g.GetInputChannel() <- dm
+				g.GetInputChannel() <- &dm
 			}
 			time.Sleep(6 * time.Second)
 

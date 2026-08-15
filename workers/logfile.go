@@ -392,7 +392,7 @@ func (w *LogFile) RotateFile() error {
 	return nil
 }
 
-func (w *LogFile) WriteToPcap(dm dnsutils.DNSMessage, pkt []gopacket.SerializableLayer) {
+func (w *LogFile) WriteToPcap(dm *dnsutils.DNSMessage, pkt []gopacket.SerializableLayer) {
 	// create the packet with the layers
 	buf := gopacket.NewSerializeBuffer()
 	opts := gopacket.SerializeOptions{
@@ -535,7 +535,7 @@ func (w *LogFile) StartCollect() {
 			w.CountIngressTraffic()
 
 			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(&dm)
+			transformResult, err := subprocessors.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
@@ -625,6 +625,7 @@ func (w *LogFile) StartLogging() {
 					w.CountEgressDiscarded()
 					w.LogError("logfile: could not encode to text format: %s", err)
 					w.PutTextBuffer(buf)
+					dm.Release()
 					break
 				}
 
@@ -644,6 +645,7 @@ func (w *LogFile) StartLogging() {
 				if err != nil {
 					w.CountEgressDiscarded()
 					w.LogError("jinja template: %s", err)
+					dm.Release()
 					continue
 				}
 				data := []byte(textLine)
@@ -662,6 +664,7 @@ func (w *LogFile) StartLogging() {
 					if err != nil {
 						w.CountEgressDiscarded()
 						w.LogError("flattening DNS message failed: %e", err)
+						dm.Release()
 						continue
 					}
 					json.NewEncoder(buf).Encode(flat)
@@ -679,6 +682,7 @@ func (w *LogFile) StartLogging() {
 				if err != nil {
 					w.CountEgressDiscarded()
 					w.LogError("failed to encode to DNStap protobuf: %s", err)
+					dm.Release()
 					continue
 				}
 				w.WriteToDnstap(data)
@@ -689,12 +693,14 @@ func (w *LogFile) StartLogging() {
 				if err != nil {
 					w.CountEgressDiscarded()
 					w.LogError("failed to encode to packet layer: %s", err)
+					dm.Release()
 					continue
 				}
 
 				// write the packet
 				w.WriteToPcap(dm, pkt)
 			}
+			dm.Release()
 
 		case <-flushTicker.C:
 			w.FlushWriters()

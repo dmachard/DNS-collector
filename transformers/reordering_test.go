@@ -19,8 +19,8 @@ func TestReorderingTransform_SortByTimestamp(t *testing.T) {
 	log := logger.New(false)
 
 	// create output channels
-	outChans := []chan dnsutils.DNSMessage{
-		make(chan dnsutils.DNSMessage, 10),
+	outChans := []chan *dnsutils.DNSMessage{
+		make(chan *dnsutils.DNSMessage, 10),
 	}
 
 	// initialize transformer
@@ -43,7 +43,7 @@ func TestReorderingTransform_SortByTimestamp(t *testing.T) {
 	reorder.flushBuffer()
 
 	// collect results from the output channel
-	var results []dnsutils.DNSMessage
+	var results []*dnsutils.DNSMessage
 	done := false
 	for !done {
 		select {
@@ -76,19 +76,20 @@ func BenchmarkReordering_ReorderAndFlush(b *testing.B) {
 	config.Reordering.MaxBufferSize = 1000
 
 	log := logger.New(false)
-	outChans := []chan dnsutils.DNSMessage{
-		make(chan dnsutils.DNSMessage, 2000),
+	outChans := []chan *dnsutils.DNSMessage{
+		make(chan *dnsutils.DNSMessage, 2000),
 	}
 
 	reorder := NewReorderingTransform(config, log, "test", 0, outChans)
 
 	// Create 1000 fake messages with different timestamps
-	messages := make([]dnsutils.DNSMessage, 1000)
+	messages := make([]*dnsutils.DNSMessage, 1000)
 	for i := 0; i < 1000; i++ {
-		messages[i] = dnsutils.GetFakeDNSMessage()
+		msg := dnsutils.GetFakeDNSMessage()
 		ts := time.Now().Add(time.Duration(i%2-i%3+i%5) * time.Millisecond)
-		messages[i].DNSTap.Timestamp = ts.UnixNano()
-		messages[i].DNSTap.TimestampRFC3339 = ts.Format(time.RFC3339Nano)
+		msg.DNSTap.Timestamp = ts.UnixNano()
+		msg.DNSTap.TimestampRFC3339 = ts.Format(time.RFC3339Nano)
+		messages[i] = &msg
 	}
 
 	b.ResetTimer()

@@ -14,7 +14,7 @@ import (
 func TestLatency_MeasureLatencyAndMs(t *testing.T) {
 	// enable feature
 	config := pkgconfig.GetFakeConfigTransformers()
-	outChannels := []chan dnsutils.DNSMessage{}
+	outChannels := []chan *dnsutils.DNSMessage{}
 
 	// init transformer
 	latency := NewLatencyTransform(config, logger.New(true), "test", 0, outChannels)
@@ -73,8 +73,8 @@ func TestLatency_DetectEvictedTimeout(t *testing.T) {
 	config.Latency.Enable = true
 	config.Latency.QueriesTimeout = 1
 
-	outChannels := []chan dnsutils.DNSMessage{}
-	outChannels = append(outChannels, make(chan dnsutils.DNSMessage, 1))
+	outChannels := []chan *dnsutils.DNSMessage{}
+	outChannels = append(outChannels, make(chan *dnsutils.DNSMessage, 1))
 
 	// init transformer
 	latency := NewLatencyTransform(config, logger.New(true), "test", 0, outChannels)

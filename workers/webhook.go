@@ -92,7 +92,7 @@ func (w *Webhook) StartCollect() {
 			w.CountIngressTraffic()
 
 			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(&dm)
+			transformResult, err := subprocessors.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
@@ -126,7 +126,7 @@ func (w *Webhook) StartLogging(threadnum int, ctx context.Context) {
 			}
 
 			// enrich dm with HTTP data
-			w.Request(&dm)
+			w.Request(dm)
 
 			// send to next
 			w.SendForwardedTo(defaultRoutes, defaultNames, dm)

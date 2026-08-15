@@ -126,7 +126,7 @@ func (w *StdOut) StartCollect() {
 			w.CountIngressTraffic()
 
 			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(&dm)
+			transformResult, err := subprocessors.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
@@ -182,6 +182,7 @@ func (w *StdOut) StartLogging() {
 				if len(dm.DNS.Payload) == 0 {
 					w.CountEgressDiscarded()
 					w.LogError("process: no dns payload to encode, drop it")
+					dm.Release()
 					continue
 				}
 
@@ -189,6 +190,7 @@ func (w *StdOut) StartLogging() {
 				if err != nil {
 					w.CountEgressDiscarded()
 					w.LogError("process: unable to pack layer: %s", err)
+					dm.Release()
 					continue
 				}
 
@@ -229,6 +231,7 @@ func (w *StdOut) StartLogging() {
 				if err != nil {
 					w.CountEgressDiscarded()
 					w.LogError("process: unable to update template: %s", err)
+					dm.Release()
 					continue
 				}
 				w.writerRaw.WriteString(textLine)
@@ -239,6 +242,7 @@ func (w *StdOut) StartLogging() {
 				if err != nil {
 					w.CountEgressDiscarded()
 					w.LogError("process: unable to encode json: %s", err)
+					dm.Release()
 					continue
 				}
 
@@ -247,15 +251,18 @@ func (w *StdOut) StartLogging() {
 				if err != nil {
 					w.CountEgressDiscarded()
 					w.LogError("process: flattening DNS message failed: %e", err)
+					dm.Release()
 					continue
 				}
 				err = json.NewEncoder(w.writerRaw).Encode(flat)
 				if err != nil {
 					w.CountEgressDiscarded()
 					w.LogError("process: unable to encode flat json: %s", err)
+					dm.Release()
 					continue
 				}
 			}
+			dm.Release()
 		}
 	}
 }

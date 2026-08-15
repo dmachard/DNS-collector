@@ -81,7 +81,7 @@ func (w *DNSProcessor) StartCollect() {
 				dm.DNSTap.Operation = dnsutils.DNSTapClientQuery
 			}
 
-			if err = dnsutils.DecodePayload(&dm, &dnsHeader, w.GetConfig()); err != nil {
+			if err = dnsutils.DecodePayload(dm, &dnsHeader, w.GetConfig()); err != nil {
 				w.LogError("%v - %v", err, dm)
 			}
 
@@ -95,7 +95,7 @@ func (w *DNSProcessor) StartCollect() {
 			w.CountEgressTraffic()
 
 			// apply all enabled transformers
-			transformResult, err := transforms.ProcessMessage(&dm)
+			transformResult, err := transforms.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}

@@ -82,6 +82,9 @@ func (w *Tail) StartCollect() {
 			return
 
 		case line := <-w.tailf.Lines:
+			dm := dnsutils.AcquireDNSMessage()
+			dm.Init()
+
 			var matches []string
 			var re *regexp.Regexp
 
@@ -100,6 +103,7 @@ func (w *Tail) StartCollect() {
 			}
 
 			if len(matches) == 0 {
+				dm.Release()
 				continue
 			}
 
@@ -113,6 +117,7 @@ func (w *Tail) StartCollect() {
 			if timestampIndex != -1 {
 				t, err = time.Parse(w.GetConfig().Collectors.Tail.TimeLayout, matches[timestampIndex])
 				if err != nil {
+					dm.Release()
 					continue
 				}
 			} else {
@@ -221,7 +226,7 @@ func (w *Tail) StartCollect() {
 			w.CountEgressTraffic()
 
 			// apply all enabled transformers
-			transformResult, err := subprocessors.ProcessMessage(&dm)
+			transformResult, err := subprocessors.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
