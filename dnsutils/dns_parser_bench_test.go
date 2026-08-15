@@ -163,7 +163,7 @@ func Benchmark_NetIPString(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_ = net.IP(ip).String()
+		_ = ip.String()
 	}
 }
 
