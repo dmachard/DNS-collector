@@ -81,6 +81,7 @@ func (w *XDPSniffer) StartCollect() {
 	dnsChan := make(chan *dnsutils.DNSMessage)
 
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	done := make(chan struct{})
 	stopChan := make(chan struct{})
 
@@ -204,7 +205,7 @@ func (w *XDPSniffer) StartCollect() {
 			if !opened {
 				return
 			}
-			
+
 			// update identity with config ?
 			dm.DNSTap.Identity = w.GetConfig().GetServerIdentity()
 

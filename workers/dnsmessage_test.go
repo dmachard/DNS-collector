@@ -32,12 +32,13 @@ func TestDnsMessage_RoutingPolicy(t *testing.T) {
 	go c.StartCollect()
 
 	// this message should be kept by the collector
-	dm := dnsutils.GetFakeDNSMessage()
-	c.GetInputChannel() <- &dm
+	dm1 := dnsutils.GetFakeDNSMessage()
+	c.GetInputChannel() <- &dm1
 
 	// this message should dropped by the collector
-	dm.DNS.Qname = "dropped.collector"
-	c.GetInputChannel() <- &dm
+	dm2 := dnsutils.GetFakeDNSMessage()
+	dm2.DNS.Qname = "dropped.collector"
+	c.GetInputChannel() <- &dm2
 
 	// the 1er message should be in th k worker
 	dmKept := <-kept.GetInputChannel()

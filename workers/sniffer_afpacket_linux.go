@@ -262,8 +262,6 @@ func (w *AfpacketSniffer) StartCollect() {
 
 	}(ctx)
 
-
-
 	for {
 		select {
 		case <-w.OnStop():

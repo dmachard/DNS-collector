@@ -243,7 +243,6 @@ var DNSMessagePool = sync.Pool{
 
 func AcquireDNSMessage() *DNSMessage {
 	dm := DNSMessagePool.Get().(*DNSMessage)
-	dm.Init()
 	dm.RefCount = 1
 	return dm
 }
@@ -277,20 +276,7 @@ func (dm *DNSMessage) Reset() {
 	dm.ATags = nil
 	dm.Rest = nil
 	dm.Relabeling = nil
-
-	// reuse slice memory if available
-	if dm.DNS.DNSRRs.Answers != nil {
-		dm.DNS.DNSRRs.Answers = dm.DNS.DNSRRs.Answers[:0]
-	}
-	if dm.DNS.DNSRRs.Nameservers != nil {
-		dm.DNS.DNSRRs.Nameservers = dm.DNS.DNSRRs.Nameservers[:0]
-	}
-	if dm.DNS.DNSRRs.Records != nil {
-		dm.DNS.DNSRRs.Records = dm.DNS.DNSRRs.Records[:0]
-	}
-	if dm.EDNS.Options != nil {
-		dm.EDNS.Options = dm.EDNS.Options[:0]
-	}
+	dm.Init()
 }
 
 func (dm *DNSMessage) Init() {

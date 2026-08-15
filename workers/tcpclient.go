@@ -252,12 +252,7 @@ func (w *TCPClient) StartCollect() {
 				continue
 			}
 
-			// send to output channel
-			w.CountEgressTraffic()
-			w.GetOutputChannel() <- dm
-
-			// send to next ?
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
 		}
 	}
 }

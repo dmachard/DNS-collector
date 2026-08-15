@@ -309,10 +309,7 @@ func (w *MQTT) StartCollect() {
 				continue
 			}
 
-			w.CountEgressTraffic()
-			w.GetOutputChannel() <- dm
-
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
 		}
 	}
 }
