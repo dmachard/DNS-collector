@@ -166,7 +166,6 @@ func Test_KafkaProducer_Reconnect(t *testing.T) {
 	listener2, broker2 := createMockBroker(t, 2, testAddress+":"+testPort, testTopic)
 	defer listener2.Close()
 	defer broker2.Close()
-	time.Sleep(3 * time.Second)
 
 	// Send another fake DNS message after reconnect
 	dm2 := dnsutils.GetFakeDNSMessage()

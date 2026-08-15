@@ -292,29 +292,17 @@ func (dm *DNSMessage) Reset() {
 }
 
 func (dm *DNSMessage) Init() {
-	answers := dm.DNS.DNSRRs.Answers
-	if answers != nil {
-		answers = answers[:0]
-	} else {
-		answers = []DNSAnswer{}
+	if dm.DNS.DNSRRs.Answers != nil {
+		dm.DNS.DNSRRs.Answers = dm.DNS.DNSRRs.Answers[:0]
 	}
-	nameservers := dm.DNS.DNSRRs.Nameservers
-	if nameservers != nil {
-		nameservers = nameservers[:0]
-	} else {
-		nameservers = []DNSAnswer{}
+	if dm.DNS.DNSRRs.Nameservers != nil {
+		dm.DNS.DNSRRs.Nameservers = dm.DNS.DNSRRs.Nameservers[:0]
 	}
-	records := dm.DNS.DNSRRs.Records
-	if records != nil {
-		records = records[:0]
-	} else {
-		records = []DNSAnswer{}
+	if dm.DNS.DNSRRs.Records != nil {
+		dm.DNS.DNSRRs.Records = dm.DNS.DNSRRs.Records[:0]
 	}
-	options := dm.EDNS.Options
-	if options != nil {
-		options = options[:0]
-	} else {
-		options = []DNSOption{}
+	if dm.EDNS.Options != nil {
+		dm.EDNS.Options = dm.EDNS.Options[:0]
 	}
 
 	dm.NetworkInfo = DNSNetInfo{
@@ -344,6 +332,10 @@ func (dm *DNSMessage) Init() {
 		HttpProtocol:     "-",
 	}
 
+	answers := dm.DNS.DNSRRs.Answers
+	nameservers := dm.DNS.DNSRRs.Nameservers
+	records := dm.DNS.DNSRRs.Records
+
 	dm.DNS = DNS{
 		Type:            "-",
 		MalformedPacket: false,
@@ -354,6 +346,7 @@ func (dm *DNSMessage) Init() {
 		DNSRRs:          DNSRRs{Answers: answers, Nameservers: nameservers, Records: records},
 	}
 
+	options := dm.EDNS.Options
 	dm.EDNS = DNSExtended{
 		Options: options,
 	}

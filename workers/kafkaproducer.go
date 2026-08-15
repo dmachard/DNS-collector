@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"strconv"
 	"strings"
 	"sync"
@@ -340,6 +341,23 @@ func (w *KafkaProducer) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 	partition := kafkaConfig.Partition
 	var err error
 
+	handleError := func(partitionID int, err error) {
+		w.LogError("[partition=%d] write failed: %v", partitionID, err.Error())
+		for range msgs {
+			w.CountEgressDiscarded()
+		}
+		w.connMutex.RUnlock()
+		w.connMutex.Lock()
+		w.kafkaConnected = false
+		w.connMutex.Unlock()
+		w.connMutex.RLock()
+
+		select {
+		case w.triggerReconnect <- true:
+		default:
+		}
+	}
+
 	if partition == nil {
 		// Round-robin between partitions
 		if w.lastPartitionIndex == nil {
@@ -348,6 +366,7 @@ func (w *KafkaProducer) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 		numPartitions := len(w.kafkaConns)
 		if numPartitions == 0 {
 			w.LogError("no kafka connections available")
+			handleError(0, errors.New("no connections available"))
 			return
 		}
 
@@ -359,7 +378,7 @@ func (w *KafkaProducer) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 		}
 
 		if err != nil {
-			w.LogError("[partition=%d] write failed: %v", *w.lastPartitionIndex, err.Error())
+			handleError(*w.lastPartitionIndex, err)
 			return
 		}
 
@@ -369,6 +388,7 @@ func (w *KafkaProducer) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 		conn, exists := w.kafkaConns[*partition]
 		if !exists {
 			w.LogError("[partition=%d] connection not available", *partition)
+			handleError(*partition, errors.New("connection not available"))
 			return
 		}
 
@@ -379,7 +399,7 @@ func (w *KafkaProducer) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 		}
 
 		if err != nil {
-			w.LogError("[partition=%d] write failed: %v", *partition, err.Error())
+			handleError(*partition, err)
 			return
 		}
 	}
