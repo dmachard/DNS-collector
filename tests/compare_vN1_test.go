@@ -90,13 +90,16 @@ func TestCompare_VersionN1(t *testing.T) {
 	binCurrent := filepath.Join(tempDir, "dnscollector_current")
 	binPrev := filepath.Join(tempDir, "dnscollector_prev")
 
+	goBin := "go"
+	if p, err := exec.LookPath("go"); err == nil {
+		goBin = p
+	}
+
 	// 3. Build current workspace binary
 	t.Log("Building current workspace binary...")
-	cmdBuildCurrent := exec.Command("/usr/local/go/bin/go", "build", "-o", binCurrent, ".")
+	cmdBuildCurrent := exec.Command(goBin, "build", "-o", binCurrent, ".")
 	cmdBuildCurrent.Dir = ".."
 	cmdBuildCurrent.Env = append(os.Environ(),
-		"GOROOT=/usr/local/go",
-		"PATH=/usr/local/go/bin:"+os.Getenv("PATH"),
 		"GOCACHE="+filepath.Join(tempDir, "gocache_curr"),
 	)
 	if out, err := cmdBuildCurrent.CombinedOutput(); err != nil {
@@ -109,11 +112,9 @@ func TestCompare_VersionN1(t *testing.T) {
 	if out, err := exec.Command("git", "clone", "--quiet", "--branch", prevTag, "--depth", "1", "file://"+getRepoRoot(t), repoDir).CombinedOutput(); err != nil {
 		t.Fatalf("failed to clone tag %s: %v\nOutput: %s", prevTag, err, string(out))
 	}
-	cmdBuildPrev := exec.Command("/usr/local/go/bin/go", "build", "-a", "-o", binPrev, ".")
+	cmdBuildPrev := exec.Command(goBin, "build", "-a", "-o", binPrev, ".")
 	cmdBuildPrev.Dir = repoDir
 	cmdBuildPrev.Env = append(os.Environ(),
-		"GOROOT=/usr/local/go",
-		"PATH=/usr/local/go/bin:"+os.Getenv("PATH"),
 		"GOCACHE="+filepath.Join(tempDir, "gocache_prev"),
 	)
 	if out, err := cmdBuildPrev.CombinedOutput(); err != nil {
