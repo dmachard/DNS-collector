@@ -244,7 +244,7 @@ var DNSMessagePool = sync.Pool{
 
 func AcquireDNSMessage() *DNSMessage {
 	dm := DNSMessagePool.Get().(*DNSMessage)
-	dm.RefCount = 1
+	atomic.StoreInt32(&dm.RefCount, 1)
 	return dm
 }
 
@@ -258,7 +258,7 @@ func (dm *DNSMessage) Release() {
 	if dm == nil {
 		return
 	}
-	if atomic.AddInt32(&dm.RefCount, -1) <= 0 {
+	if atomic.AddInt32(&dm.RefCount, -1) == 0 {
 		dm.Reset()
 		DNSMessagePool.Put(dm)
 	}
