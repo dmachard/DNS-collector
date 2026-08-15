@@ -347,8 +347,8 @@ func (w *GenericWorker) SendForwardedTo(routes []chan *dnsutils.DNSMessage, rout
 func (w *GenericWorker) SendToOutputAndForward(routes []chan *dnsutils.DNSMessage, routesName []string, dm *dnsutils.DNSMessage) {
 	w.CountEgressTraffic()
 	dm.Retain(1)
-	w.GetOutputChannel() <- dm
 	w.SendForwardedTo(routes, routesName, dm)
+	w.GetOutputChannel() <- dm
 }
 
 func (w *GenericWorker) GetTextBuffer() *bytes.Buffer {
