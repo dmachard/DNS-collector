@@ -15,8 +15,11 @@ services:
     build:
       context: ../../../
       dockerfile: Dockerfile
+    user: root:root
     restart: unless-stopped
-    ports:
-      - "6000:6000/tcp"
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    network_mode: host
     volumes:
       - ./config.yml:/etc/dnscollector/config.yml:ro

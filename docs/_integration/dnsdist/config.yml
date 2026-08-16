@@ -11,6 +11,14 @@ pipelines:
       forward: [ console ]
       dropped: []
 
+  - name: sniffer
+    afpacket-sniffer:
+      port: 5300
+      device: lo
+    routing-policy:
+      forward: [ console ]
+      dropped: []
+
   - name: console
     stdout:
-      mode: text
+      mode: flat-json
