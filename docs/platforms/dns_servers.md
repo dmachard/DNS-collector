@@ -18,3 +18,6 @@ Below is a list of DNS servers that have been tested and verified to work with D
 For a step-by-step tutorial on setting up DNStap on BIND, Unbound, DNSdist, and other servers, refer to:
 👉 **[Enabling DNStap logging on most popular DNS servers](./dnstap.md)**
 
+For a ready-to-use Docker Compose setup with PowerDNS DNSdist and DNS-collector, see:
+👉 **[DNSdist + DNS-collector Docker Compose Example](../../_integration/dnsdist/README.md)**
+

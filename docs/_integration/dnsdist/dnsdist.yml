@@ -1,0 +1,79 @@
+acl:
+  - "0.0.0.0/0"
+  - "::/0"
+
+binds:
+  - listen_address: "127.0.0.1:5300"
+    protocol: "Do53"
+    reuseport: true
+
+packet_caches:
+  - name: "cache"
+    size: 50000
+
+pools:
+  - name: "default"
+    packet_cache: "cache"
+
+backends:
+  - address: "1.1.1.1:53"
+    protocol: "Do53"
+    pools:
+      - "default"
+
+remote_logging:
+  dnstap_loggers:
+    - name: "remote_logging"
+      transport: tcp
+      address: "127.0.0.1:6000"
+      connection_count: 1
+
+query_rules:
+  - name: "tag all queries"
+    selector:
+      type: All
+    action:
+      type: SetTag
+      tag: "policy"
+      value: "all"
+
+  - name: "log all queries"
+    selector:
+      type: "Tag"
+      tag: "policy"
+      value: "all"
+    action:
+      type: DnstapLog
+      identity: "dnsdist"
+      logger_name: "remote_logging"
+
+  - name: "forward all queries"
+    selector:
+      type: "Tag"
+      tag: "policy"
+      value: "all" 
+    action:
+      type: Pool
+      pool_name: "default"
+
+response_rules:
+  - name: "log all responses"
+    selector:
+      type: "Tag"
+      tag: "policy"
+      value: "all"
+    action:
+      type: DnstapLog
+      identity: "dnsdist"
+      logger_name: "remote_logging"
+
+cache_hit_response_rules:
+  - name: "log all responses from cache"
+    selector:
+      type: "Tag"
+      tag: "policy"
+      value: "all"    
+    action:
+      type: DnstapLog
+      identity: "dnsdist"
+      logger_name: "remote_logging"
