@@ -69,8 +69,8 @@ func Test_NSQ_ClientAndPublishing(t *testing.T) {
 	// Wait for client to start
 	time.Sleep(100 * time.Millisecond)
 
-	// Send a message to trigger publishing
-	nsqClient.GetInputChannel() <- dnsutils.GetFakeDNSMessage()
+	dm := dnsutils.GetFakeDNSMessage()
+	nsqClient.GetInputChannel() <- &dm
 
 	// Wait for message to be processed
 	time.Sleep(200 * time.Millisecond)

@@ -162,7 +162,7 @@ func (w *ScalyrClient) StartCollect() {
 			w.CountIngressTraffic()
 
 			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(&dm)
+			transformResult, err := subprocessors.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
@@ -171,12 +171,7 @@ func (w *ScalyrClient) StartCollect() {
 				continue
 			}
 
-			// send to output channel
-			w.CountEgressTraffic()
-			w.GetOutputChannel() <- dm
-
-			// send to next ?
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
 		}
 	}
 }
@@ -242,6 +237,7 @@ func (w *ScalyrClient) StartLogging() {
 					w.CountEgressDiscarded()
 					w.LogError("could not encode to text format: %s", err)
 					w.PutTextBuffer(buf)
+					dm.Release()
 					continue
 				}
 
@@ -253,6 +249,7 @@ func (w *ScalyrClient) StartLogging() {
 				var err error
 				if attrs, err = dm.Flatten(); err != nil {
 					w.LogError("unable to flatten: %e", err)
+					dm.Release()
 					break
 				}
 				// Add user's attrs without overwriting flattened ones
@@ -267,6 +264,7 @@ func (w *ScalyrClient) StartLogging() {
 				Sev:   SeverityInfo,
 				Attrs: attrs,
 			})
+			dm.Release()
 			if len(events) >= 400 {
 				// Maximum size of a POST is 6MB. 400 events would mean that each dnstap entry
 				// can be a little over 15 kB in JSON, which should be plenty.

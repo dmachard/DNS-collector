@@ -14,7 +14,7 @@ func TestML_AddFeatures(t *testing.T) {
 	config.MachineLearning.Enable = true
 
 	// init the processor
-	outChans := []chan dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessage{}
 	ml := NewMachineLearningTransform(config, logger.New(false), "test", 0, outChans)
 
 	dm := dnsutils.GetFakeDNSMessage()

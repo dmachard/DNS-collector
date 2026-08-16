@@ -2,6 +2,7 @@ package workers
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -339,6 +340,7 @@ func (w *DNSTapProcessor) StartCollect() {
 
 				dt := &dnstap.Dnstap{}
 				edt := &dnsutils.ExtendedDnstap{}
+				fCache := &frameCache{}
 				transforms := transformers.NewTransforms(&w.GetConfig().IngoingTransformers, w.GetLogger(), w.GetName(), defaultRoutes, w.ConnID)
 
 				for {
@@ -351,7 +353,7 @@ func (w *DNSTapProcessor) StartCollect() {
 							transforms.Reset()
 							return
 						}
-						w.processFrame(data, dt, edt, &transforms, defaultRoutes, defaultNames, droppedRoutes, droppedNames)
+						w.processFrame(data, dt, edt, &transforms, fCache, defaultRoutes, defaultNames, droppedRoutes, droppedNames)
 					}
 				}
 			}(cfgChan)
@@ -374,6 +376,7 @@ func (w *DNSTapProcessor) StartCollect() {
 	} else {
 		dt := &dnstap.Dnstap{}
 		edt := &dnsutils.ExtendedDnstap{}
+		fCache := &frameCache{}
 		transforms := transformers.NewTransforms(&w.GetConfig().IngoingTransformers, w.GetLogger(), w.GetName(), defaultRoutes, w.ConnID)
 
 		// read incoming dns message
@@ -393,10 +396,17 @@ func (w *DNSTapProcessor) StartCollect() {
 					w.LogInfo("channel closed, exit")
 					return
 				}
-				w.processFrame(data, dt, edt, &transforms, defaultRoutes, defaultNames, droppedRoutes, droppedNames)
+				w.processFrame(data, dt, edt, &transforms, fCache, defaultRoutes, defaultNames, droppedRoutes, droppedNames)
 			}
 		}
 	}
+}
+
+type frameCache struct {
+	lastIdBytes  []byte
+	lastIdStr    string
+	lastVerBytes []byte
+	lastVerStr   string
 }
 
 func (w *DNSTapProcessor) processFrame(
@@ -404,9 +414,10 @@ func (w *DNSTapProcessor) processFrame(
 	dt *dnstap.Dnstap,
 	edt *dnsutils.ExtendedDnstap,
 	transforms *transformers.Transforms,
-	defaultRoutes []chan dnsutils.DNSMessage,
+	fCache *frameCache,
+	defaultRoutes []chan *dnsutils.DNSMessage,
 	defaultNames []string,
-	droppedRoutes []chan dnsutils.DNSMessage,
+	droppedRoutes []chan *dnsutils.DNSMessage,
 	droppedNames []string,
 ) {
 	// count global messages
@@ -417,25 +428,42 @@ func (w *DNSTapProcessor) processFrame(
 		return
 	}
 
-	// init dns message
-	dm := dnsutils.DNSMessage{}
-	dm.Init()
+	// init dns message from pool
+	dm := dnsutils.AcquireDNSMessage()
 
 	dm.DNSTap.PeerName = w.PeerName
 
 	// init dns message with additional parts
 	identity := dt.GetIdentity()
 	if len(identity) > 0 {
-		dm.DNSTap.Identity = string(identity)
+		if fCache != nil && bytes.Equal(identity, fCache.lastIdBytes) {
+			dm.DNSTap.Identity = fCache.lastIdStr
+		} else {
+			str := string(identity)
+			if fCache != nil {
+				fCache.lastIdBytes = append(fCache.lastIdBytes[:0], identity...)
+				fCache.lastIdStr = str
+			}
+			dm.DNSTap.Identity = str
+		}
 	}
 
 	version := dt.GetVersion()
 	if len(version) > 0 {
-		dm.DNSTap.Version = string(version)
+		if fCache != nil && bytes.Equal(version, fCache.lastVerBytes) {
+			dm.DNSTap.Version = fCache.lastVerStr
+		} else {
+			str := string(version)
+			if fCache != nil {
+				fCache.lastVerBytes = append(fCache.lastVerBytes[:0], version...)
+				fCache.lastVerStr = str
+			}
+			dm.DNSTap.Version = str
+		}
 	}
 
 	msgType := dt.GetMessage().GetType()
-	dm.DNSTap.Operation = msgType.String()
+	dm.DNSTap.Operation = dnsutils.DnstapOperationToString(int(msgType))
 
 	// extended extra field ?
 	if w.GetConfig().Collectors.Dnstap.ExtendedSupport {
@@ -514,21 +542,29 @@ func (w *DNSTapProcessor) processFrame(
 	// decode query address and port
 	queryip := dt.GetMessage().GetQueryAddress()
 	if len(queryip) > 0 {
-		dm.NetworkInfo.QueryIP = net.IP(queryip).String()
+		dm.NetworkInfo.QueryIP = dnsutils.FastIPv4ToString(queryip)
 	}
 	queryport := dt.GetMessage().GetQueryPort()
 	if queryport > 0 {
-		dm.NetworkInfo.QueryPort = strconv.FormatUint(uint64(queryport), 10)
+		if queryport == 53 {
+			dm.NetworkInfo.QueryPort = "53"
+		} else {
+			dm.NetworkInfo.QueryPort = strconv.FormatUint(uint64(queryport), 10)
+		}
 	}
 
 	// decode response address and port
 	responseip := dt.GetMessage().GetResponseAddress()
 	if len(responseip) > 0 {
-		dm.NetworkInfo.ResponseIP = net.IP(responseip).String()
+		dm.NetworkInfo.ResponseIP = dnsutils.FastIPv4ToString(responseip)
 	}
 	responseport := dt.GetMessage().GetResponsePort()
 	if responseport > 0 {
-		dm.NetworkInfo.ResponsePort = strconv.FormatUint(uint64(responseport), 10)
+		if responseport == 53 {
+			dm.NetworkInfo.ResponsePort = "53"
+		} else {
+			dm.NetworkInfo.ResponsePort = strconv.FormatUint(uint64(responseport), 10)
+		}
 	}
 
 	// get dns payload and timestamp according to the type (query or response)
@@ -622,7 +658,7 @@ func (w *DNSTapProcessor) processFrame(
 		dm.DNS.ArCount = dnsHeader.Arcount
 		dm.DNS.NsCount = dnsHeader.Nscount
 
-		if err = dnsutils.DecodePayload(&dm, &dnsHeader, w.GetConfig()); err != nil {
+		if err = dnsutils.DecodePayload(dm, &dnsHeader, w.GetConfig()); err != nil {
 			dm.DNS.MalformedPacket = true
 			if w.GetConfig().Global.Trace.LogMalformed {
 				w.LogWarning("dns payload parser stopped: %s", err)
@@ -636,7 +672,7 @@ func (w *DNSTapProcessor) processFrame(
 	w.CountEgressTraffic()
 
 	// apply all enabled transformers
-	transformResult, err := transforms.ProcessMessage(&dm)
+	transformResult, err := transforms.ProcessMessage(dm)
 	if err != nil {
 		w.LogError(err.Error())
 	}

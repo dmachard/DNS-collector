@@ -98,7 +98,8 @@ func Test_KafkaProducer_Send(t *testing.T) {
 			defer producer.StopLogger()
 
 			time.Sleep(1 * time.Second)
-			producer.GetInputChannel() <- dnsutils.GetFakeDNSMessage()
+			dm := dnsutils.GetFakeDNSMessage()
+			producer.GetInputChannel() <- &dm
 			time.Sleep(1 * time.Second)
 
 			if count := countProduceRequests(broker); count == 0 {
@@ -125,7 +126,8 @@ func Test_KafkaProducer_MultipleAddresses(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	// Send a fake DNS message
-	producer.GetInputChannel() <- dnsutils.GetFakeDNSMessage()
+	dm := dnsutils.GetFakeDNSMessage()
+	producer.GetInputChannel() <- &dm
 	time.Sleep(1 * time.Second)
 
 	if count := countProduceRequests(broker); count == 0 {
@@ -144,7 +146,8 @@ func Test_KafkaProducer_Reconnect(t *testing.T) {
 	defer producer.StopLogger()
 
 	time.Sleep(1 * time.Second)
-	producer.GetInputChannel() <- dnsutils.GetFakeDNSMessage()
+	dm1 := dnsutils.GetFakeDNSMessage()
+	producer.GetInputChannel() <- &dm1
 	time.Sleep(1 * time.Second)
 
 	if count := countProduceRequests(broker1); count == 0 {
@@ -163,12 +166,13 @@ func Test_KafkaProducer_Reconnect(t *testing.T) {
 	listener2, broker2 := createMockBroker(t, 2, testAddress+":"+testPort, testTopic)
 	defer listener2.Close()
 	defer broker2.Close()
-	time.Sleep(3 * time.Second)
 
 	// Send another fake DNS message after reconnect
-	producer.GetInputChannel() <- dnsutils.GetFakeDNSMessage()
+	dm2 := dnsutils.GetFakeDNSMessage()
+	producer.GetInputChannel() <- &dm2
 	time.Sleep(3 * time.Second)
-	producer.GetInputChannel() <- dnsutils.GetFakeDNSMessage()
+	dm3 := dnsutils.GetFakeDNSMessage()
+	producer.GetInputChannel() <- &dm3
 	time.Sleep(3 * time.Second)
 
 	// Verify that the new broker received ProduceRequests

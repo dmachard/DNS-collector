@@ -2,6 +2,9 @@ package dnsutils
 
 import (
 	"regexp"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
 var (
@@ -228,9 +231,93 @@ type DNSMessage struct {
 	ATags           *TransformATags        `json:"atags,omitempty"`
 	Rest            *TransformRest         `json:"rest,omitempty"`
 	Relabeling      *TransformRelabeling   `json:"-"`
+	RefCount        int32                  `json:"-"`
 }
 
+var DNSMessagePool = sync.Pool{
+	New: func() interface{} {
+		dm := &DNSMessage{}
+		dm.Init()
+		return dm
+	},
+}
+
+func AcquireDNSMessage() *DNSMessage {
+	dm := DNSMessagePool.Get().(*DNSMessage)
+	atomic.StoreInt32(&dm.RefCount, 1)
+	return dm
+}
+
+func (dm *DNSMessage) Retain(n int32) {
+	if n > 0 {
+		atomic.AddInt32(&dm.RefCount, n)
+	}
+}
+
+func (dm *DNSMessage) Release() {
+	if dm == nil {
+		return
+	}
+	if atomic.AddInt32(&dm.RefCount, -1) == 0 {
+		dm.Reset()
+		DNSMessagePool.Put(dm)
+	}
+}
+
+func (dm *DNSMessage) GetTimestampRFC3339() string {
+	if len(dm.DNSTap.TimestampRFC3339) > 0 && dm.DNSTap.TimestampRFC3339 != "-" {
+		return dm.DNSTap.TimestampRFC3339
+	}
+	if dm.DNSTap.Timestamp > 0 {
+		dm.DNSTap.TimestampRFC3339 = time.Unix(0, dm.DNSTap.Timestamp).UTC().Format(time.RFC3339Nano)
+		return dm.DNSTap.TimestampRFC3339
+	}
+	return "-"
+}
+
+func (dm *DNSMessage) Reset() {
+	dm.PowerDNS = nil
+	dm.OpenTelemetry = nil
+	dm.Geo = nil
+	dm.Suspicious = nil
+	dm.PublicSuffix = nil
+	dm.Extracted = nil
+	dm.Reducer = nil
+	dm.MachineLearning = nil
+	dm.Filtering = nil
+	dm.ATags = nil
+	dm.Rest = nil
+	dm.Relabeling = nil
+	dm.Init()
+}
+
+var (
+	emptyAnswers = []DNSAnswer{}
+	emptyOptions = []DNSOption{}
+)
+
 func (dm *DNSMessage) Init() {
+	if dm.DNS.DNSRRs.Answers != nil {
+		dm.DNS.DNSRRs.Answers = dm.DNS.DNSRRs.Answers[:0]
+	} else {
+		dm.DNS.DNSRRs.Answers = emptyAnswers
+	}
+	if dm.DNS.DNSRRs.Nameservers != nil {
+		dm.DNS.DNSRRs.Nameservers = dm.DNS.DNSRRs.Nameservers[:0]
+	} else {
+		dm.DNS.DNSRRs.Nameservers = emptyAnswers
+	}
+	if dm.DNS.DNSRRs.Records != nil {
+		dm.DNS.DNSRRs.Records = dm.DNS.DNSRRs.Records[:0]
+	} else {
+		dm.DNS.DNSRRs.Records = emptyAnswers
+	}
+	if dm.EDNS.Options != nil {
+		dm.EDNS.Options = dm.EDNS.Options[:0]
+	} else {
+		dm.EDNS.Options = emptyOptions
+	}
+
 	dm.NetworkInfo = DNSNetInfo{
 		Family:         "-",
 		Protocol:       "-",
@@ -258,6 +345,10 @@ func (dm *DNSMessage) Init() {
 		HttpProtocol:     "-",
 	}
 
+	answers := dm.DNS.DNSRRs.Answers
+	nameservers := dm.DNS.DNSRRs.Nameservers
+	records := dm.DNS.DNSRRs.Records
+
 	dm.DNS = DNS{
 		Type:            "-",
 		MalformedPacket: false,
@@ -265,27 +356,74 @@ func (dm *DNSMessage) Init() {
 		Qtype:           "-",
 		Qname:           "-",
 		Qclass:          "-",
-		DNSRRs:          DNSRRs{Answers: []DNSAnswer{}, Nameservers: []DNSAnswer{}, Records: []DNSAnswer{}},
+		DNSRRs:          DNSRRs{Answers: answers, Nameservers: nameservers, Records: records},
 	}
 
+	options := dm.EDNS.Options
 	dm.EDNS = DNSExtended{
-		Options: []DNSOption{},
+		Options: options,
 	}
 }
 
 func (dm *DNSMessage) InitTransforms() {
-	// init transforms
-	dm.ATags = &TransformATags{}
-	dm.Rest = &TransformRest{}
-	dm.Filtering = &TransformFiltering{}
-	dm.MachineLearning = &TransformML{}
-	dm.Reducer = &TransformReducer{}
-	dm.Extracted = &TransformExtracted{}
-	dm.PublicSuffix = &TransformPublicSuffix{}
-	dm.Suspicious = &TransformSuspicious{}
-	dm.Geo = &TransformDNSGeo{}
-	dm.Relabeling = &TransformRelabeling{}
-	// init collectors & loggers
-	dm.PowerDNS = &CollectorPowerDNS{}
-	dm.OpenTelemetry = &LoggerOpenTelemetry{}
+	if dm.ATags == nil {
+		dm.ATags = &TransformATags{}
+	} else {
+		*dm.ATags = TransformATags{}
+	}
+	if dm.Rest == nil {
+		dm.Rest = &TransformRest{}
+	} else {
+		*dm.Rest = TransformRest{}
+	}
+	if dm.Filtering == nil {
+		dm.Filtering = &TransformFiltering{}
+	} else {
+		*dm.Filtering = TransformFiltering{}
+	}
+	if dm.MachineLearning == nil {
+		dm.MachineLearning = &TransformML{}
+	} else {
+		*dm.MachineLearning = TransformML{}
+	}
+	if dm.Reducer == nil {
+		dm.Reducer = &TransformReducer{}
+	} else {
+		*dm.Reducer = TransformReducer{}
+	}
+	if dm.Extracted == nil {
+		dm.Extracted = &TransformExtracted{}
+	} else {
+		*dm.Extracted = TransformExtracted{}
+	}
+	if dm.PublicSuffix == nil {
+		dm.PublicSuffix = &TransformPublicSuffix{}
+	} else {
+		*dm.PublicSuffix = TransformPublicSuffix{}
+	}
+	if dm.Suspicious == nil {
+		dm.Suspicious = &TransformSuspicious{}
+	} else {
+		*dm.Suspicious = TransformSuspicious{}
+	}
+	if dm.Geo == nil {
+		dm.Geo = &TransformDNSGeo{}
+	} else {
+		*dm.Geo = TransformDNSGeo{}
+	}
+	if dm.Relabeling == nil {
+		dm.Relabeling = &TransformRelabeling{}
+	} else {
+		*dm.Relabeling = TransformRelabeling{}
+	}
+	if dm.PowerDNS == nil {
+		dm.PowerDNS = &CollectorPowerDNS{}
+	} else {
+		*dm.PowerDNS = CollectorPowerDNS{}
+	}
+	if dm.OpenTelemetry == nil {
+		dm.OpenTelemetry = &LoggerOpenTelemetry{}
+	} else {
+		*dm.OpenTelemetry = LoggerOpenTelemetry{}
+	}
 }

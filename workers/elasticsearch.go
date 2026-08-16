@@ -121,7 +121,7 @@ func (w *ElasticSearchClient) StartCollect() {
 			w.CountIngressTraffic()
 
 			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(&dm)
+			transformResult, err := subprocessors.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
@@ -130,12 +130,7 @@ func (w *ElasticSearchClient) StartCollect() {
 				continue
 			}
 
-			// send to output channel
-			w.CountEgressTraffic()
-			w.GetOutputChannel() <- dm
-
-			// send to next ?
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
 		}
 	}
 }
@@ -179,6 +174,7 @@ func (w *ElasticSearchClient) StartLogging() {
 			if err != nil {
 				w.LogError("flattening DNS message failed: %e", err)
 				w.CountEgressDiscarded()
+				dm.Release()
 				continue
 			}
 			buffer.WriteString("{ \"create\" : {}}\n")
@@ -196,6 +192,7 @@ func (w *ElasticSearchClient) StartLogging() {
 					w.LogWarning("Send buffer is full, bulk dropped")
 				}
 			}
+			dm.Release()
 
 		// flush the buffer every ?
 		case <-ticker.C:

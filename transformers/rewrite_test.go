@@ -17,7 +17,7 @@ func TestRewrite_UpdateFields(t *testing.T) {
 	config.Rewrite.Identifiers["dnstap.identity"] = "testidentity"
 
 	// init the processor
-	outChans := []chan dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessage{}
 	rewrite := NewRewriteTransform(config, logger.New(false), "test", 0, outChans)
 
 	// get fake
@@ -45,7 +45,7 @@ func TestRewrite_UpdateFields_InvalidType(t *testing.T) {
 	config.Rewrite.Identifiers["dnstap.identity"] = 0
 
 	// init the processor
-	outChans := []chan dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessage{}
 	rewrite := NewRewriteTransform(config, logger.New(false), "test", 0, outChans)
 
 	// get fake
@@ -69,7 +69,7 @@ func BenchmarkRewrite_UpdateValues(b *testing.B) {
 	config.Rewrite.Identifiers["dns.qname"] = "rewritten.qname.com"
 	config.Rewrite.Identifiers["network.query-ip"] = "1.1.1.1"
 
-	outChans := []chan dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessage{}
 	rewrite := NewRewriteTransform(config, logger.New(false), "test", 0, outChans)
 	rewrite.GetTransforms()
 

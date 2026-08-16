@@ -26,7 +26,7 @@ func Test_DnsProcessor(t *testing.T) {
 	go consumer.StartCollect()
 
 	dm := dnsutils.GetFakeDNSMessageWithPayload()
-	consumer.GetInputChannel() <- dm
+	consumer.GetInputChannel() <- &dm
 
 	// read dns message from dnstap consumer
 	dmOut := <-fl.GetInputChannel()
@@ -57,7 +57,7 @@ func Test_DnsProcessor_DecodeCounters(t *testing.T) {
 	dm.DNS.Length = len(responsePacket)
 
 	// send dm to consumer
-	consumer.GetInputChannel() <- dm
+	consumer.GetInputChannel() <- &dm
 
 	// read dns message from dnstap consumer
 	dmOut := <-fl.GetInputChannel()
@@ -88,11 +88,10 @@ func Test_DnsProcessor_BufferLoggerIsFull(t *testing.T) {
 	consumer.AddDroppedRoute(fl)
 	go consumer.StartCollect()
 
-	dm := dnsutils.GetFakeDNSMessageWithPayload()
-
 	// add packets to consumer
 	for i := 0; i < 512; i++ {
-		consumer.GetInputChannel() <- dm
+		dm := dnsutils.GetFakeDNSMessageWithPayload()
+		consumer.GetInputChannel() <- &dm
 	}
 
 	// waiting monitor to run in consumer
@@ -114,7 +113,8 @@ func Test_DnsProcessor_BufferLoggerIsFull(t *testing.T) {
 
 	// send second shot of packets to consumer
 	for i := 0; i < 1024; i++ {
-		consumer.GetInputChannel() <- dm
+		dm := dnsutils.GetFakeDNSMessageWithPayload()
+		consumer.GetInputChannel() <- &dm
 	}
 
 	// waiting monitor to run in consumer

@@ -23,7 +23,7 @@ type FilteringTransform struct {
 	downsample, downsampleCount            int
 }
 
-func NewFilteringTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan dnsutils.DNSMessage) *FilteringTransform {
+func NewFilteringTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessage) *FilteringTransform {
 	t := &FilteringTransform{GenericTransformer: NewTransformer(config, logger, "filtering", name, instance, nextWorkers)}
 	t.mapRcodes = make(map[string]bool)
 	t.ipsetDrop = &netaddr.IPSet{}

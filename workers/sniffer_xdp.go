@@ -78,9 +78,10 @@ func (w *XDPSniffer) StartCollect() {
 		w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] read event: ", err)
 	}
 
-	dnsChan := make(chan dnsutils.DNSMessage)
+	dnsChan := make(chan *dnsutils.DNSMessage)
 
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	done := make(chan struct{})
 	stopChan := make(chan struct{})
 
@@ -140,7 +141,7 @@ func (w *XDPSniffer) StartCollect() {
 				}
 
 				// prepare DnsMessage
-				dm := dnsutils.DNSMessage{}
+				dm := dnsutils.AcquireDNSMessage()
 				dm.Init()
 
 				dm.DNSTap.TimeSec = int(tsAdjusted.Unix())
@@ -175,6 +176,7 @@ func (w *XDPSniffer) StartCollect() {
 
 				select {
 				case <-stopChan:
+					dm.Release()
 					return
 				case dnsChan <- dm:
 				}
@@ -199,7 +201,10 @@ func (w *XDPSniffer) StartCollect() {
 			dnsProcessor.NewConfig() <- cfg
 
 		// dns message to read ?
-		case dm := <-dnsChan:
+		case dm, opened := <-dnsChan:
+			if !opened {
+				return
+			}
 
 			// update identity with config ?
 			dm.DNSTap.Identity = w.GetConfig().GetServerIdentity()

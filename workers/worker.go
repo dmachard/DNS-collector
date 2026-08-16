@@ -21,7 +21,7 @@ type Worker interface {
 	StartCollect()
 	CountIngressTraffic()
 	CountEgressTraffic()
-	GetInputChannel() chan dnsutils.DNSMessage
+	GetInputChannel() chan *dnsutils.DNSMessage
 	ReadConfig()
 	ReloadConfig(config *pkgconfig.Config)
 	GetTextBuffer() *bytes.Buffer
@@ -37,7 +37,7 @@ type GenericWorker struct {
 	droppedRoutes, defaultRoutes                                         []Worker
 	droppedWorker                                                        chan string
 	droppedWorkerCount                                                   map[string]int
-	dnsMessageIn, dnsMessageOut                                          chan dnsutils.DNSMessage
+	dnsMessageIn, dnsMessageOut                                          chan *dnsutils.DNSMessage
 
 	metrics                                                                 *telemetry.PrometheusCollector
 	countIngress, countEgress, countForwarded, countDropped, countDiscarded chan int
@@ -62,8 +62,8 @@ func NewGenericWorker(config *pkgconfig.Config, logger *logger.Logger, name stri
 		stopProcess:        make(chan bool),
 		droppedWorker:      make(chan string),
 		droppedWorkerCount: map[string]int{},
-		dnsMessageIn:       make(chan dnsutils.DNSMessage, bufferSize),
-		dnsMessageOut:      make(chan dnsutils.DNSMessage, bufferSize),
+		dnsMessageIn:       make(chan *dnsutils.DNSMessage, bufferSize),
+		dnsMessageOut:      make(chan *dnsutils.DNSMessage, bufferSize),
 		countIngress:       make(chan int),
 		countEgress:        make(chan int),
 		countDiscarded:     make(chan int),
@@ -99,18 +99,18 @@ func (w *GenericWorker) GetDroppedRoutes() []Worker { return w.droppedRoutes }
 
 func (w *GenericWorker) GetDefaultRoutes() []Worker { return w.defaultRoutes }
 
-func (w *GenericWorker) GetInputChannel() chan dnsutils.DNSMessage { return w.dnsMessageIn }
+func (w *GenericWorker) GetInputChannel() chan *dnsutils.DNSMessage { return w.dnsMessageIn }
 
-func (w *GenericWorker) GetInputChannelAsList() []chan dnsutils.DNSMessage {
-	listChannel := []chan dnsutils.DNSMessage{}
+func (w *GenericWorker) GetInputChannelAsList() []chan *dnsutils.DNSMessage {
+	listChannel := []chan *dnsutils.DNSMessage{}
 	listChannel = append(listChannel, w.GetInputChannel())
 	return listChannel
 }
 
-func (w *GenericWorker) GetOutputChannel() chan dnsutils.DNSMessage { return w.dnsMessageOut }
+func (w *GenericWorker) GetOutputChannel() chan *dnsutils.DNSMessage { return w.dnsMessageOut }
 
-func (w *GenericWorker) GetOutputChannelAsList() []chan dnsutils.DNSMessage {
-	listChannel := []chan dnsutils.DNSMessage{}
+func (w *GenericWorker) GetOutputChannelAsList() []chan *dnsutils.DNSMessage {
+	listChannel := []chan *dnsutils.DNSMessage{}
 	listChannel = append(listChannel, w.GetOutputChannel())
 	return listChannel
 }
@@ -133,7 +133,7 @@ func (w *GenericWorker) SetDefaultDropped(workers []Worker) {
 
 func (w *GenericWorker) SetLoggers(loggers []Worker) { w.defaultRoutes = loggers }
 
-func (w *GenericWorker) Loggers() ([]chan dnsutils.DNSMessage, []string) {
+func (w *GenericWorker) Loggers() ([]chan *dnsutils.DNSMessage, []string) {
 	return GetRoutes(w.defaultRoutes)
 }
 
@@ -296,7 +296,14 @@ func (w *GenericWorker) CountEgressDiscarded() {
 	}
 }
 
-func (w *GenericWorker) SendDroppedTo(routes []chan dnsutils.DNSMessage, routesName []string, dm dnsutils.DNSMessage) {
+func (w *GenericWorker) SendDroppedTo(routes []chan *dnsutils.DNSMessage, routesName []string, dm *dnsutils.DNSMessage) {
+	if len(routes) == 0 {
+		dm.Release()
+		return
+	}
+	if len(routes) > 1 {
+		dm.Retain(int32(len(routes) - 1))
+	}
 	for i := range routes {
 		select {
 		case routes[i] <- dm:
@@ -304,6 +311,7 @@ func (w *GenericWorker) SendDroppedTo(routes []chan dnsutils.DNSMessage, routesN
 				w.countDropped <- 1
 			}
 		default:
+			dm.Release()
 			if w.config.Global.Telemetry.Enabled {
 				w.countDiscarded <- 1
 			}
@@ -312,7 +320,14 @@ func (w *GenericWorker) SendDroppedTo(routes []chan dnsutils.DNSMessage, routesN
 	}
 }
 
-func (w *GenericWorker) SendForwardedTo(routes []chan dnsutils.DNSMessage, routesName []string, dm dnsutils.DNSMessage) {
+func (w *GenericWorker) SendForwardedTo(routes []chan *dnsutils.DNSMessage, routesName []string, dm *dnsutils.DNSMessage) {
+	if len(routes) == 0 {
+		dm.Release()
+		return
+	}
+	if len(routes) > 1 {
+		dm.Retain(int32(len(routes) - 1))
+	}
 	for i := range routes {
 		select {
 		case routes[i] <- dm:
@@ -320,12 +335,20 @@ func (w *GenericWorker) SendForwardedTo(routes []chan dnsutils.DNSMessage, route
 				w.countForwarded <- 1
 			}
 		default:
+			dm.Release()
 			if w.config.Global.Telemetry.Enabled {
 				w.countDiscarded <- 1
 			}
 			w.WorkerIsBusy(routesName[i])
 		}
 	}
+}
+
+func (w *GenericWorker) SendToOutputAndForward(routes []chan *dnsutils.DNSMessage, routesName []string, dm *dnsutils.DNSMessage) {
+	w.CountEgressTraffic()
+	dm.Retain(1)
+	w.SendForwardedTo(routes, routesName, dm)
+	w.GetOutputChannel() <- dm
 }
 
 func (w *GenericWorker) GetTextBuffer() *bytes.Buffer {
@@ -337,8 +360,8 @@ func (w *GenericWorker) PutTextBuffer(buf *bytes.Buffer) {
 	w.TextBufferPool.Put(buf)
 }
 
-func GetRoutes(routes []Worker) ([]chan dnsutils.DNSMessage, []string) {
-	channels := []chan dnsutils.DNSMessage{}
+func GetRoutes(routes []Worker) ([]chan *dnsutils.DNSMessage, []string) {
+	channels := []chan *dnsutils.DNSMessage{}
 	names := []string{}
 	for _, p := range routes {
 		if c := p.GetInputChannel(); c != nil {

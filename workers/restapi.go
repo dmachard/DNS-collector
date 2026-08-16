@@ -469,7 +469,7 @@ func (w *RestAPI) GetStreamsHandler(httpWriter http.ResponseWriter, r *http.Requ
 	}
 }
 
-func (w *RestAPI) RecordDNSMessage(dm dnsutils.DNSMessage) {
+func (w *RestAPI) RecordDNSMessage(dm *dnsutils.DNSMessage) {
 	w.Lock()
 	defer w.Unlock()
 
@@ -684,7 +684,7 @@ func (w *RestAPI) StartCollect() {
 			w.CountIngressTraffic()
 
 			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(&dm)
+			transformResult, err := subprocessors.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
@@ -693,12 +693,8 @@ func (w *RestAPI) StartCollect() {
 				continue
 			}
 
-			// send to output channel
-			w.CountEgressTraffic()
-			w.GetOutputChannel() <- dm
-
-			// send to next ?
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+			// send to output channel and forward
+			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
 		}
 	}
 }
@@ -719,6 +715,7 @@ func (w *RestAPI) StartLogging() {
 			}
 			// record the dnstap message
 			w.RecordDNSMessage(dm)
+			dm.Release()
 		}
 	}
 }

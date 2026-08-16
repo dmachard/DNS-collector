@@ -262,9 +262,6 @@ func (w *AfpacketSniffer) StartCollect() {
 
 	}(ctx)
 
-	// prepare dns message
-	dm := dnsutils.DNSMessage{}
-
 	for {
 		select {
 		case <-w.OnStop():
@@ -281,7 +278,7 @@ func (w *AfpacketSniffer) StartCollect() {
 
 		// dns message to read ?
 		case dnsPacket := <-dnsChan:
-			// reset
+			dm := dnsutils.AcquireDNSMessage()
 			dm.Init()
 
 			dm.NetworkInfo.Family = dnsPacket.IPLayer.EndpointType().String()

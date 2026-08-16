@@ -233,7 +233,7 @@ func (w *DNSMessage) StartCollect() {
 			// apply transform on matched packets only
 			// init dns message with additional parts if necessary
 			if matched {
-				transformResult, err := subprocessors.ProcessMessage(&dm)
+				transformResult, err := subprocessors.ProcessMessage(dm)
 				if err != nil {
 					w.LogError(err.Error())
 				}

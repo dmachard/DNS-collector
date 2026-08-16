@@ -16,7 +16,7 @@ func TestATags_AddTag(t *testing.T) {
 	config.ATags.AddTags = append(config.ATags.AddTags, "tag2")
 
 	// init the processor
-	outChans := []chan dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessage{}
 	atags := NewATagsTransform(config, logger.New(false), "test", 0, outChans)
 
 	// add tags

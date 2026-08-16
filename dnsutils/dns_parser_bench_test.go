@@ -3,8 +3,10 @@ package dnsutils
 import (
 	"net"
 	"testing"
+	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	dnstap "github.com/dmachard/go-dnstap-protobuf"
 	"github.com/miekg/dns"
 )
 
@@ -123,5 +125,53 @@ func BenchmarkMiekgDecodeDNS(b *testing.B) {
 		if err := msg.Unpack(pkt); err != nil {
 			b.Fatal(err)
 		}
+	}
+}
+
+func Benchmark_DnstapEnum_ProtobufString(b *testing.B) {
+	msgType := dnstap.Message_CLIENT_QUERY
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_ = msgType.String()
+	}
+}
+
+func Benchmark_DnstapEnum_ArrayLookup(b *testing.B) {
+	msgType := dnstap.Message_CLIENT_QUERY
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_ = DnstapOperationToString(int(msgType))
+	}
+}
+
+func Benchmark_TimeFormatRFC3339Nano(b *testing.B) {
+	ts := time.Now()
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_ = ts.UTC().Format(time.RFC3339Nano)
+	}
+}
+
+func Benchmark_NetIPString(b *testing.B) {
+	ip := net.ParseIP("192.168.1.100").To4()
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = ip.String()
+	}
+}
+
+func Benchmark_FastIPv4ToString(b *testing.B) {
+	ip := []byte{192, 168, 1, 100}
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = FastIPv4ToString(ip)
 	}
 }

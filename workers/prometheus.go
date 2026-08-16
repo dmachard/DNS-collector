@@ -272,7 +272,7 @@ func (w *PrometheusCountersSet) Describe(ch chan<- *prometheus.Desc) {
 }
 
 // Updates all counters for a specific set of labelName=labelValue
-func (w *PrometheusCountersSet) Record(dm dnsutils.DNSMessage) {
+func (w *PrometheusCountersSet) Record(dm *dnsutils.DNSMessage) {
 	w.Lock()
 	defer w.Unlock()
 
@@ -1042,12 +1042,12 @@ func (w *Prometheus) ReadConfig() {
 	}
 }
 
-func (w *Prometheus) Record(dm dnsutils.DNSMessage) {
+func (w *Prometheus) Record(dm *dnsutils.DNSMessage) {
 	// record stream identity
 	w.Lock()
 
 	// count number of dns messages per network family (ipv4 or v6)
-	v := w.counters.GetCountersSet(&dm)
+	v := w.counters.GetCountersSet(dm)
 	counterSet, ok := v.(*PrometheusCountersSet)
 	w.Unlock()
 	if !ok {
@@ -1170,7 +1170,7 @@ func (w *Prometheus) StartCollect() {
 			w.CountIngressTraffic()
 
 			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(&dm)
+			transformResult, err := subprocessors.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
@@ -1179,12 +1179,7 @@ func (w *Prometheus) StartCollect() {
 				continue
 			}
 
-			// send to output channel
-			w.CountEgressTraffic()
-			w.GetOutputChannel() <- dm
-
-			// send to next ?
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
 		}
 	}
 }
@@ -1210,6 +1205,7 @@ func (w *Prometheus) StartLogging() {
 
 			// record the dnstap message
 			w.Record(dm)
+			dm.Release()
 
 		case <-t1.C:
 			// compute eps each second

@@ -165,7 +165,7 @@ func (w *TZSPSniffer) StartCollect() {
 				// decode-it
 				parser.DecodeLayers(tzspPacket.Data, &decodedLayers)
 
-				dm := dnsutils.DNSMessage{}
+				dm := dnsutils.AcquireDNSMessage()
 				dm.Init()
 
 				ignorePacket := false
@@ -217,10 +217,13 @@ func (w *TZSPSniffer) StartCollect() {
 
 					// just decode QR
 					if len(dm.DNS.Payload) < 4 {
+						dm.Release()
 						continue
 					}
 
 					dnsProcessor.GetInputChannel() <- dm
+				} else {
+					dm.Release()
 				}
 			}
 		}

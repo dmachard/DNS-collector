@@ -139,7 +139,13 @@ func (w *DnstapSender) ConnectToRemote() {
 	}
 }
 
-func (w *DnstapSender) FlushBuffer(buf *[]dnsutils.DNSMessage) {
+func (w *DnstapSender) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
+	defer func() {
+		for _, dm := range *buf {
+			dm.Release()
+		}
+		*buf = nil
+	}()
 
 	var data []byte
 	var err error
@@ -182,9 +188,6 @@ func (w *DnstapSender) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 			<-w.transportReconnect
 		}
 	}
-
-	// reset buffer
-	*buf = nil
 }
 
 func (w *DnstapSender) StartCollect() {
@@ -227,7 +230,7 @@ func (w *DnstapSender) StartCollect() {
 			w.CountIngressTraffic()
 
 			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(&dm)
+			transformResult, err := subprocessors.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
@@ -236,12 +239,8 @@ func (w *DnstapSender) StartCollect() {
 				continue
 			}
 
-			// send to output channel
-			w.CountEgressTraffic()
-			w.GetOutputChannel() <- dm
-
-			// send to next ?
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+			// send to output channel and forward
+			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
 		}
 	}
 }
@@ -251,7 +250,7 @@ func (w *DnstapSender) StartLogging() {
 	defer w.LoggingDone()
 
 	// init buffer
-	bufferDm := []dnsutils.DNSMessage{}
+	bufferDm := []*dnsutils.DNSMessage{}
 
 	// init flush timer for buffer
 	flushInterval := time.Duration(w.GetConfig().Loggers.DNSTap.FlushInterval) * time.Second
@@ -298,6 +297,7 @@ func (w *DnstapSender) StartLogging() {
 			// to block the channel
 			if !w.fsReady {
 				w.CountEgressDiscarded()
+				dm.Release()
 				continue
 			}
 

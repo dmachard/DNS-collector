@@ -51,7 +51,7 @@ func (w *StatsdClient) ReadConfig() {
 	}
 }
 
-func (w *StatsdClient) RecordDNSMessage(dm dnsutils.DNSMessage) {
+func (w *StatsdClient) RecordDNSMessage(dm *dnsutils.DNSMessage) {
 	w.Lock()
 	defer w.Unlock()
 
@@ -186,7 +186,7 @@ func (w *StatsdClient) StartCollect() {
 			w.CountIngressTraffic()
 
 			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(&dm)
+			transformResult, err := subprocessors.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
@@ -195,12 +195,7 @@ func (w *StatsdClient) StartCollect() {
 				continue
 			}
 
-			// send to output channel
-			w.CountEgressTraffic()
-			w.GetOutputChannel() <- dm
-
-			// send to next ?
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
 		}
 	}
 }
@@ -227,6 +222,7 @@ func (w *StatsdClient) StartLogging() {
 
 			// record the dnstap message
 			w.RecordDNSMessage(dm)
+			dm.Release()
 
 		case <-t2.C:
 			address := w.GetConfig().Loggers.Statsd.RemoteAddress + ":" + strconv.Itoa(w.GetConfig().Loggers.Statsd.RemotePort)

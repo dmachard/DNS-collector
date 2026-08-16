@@ -15,7 +15,7 @@ func TestReducer_Json(t *testing.T) {
 	// enable feature
 	config := pkgconfig.GetFakeConfigTransformers()
 
-	outChans := []chan dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessage{}
 
 	// get fake
 	dm := dnsutils.GetFakeDNSMessage()
@@ -63,8 +63,8 @@ func TestReducer_RepetitiveTrafficDetector(t *testing.T) {
 	config.Reducer.RepetitiveTrafficDetector = true
 	config.Reducer.WatchInterval = 1
 
-	outChan := make(chan dnsutils.DNSMessage, 1)
-	outChans := []chan dnsutils.DNSMessage{}
+	outChan := make(chan *dnsutils.DNSMessage, 1)
+	outChans := []chan *dnsutils.DNSMessage{}
 	outChans = append(outChans, outChan)
 
 	// init subprocessor
@@ -206,8 +206,8 @@ func TestReducer_QnamePlusOne(t *testing.T) {
 	config.Reducer.QnamePlusOne = true
 	config.Reducer.WatchInterval = 1
 
-	outChan := make(chan dnsutils.DNSMessage, 1)
-	outChans := []chan dnsutils.DNSMessage{}
+	outChan := make(chan *dnsutils.DNSMessage, 1)
+	outChans := []chan *dnsutils.DNSMessage{}
 	outChans = append(outChans, outChan)
 
 	// init subprocessor
@@ -277,8 +277,8 @@ func BenchmarkReducer_RepetitiveTrafficDetector(b *testing.B) {
 	config.Reducer.WatchInterval = 10
 	config.Reducer.UniqueFields = []string{"dns.qname", "dns.qtype", "network.query-ip"}
 
-	outChan := make(chan dnsutils.DNSMessage, 100000)
-	reducer := NewReducerTransform(config, logger.New(false), "test", 0, []chan dnsutils.DNSMessage{outChan})
+	outChan := make(chan *dnsutils.DNSMessage, 100000)
+	reducer := NewReducerTransform(config, logger.New(false), "test", 0, []chan *dnsutils.DNSMessage{outChan})
 
 	dm := dnsutils.DNSMessage{
 		DNSTap:      dnsutils.DNSTap{Operation: "CLIENT_QUERY"},
@@ -299,8 +299,8 @@ func BenchmarkReducer_RepetitiveTrafficDetectorParallel(b *testing.B) {
 	config.Reducer.WatchInterval = 10
 	config.Reducer.UniqueFields = []string{"dns.qname", "dns.qtype", "network.query-ip"}
 
-	outChan := make(chan dnsutils.DNSMessage, 1000000)
-	reducer := NewReducerTransform(config, logger.New(false), "test", 0, []chan dnsutils.DNSMessage{outChan})
+	outChan := make(chan *dnsutils.DNSMessage, 1000000)
+	reducer := NewReducerTransform(config, logger.New(false), "test", 0, []chan *dnsutils.DNSMessage{outChan})
 
 	dm := dnsutils.DNSMessage{
 		DNSTap:      dnsutils.DNSTap{Operation: "CLIENT_QUERY"},

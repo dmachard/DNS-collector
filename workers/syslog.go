@@ -202,7 +202,7 @@ func (w *Syslog) StartCollect() {
 			w.CountIngressTraffic()
 
 			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(&dm)
+			transformResult, err := subprocessors.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
@@ -211,17 +211,19 @@ func (w *Syslog) StartCollect() {
 				continue
 			}
 
-			// send to output channel
-			w.CountEgressTraffic()
-			w.GetOutputChannel() <- dm
-
-			// send to next ?
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
 		}
 	}
 }
 
-func (w *Syslog) FlushBuffer(buf *[]dnsutils.DNSMessage) {
+func (w *Syslog) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
+	defer func() {
+		for _, dm := range *buf {
+			dm.Release()
+		}
+		*buf = nil
+	}()
+
 	buffer := new(bytes.Buffer)
 	var err error
 
@@ -280,12 +282,20 @@ func (w *Syslog) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 			// write the content of the buffer to s.syslogWriter
 			// and reset the buffer
 			_, err = buffer.WriteTo(w.syslogWriter)
+			if err != nil {
+				w.LogError("syslog write error %s", err)
+				w.CountEgressDiscarded()
+				buffer.Reset()
+				continue
+			}
+			buffer.Reset()
 
 		case pkgconfig.ModeFlatJSON:
 			// get flatten object
 			flat, errflat := dm.Flatten()
 			if errflat != nil {
-				w.LogError("flattening DNS message failed: %e", err)
+				w.LogError("flattening DNS message failed: %e", errflat)
+				w.CountEgressDiscarded()
 				continue
 			}
 
@@ -295,18 +305,15 @@ func (w *Syslog) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 			// write the content of the buffer to s.syslogWriter
 			// and reset the buffer
 			_, err = buffer.WriteTo(w.syslogWriter)
-		}
-
-		if err != nil {
-			w.LogError("write error %s", err)
-			w.syslogReady = false
-			<-w.transportReconnect
-			break
+			if err != nil {
+				w.LogError("syslog write error %s", err)
+				w.CountEgressDiscarded()
+				buffer.Reset()
+				continue
+			}
+			buffer.Reset()
 		}
 	}
-
-	// reset buffer
-	*buf = nil
 }
 
 func (w *Syslog) StartLogging() {
@@ -314,7 +321,7 @@ func (w *Syslog) StartLogging() {
 	defer w.LoggingDone()
 
 	// init buffer
-	bufferDm := []dnsutils.DNSMessage{}
+	bufferDm := []*dnsutils.DNSMessage{}
 
 	// init flush timer for buffer
 	flushInterval := time.Duration(w.GetConfig().Loggers.Syslog.FlushInterval) * time.Second
@@ -344,6 +351,7 @@ func (w *Syslog) StartLogging() {
 			// discard dns message if the connection is not ready
 			if !w.syslogReady {
 				w.CountEgressDiscarded()
+				dm.Release()
 				continue
 			}
 			// append dns message to buffer
@@ -357,8 +365,9 @@ func (w *Syslog) StartLogging() {
 			// flush the buffer
 		case <-flushTimer.C:
 			if !w.syslogReady && len(bufferDm) > 0 {
-				for range bufferDm {
+				for _, dm := range bufferDm {
 					w.CountEgressDiscarded()
+					dm.Release()
 				}
 				bufferDm = nil
 			}

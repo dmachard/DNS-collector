@@ -10,7 +10,7 @@ type ATagsTransform struct {
 	GenericTransformer
 }
 
-func NewATagsTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan dnsutils.DNSMessage) *ATagsTransform {
+func NewATagsTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessage) *ATagsTransform {
 	t := &ATagsTransform{GenericTransformer: NewTransformer(config, logger, "atags", name, instance, nextWorkers)}
 	return t
 }

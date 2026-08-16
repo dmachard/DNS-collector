@@ -136,7 +136,7 @@ func (w *FileIngestor) ProcessPcap(filePath string) {
 
 				lastReceivedTime = time.Now()
 				// prepare dns message
-				dm := dnsutils.DNSMessage{}
+				dm := dnsutils.AcquireDNSMessage()
 				dm.Init()
 
 				dm.NetworkInfo.Family = dnsPacket.IPLayer.EndpointType().String()

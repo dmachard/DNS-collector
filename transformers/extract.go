@@ -18,7 +18,7 @@ type ExtractTransform struct {
 	hexExtractors    []ExtractorFunc
 }
 
-func NewExtractTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan dnsutils.DNSMessage) *ExtractTransform {
+func NewExtractTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessage) *ExtractTransform {
 	t := &ExtractTransform{GenericTransformer: NewTransformer(config, logger, "extract", name, instance, nextWorkers)}
 	t.initExtractors()
 	return t

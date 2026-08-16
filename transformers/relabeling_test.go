@@ -21,7 +21,7 @@ func TestRelabeling_CompileRegex(t *testing.T) {
 	})
 
 	// init the processor
-	outChans := []chan dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessage{}
 	relabeling := NewRelabelTransform(config, logger.New(false), "test", 0, outChans)
 	relabeling.GetTransforms()
 

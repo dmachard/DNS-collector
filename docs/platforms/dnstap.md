@@ -149,15 +149,44 @@ su - dnsdist -s /bin/bash -c "dnstap_receiver -u "/var/run/dnsdist/dnstap.sock""
 
 ### TCP stream
 
-Update the configuration file `/etc/dnsdist/dnsdist.conf` to activate the dnstap feature
-with tcp stream and execute the dnstap receiver in listening tcp socket mode:
+Update the configuration file `/etc/dnsdist/dnsdist.conf` (Lua mode) to activate the dnstap feature
+with tcp stream:
 
-```bash
-fsul = newFrameStreamTcpLogger("127.0.0.1:8888")
+```lua
+fsul = newFrameStreamTcpLogger("127.0.0.1:6000")
 addAction(AllRule(), DnstapLogAction("dnsdist", fsul))
 addResponseAction(AllRule(), DnstapLogResponseAction("dnsdist", fsul))
 -- Cache Hits
 addCacheHitResponseAction(AllRule(), DnstapLogResponseAction("dnsdist", fsul))
+```
+
+Or for YAML mode (`/etc/dnsdist/dnsdist.yml`):
+
+```yaml
+remote_logging:
+  dnstap_loggers:
+    - name: "remote_logging"
+      transport: tcp
+      address: "127.0.0.1:6000"
+      connection_count: 1
+
+query_rules:
+  - name: "log all queries"
+    selector:
+      type: All
+    action:
+      type: DnstapLog
+      identity: "dnsdist_query"
+      logger_name: "remote_logging"
+
+response_rules:
+  - name: "log all responses"
+    selector:
+      type: All
+    action:
+      type: DnstapLog
+      identity: "dnsdist_response"
+      logger_name: "remote_logging"
 ```
 
 ## NLnetLabs - nsd

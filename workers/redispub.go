@@ -149,7 +149,14 @@ func (w *RedisPub) ConnectToRemote() {
 	}
 }
 
-func (w *RedisPub) FlushBuffer(buf *[]dnsutils.DNSMessage) {
+func (w *RedisPub) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
+	defer func() {
+		for _, dm := range *buf {
+			dm.Release()
+		}
+		*buf = nil
+	}()
+
 	// create escaping buffer
 	escapeBuffer := new(bytes.Buffer)
 	// create a new encoder that writes to the buffer
@@ -199,19 +206,9 @@ func (w *RedisPub) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 			w.transportWriter.WriteString(strconv.Quote(escapeBuffer.String()))
 			w.transportWriter.WriteString(w.GetConfig().Loggers.RedisPub.PayloadDelimiter)
 		}
-
-		// flush the transport buffer
-		err := w.transportWriter.Flush()
-		if err != nil {
-			w.LogError("send frame error", err.Error())
-			w.writerReady = false
-			<-w.transportReconnect
-			break
-		}
 	}
 
-	// reset buffer
-	*buf = nil
+	w.transportWriter.Flush()
 }
 
 func (w *RedisPub) StartCollect() {
@@ -235,9 +232,6 @@ func (w *RedisPub) StartCollect() {
 			w.StopLogger()
 			subprocessors.Reset()
 
-			w.stopRead <- true
-			<-w.doneRead
-
 			return
 
 			// new config provided?
@@ -255,7 +249,7 @@ func (w *RedisPub) StartCollect() {
 			w.CountIngressTraffic()
 
 			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(&dm)
+			transformResult, err := subprocessors.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
@@ -264,12 +258,7 @@ func (w *RedisPub) StartCollect() {
 				continue
 			}
 
-			// send to output channel
-			w.CountEgressTraffic()
-			w.GetOutputChannel() <- dm
-
-			// send to next ?
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
 		}
 	}
 }
@@ -279,7 +268,7 @@ func (w *RedisPub) StartLogging() {
 	defer w.LoggingDone()
 
 	// init buffer
-	bufferDm := []dnsutils.DNSMessage{}
+	bufferDm := []*dnsutils.DNSMessage{}
 
 	// init flush timer for buffer
 	flushInterval := time.Duration(w.GetConfig().Loggers.RedisPub.FlushInterval) * time.Second
@@ -313,6 +302,7 @@ func (w *RedisPub) StartLogging() {
 			// to block the channel
 			if !w.writerReady {
 				w.CountEgressDiscarded()
+				dm.Release()
 				continue
 			}
 
@@ -327,8 +317,9 @@ func (w *RedisPub) StartLogging() {
 		// flush the buffer
 		case <-flushTimer.C:
 			if !w.writerReady && len(bufferDm) > 0 {
-				for range bufferDm {
+				for _, dm := range bufferDm {
 					w.CountEgressDiscarded()
+					dm.Release()
 				}
 				bufferDm = nil
 			}

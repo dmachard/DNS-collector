@@ -57,3 +57,28 @@ func BenchmarkDnsMessage_ToTextFormat(b *testing.B) {
 		textBufferPool.Put(buf)
 	}
 }
+
+func BenchmarkDnsMessage_ToTextFormat_Transformers(b *testing.B) {
+	dm := DNSMessage{}
+	dm.Init()
+	dm.InitTransforms()
+
+	textFormat := []string{
+		"timestamp-rfc3339ns", "identity", "operation", "rcode",
+		"geoip-country", "powerdns-applied-policy", "atags", "otel-trace-id", "ml-entropy", "suspicious-score",
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		buf := textBufferPool.Get().(*bytes.Buffer)
+		buf.Reset()
+
+		err := dm.ToTextLine(textFormat, " ", "\"", buf)
+		if err != nil {
+			b.Fatalf("could not encode to text format: %v\n", err)
+		}
+
+		textBufferPool.Put(buf)
+	}
+}

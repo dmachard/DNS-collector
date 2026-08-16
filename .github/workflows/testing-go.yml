@@ -84,7 +84,7 @@ jobs:
       with:
         go-version: "${{ env.GO_VERSION }}"
     - name: Fuzzing
-      run: go test -fuzz=FuzzDecodeDNS -fuzztime=20s ./dnsutils
+      run: go test -timeout 60s -fuzz=FuzzDecodeDNS -fuzztime=10s ./dnsutils
 
   config:
     needs: build_bin

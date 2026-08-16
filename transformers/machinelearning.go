@@ -25,7 +25,7 @@ type MlTransform struct {
 	GenericTransformer
 }
 
-func NewMachineLearningTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan dnsutils.DNSMessage) *MlTransform {
+func NewMachineLearningTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessage) *MlTransform {
 	t := &MlTransform{GenericTransformer: NewTransformer(config, logger, "machinelearning", name, instance, nextWorkers)}
 	return t
 }

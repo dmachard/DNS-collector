@@ -107,7 +107,7 @@ func (w *OpenTelemetryClient) StartCollect() {
 			w.CountIngressTraffic()
 
 			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(&dm)
+			transformResult, err := subprocessors.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
@@ -153,6 +153,7 @@ func (w *OpenTelemetryClient) StartLogging() {
 			if err != nil {
 				w.LogWarning("invalid timestamp: %v", err)
 				w.CountEgressDiscarded()
+				dm.Release()
 				continue
 			}
 			tracer := w.getTracer(dm.DNSTap.Identity)
@@ -162,13 +163,13 @@ func (w *OpenTelemetryClient) StartLogging() {
 
 			switch dm.DNSTap.Operation {
 			case "CLIENT_QUERY":
-				w.handleClientQuery(&requestorSpans, &messageSpans, tracer, &dm, timestamp)
+				w.handleClientQuery(&requestorSpans, &messageSpans, tracer, dm, timestamp)
 			case "CLIENT_RESPONSE":
-				w.handleClientResponse(&requestorSpans, &messageSpans, &dm, timestamp)
+				w.handleClientResponse(&requestorSpans, &messageSpans, dm, timestamp)
 			case "RESOLVER_QUERY":
-				w.handleResolverQuery(&messageSpans, &resolverSpans, tracer, &dm, timestamp)
+				w.handleResolverQuery(&messageSpans, &resolverSpans, tracer, dm, timestamp)
 			case "RESOLVER_RESPONSE":
-				w.handleResolverResponse(&resolverSpans, &dm, timestamp)
+				w.handleResolverResponse(&resolverSpans, dm, timestamp)
 			}
 
 			// send to next ?

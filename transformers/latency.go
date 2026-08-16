@@ -16,14 +16,14 @@ import (
 type MapQueries struct {
 	sync.RWMutex
 	ttl      time.Duration
-	kv       map[uint64]dnsutils.DNSMessage
-	channels []chan dnsutils.DNSMessage
+	kv       map[uint64]*dnsutils.DNSMessage
+	channels []chan *dnsutils.DNSMessage
 }
 
-func NewMapQueries(ttl time.Duration, channels []chan dnsutils.DNSMessage) MapQueries {
+func NewMapQueries(ttl time.Duration, channels []chan *dnsutils.DNSMessage) MapQueries {
 	return MapQueries{
 		ttl:      ttl,
-		kv:       make(map[uint64]dnsutils.DNSMessage),
+		kv:       make(map[uint64]*dnsutils.DNSMessage),
 		channels: channels,
 	}
 }
@@ -39,13 +39,17 @@ func (mp *MapQueries) Exists(key uint64) (ok bool) {
 	return ok
 }
 
-func (mp *MapQueries) Set(key uint64, dm dnsutils.DNSMessage) {
+func (mp *MapQueries) Set(key uint64, dm *dnsutils.DNSMessage) {
 	mp.Lock()
 	defer mp.Unlock()
+	dm.Retain(1)
 	mp.kv[key] = dm
 	time.AfterFunc(mp.ttl, func() {
 		if mp.Exists(key) {
 			dm.DNS.Rcode = "TIMEOUT"
+			if len(mp.channels) > 1 {
+				dm.Retain(int32(len(mp.channels) - 1))
+			}
 			for i := range mp.channels {
 				mp.channels[i] <- dm
 			}
@@ -57,7 +61,10 @@ func (mp *MapQueries) Set(key uint64, dm dnsutils.DNSMessage) {
 func (mp *MapQueries) Delete(key uint64) {
 	mp.Lock()
 	defer mp.Unlock()
-	delete(mp.kv, key)
+	if dm, ok := mp.kv[key]; ok {
+		delete(mp.kv, key)
+		dm.Release()
+	}
 }
 
 // hash queries map
@@ -107,7 +114,7 @@ type LatencyTransform struct {
 	mapQueries  MapQueries
 }
 
-func NewLatencyTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan dnsutils.DNSMessage) *LatencyTransform {
+func NewLatencyTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessage) *LatencyTransform {
 	t := &LatencyTransform{GenericTransformer: NewTransformer(config, logger, "latency", name, instance, nextWorkers)}
 	t.hashQueries = NewHashQueries(time.Duration(config.Latency.QueriesTimeout) * time.Second)
 	t.mapQueries = NewMapQueries(time.Duration(config.Latency.QueriesTimeout)*time.Second, nextWorkers)
@@ -165,7 +172,7 @@ func (t *LatencyTransform) detectEvictedTimeout(dm *dnsutils.DNSMessage) (int, e
 		key := hashfnv.Sum64()
 
 		if dm.DNS.Type == dnsutils.DNSQuery || dm.DNS.Type == dnsutils.DNSQueryQuiet {
-			t.mapQueries.Set(key, *dm)
+			t.mapQueries.Set(key, dm)
 		} else if t.mapQueries.Exists(key) {
 			t.mapQueries.Delete(key)
 		}

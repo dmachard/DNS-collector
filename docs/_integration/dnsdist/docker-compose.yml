@@ -1,0 +1,25 @@
+services:
+  dnsdist:
+    image: powerdns/dnsdist-21:2.1.1
+    container_name: dnsdist
+    restart: unless-stopped
+    volumes:
+      - ./dnsdist.yml:/etc/dnsdist/dnsdist.yml:ro
+    command: [ "-C", "/etc/dnsdist/dnsdist.yml" ]
+    network_mode: host
+    depends_on:
+      - dnscollector
+
+  dnscollector:
+    container_name: dnscollector
+    build:
+      context: ../../../
+      dockerfile: Dockerfile
+    user: root:root
+    restart: unless-stopped
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    network_mode: host
+    volumes:
+      - ./config.yml:/etc/dnscollector/config.yml:ro

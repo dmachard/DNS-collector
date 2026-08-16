@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"strconv"
 	"strings"
 	"sync"
@@ -277,16 +278,15 @@ func (w *KafkaProducer) connectSinglePartition(ctx context.Context, dialer *kafk
 	return false
 }
 
-func (w *KafkaProducer) FlushBuffer(buf *[]dnsutils.DNSMessage) {
-	w.connMutex.RLock()
-	connected := w.kafkaConnected
-	w.connMutex.RUnlock()
-
-	if !connected {
-		for range *buf {
-			w.CountEgressDiscarded()
+func (w *KafkaProducer) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
+	defer func() {
+		for _, dm := range *buf {
+			dm.Release()
 		}
 		*buf = nil
+	}()
+
+	if len(*buf) == 0 {
 		return
 	}
 
@@ -341,6 +341,23 @@ func (w *KafkaProducer) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 	partition := kafkaConfig.Partition
 	var err error
 
+	handleError := func(partitionID int, err error) {
+		w.LogError("[partition=%d] write failed: %v", partitionID, err.Error())
+		for range msgs {
+			w.CountEgressDiscarded()
+		}
+		w.connMutex.RUnlock()
+		w.connMutex.Lock()
+		w.kafkaConnected = false
+		w.connMutex.Unlock()
+		w.connMutex.RLock()
+
+		select {
+		case w.triggerReconnect <- true:
+		default:
+		}
+	}
+
 	if partition == nil {
 		// Round-robin between partitions
 		if w.lastPartitionIndex == nil {
@@ -349,23 +366,7 @@ func (w *KafkaProducer) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 		numPartitions := len(w.kafkaConns)
 		if numPartitions == 0 {
 			w.LogError("no kafka connections available")
-
-			// count discarded messages
-			for range msgs {
-				w.CountEgressDiscarded()
-			}
-
-			w.connMutex.RUnlock()
-			w.connMutex.Lock()
-			w.kafkaConnected = false
-			w.connMutex.Unlock()
-			w.connMutex.RLock()
-
-			// Trigger reconnection
-			select {
-			case w.triggerReconnect <- true:
-			default:
-			}
+			handleError(0, errors.New("no connections available"))
 			return
 		}
 
@@ -377,25 +378,7 @@ func (w *KafkaProducer) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 		}
 
 		if err != nil {
-			w.LogError("[partition=%d] write failed: %v", *w.lastPartitionIndex, err.Error())
-
-			// count discarded messages
-			for range msgs {
-				w.CountEgressDiscarded()
-			}
-
-			w.connMutex.RUnlock()
-			w.connMutex.Lock()
-			w.kafkaConnected = false
-			w.connMutex.Unlock()
-			w.connMutex.RLock()
-
-			// Trigger reconnection
-			select {
-			case w.triggerReconnect <- true:
-			default:
-			}
-
+			handleError(*w.lastPartitionIndex, err)
 			return
 		}
 
@@ -405,24 +388,7 @@ func (w *KafkaProducer) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 		conn, exists := w.kafkaConns[*partition]
 		if !exists {
 			w.LogError("[partition=%d] connection not available", *partition)
-
-			// count discarded messages
-			for range msgs {
-				w.CountEgressDiscarded()
-			}
-
-			w.connMutex.RUnlock()
-			w.connMutex.Lock()
-			w.kafkaConnected = false
-			w.connMutex.Unlock()
-			w.connMutex.RLock()
-
-			// Trigger reconnection
-			select {
-			case w.triggerReconnect <- true:
-			default:
-			}
-
+			handleError(*partition, errors.New("connection not available"))
 			return
 		}
 
@@ -433,31 +399,10 @@ func (w *KafkaProducer) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 		}
 
 		if err != nil {
-			w.LogError("[partition=%d] write failed: %v", *partition, err.Error())
-
-			// count discarded messages
-			for range msgs {
-				w.CountEgressDiscarded()
-			}
-
-			w.connMutex.RUnlock()
-			w.connMutex.Lock()
-			w.kafkaConnected = false
-			w.connMutex.Unlock()
-			w.connMutex.RLock()
-
-			// Trigger reconnection
-			select {
-			case w.triggerReconnect <- true:
-			default:
-			}
-
+			handleError(*partition, err)
 			return
 		}
 	}
-
-	// successfully sent, clear buffer
-	*buf = nil
 }
 
 func (w *KafkaProducer) StartCollect() {
@@ -497,7 +442,7 @@ func (w *KafkaProducer) StartCollect() {
 			w.CountIngressTraffic()
 
 			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(&dm)
+			transformResult, err := subprocessors.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
@@ -506,12 +451,7 @@ func (w *KafkaProducer) StartCollect() {
 				continue
 			}
 
-			// send to output channel
-			w.CountEgressTraffic()
-			w.GetOutputChannel() <- dm
-
-			// send to next ?
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
 		}
 	}
 }
@@ -524,7 +464,7 @@ func (w *KafkaProducer) StartLogging() {
 	defer cancelKafka()
 
 	// init buffer
-	bufferDm := []dnsutils.DNSMessage{}
+	bufferDm := []*dnsutils.DNSMessage{}
 
 	// init flush timer for buffer
 	flushInterval := time.Duration(w.GetConfig().Loggers.KafkaProducer.FlushInterval) * time.Second
@@ -583,6 +523,7 @@ func (w *KafkaProducer) StartLogging() {
 			// to block the channel
 			if !connected {
 				w.CountEgressDiscarded()
+				dm.Release()
 				continue
 			}
 

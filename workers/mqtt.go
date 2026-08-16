@@ -194,7 +194,14 @@ func (w *MQTT) ConnectToMQTT() {
 	}
 }
 
-func (w *MQTT) FlushBuffer(buf *[]dnsutils.DNSMessage) {
+func (w *MQTT) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
+	defer func() {
+		for _, dm := range *buf {
+			dm.Release()
+		}
+		*buf = nil
+	}()
+
 	buffer := new(bytes.Buffer)
 
 	for _, dm := range *buf {
@@ -259,8 +266,6 @@ func (w *MQTT) FlushBuffer(buf *[]dnsutils.DNSMessage) {
 			break
 		}
 	}
-
-	*buf = nil
 }
 
 func (w *MQTT) StartCollect() {
@@ -295,7 +300,7 @@ func (w *MQTT) StartCollect() {
 
 			w.CountIngressTraffic()
 
-			transformResult, err := subprocessors.ProcessMessage(&dm)
+			transformResult, err := subprocessors.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
@@ -304,10 +309,7 @@ func (w *MQTT) StartCollect() {
 				continue
 			}
 
-			w.CountEgressTraffic()
-			w.GetOutputChannel() <- dm
-
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
 		}
 	}
 }
@@ -316,7 +318,7 @@ func (w *MQTT) StartLogging() {
 	w.LogInfo("logging has started")
 	defer w.LoggingDone()
 
-	bufferDm := []dnsutils.DNSMessage{}
+	bufferDm := []*dnsutils.DNSMessage{}
 
 	flushInterval := time.Duration(w.GetConfig().Loggers.MQTT.FlushInterval) * time.Second
 	flushTimer := time.NewTimer(flushInterval)
@@ -340,6 +342,7 @@ func (w *MQTT) StartLogging() {
 
 			if !w.writerReady {
 				w.CountEgressDiscarded()
+				dm.Release()
 				continue
 			}
 
@@ -351,6 +354,9 @@ func (w *MQTT) StartLogging() {
 
 		case <-flushTimer.C:
 			if !w.writerReady {
+				for _, dm := range bufferDm {
+					dm.Release()
+				}
 				bufferDm = nil
 			}
 

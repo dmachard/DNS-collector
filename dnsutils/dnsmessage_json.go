@@ -16,6 +16,7 @@ var jsonBufferPool = sync.Pool{
 }
 
 func (dm *DNSMessage) ToJSON() string {
+	dm.GetTimestampRFC3339()
 	buffer := jsonBufferPool.Get().(*bytes.Buffer)
 	buffer.Reset()
 	defer jsonBufferPool.Put(buffer)
@@ -25,6 +26,7 @@ func (dm *DNSMessage) ToJSON() string {
 }
 
 func (dm *DNSMessage) ToFlatJSON() (string, error) {
+	dm.GetTimestampRFC3339()
 	buffer := jsonBufferPool.Get().(*bytes.Buffer)
 	buffer.Reset()
 	defer jsonBufferPool.Put(buffer)
@@ -78,8 +80,7 @@ func (dm *DNSMessage) EncodeFlatJSON(buffer *bytes.Buffer) {
 
 	writeString := func(key string, val string) {
 		writeKey(key)
-		b, _ := json.Marshal(val)
-		buffer.Write(b)
+		WriteJSONString(buffer, val)
 	}
 
 	// Boolean flags
@@ -550,4 +551,32 @@ func (dm *DNSMessage) Flatten() (map[string]interface{}, error) {
 	}
 
 	return dnsFields, nil
+}
+
+func WriteJSONString(buf *bytes.Buffer, s string) {
+	buf.WriteByte('"')
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch c {
+		case '"', '\\':
+			buf.WriteByte('\\')
+			buf.WriteByte(c)
+		case '\n':
+			buf.WriteString(`\n`)
+		case '\r':
+			buf.WriteString(`\r`)
+		case '\t':
+			buf.WriteString(`\t`)
+		default:
+			if c < 0x20 {
+				buf.WriteString(`\u00`)
+				const hexDigit = "0123456789abcdef"
+				buf.WriteByte(hexDigit[c>>4])
+				buf.WriteByte(hexDigit[c&0xf])
+			} else {
+				buf.WriteByte(c)
+			}
+		}
+	}
+	buf.WriteByte('"')
 }

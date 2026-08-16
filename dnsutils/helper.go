@@ -50,6 +50,7 @@ func GetDNSResponsePacket() ([]byte, error) {
 func GetFakeDNSMessage() DNSMessage {
 	dm := DNSMessage{}
 	dm.Init()
+	dm.RefCount = 1
 	dm.DNSTap.Identity = "collector"
 	dm.DNSTap.Version = "dnscollector 1.0.0"
 	dm.DNSTap.Operation = "CLIENT_QUERY"

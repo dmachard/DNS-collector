@@ -169,7 +169,7 @@ func (w *LokiClient) StartCollect() {
 			w.CountIngressTraffic()
 
 			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(&dm)
+			transformResult, err := subprocessors.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
@@ -178,12 +178,7 @@ func (w *LokiClient) StartCollect() {
 				continue
 			}
 
-			// send to output channel
-			w.CountEgressTraffic()
-			w.GetOutputChannel() <- dm
-
-			// send to next ?
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
 		}
 	}
 }
@@ -228,6 +223,7 @@ func (w *LokiClient) StartLogging() {
 				if err != nil {
 					w.LogError("flattening DNS message failed: %e", err)
 					w.CountEgressDiscarded()
+					dm.Release()
 					continue
 				}
 				for k, v := range flat {
@@ -252,6 +248,7 @@ func (w *LokiClient) StartLogging() {
 				if !keep {
 					w.LogInfo("dropping %v because of relabel config", dm)
 					w.CountEgressDiscarded()
+					dm.Release()
 					continue
 				}
 
@@ -266,6 +263,7 @@ func (w *LokiClient) StartLogging() {
 				if lbls.Len() == 0 {
 					w.LogInfo("dropping %v since it has no labels", dm)
 					w.CountEgressDiscarded()
+					dm.Release()
 					continue
 				}
 			}
@@ -291,6 +289,7 @@ func (w *LokiClient) StartLogging() {
 					w.CountEgressDiscarded()
 					w.LogError("process: could not encode to text format: %s", err)
 					w.PutTextBuffer(buf)
+					dm.Release()
 					continue
 				}
 
@@ -310,6 +309,7 @@ func (w *LokiClient) StartLogging() {
 					if err != nil {
 						w.LogError("flattening DNS message failed: %e", err)
 						w.CountEgressDiscarded()
+						dm.Release()
 						continue
 					}
 				}
@@ -347,6 +347,7 @@ func (w *LokiClient) StartLogging() {
 				// reset entries and push request
 				ls.ResetEntries()
 			}
+			dm.Release()
 
 		case <-tflush.C:
 			for _, s := range w.streams {

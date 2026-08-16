@@ -259,7 +259,7 @@ func (w *PdnsProcessor) StartCollect() {
 			}
 
 			// init dns message
-			dm := dnsutils.DNSMessage{}
+			dm := dnsutils.AcquireDNSMessage()
 			dm.Init()
 
 			// init powerdns with default values
@@ -471,7 +471,7 @@ func (w *PdnsProcessor) StartCollect() {
 			w.CountEgressTraffic()
 
 			// apply all enabled transformers
-			transformResult, err := transforms.ProcessMessage(&dm)
+			transformResult, err := transforms.ProcessMessage(dm)
 			if err != nil {
 				w.LogError(err.Error())
 			}
