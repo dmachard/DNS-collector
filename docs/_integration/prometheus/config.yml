@@ -45,7 +45,9 @@ pipelines:
       noerror-metrics-enabled: true
       servfail-metrics-enabled: true
       nonexistent-metrics-enabled: true
-      timeout-metrics-enabled: true
+      tlds-metrics-enabled: true
+      suspicious-metrics-enabled: false
+      timeout-metrics-enabled: false
       prometheus-labels: ["stream_id"]
       requesters-cache-size: 250000
       requesters-cache-ttl: 3600

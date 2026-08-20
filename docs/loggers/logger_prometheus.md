@@ -48,6 +48,30 @@ Options:
 * `histogram-metrics-enabled` (boolean)
   > compute histogram for qnames length, latencies, queries and replies size repartition
 
+* `requesters-metrics-enabled` (boolean)
+  > enable or disable requesters metrics and Top N (default: true)
+
+* `domains-metrics-enabled` (boolean)
+  > enable or disable all observed domains metrics and Top N (default: true)
+
+* `noerror-metrics-enabled` (boolean)
+  > enable or disable NOERROR domains metrics and Top N (default: true)
+
+* `servfail-metrics-enabled` (boolean)
+  > enable or disable SERVFAIL domains metrics and Top N (default: true)
+
+* `nonexistent-metrics-enabled` (boolean)
+  > enable or disable NX domains metrics and Top N (default: true)
+
+* `tlds-metrics-enabled` (boolean)
+  > enable or disable TLD and eTLD+1 metrics and Top N (default: true)
+
+* `suspicious-metrics-enabled` (boolean)
+  > enable or disable suspicious domains metrics and Top N (default: false)
+
+* `timeout-metrics-enabled` (boolean)
+  > enable or disable timeout/unanswered domains metrics and Top N (default: false)
+
 * `prometheus-labels` (list of strings)
   > labels to add to metrics. Currently supported labels: `stream_id` (default), `stream_global`, `resolver`
   
@@ -81,6 +105,12 @@ Options:
 * `nonexistent-domains-cache-ttl` (integer)
   > maximum time (in seconds) before eviction from the LRU cache
 
+* `default-domains-cache-size` (integer)
+  > LRU (least-recently-used) cache size for TLDs, suspicious, and timeout domains per stream
+
+* `default-domains-cache-ttl` (integer)
+  > maximum time (in seconds) before eviction from the default LRU cache
+
 Default values:
 
 ```yaml
@@ -104,7 +134,9 @@ prometheus:
   noerror-metrics-enabled: true
   servfail-metrics-enabled: true
   nonexistent-metrics-enabled: true
-  timeout-metrics-enabled: true
+  tlds-metrics-enabled: true
+  suspicious-metrics-enabled: false
+  timeout-metrics-enabled: false
   prometheus-labels: ["stream_id"]
   requesters-cache-size: 250000
   requesters-cache-ttl: 3600
