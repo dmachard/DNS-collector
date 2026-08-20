@@ -229,6 +229,7 @@ func TestPrometheus_ConfirmDifferentResolvers(t *testing.T) {
 func TestPrometheus_Etldplusone(t *testing.T) {
 	config := pkgconfig.GetDefaultConfig()
 	config.Loggers.Prometheus.LabelsList = []string{"stream_id"}
+	config.Loggers.Prometheus.TLDsMetricsEnabled = true
 	g := NewPrometheus(config, logger.New(false), "test")
 
 	noErrorRecord := dnsutils.GetFakeDNSMessage()
@@ -251,6 +252,23 @@ func TestPrometheus_Etldplusone(t *testing.T) {
 	mf := getMetrics(g, t)
 	ensureMetricValue(t, mf, "dnscollector_total_etlds_plusone_lru", map[string]string{"stream_id": "collector"}, 2)
 	ensureMetricValue(t, mf, "dnscollector_top_etlds_plusone", map[string]string{"stream_id": "collector", "suffix": "anotherdomain.co.uk"}, 1)
+}
+
+func TestPrometheus_Suspicious(t *testing.T) {
+	config := pkgconfig.GetDefaultConfig()
+	config.Loggers.Prometheus.LabelsList = []string{"stream_id"}
+	config.Loggers.Prometheus.SuspiciousMetricsEnabled = true
+	g := NewPrometheus(config, logger.New(false), "test")
+
+	dm := dnsutils.GetFakeDNSMessage()
+	dm.DNS.Qname = "malicious.com"
+	dm.Suspicious = &dnsutils.TransformSuspicious{Score: 1.0}
+
+	g.Record(&dm)
+
+	mf := getMetrics(g, t)
+	ensureMetricValue(t, mf, "dnscollector_total_suspicious_lru", map[string]string{"stream_id": "collector"}, 1)
+	ensureMetricValue(t, mf, "dnscollector_top_suspicious", map[string]string{"stream_id": "collector", "domain": "malicious.com"}, 1)
 }
 
 func ensureMetricValue(t *testing.T, mf map[string]*dto.MetricFamily, name string, labels map[string]string, value float64) bool {
@@ -357,4 +375,112 @@ func TestPrometheus_QnameInvalidChars(t *testing.T) {
 	if !ensureMetricValue(t, mf, "dnscollector_top_servfail_domains", map[string]string{"domain": qnameValidUTF8}, 1) {
 		t.Errorf("Cannot validate dnscollector_top_servfail_domains!")
 	}
+}
+
+func TestPrometheus_AllCounters(t *testing.T) {
+	config := pkgconfig.GetDefaultConfig()
+	g := NewPrometheus(config, logger.New(false), "test")
+
+	// Message 1: Query with flags TC, AA, Malformed
+	dm1 := dnsutils.GetFakeDNSMessage()
+	dm1.DNS.Type = dnsutils.DNSQuery
+	dm1.DNS.Length = 100
+	dm1.DNS.Qtype = "A"
+	dm1.DNS.Rcode = "NOERROR"
+	dm1.NetworkInfo.Family = "IPv4"
+	dm1.NetworkInfo.Protocol = "UDP"
+	dm1.DNSTap.Operation = "CLIENT_QUERY"
+	dm1.DNS.Flags.TC = true
+	dm1.DNS.Flags.AA = true
+	dm1.DNS.MalformedPacket = true
+	g.Record(&dm1)
+
+	// Message 2: Reply with flags RA, AD, Fragmented, Reassembled
+	dm2 := dnsutils.GetFakeDNSMessage()
+	dm2.DNS.Type = dnsutils.DNSReply
+	dm2.DNS.Length = 200
+	dm2.DNS.Qtype = "AAAA"
+	dm2.DNS.Rcode = "NXDOMAIN"
+	dm2.NetworkInfo.Family = "IPv6"
+	dm2.NetworkInfo.Protocol = "TCP"
+	dm2.DNSTap.Operation = "CLIENT_RESPONSE"
+	dm2.DNS.Flags.RA = true
+	dm2.DNS.Flags.AD = true
+	dm2.NetworkInfo.IPDefragmented = true
+	dm2.NetworkInfo.TCPReassembled = true
+	g.Record(&dm2)
+
+	mf := getMetrics(g, t)
+	labels := map[string]string{"stream_id": "collector"}
+
+	ensureMetricValue(t, mf, "dnscollector_dnsmessages_total", labels, 2)
+	ensureMetricValue(t, mf, "dnscollector_queries_total", labels, 1)
+	ensureMetricValue(t, mf, "dnscollector_replies_total", labels, 1)
+	ensureMetricValue(t, mf, "dnscollector_bytes_total", labels, 300)
+	ensureMetricValue(t, mf, "dnscollector_received_bytes_total", labels, 100)
+	ensureMetricValue(t, mf, "dnscollector_sent_bytes_total", labels, 200)
+
+	ensureMetricValue(t, mf, "dnscollector_flag_tc_total", labels, 1)
+	ensureMetricValue(t, mf, "dnscollector_flag_aa_total", labels, 1)
+	ensureMetricValue(t, mf, "dnscollector_flag_ra_total", labels, 1)
+	ensureMetricValue(t, mf, "dnscollector_flag_ad_total", labels, 1)
+	ensureMetricValue(t, mf, "dnscollector_malformed_total", labels, 1)
+	ensureMetricValue(t, mf, "dnscollector_fragmented_total", labels, 1)
+	ensureMetricValue(t, mf, "dnscollector_reassembled_total", labels, 1)
+
+	ensureMetricValue(t, mf, "dnscollector_qtypes_total", map[string]string{"stream_id": "collector", "query_type": "A"}, 1)
+	ensureMetricValue(t, mf, "dnscollector_qtypes_total", map[string]string{"stream_id": "collector", "query_type": "AAAA"}, 1)
+	ensureMetricValue(t, mf, "dnscollector_rcodes_total", map[string]string{"stream_id": "collector", "return_code": "NOERROR"}, 1)
+	ensureMetricValue(t, mf, "dnscollector_rcodes_total", map[string]string{"stream_id": "collector", "return_code": "NXDOMAIN"}, 1)
+	ensureMetricValue(t, mf, "dnscollector_ipversion_total", map[string]string{"stream_id": "collector", "net_family": "IPv4"}, 1)
+	ensureMetricValue(t, mf, "dnscollector_ipversion_total", map[string]string{"stream_id": "collector", "net_family": "IPv6"}, 1)
+	ensureMetricValue(t, mf, "dnscollector_ipprotocol_total", map[string]string{"stream_id": "collector", "net_transport": "UDP"}, 1)
+	ensureMetricValue(t, mf, "dnscollector_ipprotocol_total", map[string]string{"stream_id": "collector", "net_transport": "TCP"}, 1)
+	ensureMetricValue(t, mf, "dnscollector_operations_total", map[string]string{"stream_id": "collector", "operation": "CLIENT_QUERY"}, 1)
+	ensureMetricValue(t, mf, "dnscollector_operations_total", map[string]string{"stream_id": "collector", "operation": "CLIENT_RESPONSE"}, 1)
+}
+
+func TestPrometheus_ConcurrentRecord(t *testing.T) {
+	config := pkgconfig.GetDefaultConfig()
+	g := NewPrometheus(config, logger.New(false), "test")
+
+	// Initialize EPS state with a first message + compute
+	dmInit := dnsutils.GetFakeDNSMessage()
+	g.Record(&dmInit)
+	g.ComputeEventsPerSecond()
+
+	const numGoroutines = 10
+	const messagesPerGoroutine = 500
+
+	done := make(chan bool, numGoroutines)
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			for j := 0; j < messagesPerGoroutine; j++ {
+				dm := dnsutils.GetFakeDNSMessage()
+				dm.DNS.Type = dnsutils.DNSQuery
+				dm.DNS.Length = 10
+				dm.DNS.Qtype = "A"
+				dm.DNS.Rcode = "NOERROR"
+				dm.NetworkInfo.Family = "IPv4"
+				dm.NetworkInfo.Protocol = "UDP"
+				dm.DNSTap.Operation = "CLIENT_QUERY"
+				g.Record(&dm)
+			}
+			done <- true
+		}()
+	}
+
+	for i := 0; i < numGoroutines; i++ {
+		<-done
+	}
+
+	g.ComputeEventsPerSecond()
+
+	mf := getMetrics(g, t)
+	labels := map[string]string{"stream_id": "collector"}
+
+	expectedTotal := float64(numGoroutines*messagesPerGoroutine + 1)
+	ensureMetricValue(t, mf, "dnscollector_dnsmessages_total", labels, expectedTotal)
+	ensureMetricValue(t, mf, "dnscollector_queries_total", labels, expectedTotal)
+	ensureMetricValue(t, mf, "dnscollector_throughput_ops", labels, float64(numGoroutines*messagesPerGoroutine))
 }
