@@ -183,12 +183,21 @@ func (w *TCPClient) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 		}
 
 		if w.GetConfig().Loggers.TCPClient.Mode == pkgconfig.ModeFlatJSON {
-			flat, err := dm.Flatten()
-			if err != nil {
-				w.LogError("flattening DNS message failed: %e", err)
-				continue
+			if dm.Relabeling != nil {
+				flat, err := dm.Flatten()
+				if err != nil {
+					w.LogError("flattening DNS message failed: %e", err)
+					continue
+				}
+				json.NewEncoder(w.transportWriter).Encode(flat)
+			} else {
+				textBuf := w.GetTextBuffer()
+				textBuf.Reset()
+				dm.GetTimestampRFC3339()
+				dm.EncodeFlatJSON(textBuf)
+				w.transportWriter.Write(textBuf.Bytes())
+				w.PutTextBuffer(textBuf)
 			}
-			json.NewEncoder(w.transportWriter).Encode(flat)
 			w.transportWriter.WriteString(w.GetConfig().Loggers.TCPClient.PayloadDelimiter)
 		}
 

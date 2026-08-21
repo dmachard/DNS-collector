@@ -320,13 +320,21 @@ func (w *KafkaProducer) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 			strDm = buffer.String()
 			buffer.Reset()
 		case pkgconfig.ModeFlatJSON:
-			flat, err := dm.Flatten()
-			if err != nil {
-				w.LogError("flattening DNS message failed: %e", err)
+			if dm.Relabeling != nil {
+				flat, err := dm.Flatten()
+				if err != nil {
+					w.LogError("flattening DNS message failed: %e", err)
+				}
+				json.NewEncoder(buffer).Encode(flat)
+				strDm = buffer.String()
+				buffer.Reset()
+			} else {
+				dm.GetTimestampRFC3339()
+				dm.EncodeFlatJSON(buffer)
+				buffer.WriteByte('\n')
+				strDm = buffer.String()
+				buffer.Reset()
 			}
-			json.NewEncoder(buffer).Encode(flat)
-			strDm = buffer.String()
-			buffer.Reset()
 		}
 
 		msgs = append(msgs, kafka.Message{

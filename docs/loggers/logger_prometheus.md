@@ -64,13 +64,13 @@ Options:
   > enable or disable NX domains metrics and Top N (default: true)
 
 * `tlds-metrics-enabled` (boolean)
-  > enable or disable TLD and eTLD+1 metrics and Top N (default: true)
+  > enable or disable TLD and eTLD+1 metrics and Top N (default: false). Requires the `publicsuffix` transformer (`transforms.normalize.publicsuffix-enable: true`) to be enabled.
 
 * `suspicious-metrics-enabled` (boolean)
-  > enable or disable suspicious domains metrics and Top N (default: false)
+  > enable or disable suspicious domains metrics and Top N (default: false). Requires the `suspicious` transformer (`transforms.suspicious`) to be enabled.
 
 * `timeout-metrics-enabled` (boolean)
-  > enable or disable timeout/unanswered domains metrics and Top N (default: false)
+  > enable or disable timeout/unanswered domains metrics and Top N (default: false). Requires the `latency` transformer (`transforms.latency`) with timeout support.
 
 * `prometheus-labels` (list of strings)
   > labels to add to metrics. Currently supported labels: `stream_id` (default), `stream_global`, `resolver`

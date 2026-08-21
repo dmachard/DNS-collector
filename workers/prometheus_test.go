@@ -62,6 +62,7 @@ func TestPrometheus_GetMetrics(t *testing.T) {
 	// init the logger
 	config := pkgconfig.GetDefaultConfig()
 	config.Loggers.Prometheus.HistogramMetricsEnabled = true
+	config.Loggers.Prometheus.TLDsMetricsEnabled = true
 
 	// By default, prometheus uses 'stream_id' as the label
 	t.Run("SingleLabelStreamID", getMetricsTestCase(config, map[string]string{"stream_id": "collector"}))

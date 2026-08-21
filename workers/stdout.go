@@ -157,6 +157,12 @@ func (w *StdOut) StartLogging() {
 	flushTicker := time.NewTicker(flushInterval)
 	defer flushTicker.Stop()
 
+	// setup json encoder if necessary
+	var jsonEncoder *json.Encoder
+	if w.GetConfig().Loggers.Stdout.Mode == pkgconfig.ModeJSON || w.GetConfig().Loggers.Stdout.Mode == pkgconfig.ModeFlatJSON {
+		jsonEncoder = json.NewEncoder(w.writerRaw)
+	}
+
 	for {
 		select {
 		case <-w.OnLoggerStopped():
@@ -233,7 +239,7 @@ func (w *StdOut) StartLogging() {
 				w.writerRaw.WriteByte('\n')
 
 			case pkgconfig.ModeJSON:
-				err := json.NewEncoder(w.writerRaw).Encode(dm)
+				err := jsonEncoder.Encode(dm)
 				if err != nil {
 					w.CountEgressDiscarded()
 					w.LogError("process: unable to encode json: %s", err)
@@ -242,19 +248,29 @@ func (w *StdOut) StartLogging() {
 				}
 
 			case pkgconfig.ModeFlatJSON:
-				flat, err := dm.Flatten()
-				if err != nil {
-					w.CountEgressDiscarded()
-					w.LogError("process: flattening DNS message failed: %e", err)
-					dm.Release()
-					continue
-				}
-				err = json.NewEncoder(w.writerRaw).Encode(flat)
-				if err != nil {
-					w.CountEgressDiscarded()
-					w.LogError("process: unable to encode flat json: %s", err)
-					dm.Release()
-					continue
+				if dm.Relabeling != nil {
+					flat, err := dm.Flatten()
+					if err != nil {
+						w.CountEgressDiscarded()
+						w.LogError("process: flattening DNS message failed: %e", err)
+						dm.Release()
+						continue
+					}
+					err = jsonEncoder.Encode(flat)
+					if err != nil {
+						w.CountEgressDiscarded()
+						w.LogError("process: unable to encode flat json: %s", err)
+						dm.Release()
+						continue
+					}
+				} else {
+					buf := w.GetTextBuffer()
+					buf.Reset()
+					dm.GetTimestampRFC3339()
+					dm.EncodeFlatJSON(buf)
+					buf.WriteByte('\n')
+					w.writerRaw.Write(buf.Bytes())
+					w.PutTextBuffer(buf)
 				}
 			}
 			dm.Release()

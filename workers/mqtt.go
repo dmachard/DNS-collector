@@ -235,14 +235,22 @@ func (w *MQTT) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 			json.NewEncoder(buffer).Encode(dm)
 			payload = buffer.String()
 		case pkgconfig.ModeFlatJSON:
-			flat, err := dm.Flatten()
-			if err != nil {
-				w.LogError("flattening DNS message failed: %e", err)
-				w.CountEgressDiscarded()
-				continue
+			if dm.Relabeling != nil {
+				flat, err := dm.Flatten()
+				if err != nil {
+					w.LogError("flattening DNS message failed: %e", err)
+					w.CountEgressDiscarded()
+					continue
+				}
+				json.NewEncoder(buffer).Encode(flat)
+				payload = buffer.String()
+			} else {
+				buffer.Reset()
+				dm.GetTimestampRFC3339()
+				dm.EncodeFlatJSON(buffer)
+				buffer.WriteByte('\n')
+				payload = buffer.String()
 			}
-			json.NewEncoder(buffer).Encode(flat)
-			payload = buffer.String()
 		}
 
 		token := w.mqttClient.Publish(
