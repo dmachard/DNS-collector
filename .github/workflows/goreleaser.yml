@@ -24,6 +24,9 @@ jobs:
         with:
           go-version: "${{ env.GO_VERSION }}"
 
+      - name: Install UPX
+        run: sudo apt-get install -y upx-ucl
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v7
         with:
