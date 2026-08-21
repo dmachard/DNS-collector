@@ -175,3 +175,64 @@ func Benchmark_FastIPv4ToString(b *testing.B) {
 		_ = FastIPv4ToString(ip)
 	}
 }
+
+func BenchmarkDecodeQuestion_StandardQuery(b *testing.B) {
+	// Standard DNS query: 12-byte header + \x0cdscollector\x02fr\x00 + Type A (1) + Class IN (1)
+	payload := []byte{
+		0x12, 0x34, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		12, 'd', 'n', 's', 'c', 'o', 'l', 'l', 'e', 'c', 't', 'o', 'r',
+		2, 'f', 'r',
+		0,
+		0x00, 0x01,
+		0x00, 0x01,
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, _, _, _, _ = DecodeQuestion(1, payload)
+	}
+}
+
+func BenchmarkDecodeQuestion_SubdomainQuery(b *testing.B) {
+	// Subdomain query: sub.domain.test.example.com
+	payload := []byte{
+		0x12, 0x34, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		3, 's', 'u', 'b',
+		6, 'd', 'o', 'm', 'a', 'i', 'n',
+		4, 't', 'e', 's', 't',
+		7, 'e', 'x', 'a', 'm', 'p', 'l', 'e',
+		3, 'c', 'o', 'm',
+		0,
+		0x00, 0x1c, // AAAA
+		0x00, 0x01, // IN
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, _, _, _, _ = DecodeQuestion(1, payload)
+	}
+}
+
+func BenchmarkCustomDecodeDNS_Query(b *testing.B) {
+	payload := []byte{
+		0x12, 0x34, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		12, 'd', 'n', 's', 'c', 'o', 'l', 'l', 'e', 'c', 't', 'o', 'r',
+		2, 'f', 'r',
+		0,
+		0x00, 0x01,
+		0x00, 0x01,
+	}
+	config := &pkgconfig.Config{}
+	dm := &DNSMessage{}
+	dm.DNS.Payload = payload
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		header, _ := DecodeDNS(payload)
+		_ = DecodePayload(dm, &header, config)
+		resultMsg = dm
+	}
+}

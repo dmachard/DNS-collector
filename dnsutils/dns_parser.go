@@ -350,7 +350,76 @@ DNS QUESTION
 |                     QCLASS                    |
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 */
+func parseLabelsFast(offset int, payload []byte) (string, int, bool, error) {
+	curr := offset
+	payloadLen := len(payload)
+
+	if curr >= payloadLen {
+		return "", 0, false, nil
+	}
+
+	var stackBuf [256]byte
+	nameBuffer := stackBuf[:0]
+	totalLength := 0
+
+	for {
+		if curr >= payloadLen {
+			return "", 0, false, nil
+		}
+
+		length := int(payload[curr])
+		if length == 0 {
+			curr++
+			return string(nameBuffer), curr, true, nil
+		}
+
+		// Fallback on compression pointer (0xc0) or invalid label length >= 64
+		if length >= 64 {
+			return "", 0, false, nil
+		}
+
+		curr++
+		if curr+length > payloadLen {
+			return "", 0, false, nil
+		}
+
+		totalLength += length + 1
+		if totalLength > 254 {
+			return "", 0, true, ErrDecodeDNSLabelTooLong
+		}
+
+		if len(nameBuffer) > 0 {
+			nameBuffer = append(nameBuffer, '.')
+		}
+		nameBuffer = append(nameBuffer, payload[curr:curr+length]...)
+		curr += length
+	}
+}
+
+func decodeQuestionFast(payload []byte) (string, int, int, int, bool, error) {
+	name, curr, ok, err := parseLabelsFast(DNSLen, payload)
+	if !ok || err != nil {
+		return name, 0, 0, 0, ok, err
+	}
+
+	if len(payload)-curr < 4 {
+		return "", 0, 0, 0, false, nil
+	}
+
+	qtype := int(binary.BigEndian.Uint16(payload[curr : curr+2]))
+	qclass := int(binary.BigEndian.Uint16(payload[curr+2 : curr+4]))
+	curr += 4
+
+	return name, qtype, qclass, curr, true, nil
+}
+
 func DecodeQuestion(qdcount int, payload []byte) (string, int, int, int, error) {
+	if qdcount == 1 {
+		if qname, qtype, qclass, offset, ok, err := decodeQuestionFast(payload); ok {
+			return qname, qtype, qclass, offset, err
+		}
+	}
+
 	offset := DNSLen
 	var qname string
 	var qtype int
@@ -493,6 +562,10 @@ func DecodeAnswerInto(buf []DNSAnswer, ancount int, startOffset int, payload []b
 func ParseLabels(offset int, payload []byte, allowCompression bool) (string, int, error) {
 	if offset < 0 {
 		return "", 0, ErrDecodeDNSLabelInvalidOffset
+	}
+
+	if name, end, ok, err := parseLabelsFast(offset, payload); ok {
+		return name, end, err
 	}
 
 	// Stack-allocated buffer to store the domain name (Max DNS FQDN length is 255 bytes)
