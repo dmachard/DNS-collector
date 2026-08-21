@@ -39,6 +39,7 @@ type ConfigCollectors struct {
 		NumWorkers        int    `yaml:"num-workers" default:"0"`
 		DisableDNSParser  bool   `yaml:"disable-dnsparser" default:"false"`
 		ExtendedSupport   bool   `yaml:"extended-support" default:"false"`
+		FastDecoder       bool   `yaml:"fast-decoder" default:"true"`
 		Compression       string `yaml:"compression" default:"none"`
 	} `yaml:"dnstap"`
 	DnstapProxifier struct {
