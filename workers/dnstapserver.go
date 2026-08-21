@@ -64,7 +64,7 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 		bufSize = w.GetConfig().Collectors.Dnstap.ChannelBufferSize
 	}
 	dnstapProcessor := NewDNSTapProcessor(int(connID), peerName, w.GetConfig(), w.GetLogger(), w.GetName(), bufSize)
-	dnstapProcessor.SetMetrics(w.metrics)
+	dnstapProcessor.SetMetrics(w.GetMetrics())
 	dnstapProcessor.SetDefaultRoutes(w.GetDefaultRoutes())
 	dnstapProcessor.SetDefaultDropped(w.GetDroppedRoutes())
 	go dnstapProcessor.StartCollect()

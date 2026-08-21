@@ -146,8 +146,8 @@ func Test_ElasticSearchClient_FlushInterval_Exceeded(t *testing.T) {
 			time.Sleep(1 * time.Second)
 
 			// send DNSmessage
-			dm := dnsutils.GetFakeDNSMessage()
 			for i := 0; i < tc.inputSize; i++ {
+				dm := dnsutils.GetFakeDNSMessage()
 				g.GetInputChannel() <- &dm
 			}
 			time.Sleep(6 * time.Second)

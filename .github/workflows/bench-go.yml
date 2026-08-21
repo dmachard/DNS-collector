@@ -44,13 +44,15 @@ jobs:
 
     - name: Bench dnsutils
       run: |
-        cd dnsutils/
-        go test -benchmem -run=^$ -bench=.
+        go test -benchmem -run=^$ -bench=. ./dnsutils/
     
     - name: Bench transformers
       run: |
-        cd transformers/
-        go test -benchmem -run=^$ -bench=^BenchmarkUserPrivacy.*\|BenchmarkTransforms.*\|BenchmarkNormalize.*\|BenchmarkReducer.*\|BenchmarkReordering.*\|BenchmarkExtract_.*\|BenchmarkRewrite_.*\|BenchmarkGeoIP_.*$
+        go test -benchmem -run=^$ -bench=. ./transformers/
+
+    - name: Bench workers
+      run: |
+        go test -benchmem -run=^$ -bench=. ./workers/
 
     - name: Compare performance with latest release tag
       run: |
