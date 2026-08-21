@@ -57,6 +57,7 @@ type LogFile struct {
 	fileSize                               int64
 	fileDir, fileName, fileExt, filePrefix string
 	textFormat                             []string
+	textFormatter                          *dnsutils.TextFormatter
 	jinjaFormat                            string
 	compressQueue                          chan string
 	commandQueue                           chan string
@@ -101,6 +102,12 @@ func (w *LogFile) ReadConfig() {
 		w.textFormat = strings.Fields(w.GetConfig().Loggers.LogFile.TextFormat)
 	} else {
 		w.textFormat = strings.Fields(w.GetConfig().Global.TextFormat)
+	}
+
+	var err error
+	w.textFormatter, err = dnsutils.NewTextFormatter(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary)
+	if err != nil {
+		w.LogFatal("["+w.GetName()+"] logger=file - invalid text format: ", err.Error())
 	}
 
 	if len(w.GetConfig().Loggers.Stdout.JinjaFormat) > 0 {
@@ -609,12 +616,17 @@ func (w *LogFile) StartLogging() {
 				buf.Reset()
 
 				// encode to text line the dns message
-				err := dm.ToTextLine(
-					w.textFormat,
-					w.GetConfig().Global.TextFormatDelimiter,
-					w.GetConfig().Global.TextFormatBoundary,
-					buf,
-				)
+				var err error
+				if w.textFormatter != nil {
+					err = w.textFormatter.Format(dm, buf)
+				} else {
+					err = dm.ToTextLine(
+						w.textFormat,
+						w.GetConfig().Global.TextFormatDelimiter,
+						w.GetConfig().Global.TextFormatBoundary,
+						buf,
+					)
+				}
 				if err != nil {
 					w.CountEgressDiscarded()
 					w.LogError("logfile: could not encode to text format: %s", err)

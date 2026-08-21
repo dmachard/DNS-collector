@@ -2,9 +2,7 @@ package dnsutils
 
 import (
 	"bytes"
-	"encoding/base64"
 	"errors"
-	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -12,593 +10,427 @@ import (
 )
 
 var (
-	OtelDirectives            = regexp.MustCompile(`^otel-*`)
-	PdnsDirectives            = regexp.MustCompile(`^powerdns-*`)
-	GeoIPDirectives           = regexp.MustCompile(`^geoip-*`)
-	SuspiciousDirectives      = regexp.MustCompile(`^suspicious-*`)
-	PublicSuffixDirectives    = regexp.MustCompile(`^publicsuffix-*`)
-	ExtractedDirectives       = regexp.MustCompile(`^extracted-*`)
-	ReducerDirectives         = regexp.MustCompile(`^reducer-*`)
-	MachineLearningDirectives = regexp.MustCompile(`^ml-*`)
-	FilteringDirectives       = regexp.MustCompile(`^filtering-*`)
-	RawTextDirective          = regexp.MustCompile(`^ *\{.*\}`)
-	ATagsDirectives           = regexp.MustCompile(`^atags*`)
+	RawTextDirective = regexp.MustCompile(`^ *\{.*\}`)
 )
 
-func (dm *DNSMessage) handleOpenTelemetryDirectives(directive string, s *bytes.Buffer) error {
-	if dm.OpenTelemetry == nil {
-		s.WriteString("-")
-	} else {
-		switch directive {
-		case "otel-trace-id":
-			s.WriteString(dm.OpenTelemetry.TraceID)
-		default:
-			return errors.New(ErrorUnexpectedDirective + directive)
+type TextDirectiveFunc func(dm *DNSMessage, s *bytes.Buffer) error
+
+type TextFormatter struct {
+	directives []TextDirectiveFunc
+	delimiter  string
+}
+
+func (tf *TextFormatter) Format(dm *DNSMessage, s *bytes.Buffer) error {
+	for i, fn := range tf.directives {
+		if err := fn(dm, s); err != nil {
+			return err
+		}
+		if i < len(tf.directives)-1 && len(tf.delimiter) > 0 {
+			s.WriteString(tf.delimiter)
 		}
 	}
 	return nil
 }
 
-func (dm *DNSMessage) handleGeoIPDirectives(directive string, s *bytes.Buffer) error {
-	if dm.Geo == nil {
-		s.WriteString("-")
-	} else {
-		switch directive {
-		case "geoip-continent":
-			s.WriteString(dm.Geo.Continent)
-		case "geoip-country":
-			s.WriteString(dm.Geo.CountryIsoCode)
-		case "geoip-city":
-			s.WriteString(dm.Geo.City)
-		case "geoip-as-number":
-			s.WriteString(dm.Geo.AutonomousSystemNumber)
-		case "geoip-as-owner":
-			s.WriteString(dm.Geo.AutonomousSystemOrg)
-		case "geoip-lat":
-			s.WriteString(strconv.FormatFloat(dm.Geo.Latitude, 'f', -1, 64))
-		case "geoip-lon":
-			s.WriteString(strconv.FormatFloat(dm.Geo.Longitude, 'f', -1, 64))
-		default:
-			return errors.New(ErrorUnexpectedDirective + directive)
-		}
-	}
-	return nil
-}
-
-func (dm *DNSMessage) handlePdnsDirectives(directive string, s *bytes.Buffer) error {
-	if dm.PowerDNS == nil {
-		s.WriteString("-")
-	} else {
-		var directives []string
-		if i := strings.IndexByte(directive, ':'); i == -1 {
-			directives = append(directives, directive)
-		} else {
-			directives = []string{directive[:i], directive[i+1:]}
-		}
-
-		directive = directives[0]
-		switch directive {
-		case "powerdns-tags":
-			if dm.PowerDNS.Tags == nil {
-				s.WriteString("-")
-			} else {
-				if len(dm.PowerDNS.Tags) > 0 {
-					if len(directives) == 2 {
-						tagIndex, err := strconv.Atoi(directives[1])
-						if err != nil {
-							log.Fatalf("unsupported tag index provided (integer expected): %s", directives[1])
-						}
-						if tagIndex >= len(dm.PowerDNS.Tags) {
-							s.WriteString("-")
-						} else {
-							s.WriteString(dm.PowerDNS.Tags[tagIndex])
-						}
-					} else {
-						for i, tag := range dm.PowerDNS.Tags {
-							s.WriteString(tag)
-							// add separator
-							if i+1 < len(dm.PowerDNS.Tags) {
-								s.WriteString(",")
-							}
-						}
-					}
-				} else {
-					s.WriteString("-")
-				}
-			}
-		case "powerdns-applied-policy":
-			if len(dm.PowerDNS.AppliedPolicy) > 0 {
-				s.WriteString(dm.PowerDNS.AppliedPolicy)
-			} else {
-				s.WriteString("-")
-			}
-		case "powerdns-applied-policy-hit":
-			if len(dm.PowerDNS.AppliedPolicyHit) > 0 {
-				s.WriteString(dm.PowerDNS.AppliedPolicyHit)
-			} else {
-				s.WriteString("-")
-			}
-		case "powerdns-applied-policy-kind":
-			if len(dm.PowerDNS.AppliedPolicyKind) > 0 {
-				s.WriteString(dm.PowerDNS.AppliedPolicyKind)
-			} else {
-				s.WriteString("-")
-			}
-		case "powerdns-applied-policy-trigger":
-			if len(dm.PowerDNS.AppliedPolicyTrigger) > 0 {
-				s.WriteString(dm.PowerDNS.AppliedPolicyTrigger)
-			} else {
-				s.WriteString("-")
-			}
-		case "powerdns-applied-policy-type":
-			if len(dm.PowerDNS.AppliedPolicyType) > 0 {
-				s.WriteString(dm.PowerDNS.AppliedPolicyType)
-			} else {
-				s.WriteString("-")
-			}
-		case "powerdns-requestor-id":
-			if len(dm.PowerDNS.RequestorID) > 0 {
-				s.WriteString(dm.PowerDNS.RequestorID)
-			} else {
-				s.WriteString("-")
-			}
-		case "powerdns-device-id":
-			if len(dm.PowerDNS.DeviceID) > 0 {
-				s.WriteString(dm.PowerDNS.DeviceID)
-			} else {
-				s.WriteString("-")
-			}
-		case "powerdns-device-name":
-			if len(dm.PowerDNS.DeviceName) > 0 {
-				s.WriteString(dm.PowerDNS.DeviceName)
-			} else {
-				s.WriteString("-")
-			}
-		case "powerdns-message-id":
-			if len(dm.PowerDNS.MessageID) > 0 {
-				s.WriteString(dm.PowerDNS.MessageID)
-			} else {
-				s.WriteString("-")
-			}
-		case "powerdns-initial-requestor-id":
-			if len(dm.PowerDNS.InitialRequestorID) > 0 {
-				s.WriteString(dm.PowerDNS.InitialRequestorID)
-			} else {
-				s.WriteString("-")
-			}
-		case "powerdns-original-request-subnet":
-			if len(dm.PowerDNS.OriginalRequestSubnet) > 0 {
-				s.WriteString(dm.PowerDNS.OriginalRequestSubnet)
-			} else {
-				s.WriteString("-")
-			}
-		case "powerdns-metadata":
-			if dm.PowerDNS.Metadata == nil {
-				s.WriteString("-")
-			} else {
-				if len(dm.PowerDNS.Metadata) > 0 && len(directives) == 2 {
-					if metaValue, ok := dm.PowerDNS.Metadata[directives[1]]; ok {
-						if len(metaValue) > 0 {
-							s.WriteString(strings.ReplaceAll(metaValue, " ", "_"))
-						} else {
-							s.WriteString("-")
-						}
-					} else {
-						s.WriteString("-")
-					}
-				} else {
-					s.WriteString("-")
-				}
-			}
-		case "powerdns-http-version":
-			if len(dm.PowerDNS.HTTPVersion) > 0 {
-				s.WriteString(dm.PowerDNS.HTTPVersion)
-			} else {
-				s.WriteString("-")
-			}
-		case "powerdns-edns-version":
-			if len(dm.PowerDNS.EdnsVersion) > 0 {
-				s.WriteString(dm.PowerDNS.EdnsVersion)
-			} else {
-				s.WriteString("-")
-			}
-		case "powerdns-opentelemetry-data":
-			if len(dm.PowerDNS.OpenTelemetryData) > 0 {
-				s.WriteString(dm.PowerDNS.OpenTelemetryData)
-			} else {
-				s.WriteString("-")
-			}
-		default:
-			return errors.New(ErrorUnexpectedDirective + directive)
-		}
-	}
-	return nil
-}
-
-func (dm *DNSMessage) handleATagsDirectives(directive string, s *bytes.Buffer) error {
-	if dm.ATags == nil {
-		s.WriteString("-")
-	} else {
-		var directives []string
-		if i := strings.IndexByte(directive, ':'); i == -1 {
-			directives = append(directives, directive)
-		} else {
-			directives = []string{directive[:i], directive[i+1:]}
-		}
-
-		directive = directives[0]
-		switch directive {
-		case "atags":
-			if len(dm.ATags.Tags) > 0 {
-				if len(directives) == 2 {
-					tagIndex, err := strconv.Atoi(directives[1])
-					if err != nil {
-						log.Fatalf("unsupported tag index provided (integer expected): %s", directives[1])
-					}
-					if tagIndex >= len(dm.ATags.Tags) {
-						s.WriteString("-")
-					} else {
-						s.WriteString(dm.ATags.Tags[tagIndex])
-					}
-				} else {
-					for i, tag := range dm.ATags.Tags {
-						s.WriteString(tag)
-						// add separator
-						if i+1 < len(dm.ATags.Tags) {
-							s.WriteString(",")
-						}
-					}
-				}
-			} else {
-				s.WriteString("-")
-			}
-		default:
-			return errors.New(ErrorUnexpectedDirective + directive)
-		}
-	}
-	return nil
-}
-
-func (dm *DNSMessage) handleSuspiciousDirectives(directive string, s *bytes.Buffer) error {
-	if dm.Suspicious == nil {
-		s.WriteString("-")
-	} else {
-		switch directive {
-		case "suspicious-score":
-			s.WriteString(strconv.Itoa(int(dm.Suspicious.Score)))
-		default:
-			return errors.New(ErrorUnexpectedDirective + directive)
-		}
-	}
-	return nil
-}
-
-func (dm *DNSMessage) handlePublicSuffixDirectives(directive string, s *bytes.Buffer) error {
-	if dm.PublicSuffix == nil {
-		s.WriteString("-")
-	} else {
-		switch directive {
-		case "publicsuffix-tld":
-			s.WriteString(dm.PublicSuffix.QnamePublicSuffix)
-		case "publicsuffix-etld+1":
-			s.WriteString(dm.PublicSuffix.QnameEffectiveTLDPlusOne)
-		case "publicsuffix-managed-icann":
-			if dm.PublicSuffix.ManagedByICANN {
-				s.WriteString("managed")
-			} else {
-				s.WriteString("private")
-			}
-		default:
-			return errors.New(ErrorUnexpectedDirective + directive)
-		}
-	}
-	return nil
-}
-
-func (dm *DNSMessage) handleExtractedDirectives(directive string, s *bytes.Buffer) error {
-	if dm.Extracted == nil {
-		s.WriteString("-")
-		return nil
-	}
-	switch directive {
-	case "extracted-dns-payload":
-		if len(dm.DNS.Payload) > 0 {
-			dst := make([]byte, base64.StdEncoding.EncodedLen(len(dm.DNS.Payload)))
-			base64.StdEncoding.Encode(dst, dm.DNS.Payload)
-			s.Write(dst)
-		} else {
-			s.WriteString("-")
-		}
-	default:
-		return errors.New(ErrorUnexpectedDirective + directive)
-	}
-	return nil
-}
-
-func (dm *DNSMessage) handleFilteringDirectives(directive string, s *bytes.Buffer) error {
-	if dm.Filtering == nil {
-		s.WriteString("-")
-	} else {
-		switch directive {
-		case "filtering-sample-rate":
-			s.WriteString(strconv.Itoa(dm.Filtering.SampleRate))
-		default:
-			return errors.New(ErrorUnexpectedDirective + directive)
-		}
-	}
-	return nil
-}
-
-func (dm *DNSMessage) handleReducerDirectives(directive string, s *bytes.Buffer) error {
-	if dm.Reducer == nil {
-		s.WriteString("-")
-	} else {
-		switch directive {
-		case "reducer-occurrences":
-			s.WriteString(strconv.Itoa(dm.Reducer.Occurrences))
-		case "reducer-cumulative-length":
-			s.WriteString(strconv.Itoa(dm.Reducer.CumulativeLength))
-		default:
-			return errors.New(ErrorUnexpectedDirective + directive)
-		}
-	}
-	return nil
-}
-
-func (dm *DNSMessage) handleMachineLearningDirectives(directive string, s *bytes.Buffer) error {
-	if dm.MachineLearning == nil {
-		s.WriteString("-")
-	} else {
-		switch directive {
-		case "ml-entropy":
-			s.WriteString(strconv.FormatFloat(dm.MachineLearning.Entropy, 'f', -1, 64))
-		case "ml-length":
-			s.WriteString(strconv.Itoa(dm.MachineLearning.Length))
-		case "ml-digits":
-			s.WriteString(strconv.Itoa(dm.MachineLearning.Digits))
-		case "ml-lowers":
-			s.WriteString(strconv.Itoa(dm.MachineLearning.Lowers))
-		case "ml-uppers":
-			s.WriteString(strconv.Itoa(dm.MachineLearning.Uppers))
-		case "ml-specials":
-			s.WriteString(strconv.Itoa(dm.MachineLearning.Specials))
-		case "ml-others":
-			s.WriteString(strconv.Itoa(dm.MachineLearning.Others))
-		case "ml-labels":
-			s.WriteString(strconv.Itoa(dm.MachineLearning.Labels))
-		case "ml-ratio-digits":
-			s.WriteString(strconv.FormatFloat(dm.MachineLearning.RatioDigits, 'f', 3, 64))
-		case "ml-ratio-letters":
-			s.WriteString(strconv.FormatFloat(dm.MachineLearning.RatioLetters, 'f', 3, 64))
-		case "ml-ratio-specials":
-			s.WriteString(strconv.FormatFloat(dm.MachineLearning.RatioSpecials, 'f', 3, 64))
-		case "ml-ratio-others":
-			s.WriteString(strconv.FormatFloat(dm.MachineLearning.RatioOthers, 'f', 3, 64))
-		case "ml-consecutive-chars":
-			s.WriteString(strconv.Itoa(dm.MachineLearning.ConsecutiveChars))
-		case "ml-consecutive-vowels":
-			s.WriteString(strconv.Itoa(dm.MachineLearning.ConsecutiveVowels))
-		case "ml-consecutive-digits":
-			s.WriteString(strconv.Itoa(dm.MachineLearning.ConsecutiveDigits))
-		case "ml-consecutive-consonants":
-			s.WriteString(strconv.Itoa(dm.MachineLearning.ConsecutiveConsonants))
-		case "ml-size":
-			s.WriteString(strconv.Itoa(dm.MachineLearning.Size))
-		case "ml-occurrences":
-			s.WriteString(strconv.Itoa(dm.MachineLearning.Occurrences))
-		case "ml-uncommon-qtypes":
-			s.WriteString(strconv.Itoa(dm.MachineLearning.UncommonQtypes))
-		default:
-			return errors.New(ErrorUnexpectedDirective + directive)
-		}
-	}
-	return nil
-}
-
-func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBoundary string, s *bytes.Buffer) error {
-	an := dm.DNS.DNSRRs.Answers
-	qname := dm.DNS.Qname
-	flags := dm.DNS.Flags
-
+func NewTextFormatter(format []string, fieldDelimiter string, fieldBoundary string) (*TextFormatter, error) {
+	directives := make([]TextDirectiveFunc, len(format))
 	for i, directive := range format {
-		switch {
-		case directive == "timestamp-rfc3339ns", directive == "timestamp":
+		fn, err := compileDirective(directive, fieldDelimiter, fieldBoundary)
+		if err != nil {
+			return nil, err
+		}
+		directives[i] = fn
+	}
+	return &TextFormatter{
+		directives: directives,
+		delimiter:  fieldDelimiter,
+	}, nil
+}
+
+func compileDirective(directive string, fieldDelimiter string, fieldBoundary string) (TextDirectiveFunc, error) {
+	switch directive {
+	case "timestamp-rfc3339ns", "timestamp":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			s.WriteString(dm.GetTimestampRFC3339())
-		case directive == "timestamp-unixms":
-			s.WriteString(strconv.FormatInt(dm.DNSTap.Timestamp/1000000, 10))
-		case directive == "timestamp-unixus":
-			s.WriteString(strconv.FormatInt(dm.DNSTap.Timestamp/1000, 10))
-		case directive == "timestamp-unixns":
-			s.WriteString(strconv.FormatInt(dm.DNSTap.Timestamp, 10))
-		case directive == "localtime":
+			return nil
+		}, nil
+
+	case "timestamp-unixms":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			var b [32]byte
+			s.Write(strconv.AppendInt(b[:0], dm.DNSTap.Timestamp/1000000, 10))
+			return nil
+		}, nil
+
+	case "timestamp-unixus":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			var b [32]byte
+			s.Write(strconv.AppendInt(b[:0], dm.DNSTap.Timestamp/1000, 10))
+			return nil
+		}, nil
+
+	case "timestamp-unixns":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			var b [32]byte
+			s.Write(strconv.AppendInt(b[:0], dm.DNSTap.Timestamp, 10))
+			return nil
+		}, nil
+
+	case "localtime":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			ts := time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec))
 			s.WriteString(ts.Format("2006-01-02 15:04:05.999999999"))
-		case directive == "qname":
-			if len(qname) == 0 {
-				s.WriteString(".")
+			return nil
+		}, nil
+
+	case "qname":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			if len(dm.DNS.Qname) == 0 {
+				s.WriteByte('.')
 			} else {
-				QuoteStringAndWrite(s, qname, fieldDelimiter, fieldBoundary)
+				QuoteStringAndWrite(s, dm.DNS.Qname, fieldDelimiter, fieldBoundary)
 			}
-		case directive == "identity":
+			return nil
+		}, nil
+
+	case "identity":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			if len(dm.DNSTap.Identity) == 0 {
-				s.WriteString("-")
+				s.WriteByte('-')
 			} else {
 				QuoteStringAndWrite(s, dm.DNSTap.Identity, fieldDelimiter, fieldBoundary)
 			}
-		case directive == "peer-name":
+			return nil
+		}, nil
+
+	case "peer-name":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			if len(dm.DNSTap.PeerName) == 0 {
-				s.WriteString("-")
+				s.WriteByte('-')
 			} else {
 				QuoteStringAndWrite(s, dm.DNSTap.PeerName, fieldDelimiter, fieldBoundary)
 			}
-		case directive == "version":
+			return nil
+		}, nil
+
+	case "version":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			if len(dm.DNSTap.Version) == 0 {
-				s.WriteString("-")
+				s.WriteByte('-')
 			} else {
 				QuoteStringAndWrite(s, dm.DNSTap.Version, fieldDelimiter, fieldBoundary)
 			}
-		case directive == "extra":
+			return nil
+		}, nil
+
+	case "extra":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			s.WriteString(dm.DNSTap.Extra)
-		case directive == "policy-rule":
+			return nil
+		}, nil
+
+	case "policy-rule":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			s.WriteString(dm.DNSTap.PolicyRule)
-		case directive == "policy-type":
+			return nil
+		}, nil
+
+	case "policy-type":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			s.WriteString(dm.DNSTap.PolicyType)
-		case directive == "policy-action":
+			return nil
+		}, nil
+
+	case "policy-action":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			s.WriteString(dm.DNSTap.PolicyAction)
-		case directive == "policy-match":
+			return nil
+		}, nil
+
+	case "policy-match":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			s.WriteString(dm.DNSTap.PolicyMatch)
-		case directive == "policy-value":
+			return nil
+		}, nil
+
+	case "policy-value":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			s.WriteString(dm.DNSTap.PolicyValue)
-		case directive == "query-zone":
+			return nil
+		}, nil
+
+	case "query-zone":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			s.WriteString(dm.DNSTap.QueryZone)
-		case directive == "http-protocol":
+			return nil
+		}, nil
+
+	case "http-protocol":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			s.WriteString(dm.DNSTap.HttpProtocol)
-		case directive == "operation":
+			return nil
+		}, nil
+
+	case "operation":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			s.WriteString(dm.DNSTap.Operation)
-		case directive == "rcode":
+			return nil
+		}, nil
+
+	case "rcode":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			s.WriteString(dm.DNS.Rcode)
-		case directive == "id":
-			s.WriteString(strconv.Itoa(dm.DNS.ID))
-		case directive == "queryip":
+			return nil
+		}, nil
+
+	case "id":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			var b [32]byte
+			s.Write(strconv.AppendInt(b[:0], int64(dm.DNS.ID), 10))
+			return nil
+		}, nil
+
+	case "queryip":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			s.WriteString(dm.NetworkInfo.QueryIP)
-		case directive == "queryport":
+			return nil
+		}, nil
+
+	case "queryport":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			s.WriteString(dm.NetworkInfo.QueryPort)
-		case directive == "responseip":
+			return nil
+		}, nil
+
+	case "responseip":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			s.WriteString(dm.NetworkInfo.ResponseIP)
-		case directive == "responseport":
+			return nil
+		}, nil
+
+	case "responseport":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			s.WriteString(dm.NetworkInfo.ResponsePort)
-		case directive == "family":
+			return nil
+		}, nil
+
+	case "family":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			s.WriteString(dm.NetworkInfo.Family)
-		case directive == "protocol":
+			return nil
+		}, nil
+
+	case "protocol":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			s.WriteString(dm.NetworkInfo.Protocol)
-		case directive == "length-unit":
-			s.WriteString(strconv.Itoa(dm.DNS.Length))
-			s.WriteString("b")
-		case directive == "length":
-			s.WriteString(strconv.Itoa(dm.DNS.Length))
-		case directive == "qtype":
+			return nil
+		}, nil
+
+	case "length-unit":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			var b [32]byte
+			s.Write(strconv.AppendInt(b[:0], int64(dm.DNS.Length), 10))
+			s.WriteByte('b')
+			return nil
+		}, nil
+
+	case "length":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			var b [32]byte
+			s.Write(strconv.AppendInt(b[:0], int64(dm.DNS.Length), 10))
+			return nil
+		}, nil
+
+	case "qtype":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			s.WriteString(dm.DNS.Qtype)
-		case directive == "qclass":
+			return nil
+		}, nil
+
+	case "qclass":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			s.WriteString(dm.DNS.Qclass)
-		case directive == "latency":
+			return nil
+		}, nil
+
+	case "latency":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			if dm.DNS.Type == DNSQuery {
 				s.WriteByte('-')
 			} else {
-				s.WriteString(strconv.FormatFloat(dm.DNSTap.Latency, 'f', 9, 64))
+				var b [32]byte
+				s.Write(strconv.AppendFloat(b[:0], dm.DNSTap.Latency, 'f', 9, 64))
 			}
-		case directive == "latency_ms":
+			return nil
+		}, nil
+
+	case "latency_ms":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			if dm.DNS.Type == DNSQuery {
 				s.WriteByte('-')
 			} else {
-				s.WriteString(strconv.Itoa(dm.DNSTap.LatencyMs))
+				var b [32]byte
+				s.Write(strconv.AppendInt(b[:0], int64(dm.DNSTap.LatencyMs), 10))
 			}
-		case directive == "malformed":
+			return nil
+		}, nil
+
+	case "malformed":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			if dm.DNS.MalformedPacket {
 				s.WriteString("PKTERR")
 			} else {
 				s.WriteByte('-')
 			}
-		case directive == "qr":
+			return nil
+		}, nil
+
+	case "qr":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			s.WriteString(dm.DNS.Type)
-		case directive == "opcode":
-			s.WriteString(strconv.Itoa(dm.DNS.Opcode))
-		case directive == "tr":
+			return nil
+		}, nil
+
+	case "opcode":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			var b [32]byte
+			s.Write(strconv.AppendInt(b[:0], int64(dm.DNS.Opcode), 10))
+			return nil
+		}, nil
+
+	case "tr":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			if dm.NetworkInfo.TCPReassembled {
 				s.WriteString("TR")
 			} else {
 				s.WriteByte('-')
 			}
-		case directive == "df":
+			return nil
+		}, nil
+
+	case "df":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			if dm.NetworkInfo.IPDefragmented {
 				s.WriteString("DF")
 			} else {
 				s.WriteByte('-')
 			}
-		case directive == "tc":
-			if flags.TC {
+			return nil
+		}, nil
+
+	case "tc":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			if dm.DNS.Flags.TC {
 				s.WriteString("TC")
 			} else {
 				s.WriteByte('-')
 			}
-		case directive == "aa":
-			if flags.AA {
+			return nil
+		}, nil
+
+	case "aa":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			if dm.DNS.Flags.AA {
 				s.WriteString("AA")
 			} else {
 				s.WriteByte('-')
 			}
-		case directive == "ra":
-			if flags.RA {
+			return nil
+		}, nil
+
+	case "ra":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			if dm.DNS.Flags.RA {
 				s.WriteString("RA")
 			} else {
 				s.WriteByte('-')
 			}
-		case directive == "ad":
-			if flags.AD {
+			return nil
+		}, nil
+
+	case "ad":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			if dm.DNS.Flags.AD {
 				s.WriteString("AD")
 			} else {
 				s.WriteByte('-')
 			}
-		case directive == "rd":
-			if flags.RD {
+			return nil
+		}, nil
+
+	case "rd":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			if dm.DNS.Flags.RD {
 				s.WriteString("RD")
 			} else {
 				s.WriteByte('-')
 			}
-		case directive == "ttl":
-			if len(an) > 0 {
-				s.WriteString(strconv.Itoa(an[0].TTL))
+			return nil
+		}, nil
+
+	case "ttl":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			if len(dm.DNS.DNSRRs.Answers) > 0 {
+				var b [32]byte
+				s.Write(strconv.AppendInt(b[:0], int64(dm.DNS.DNSRRs.Answers[0].TTL), 10))
 			} else {
 				s.WriteByte('-')
 			}
-		case directive == "answer":
-			if len(an) > 0 {
-				s.WriteString(an[0].Rdata)
+			return nil
+		}, nil
+
+	case "answer":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			if len(dm.DNS.DNSRRs.Answers) > 0 {
+				s.WriteString(dm.DNS.DNSRRs.Answers[0].Rdata)
 			} else {
 				s.WriteByte('-')
 			}
+			return nil
+		}, nil
 
-		case directive == "answer-a":
-			ansFound := false
-			for _, answer := range an {
-				if answer.Rdatatype == "A" {
-					s.WriteString(answer.Rdata)
-					ansFound = true
-					break
+	case "answer-a":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			for _, a := range dm.DNS.DNSRRs.Answers {
+				if a.Rdatatype == "A" {
+					s.WriteString(a.Rdata)
+					return nil
 				}
 			}
-			if !ansFound {
-				s.WriteByte('-')
-			}
-		case directive == "answer-aaaa":
-			ansFound := false
-			for _, answer := range an {
-				if answer.Rdatatype == Rdatatypes[28] {
-					s.WriteString(answer.Rdata)
-					ansFound = true
-					break
-				}
-			}
-			if !ansFound {
-				s.WriteByte('-')
-			}
-		case directive == "answer-ip":
-			ansFound := false
-			for _, answer := range an {
-				if answer.Rdatatype == "A" || answer.Rdatatype == Rdatatypes[28] {
-					s.WriteString(answer.Rdata)
-					ansFound = true
-					break
-				}
-			}
-			if !ansFound {
-				s.WriteByte('-')
-			}
+			s.WriteByte('-')
+			return nil
+		}, nil
 
-		case directive == "answer-ips":
+	case "answer-aaaa":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			for _, a := range dm.DNS.DNSRRs.Answers {
+				if a.Rdatatype == Rdatatypes[28] {
+					s.WriteString(a.Rdata)
+					return nil
+				}
+			}
+			s.WriteByte('-')
+			return nil
+		}, nil
+
+	case "answer-ip":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			for _, a := range dm.DNS.DNSRRs.Answers {
+				if a.Rdatatype == "A" || a.Rdatatype == Rdatatypes[28] {
+					s.WriteString(a.Rdata)
+					return nil
+				}
+			}
+			s.WriteByte('-')
+			return nil
+		}, nil
+
+	case "answer-ips":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			var ips []string
-			for _, answer := range an {
-				if answer.Rdatatype == "A" || answer.Rdatatype == Rdatatypes[28] {
-					ips = append(ips, answer.Rdata)
+			for _, a := range dm.DNS.DNSRRs.Answers {
+				if a.Rdatatype == "A" || a.Rdatatype == Rdatatypes[28] {
+					ips = append(ips, a.Rdata)
 				}
 			}
 			if len(ips) > 0 {
@@ -606,125 +438,109 @@ func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBo
 			} else {
 				s.WriteByte('-')
 			}
+			return nil
+		}, nil
 
-		case directive == "rdatatype":
-			ansFound := false
-			for _, answer := range an {
-				s.WriteString(answer.Rdatatype)
-				ansFound = true
-				break
-			}
-
-			if !ansFound {
-				s.WriteByte('-')
-			}
-
-		case directive == "rdatatypes":
-			ansFound := false
-			var rDataTypes []string
-
-			for _, answer := range an {
-				rDataTypes = append(rDataTypes, answer.Rdatatype)
-				ansFound = true
-			}
-			if !ansFound {
-				s.WriteByte('-')
+	case "rdatatype":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			if len(dm.DNS.DNSRRs.Answers) > 0 {
+				s.WriteString(dm.DNS.DNSRRs.Answers[0].Rdatatype)
 			} else {
-				s.WriteString(strings.Join(rDataTypes, ";"))
-
+				s.WriteByte('-')
 			}
+			return nil
+		}, nil
 
-		case directive == "questionscount" || directive == "qdcount":
-			s.WriteString(strconv.Itoa(dm.DNS.QdCount))
-		case directive == "answercount" || directive == "ancount":
-			s.WriteString(strconv.Itoa(dm.DNS.AnCount))
-		case directive == "nscount":
-			s.WriteString(strconv.Itoa(dm.DNS.NsCount))
-		case directive == "arcount":
-			s.WriteString(strconv.Itoa(dm.DNS.ArCount))
-
-		case directive == "edns-csubnet":
-			if len(dm.EDNS.Options) > 0 {
-				for _, opt := range dm.EDNS.Options {
-					if opt.Name == "CSUBNET" {
-						s.WriteString(opt.Data)
-						break
-					}
+	case "rdatatypes":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			if len(dm.DNS.DNSRRs.Answers) == 0 {
+				s.WriteByte('-')
+				return nil
+			}
+			for i, a := range dm.DNS.DNSRRs.Answers {
+				if i > 0 {
+					s.WriteByte(';')
 				}
-			} else {
-				s.WriteByte('-')
+				s.WriteString(a.Rdatatype)
 			}
+			return nil
+		}, nil
 
-		// more directives from loggers
-		case strings.HasPrefix(directive, "otel-"):
-			err := dm.handleOpenTelemetryDirectives(directive, s)
-			if err != nil {
-				return err
-			}
+	case "questionscount", "qdcount":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			var b [32]byte
+			s.Write(strconv.AppendInt(b[:0], int64(dm.DNS.QdCount), 10))
+			return nil
+		}, nil
 
-		// more directives from collectors
-		case strings.HasPrefix(directive, "powerdns-"):
-			err := dm.handlePdnsDirectives(directive, s)
-			if err != nil {
-				return err
-			}
+	case "answercount", "ancount":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			var b [32]byte
+			s.Write(strconv.AppendInt(b[:0], int64(dm.DNS.AnCount), 10))
+			return nil
+		}, nil
 
-		// more directives from transformers
-		case strings.HasPrefix(directive, "reducer-"):
-			err := dm.handleReducerDirectives(directive, s)
-			if err != nil {
-				return err
-			}
-		case strings.HasPrefix(directive, "geoip-"):
-			err := dm.handleGeoIPDirectives(directive, s)
-			if err != nil {
-				return err
-			}
-		case strings.HasPrefix(directive, "suspicious-"):
-			err := dm.handleSuspiciousDirectives(directive, s)
-			if err != nil {
-				return err
-			}
-		case strings.HasPrefix(directive, "publicsuffix-"):
-			err := dm.handlePublicSuffixDirectives(directive, s)
-			if err != nil {
-				return err
-			}
-		case strings.HasPrefix(directive, "extracted-"):
-			err := dm.handleExtractedDirectives(directive, s)
-			if err != nil {
-				return err
-			}
-		case strings.HasPrefix(directive, "ml-"):
-			err := dm.handleMachineLearningDirectives(directive, s)
-			if err != nil {
-				return err
-			}
-		case strings.HasPrefix(directive, "filtering-"):
-			err := dm.handleFilteringDirectives(directive, s)
-			if err != nil {
-				return err
-			}
-		case strings.HasPrefix(directive, "atags"):
-			err := dm.handleATagsDirectives(directive, s)
-			if err != nil {
-				return err
-			}
-		case RawTextDirective.MatchString(directive):
-			directive = strings.ReplaceAll(directive, "{", "")
-			directive = strings.ReplaceAll(directive, "}", "")
-			s.WriteString(directive)
+	case "nscount":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			var b [32]byte
+			s.Write(strconv.AppendInt(b[:0], int64(dm.DNS.NsCount), 10))
+			return nil
+		}, nil
 
-		// handle invalid directive
-		default:
-			return errors.New(ErrorUnexpectedDirective + directive)
-		}
+	case "arcount":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			var b [32]byte
+			s.Write(strconv.AppendInt(b[:0], int64(dm.DNS.ArCount), 10))
+			return nil
+		}, nil
 
-		if i < len(format)-1 {
-			if len(fieldDelimiter) > 0 {
-				s.WriteString(fieldDelimiter)
+	case "edns-csubnet":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			for _, opt := range dm.EDNS.Options {
+				if opt.Name == "CSUBNET" {
+					s.WriteString(opt.Data)
+					return nil
+				}
 			}
-		}
+			s.WriteByte('-')
+			return nil
+		}, nil
 	}
-	return nil
+
+	// Collector / Logger directives
+	if strings.HasPrefix(directive, "otel-") || strings.HasPrefix(directive, "powerdns-") {
+		return compileCollectorDirective(directive, fieldDelimiter, fieldBoundary)
+	}
+
+	// Transformer directives
+	if strings.HasPrefix(directive, "geoip-") ||
+		strings.HasPrefix(directive, "suspicious-") ||
+		strings.HasPrefix(directive, "publicsuffix-") ||
+		strings.HasPrefix(directive, "extracted-") ||
+		strings.HasPrefix(directive, "reducer-") ||
+		strings.HasPrefix(directive, "ml-") ||
+		strings.HasPrefix(directive, "filtering-") ||
+		strings.HasPrefix(directive, "atags") {
+		return compileTransformDirective(directive, fieldDelimiter, fieldBoundary)
+	}
+
+	// Raw text directive enclosed in { ... }
+	if RawTextDirective.MatchString(directive) {
+		raw := strings.ReplaceAll(directive, "{", "")
+		raw = strings.ReplaceAll(raw, "}", "")
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			s.WriteString(raw)
+			return nil
+		}, nil
+	}
+
+	return nil, errors.New(ErrorUnexpectedDirective + directive)
+}
+
+func (dm *DNSMessage) ToTextLine(format []string, fieldDelimiter string, fieldBoundary string, s *bytes.Buffer) error {
+	formatter, err := NewTextFormatter(format, fieldDelimiter, fieldBoundary)
+	if err != nil {
+		return err
+	}
+	return formatter.Format(dm, s)
 }

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dmachard/go-dnscollector/v2/dnsutils"
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
 	"github.com/dmachard/go-dnscollector/v2/transformers"
 	"github.com/dmachard/go-logger"
@@ -31,10 +32,11 @@ func IsStdoutValidMode(mode string) bool {
 
 type StdOut struct {
 	*GenericWorker
-	textFormat  []string
-	jinjaFormat string
-	writerRaw   *bufio.Writer
-	writerPcap  *pcapgo.Writer
+	textFormat    []string
+	textFormatter *dnsutils.TextFormatter
+	jinjaFormat   string
+	writerRaw     *bufio.Writer
+	writerPcap    *pcapgo.Writer
 }
 
 func NewStdOut(config *pkgconfig.Config, console *logger.Logger, name string) *StdOut {
@@ -63,6 +65,12 @@ func (w *StdOut) ReadConfig() {
 		w.textFormat = strings.Fields(w.GetConfig().Loggers.Stdout.TextFormat)
 	} else {
 		w.textFormat = strings.Fields(w.GetConfig().Global.TextFormat)
+	}
+
+	var err error
+	w.textFormatter, err = dnsutils.NewTextFormatter(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary)
+	if err != nil {
+		w.LogFatal("invalid text format: ", err.Error())
 	}
 
 	if len(w.GetConfig().Loggers.Stdout.JinjaFormat) > 0 {
@@ -218,7 +226,12 @@ func (w *StdOut) StartLogging() {
 				buf := w.GetTextBuffer()
 				buf.Reset()
 
-				err := dm.ToTextLine(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary, buf)
+				var err error
+				if w.textFormatter != nil {
+					err = w.textFormatter.Format(dm, buf)
+				} else {
+					err = dm.ToTextLine(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary, buf)
+				}
 				if err == nil {
 					w.writerRaw.Write(buf.Bytes())
 					w.writerRaw.WriteByte('\n')

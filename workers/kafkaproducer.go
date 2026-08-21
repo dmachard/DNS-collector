@@ -32,6 +32,7 @@ var supportedCompressions = map[string]compress.Codec{
 type KafkaProducer struct {
 	*GenericWorker
 	textFormat         []string
+	textFormatter      *dnsutils.TextFormatter
 	kafkaConnected     bool
 	compressCodec      compress.Codec
 	kafkaConns         map[int]*kafka.Conn // Map to store connections by partition
@@ -64,6 +65,12 @@ func (w *KafkaProducer) ReadConfig() {
 		w.textFormat = strings.Fields(kafkaConfig.TextFormat)
 	} else {
 		w.textFormat = strings.Fields(w.GetConfig().Global.TextFormat)
+	}
+
+	var errFormatter error
+	w.textFormatter, errFormatter = dnsutils.NewTextFormatter(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary)
+	if errFormatter != nil {
+		w.LogFatal(pkgconfig.PrefixLogWorker + "invalid text format: " + errFormatter.Error())
 	}
 
 	if codec, ok := supportedCompressions[kafkaConfig.Compression]; ok {
@@ -300,12 +307,17 @@ func (w *KafkaProducer) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 		switch kafkaConfig.Mode {
 		case pkgconfig.ModeText:
 			textBuf := w.GetTextBuffer() // get buffer from pool
-			err := dm.ToTextLine(
-				w.textFormat,
-				globalConfig.TextFormatDelimiter,
-				globalConfig.TextFormatBoundary,
-				textBuf,
-			)
+			var err error
+			if w.textFormatter != nil {
+				err = w.textFormatter.Format(dm, textBuf)
+			} else {
+				err = dm.ToTextLine(
+					w.textFormat,
+					globalConfig.TextFormatDelimiter,
+					globalConfig.TextFormatBoundary,
+					textBuf,
+				)
+			}
 			if err != nil {
 				w.CountEgressDiscarded()
 				w.LogError("could not encode to text format: %s", err)

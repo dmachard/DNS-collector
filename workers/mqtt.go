@@ -23,6 +23,7 @@ const (
 type MQTT struct {
 	*GenericWorker
 	textFormat               []string
+	textFormatter            *dnsutils.TextFormatter
 	mqttClient               mqtt.Client
 	mqttReady, mqttReconnect chan bool
 	writerReady              bool
@@ -49,6 +50,12 @@ func (w *MQTT) ReadConfig() {
 		w.textFormat = strings.Fields(w.GetConfig().Loggers.MQTT.TextFormat)
 	} else {
 		w.textFormat = strings.Fields(w.GetConfig().Global.TextFormat)
+	}
+
+	var errFormatter error
+	w.textFormatter, errFormatter = dnsutils.NewTextFormatter(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary)
+	if errFormatter != nil {
+		w.LogFatal(pkgconfig.PrefixLogWorker + "invalid text format: " + errFormatter.Error())
 	}
 
 	if !netutils.IsValidTLS(w.GetConfig().Loggers.MQTT.TLSMinVersion) {
@@ -214,12 +221,17 @@ func (w *MQTT) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 			buf := w.GetTextBuffer()
 
 			// write the DNSMessage to the buffer
-			err := dm.ToTextLine(
-				w.textFormat,
-				w.GetConfig().Global.TextFormatDelimiter,
-				w.GetConfig().Global.TextFormatBoundary,
-				buf,
-			)
+			var err error
+			if w.textFormatter != nil {
+				err = w.textFormatter.Format(dm, buf)
+			} else {
+				err = dm.ToTextLine(
+					w.textFormat,
+					w.GetConfig().Global.TextFormatDelimiter,
+					w.GetConfig().Global.TextFormatBoundary,
+					buf,
+				)
+			}
 			if err != nil {
 				w.CountEgressDiscarded()
 				w.LogError("process mqtt: could not encode to text format: %s", err)

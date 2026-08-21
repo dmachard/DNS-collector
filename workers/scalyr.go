@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/grafana/dskit/backoff"
 
+	"github.com/dmachard/go-dnscollector/v2/dnsutils"
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
 	"github.com/dmachard/go-dnscollector/v2/transformers"
 	"github.com/dmachard/go-logger"
@@ -27,8 +28,9 @@ import (
 type ScalyrClient struct {
 	*GenericWorker
 
-	mode       string
-	textFormat []string
+	mode          string
+	textFormat    []string
+	textFormatter *dnsutils.TextFormatter
 
 	session string // Session ID, used by scalyr, see API docs
 
@@ -81,6 +83,12 @@ func (w *ScalyrClient) ReadConfig() {
 		w.textFormat = strings.Fields(w.GetConfig().Loggers.ScalyrClient.TextFormat)
 	} else {
 		w.textFormat = strings.Fields(w.GetConfig().Global.TextFormat)
+	}
+
+	var errFormatter error
+	w.textFormatter, errFormatter = dnsutils.NewTextFormatter(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary)
+	if errFormatter != nil {
+		w.LogFatal("invalid text format: " + errFormatter.Error())
 	}
 
 	if host := w.GetConfig().Loggers.ScalyrClient.ServerURL; host != "" {
@@ -227,12 +235,17 @@ func (w *ScalyrClient) StartLogging() {
 			switch w.mode {
 			case pkgconfig.ModeText:
 				buf := w.GetTextBuffer() // get buffer from pool
-				err := dm.ToTextLine(
-					w.textFormat,
-					w.GetConfig().Global.TextFormatDelimiter,
-					w.GetConfig().Global.TextFormatBoundary,
-					buf,
-				)
+				var err error
+				if w.textFormatter != nil {
+					err = w.textFormatter.Format(dm, buf)
+				} else {
+					err = dm.ToTextLine(
+						w.textFormat,
+						w.GetConfig().Global.TextFormatDelimiter,
+						w.GetConfig().Global.TextFormatBoundary,
+						buf,
+					)
+				}
 				if err != nil {
 					w.CountEgressDiscarded()
 					w.LogError("could not encode to text format: %s", err)

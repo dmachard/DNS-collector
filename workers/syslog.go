@@ -24,6 +24,7 @@ type Syslog struct {
 	syslogReady                        bool
 	transportReady, transportReconnect chan bool
 	textFormat                         []string
+	textFormatter                      *dnsutils.TextFormatter
 }
 
 func NewSyslog(config *pkgconfig.Config, console *logger.Logger, name string) *Syslog {
@@ -62,6 +63,12 @@ func (w *Syslog) ReadConfig() {
 		w.textFormat = strings.Fields(w.GetConfig().Loggers.Syslog.TextFormat)
 	} else {
 		w.textFormat = strings.Fields(w.GetConfig().Global.TextFormat)
+	}
+
+	var errFormatter error
+	w.textFormatter, errFormatter = dnsutils.NewTextFormatter(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary)
+	if errFormatter != nil {
+		w.LogFatal(pkgconfig.PrefixLogWorker + "invalid text format: " + errFormatter.Error())
 	}
 }
 
@@ -234,12 +241,16 @@ func (w *Syslog) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 			buf.Reset()
 
 			// encode to text line the dns message
-			err := dm.ToTextLine(
-				w.textFormat,
-				w.GetConfig().Global.TextFormatDelimiter,
-				w.GetConfig().Global.TextFormatBoundary,
-				buf,
-			)
+			if w.textFormatter != nil {
+				err = w.textFormatter.Format(dm, buf)
+			} else {
+				err = dm.ToTextLine(
+					w.textFormat,
+					w.GetConfig().Global.TextFormatDelimiter,
+					w.GetConfig().Global.TextFormatBoundary,
+					buf,
+				)
+			}
 			if err != nil {
 				w.CountEgressDiscarded()
 				w.LogError("syslog: could not encode to text format: %s", err)

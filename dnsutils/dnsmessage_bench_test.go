@@ -82,3 +82,64 @@ func BenchmarkDnsMessage_ToTextFormat_Transformers(b *testing.B) {
 		textBufferPool.Put(buf)
 	}
 }
+
+func BenchmarkDnsMessage_TextFormatter(b *testing.B) {
+	dm := DNSMessage{}
+	dm.Init()
+	dm.InitTransforms()
+
+	textFormat := []string{
+		"timestamp-rfc3339ns", "identity",
+		"operation", "rcode", "queryip", "queryport", "family",
+		"protocol", "length-unit", "qname", "qtype", "latency", "latency_ms",
+	}
+
+	formatter, err := NewTextFormatter(textFormat, " ", "\"")
+	if err != nil {
+		b.Fatalf("failed to create formatter: %v", err)
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		buf := textBufferPool.Get().(*bytes.Buffer)
+		buf.Reset()
+
+		err := formatter.Format(&dm, buf)
+		if err != nil {
+			b.Fatalf("could not encode to text format: %v\n", err)
+		}
+
+		textBufferPool.Put(buf)
+	}
+}
+
+func BenchmarkDnsMessage_TextFormatter_Transformers(b *testing.B) {
+	dm := DNSMessage{}
+	dm.Init()
+	dm.InitTransforms()
+
+	textFormat := []string{
+		"timestamp-rfc3339ns", "identity", "operation", "rcode",
+		"geoip-country", "powerdns-applied-policy", "atags", "otel-trace-id", "ml-entropy", "suspicious-score",
+	}
+
+	formatter, err := NewTextFormatter(textFormat, " ", "\"")
+	if err != nil {
+		b.Fatalf("failed to create formatter: %v", err)
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		buf := textBufferPool.Get().(*bytes.Buffer)
+		buf.Reset()
+
+		err := formatter.Format(&dm, buf)
+		if err != nil {
+			b.Fatalf("could not encode to text format: %v\n", err)
+		}
+
+		textBufferPool.Put(buf)
+	}
+}

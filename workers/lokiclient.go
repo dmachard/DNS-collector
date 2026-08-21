@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dmachard/go-dnscollector/v2/dnsutils"
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
 	"github.com/dmachard/go-dnscollector/v2/transformers"
 	"github.com/dmachard/go-logger"
@@ -67,9 +68,10 @@ func (w *LokiStream) Encode2Proto() ([]byte, error) {
 
 type LokiClient struct {
 	*GenericWorker
-	httpclient *http.Client
-	textFormat []string
-	streams    map[string]*LokiStream
+	httpclient    *http.Client
+	textFormat    []string
+	textFormatter *dnsutils.TextFormatter
+	streams       map[string]*LokiStream
 }
 
 func NewLokiClient(config *pkgconfig.Config, logger *logger.Logger, name string) *LokiClient {
@@ -88,6 +90,12 @@ func (w *LokiClient) ReadConfig() {
 		w.textFormat = strings.Fields(w.GetConfig().Loggers.LokiClient.TextFormat)
 	} else {
 		w.textFormat = strings.Fields(w.GetConfig().Global.TextFormat)
+	}
+
+	var errFormatter error
+	w.textFormatter, errFormatter = dnsutils.NewTextFormatter(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary)
+	if errFormatter != nil {
+		w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "] loki - invalid text format: " + errFormatter.Error())
 	}
 
 	// tls client config
@@ -279,12 +287,17 @@ func (w *LokiClient) StartLogging() {
 				buf.Reset()
 
 				// write the DNSMessage to the buffer
-				err := dm.ToTextLine(
-					w.textFormat,
-					w.GetConfig().Global.TextFormatDelimiter,
-					w.GetConfig().Global.TextFormatBoundary,
-					buf,
-				)
+				var err error
+				if w.textFormatter != nil {
+					err = w.textFormatter.Format(dm, buf)
+				} else {
+					err = dm.ToTextLine(
+						w.textFormat,
+						w.GetConfig().Global.TextFormatDelimiter,
+						w.GetConfig().Global.TextFormatBoundary,
+						buf,
+					)
+				}
 				if err != nil {
 					w.CountEgressDiscarded()
 					w.LogError("process: could not encode to text format: %s", err)
