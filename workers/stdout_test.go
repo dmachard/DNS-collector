@@ -290,9 +290,8 @@ func Test_StdoutTextMode_Batching(t *testing.T) {
 
 	go g.StartCollect()
 
-	dm := dnsutils.GetFakeDNSMessage()
-
 	for range 5 {
+		dm := dnsutils.GetFakeDNSMessage()
 		g.GetInputChannel() <- &dm
 	}
 

@@ -3,6 +3,7 @@ package workers
 import (
 	"bytes"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
@@ -24,6 +25,7 @@ type Worker interface {
 	GetInputChannel() chan *dnsutils.DNSMessage
 	ReadConfig()
 	ReloadConfig(config *pkgconfig.Config)
+	GetMetrics() *telemetry.PrometheusCollector
 	GetTextBuffer() *bytes.Buffer
 	PutTextBuffer(buf *bytes.Buffer)
 }
@@ -39,9 +41,8 @@ type GenericWorker struct {
 	droppedWorkerCount                                                   map[string]int
 	dnsMessageIn, dnsMessageOut                                          chan *dnsutils.DNSMessage
 
-	metrics                                                                 *telemetry.PrometheusCollector
-	countIngress, countEgress, countForwarded, countDropped, countDiscarded chan int
-	totalIngress, totalEgress, totalForwarded, totalDropped, totalDiscarded int
+	metrics                                                                 atomic.Pointer[telemetry.PrometheusCollector]
+	totalIngress, totalEgress, totalForwarded, totalDropped, totalDiscarded atomic.Uint64
 
 	TextBufferPool *sync.Pool
 }
@@ -64,11 +65,6 @@ func NewGenericWorker(config *pkgconfig.Config, logger *logger.Logger, name stri
 		droppedWorkerCount: map[string]int{},
 		dnsMessageIn:       make(chan *dnsutils.DNSMessage, bufferSize),
 		dnsMessageOut:      make(chan *dnsutils.DNSMessage, bufferSize),
-		countIngress:       make(chan int),
-		countEgress:        make(chan int),
-		countDiscarded:     make(chan int),
-		countForwarded:     make(chan int),
-		countDropped:       make(chan int),
 		TextBufferPool: &sync.Pool{
 			New: func() interface{} { return new(bytes.Buffer) },
 		},
@@ -80,7 +76,11 @@ func NewGenericWorker(config *pkgconfig.Config, logger *logger.Logger, name stri
 }
 
 func (w *GenericWorker) SetMetrics(metrics *telemetry.PrometheusCollector) {
-	w.metrics = metrics
+	w.metrics.Store(metrics)
+}
+
+func (w *GenericWorker) GetMetrics() *telemetry.PrometheusCollector {
+	return w.metrics.Load()
 }
 
 func (w *GenericWorker) GetName() string { return w.name }
@@ -202,24 +202,11 @@ func (w *GenericWorker) Monitor() {
 	}()
 
 	w.LogInfo("starting monitoring - refresh every %ds", w.config.Global.Worker.InternalMonitor)
-	timerMonitor := time.NewTimer(time.Duration(w.config.Global.Worker.InternalMonitor) * time.Second)
+	ticker := time.NewTicker(time.Duration(w.config.Global.Worker.InternalMonitor) * time.Second)
+	defer ticker.Stop()
+
 	for {
 		select {
-		case <-w.countDiscarded:
-			w.totalDiscarded++
-
-		case <-w.countIngress:
-			w.totalIngress++
-
-		case <-w.countEgress:
-			w.totalEgress++
-
-		case <-w.countForwarded:
-			w.totalForwarded++
-
-		case <-w.countDropped:
-			w.totalDropped++
-
 		case loggerName := <-w.droppedWorker:
 			if _, ok := w.droppedWorkerCount[loggerName]; !ok {
 				w.droppedWorkerCount[loggerName] = 1
@@ -229,10 +216,9 @@ func (w *GenericWorker) Monitor() {
 
 		case <-w.stopMonitor:
 			close(w.droppedWorker)
-			timerMonitor.Stop()
 			return
 
-		case <-timerMonitor.C:
+		case <-ticker.C:
 			for v, k := range w.droppedWorkerCount {
 				if k > 0 {
 					w.LogWarning("worker[%s] buffer is full, %d dnsmessage(s) dropped", v, k)
@@ -240,26 +226,26 @@ func (w *GenericWorker) Monitor() {
 				}
 			}
 
-			// // send to telemetry?
-			if w.config.Global.Telemetry.Enabled && w.metrics != nil {
-				if w.totalIngress > 0 || w.totalEgress > 0 || w.totalForwarded > 0 || w.totalDropped > 0 {
-					w.metrics.Record <- telemetry.WorkerStats{
+			// send to telemetry?
+			metrics := w.metrics.Load()
+			if w.config.Global.Telemetry.Enabled && metrics != nil {
+				totalIngress := int(w.totalIngress.Swap(0))
+				totalEgress := int(w.totalEgress.Swap(0))
+				totalForwarded := int(w.totalForwarded.Swap(0))
+				totalDropped := int(w.totalDropped.Swap(0))
+				totalDiscarded := int(w.totalDiscarded.Swap(0))
+
+				if totalIngress > 0 || totalEgress > 0 || totalForwarded > 0 || totalDropped > 0 || totalDiscarded > 0 {
+					metrics.Record <- telemetry.WorkerStats{
 						Name:                 w.GetName(),
-						TotalIngress:         w.totalIngress,
-						TotalEgress:          w.totalEgress,
-						TotalForwardedPolicy: w.totalForwarded,
-						TotalDroppedPolicy:   w.totalDropped,
-						TotalDiscarded:       w.totalDiscarded,
+						TotalIngress:         totalIngress,
+						TotalEgress:          totalEgress,
+						TotalForwardedPolicy: totalForwarded,
+						TotalDroppedPolicy:   totalDropped,
+						TotalDiscarded:       totalDiscarded,
 					}
-					w.totalIngress = 0
-					w.totalEgress = 0
-					w.totalForwarded = 0
-					w.totalDropped = 0
-					w.totalDiscarded = 0
 				}
 			}
-
-			timerMonitor.Reset(time.Duration(w.config.Global.Worker.InternalMonitor) * time.Second)
 		}
 	}
 }
@@ -280,19 +266,19 @@ func (w *GenericWorker) StartLogging() {
 
 func (w *GenericWorker) CountIngressTraffic() {
 	if w.config.Global.Telemetry.Enabled {
-		w.countIngress <- 1
+		w.totalIngress.Add(1)
 	}
 }
 
 func (w *GenericWorker) CountEgressTraffic() {
 	if w.config.Global.Telemetry.Enabled {
-		w.countEgress <- 1
+		w.totalEgress.Add(1)
 	}
 }
 
 func (w *GenericWorker) CountEgressDiscarded() {
 	if w.config.Global.Telemetry.Enabled {
-		w.countDiscarded <- 1
+		w.totalDiscarded.Add(1)
 	}
 }
 
@@ -308,12 +294,12 @@ func (w *GenericWorker) SendDroppedTo(routes []chan *dnsutils.DNSMessage, routes
 		select {
 		case routes[i] <- dm:
 			if w.config.Global.Telemetry.Enabled {
-				w.countDropped <- 1
+				w.totalDropped.Add(1)
 			}
 		default:
 			dm.Release()
 			if w.config.Global.Telemetry.Enabled {
-				w.countDiscarded <- 1
+				w.totalDiscarded.Add(1)
 			}
 			w.WorkerIsBusy(routesName[i])
 		}
@@ -332,12 +318,12 @@ func (w *GenericWorker) SendForwardedTo(routes []chan *dnsutils.DNSMessage, rout
 		select {
 		case routes[i] <- dm:
 			if w.config.Global.Telemetry.Enabled {
-				w.countForwarded <- 1
+				w.totalForwarded.Add(1)
 			}
 		default:
 			dm.Release()
 			if w.config.Global.Telemetry.Enabled {
-				w.countDiscarded <- 1
+				w.totalDiscarded.Add(1)
 			}
 			w.WorkerIsBusy(routesName[i])
 		}
