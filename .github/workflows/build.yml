@@ -94,5 +94,5 @@ jobs:
         run: |
           docker buildx build \
             --build-arg VERSION=dev \
-            --platform linux/amd64,linux/arm64,linux/i386 \
+            --platform linux/amd64,linux/arm64 \
             --file Dockerfile -t dnscollector .
