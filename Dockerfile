@@ -4,20 +4,28 @@ ARG VERSION
 
 WORKDIR /build
 COPY . .
-RUN apk add git && \ 
-    CGO_ENABLED=0 go build -ldflags="-s -w -X 'github.com/prometheus/common/version.Version=$VERSION'"
+RUN apk add --no-cache git upx && \
+    CGO_ENABLED=0 go build -ldflags="-s -w -X 'github.com/prometheus/common/version.Version=$VERSION'" \
+        -trimpath -o dnscollector dnscollector.go && \
+    upx --best --lzma dnscollector
 
-FROM alpine:3.24.1
+# Prepare runtime directories and passwd/group for non-root user
+RUN mkdir -p /rootfs/etc/dnscollector /rootfs/var/dnscollector && \
+    echo "dnscollector:x:1000:1000::/:" > /rootfs/etc/passwd && \
+    echo "dnscollector:x:1000:" > /rootfs/etc/group && \
+    chown -R 1000:1000 /rootfs/etc/dnscollector /rootfs/var/dnscollector
 
-RUN apk add --no-cache tzdata \
-    && mkdir -p /etc/dnscollector/ /var/dnscollector/ \
-    && addgroup -g 1000 dnscollector && adduser -D -H -G dnscollector -u 1000 -S dnscollector \
-    && chown dnscollector:dnscollector /var/dnscollector /etc/dnscollector
+FROM gcr.io/distroless/static-debian13:nonroot
 
-USER dnscollector
+# Runtime directories
+COPY --from=builder --chown=1000:1000 /rootfs/etc/dnscollector /etc/dnscollector
+COPY --from=builder --chown=1000:1000 /rootfs/var/dnscollector /var/dnscollector
 
-COPY --from=builder /build/go-dnscollector /bin/dnscollector
-COPY --from=builder /build/docker-config.yml ./etc/dnscollector/config.yml
+# Binary and default config
+COPY --from=builder /build/dnscollector /bin/dnscollector
+COPY --from=builder /build/docker-config.yml /etc/dnscollector/config.yml
+
+USER 1000
 
 EXPOSE 6000/tcp 8080/tcp 9165/tcp
 
