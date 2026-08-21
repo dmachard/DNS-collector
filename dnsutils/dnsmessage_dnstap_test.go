@@ -304,5 +304,3 @@ func BenchmarkDecodeDNSTapStandardProtobuf(b *testing.B) {
 		dmDecoded.DNS.Length = len(dmDecoded.DNS.Payload)
 	}
 }
-
-
