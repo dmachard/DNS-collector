@@ -507,4 +507,3 @@ func DecodeDNSTapWire(buf []byte, dm *DNSMessage) error {
 
 	return nil
 }
-
