@@ -639,7 +639,7 @@ func (w *DNSTapProcessor) processFrame(
 	// compute timestamp
 	ts := time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec))
 	dm.DNSTap.Timestamp = ts.UnixNano()
-	dm.DNSTap.TimestampRFC3339 = ts.UTC().Format(time.RFC3339Nano)
+	dm.DNSTap.TimestampRFC3339 = "-"
 
 	// decode payload if provided
 	if !w.GetConfig().Collectors.Dnstap.DisableDNSParser && len(dm.DNS.Payload) > 0 {

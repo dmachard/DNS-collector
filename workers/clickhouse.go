@@ -3,7 +3,6 @@ package workers
 import (
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
 	"github.com/dmachard/go-dnscollector/v2/transformers"
@@ -108,11 +107,7 @@ func (w *ClickhouseClient) StartLogging() {
 				w.LogInfo("output channel closed!")
 				return
 			}
-			t, err := time.Parse(time.RFC3339, dm.DNSTap.TimestampRFC3339)
-			timensec := ""
-			if err == nil {
-				timensec = strconv.Itoa(int(t.UnixNano()))
-			}
+			timensec := strconv.FormatInt(dm.DNSTap.Timestamp, 10)
 			data := ClickhouseData{
 				Identity:  dm.DNSTap.Identity,
 				QueryIP:   dm.NetworkInfo.QueryIP,
