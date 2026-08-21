@@ -137,7 +137,12 @@ func (w *FluentdClient) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 		flatDm, _ := dm.Flatten()
 
 		// get timestamp from DNSMessage
-		timestamp, _ := time.Parse(time.RFC3339, dm.DNSTap.TimestampRFC3339)
+		var timestamp time.Time
+		if dm.DNSTap.Timestamp > 0 {
+			timestamp = time.Unix(0, dm.DNSTap.Timestamp)
+		} else {
+			timestamp, _ = time.Parse(time.RFC3339, dm.GetTimestampRFC3339())
+		}
 
 		// append DNSMessage to the list
 		entries = append(entries, protocol.EntryExt{

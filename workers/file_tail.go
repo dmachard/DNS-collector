@@ -195,7 +195,7 @@ func (w *Tail) StartCollect() {
 			// compute timestamp
 			ts := time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec))
 			dm.DNSTap.Timestamp = ts.UnixNano()
-			dm.DNSTap.TimestampRFC3339 = ts.UTC().Format(time.RFC3339Nano)
+			dm.DNSTap.TimestampRFC3339 = "-"
 
 			// fake dns packet
 			dnspkt := new(dns.Msg)
