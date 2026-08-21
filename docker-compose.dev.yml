@@ -1,0 +1,15 @@
+services:
+
+  dnscollector:
+    container_name: dnscollector-dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./config.yml:/etc/dnscollector/config.yml:ro
+      - ./dev/data:/var/dnscollector
+    ports:
+      - "6000:6000/tcp"
+      - "8080:8080/tcp"
+      - "9165:9165/tcp"
+    restart: unless-stopped
