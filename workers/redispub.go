@@ -23,6 +23,7 @@ type RedisPub struct {
 	*GenericWorker
 	stopRead, doneRead                 chan bool
 	textFormat                         []string
+	textFormatter                      *dnsutils.TextFormatter
 	transport                          string
 	transportWriter                    *bufio.Writer
 	transportConn                      net.Conn
@@ -51,6 +52,12 @@ func (w *RedisPub) ReadConfig() {
 		w.textFormat = strings.Fields(w.GetConfig().Loggers.RedisPub.TextFormat)
 	} else {
 		w.textFormat = strings.Fields(w.GetConfig().Global.TextFormat)
+	}
+
+	var errFormatter error
+	w.textFormatter, errFormatter = dnsutils.NewTextFormatter(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary)
+	if errFormatter != nil {
+		w.LogFatal(pkgconfig.PrefixLogWorker + "invalid text format: " + errFormatter.Error())
 	}
 }
 
@@ -170,12 +177,17 @@ func (w *RedisPub) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 
 		if w.GetConfig().Loggers.RedisPub.Mode == pkgconfig.ModeText {
 			textBuf := w.GetTextBuffer()
-			err := dm.ToTextLine(
-				w.textFormat,
-				w.GetConfig().Global.TextFormatDelimiter,
-				w.GetConfig().Global.TextFormatBoundary,
-				textBuf,
-			)
+			var err error
+			if w.textFormatter != nil {
+				err = w.textFormatter.Format(dm, textBuf)
+			} else {
+				err = dm.ToTextLine(
+					w.textFormat,
+					w.GetConfig().Global.TextFormatDelimiter,
+					w.GetConfig().Global.TextFormatBoundary,
+					textBuf,
+				)
+			}
 			if err != nil {
 				w.CountEgressDiscarded()
 				w.LogError("could not encode to text format: %s", err)
@@ -184,7 +196,7 @@ func (w *RedisPub) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 			}
 
 			// Write text line directly without extra quotes
-			w.transportWriter.WriteString(textBuf.String())
+			w.transportWriter.Write(textBuf.Bytes())
 			w.transportWriter.WriteString(w.GetConfig().Loggers.RedisPub.PayloadDelimiter)
 
 			w.PutTextBuffer(textBuf)

@@ -22,6 +22,7 @@ type TCPClient struct {
 	*GenericWorker
 	stopRead, doneRead                 chan bool
 	textFormat                         []string
+	textFormatter                      *dnsutils.TextFormatter
 	transport                          string
 	transportWriter                    *bufio.Writer
 	transportConn                      net.Conn
@@ -49,6 +50,12 @@ func (w *TCPClient) ReadConfig() {
 		w.textFormat = strings.Fields(w.GetConfig().Loggers.TCPClient.TextFormat)
 	} else {
 		w.textFormat = strings.Fields(w.GetConfig().Global.TextFormat)
+	}
+
+	var errFormatter error
+	w.textFormatter, errFormatter = dnsutils.NewTextFormatter(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary)
+	if errFormatter != nil {
+		w.LogFatal(pkgconfig.PrefixLogWorker + "invalid text format: " + errFormatter.Error())
 	}
 }
 
@@ -158,12 +165,17 @@ func (w *TCPClient) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 	for _, dm := range *buf {
 		if w.GetConfig().Loggers.TCPClient.Mode == pkgconfig.ModeText {
 			textBuf := w.GetTextBuffer() // get buffer from pool
-			err := dm.ToTextLine(
-				w.textFormat,
-				w.GetConfig().Global.TextFormatDelimiter,
-				w.GetConfig().Global.TextFormatBoundary,
-				textBuf,
-			)
+			var err error
+			if w.textFormatter != nil {
+				err = w.textFormatter.Format(dm, textBuf)
+			} else {
+				err = dm.ToTextLine(
+					w.textFormat,
+					w.GetConfig().Global.TextFormatDelimiter,
+					w.GetConfig().Global.TextFormatBoundary,
+					textBuf,
+				)
+			}
 			if err != nil {
 				w.CountEgressDiscarded()
 				w.LogError("could not encode to text format: %s", err)
@@ -171,8 +183,8 @@ func (w *TCPClient) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 				continue
 			}
 
-			w.transportWriter.WriteString(textBuf.String()) // write buffer content
-			w.PutTextBuffer(textBuf)                        // return buffer to pool
+			w.transportWriter.Write(textBuf.Bytes()) // write buffer content
+			w.PutTextBuffer(textBuf)                 // return buffer to pool
 
 			w.transportWriter.WriteString(w.GetConfig().Loggers.TCPClient.PayloadDelimiter)
 		}
