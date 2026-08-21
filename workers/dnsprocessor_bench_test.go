@@ -1,0 +1,93 @@
+package workers
+
+import (
+	"io"
+	"testing"
+
+	"github.com/dmachard/go-dnscollector/v2/dnsutils"
+	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-logger"
+)
+
+func Benchmark_DNSProcessor_Query(b *testing.B) {
+	config := pkgconfig.GetDefaultConfig()
+	log := logger.New(false)
+	log.SetOutput(io.Discard)
+
+	devNull := NewDevNull(config, log, "devnull")
+	go devNull.StartCollect()
+	defer devNull.Stop()
+
+	consumer := NewDNSProcessor(config, log, "bench-dnsprocessor", 65536)
+	consumer.AddDefaultRoute(devNull)
+	go consumer.StartCollect()
+	defer consumer.Stop()
+
+	dm := dnsutils.GetFakeDNSMessageWithPayload()
+	inChan := consumer.GetInputChannel()
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		msg := dm
+		inChan <- &msg
+	}
+}
+
+func Benchmark_DNSProcessor_Response(b *testing.B) {
+	config := pkgconfig.GetDefaultConfig()
+	log := logger.New(false)
+	log.SetOutput(io.Discard)
+
+	devNull := NewDevNull(config, log, "devnull")
+	go devNull.StartCollect()
+	defer devNull.Stop()
+
+	consumer := NewDNSProcessor(config, log, "bench-dnsprocessor", 65536)
+	consumer.AddDefaultRoute(devNull)
+	go consumer.StartCollect()
+	defer consumer.Stop()
+
+	responsePacket, _ := dnsutils.GetDNSResponsePacket()
+	dm := dnsutils.GetFakeDNSMessage()
+	dm.DNS.Payload = responsePacket
+	dm.DNS.Length = len(responsePacket)
+	inChan := consumer.GetInputChannel()
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		msg := dm
+		inChan <- &msg
+	}
+}
+
+func Benchmark_DNSProcessor_Malformed(b *testing.B) {
+	config := pkgconfig.GetDefaultConfig()
+	log := logger.New(false)
+	log.SetOutput(io.Discard)
+
+	devNull := NewDevNull(config, log, "devnull")
+	go devNull.StartCollect()
+	defer devNull.Stop()
+
+	consumer := NewDNSProcessor(config, log, "bench-dnsprocessor", 65536)
+	consumer.AddDefaultRoute(devNull)
+	go consumer.StartCollect()
+	defer consumer.Stop()
+
+	dm := dnsutils.GetFakeDNSMessage()
+	dm.DNS.Payload = []byte{0x00, 0x01, 0x01}
+	dm.DNS.Length = len(dm.DNS.Payload)
+	inChan := consumer.GetInputChannel()
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		msg := dm
+		inChan <- &msg
+	}
+}
