@@ -43,7 +43,7 @@ type ConfigLoggers struct {
 		NoErrorMetricsEnabled     bool     `yaml:"noerror-metrics-enabled" default:"true"`
 		ServfailMetricsEnabled    bool     `yaml:"servfail-metrics-enabled" default:"true"`
 		NonExistentMetricsEnabled bool     `yaml:"nonexistent-metrics-enabled" default:"true"`
-		TLDsMetricsEnabled        bool     `yaml:"tlds-metrics-enabled" default:"true"`
+		TLDsMetricsEnabled        bool     `yaml:"tlds-metrics-enabled" default:"false"`
 		SuspiciousMetricsEnabled  bool     `yaml:"suspicious-metrics-enabled" default:"false"`
 		TimeoutMetricsEnabled     bool     `yaml:"timeout-metrics-enabled" default:"false"`
 		HistogramMetricsEnabled   bool     `yaml:"histogram-metrics-enabled" default:"false"`
