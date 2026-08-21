@@ -2,11 +2,13 @@ package dnsutils
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 	"sync"
+	"unicode/utf8"
 )
 
 var jsonBufferPool = sync.Pool{
@@ -21,7 +23,8 @@ func (dm *DNSMessage) ToJSON() string {
 	buffer.Reset()
 	defer jsonBufferPool.Put(buffer)
 
-	json.NewEncoder(buffer).Encode(dm)
+	dm.EncodeJSON(buffer)
+	buffer.WriteByte('\n')
 	return buffer.String()
 }
 
@@ -555,28 +558,398 @@ func (dm *DNSMessage) Flatten() (map[string]interface{}, error) {
 
 func WriteJSONString(buf *bytes.Buffer, s string) {
 	buf.WriteByte('"')
-	for i := 0; i < len(s); i++ {
+	for i := 0; i < len(s); {
 		c := s[i]
-		switch c {
-		case '"', '\\':
-			buf.WriteByte('\\')
-			buf.WriteByte(c)
-		case '\n':
-			buf.WriteString(`\n`)
-		case '\r':
-			buf.WriteString(`\r`)
-		case '\t':
-			buf.WriteString(`\t`)
-		default:
-			if c < 0x20 {
-				buf.WriteString(`\u00`)
-				const hexDigit = "0123456789abcdef"
-				buf.WriteByte(hexDigit[c>>4])
-				buf.WriteByte(hexDigit[c&0xf])
-			} else {
+		if c < utf8.RuneSelf {
+			switch c {
+			case '"', '\\':
+				buf.WriteByte('\\')
 				buf.WriteByte(c)
+			case '\n':
+				buf.WriteString(`\n`)
+			case '\r':
+				buf.WriteString(`\r`)
+			case '\t':
+				buf.WriteString(`\t`)
+			default:
+				if c < 0x20 {
+					buf.WriteString(`\u00`)
+					const hexDigit = "0123456789abcdef"
+					buf.WriteByte(hexDigit[c>>4])
+					buf.WriteByte(hexDigit[c&0xf])
+				} else {
+					buf.WriteByte(c)
+				}
 			}
+			i++
+			continue
 		}
+		r, size := utf8.DecodeRuneInString(s[i:])
+		if r == utf8.RuneError && size == 1 {
+			buf.WriteString(`\ufffd`)
+			i++
+			continue
+		}
+		buf.WriteString(s[i : i+size])
+		i += size
 	}
 	buf.WriteByte('"')
+}
+
+func writeJSONInt(buf *bytes.Buffer, val int) {
+	var numBuf [32]byte
+	buf.Write(strconv.AppendInt(numBuf[:0], int64(val), 10))
+}
+
+func writeJSONFloat(buf *bytes.Buffer, val float64) {
+	var numBuf [32]byte
+	buf.Write(strconv.AppendFloat(numBuf[:0], val, 'f', -1, 64))
+}
+
+func encodeDNSAnswers(buf *bytes.Buffer, answers []DNSAnswer) {
+	if answers == nil {
+		buf.WriteString("[]")
+		return
+	}
+	buf.WriteByte('[')
+	for i, ans := range answers {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
+		buf.WriteString(`{"name":`)
+		WriteJSONString(buf, ans.Name)
+		buf.WriteString(`,"rdatatype":`)
+		WriteJSONString(buf, ans.Rdatatype)
+		buf.WriteString(`,"class":`)
+		WriteJSONString(buf, ans.Class)
+		buf.WriteString(`,"ttl":`)
+		writeJSONInt(buf, ans.TTL)
+		buf.WriteString(`,"rdata":`)
+		WriteJSONString(buf, ans.Rdata)
+		buf.WriteByte('}')
+	}
+	buf.WriteByte(']')
+}
+
+func encodeEDNSOptions(buf *bytes.Buffer, options []DNSOption) {
+	if options == nil {
+		buf.WriteString("[]")
+		return
+	}
+	buf.WriteByte('[')
+	for i, opt := range options {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
+		buf.WriteString(`{"code":`)
+		writeJSONInt(buf, opt.Code)
+		buf.WriteString(`,"name":`)
+		WriteJSONString(buf, opt.Name)
+		buf.WriteString(`,"data":`)
+		WriteJSONString(buf, opt.Data)
+		buf.WriteByte('}')
+	}
+	buf.WriteByte(']')
+}
+
+func encodeStringSlice(buf *bytes.Buffer, slice []string) {
+	if slice == nil {
+		buf.WriteString("null")
+		return
+	}
+	buf.WriteByte('[')
+	for i, s := range slice {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
+		WriteJSONString(buf, s)
+	}
+	buf.WriteByte(']')
+}
+
+func encodeStringMap(buf *bytes.Buffer, m map[string]string) {
+	if m == nil {
+		buf.WriteString("null")
+		return
+	}
+	buf.WriteByte('{')
+	first := true
+	for k, v := range m {
+		if !first {
+			buf.WriteByte(',')
+		}
+		first = false
+		WriteJSONString(buf, k)
+		buf.WriteByte(':')
+		WriteJSONString(buf, v)
+	}
+	buf.WriteByte('}')
+}
+
+func encodeInterfaceMap(buf *bytes.Buffer, m map[string]interface{}) {
+	if m == nil {
+		buf.WriteString("null")
+		return
+	}
+	buf.WriteByte('{')
+	first := true
+	for k, v := range m {
+		if !first {
+			buf.WriteByte(',')
+		}
+		first = false
+		WriteJSONString(buf, k)
+		buf.WriteByte(':')
+		switch val := v.(type) {
+		case string:
+			WriteJSONString(buf, val)
+		case []byte:
+			buf.WriteByte('"')
+			buf.WriteString(base64.StdEncoding.EncodeToString(val))
+			buf.WriteByte('"')
+		case []string:
+			encodeStringSlice(buf, val)
+		case [][]byte:
+			buf.WriteByte('[')
+			for idx, b := range val {
+				if idx > 0 {
+					buf.WriteByte(',')
+				}
+				buf.WriteByte('"')
+				buf.WriteString(base64.StdEncoding.EncodeToString(b))
+				buf.WriteByte('"')
+			}
+			buf.WriteByte(']')
+		default:
+			b, _ := json.Marshal(val)
+			buf.Write(b)
+		}
+	}
+	buf.WriteByte('}')
+}
+
+func (net *DNSNetInfo) EncodeJSON(buf *bytes.Buffer) {
+	buf.WriteString(`{"family":`)
+	WriteJSONString(buf, net.Family)
+	buf.WriteString(`,"protocol":`)
+	WriteJSONString(buf, net.Protocol)
+	buf.WriteString(`,"query-ip":`)
+	WriteJSONString(buf, net.QueryIP)
+	buf.WriteString(`,"query-port":`)
+	WriteJSONString(buf, net.QueryPort)
+	buf.WriteString(`,"response-ip":`)
+	WriteJSONString(buf, net.ResponseIP)
+	buf.WriteString(`,"response-port":`)
+	WriteJSONString(buf, net.ResponsePort)
+	buf.WriteString(`,"ip-defragmented":`)
+	if net.IPDefragmented {
+		buf.WriteString("true")
+	} else {
+		buf.WriteString("false")
+	}
+	buf.WriteString(`,"tcp-reassembled":`)
+	if net.TCPReassembled {
+		buf.WriteString("true")
+	} else {
+		buf.WriteString("false")
+	}
+	buf.WriteByte('}')
+}
+
+func (dns *DNS) EncodeJSON(buf *bytes.Buffer) {
+	buf.WriteString(`{"length":`)
+	writeJSONInt(buf, dns.Length)
+	buf.WriteString(`,"id":`)
+	writeJSONInt(buf, dns.ID)
+	buf.WriteString(`,"opcode":`)
+	writeJSONInt(buf, dns.Opcode)
+	buf.WriteString(`,"rcode":`)
+	WriteJSONString(buf, dns.Rcode)
+	buf.WriteString(`,"qname":`)
+	WriteJSONString(buf, dns.Qname)
+	buf.WriteString(`,"qclass":`)
+	WriteJSONString(buf, dns.Qclass)
+	buf.WriteString(`,"qdcount":`)
+	writeJSONInt(buf, dns.QdCount)
+	buf.WriteString(`,"ancount":`)
+	writeJSONInt(buf, dns.AnCount)
+	buf.WriteString(`,"nscount":`)
+	writeJSONInt(buf, dns.NsCount)
+	buf.WriteString(`,"arcount":`)
+	writeJSONInt(buf, dns.ArCount)
+	buf.WriteString(`,"qtype":`)
+	WriteJSONString(buf, dns.Qtype)
+
+	// "flags"
+	buf.WriteString(`,"flags":{"qr":`)
+	if dns.Flags.QR {
+		buf.WriteString("true")
+	} else {
+		buf.WriteString("false")
+	}
+	buf.WriteString(`,"tc":`)
+	if dns.Flags.TC {
+		buf.WriteString("true")
+	} else {
+		buf.WriteString("false")
+	}
+	buf.WriteString(`,"aa":`)
+	if dns.Flags.AA {
+		buf.WriteString("true")
+	} else {
+		buf.WriteString("false")
+	}
+	buf.WriteString(`,"ra":`)
+	if dns.Flags.RA {
+		buf.WriteString("true")
+	} else {
+		buf.WriteString("false")
+	}
+	buf.WriteString(`,"ad":`)
+	if dns.Flags.AD {
+		buf.WriteString("true")
+	} else {
+		buf.WriteString("false")
+	}
+	buf.WriteString(`,"rd":`)
+	if dns.Flags.RD {
+		buf.WriteString("true")
+	} else {
+		buf.WriteString("false")
+	}
+	buf.WriteString(`,"cd":`)
+	if dns.Flags.CD {
+		buf.WriteString("true")
+	} else {
+		buf.WriteString("false")
+	}
+	buf.WriteByte('}')
+
+	// "resource-records"
+	buf.WriteString(`,"resource-records":{"an":`)
+	encodeDNSAnswers(buf, dns.DNSRRs.Answers)
+	buf.WriteString(`,"ns":`)
+	encodeDNSAnswers(buf, dns.DNSRRs.Nameservers)
+	buf.WriteString(`,"ar":`)
+	encodeDNSAnswers(buf, dns.DNSRRs.Records)
+	buf.WriteByte('}')
+
+	buf.WriteString(`,"malformed-packet":`)
+	if dns.MalformedPacket {
+		buf.WriteString("true")
+	} else {
+		buf.WriteString("false")
+	}
+	buf.WriteByte('}')
+}
+
+func (edns *DNSExtended) EncodeJSON(buf *bytes.Buffer) {
+	buf.WriteString(`{"udp-size":`)
+	writeJSONInt(buf, edns.UDPSize)
+	buf.WriteString(`,"rcode":`)
+	writeJSONInt(buf, edns.ExtendedRcode)
+	buf.WriteString(`,"version":`)
+	writeJSONInt(buf, edns.Version)
+	buf.WriteString(`,"dnssec-ok":`)
+	writeJSONInt(buf, edns.Do)
+	buf.WriteString(`,"options":`)
+	encodeEDNSOptions(buf, edns.Options)
+	buf.WriteByte('}')
+}
+
+func (dt *DNSTap) EncodeJSON(buf *bytes.Buffer) {
+	buf.WriteString(`{"operation":`)
+	WriteJSONString(buf, dt.Operation)
+	buf.WriteString(`,"identity":`)
+	WriteJSONString(buf, dt.Identity)
+	buf.WriteString(`,"version":`)
+	WriteJSONString(buf, dt.Version)
+	buf.WriteString(`,"timestamp-rfc3339ns":`)
+	WriteJSONString(buf, dt.TimestampRFC3339)
+	buf.WriteString(`,"latency":`)
+	writeJSONFloat(buf, dt.Latency)
+	buf.WriteString(`,"latency_ms":`)
+	writeJSONInt(buf, dt.LatencyMs)
+	buf.WriteString(`,"extra":`)
+	WriteJSONString(buf, dt.Extra)
+	buf.WriteString(`,"policy-rule":`)
+	WriteJSONString(buf, dt.PolicyRule)
+	buf.WriteString(`,"policy-type":`)
+	WriteJSONString(buf, dt.PolicyType)
+	buf.WriteString(`,"policy-match":`)
+	WriteJSONString(buf, dt.PolicyMatch)
+	buf.WriteString(`,"policy-action":`)
+	WriteJSONString(buf, dt.PolicyAction)
+	buf.WriteString(`,"policy-value":`)
+	WriteJSONString(buf, dt.PolicyValue)
+	buf.WriteString(`,"peer-name":`)
+	WriteJSONString(buf, dt.PeerName)
+	buf.WriteString(`,"query-zone":`)
+	WriteJSONString(buf, dt.QueryZone)
+	buf.WriteString(`,"http-protocol":`)
+	WriteJSONString(buf, dt.HttpProtocol)
+	buf.WriteByte('}')
+}
+
+func (dm *DNSMessage) EncodeJSON(buf *bytes.Buffer) {
+	buf.WriteByte('{')
+
+	buf.WriteString(`"network":`)
+	dm.NetworkInfo.EncodeJSON(buf)
+
+	buf.WriteString(`,"dns":`)
+	dm.DNS.EncodeJSON(buf)
+
+	buf.WriteString(`,"edns":`)
+	dm.EDNS.EncodeJSON(buf)
+
+	buf.WriteString(`,"dnstap":`)
+	dm.DNSTap.EncodeJSON(buf)
+
+	if dm.Geo != nil {
+		buf.WriteString(`,"geoip":`)
+		dm.Geo.EncodeJSON(buf)
+	}
+	if dm.Suspicious != nil {
+		buf.WriteString(`,"suspicious":`)
+		dm.Suspicious.EncodeJSON(buf)
+	}
+	if dm.PublicSuffix != nil {
+		buf.WriteString(`,"publicsuffix":`)
+		dm.PublicSuffix.EncodeJSON(buf)
+	}
+	if dm.Extracted != nil {
+		buf.WriteString(`,"extracted":`)
+		dm.Extracted.EncodeJSON(buf)
+	}
+	if dm.Reducer != nil {
+		buf.WriteString(`,"reducer":`)
+		dm.Reducer.EncodeJSON(buf)
+	}
+	if dm.MachineLearning != nil {
+		buf.WriteString(`,"ml":`)
+		dm.MachineLearning.EncodeJSON(buf)
+	}
+	if dm.Filtering != nil {
+		buf.WriteString(`,"filtering":`)
+		dm.Filtering.EncodeJSON(buf)
+	}
+	if dm.ATags != nil {
+		buf.WriteString(`,"atags":`)
+		dm.ATags.EncodeJSON(buf)
+	}
+	if dm.Rest != nil {
+		buf.WriteString(`,"rest":`)
+		dm.Rest.EncodeJSON(buf)
+	}
+	if dm.PowerDNS != nil {
+		buf.WriteString(`,"powerdns":`)
+		dm.PowerDNS.EncodeJSON(buf)
+	}
+	if dm.OpenTelemetry != nil {
+		buf.WriteString(`,"opentelemetry":`)
+		dm.OpenTelemetry.EncodeJSON(buf)
+	}
+
+	buf.WriteByte('}')
 }
