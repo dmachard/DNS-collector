@@ -46,6 +46,15 @@ archives:
   files:
     - config.yml
 
+upx:
+  - enabled: true
+    compress: best
+    lzma: true
+    goos:
+      - linux
+      - darwin
+      - freebsd
+
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
