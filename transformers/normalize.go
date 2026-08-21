@@ -92,18 +92,36 @@ func (t *NormalizeTransform) RRLowercase(dm *dnsutils.DNSMessage) (int, error) {
 }
 
 func (t *NormalizeTransform) ReplaceNonprintable(dm *dnsutils.DNSMessage) (int, error) {
+	qname := dm.DNS.Qname
+
+	// Fast path: quick byte scan for standard printable ASCII (no spaces, control chars, or high bytes)
+	needsEscape := false
+	for i := 0; i < len(qname); i++ {
+		b := qname[i]
+		if b <= ' ' || b >= 0x7f {
+			needsEscape = true
+			break
+		}
+	}
+	if !needsEscape {
+		return ReturnKeep, nil
+	}
 
 	var builder strings.Builder
-	qname := dm.DNS.Qname
+	builder.Grow(len(qname) + 16)
 	for _, r := range qname {
-		if unicode.IsPrint(r) {
-			if unicode.IsSpace(r) {
-				fmt.Fprintf(&builder, "\\%03d", r)
-			} else {
-				builder.WriteRune(r)
-			}
+		if unicode.IsPrint(r) && !unicode.IsSpace(r) {
+			builder.WriteRune(r)
 		} else {
-			fmt.Fprintf(&builder, "\\%03d", r)
+			builder.WriteByte('\\')
+			n := int(r)
+			if n < 1000 {
+				builder.WriteByte(byte('0' + (n/100)%10))
+				builder.WriteByte(byte('0' + (n/10)%10))
+				builder.WriteByte(byte('0' + n%10))
+			} else {
+				fmt.Fprintf(&builder, "%03d", n)
+			}
 		}
 	}
 	dm.DNS.Qname = builder.String()

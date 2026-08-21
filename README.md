@@ -2,7 +2,7 @@
   <img src="https://img.shields.io/badge/go%20version-min%201.26-green" alt="Go version"/>
   <img src="https://img.shields.io/badge/go%20tests-574-green" alt="Go tests"/>
   <img src="https://img.shields.io/badge/go%20coverage-66%25-green" alt="Go coverage"/>
-  <img src="https://img.shields.io/badge/go%20bench-45-green" alt="Go bench"/>
+  <img src="https://img.shields.io/badge/go%20bench-52-green" alt="Go bench"/>
   <img src="https://img.shields.io/badge/go%20fuzz-1-green" alt="Go Fuzz"/>
   <img src="https://img.shields.io/badge/go%20lines-16966-green" alt="Go lines"/>
 </p>

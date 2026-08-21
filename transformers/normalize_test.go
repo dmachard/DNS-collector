@@ -245,81 +245,56 @@ func TestNormalize_SuffixICANNManaged(t *testing.T) {
 	}
 }
 
-// bench tests
-
-func BenchmarkNormalize_GetEffectiveTld(b *testing.B) {
+func TestNormalize_ReplaceNonprintable(t *testing.T) {
 	config := pkgconfig.GetFakeConfigTransformers()
-	channels := []chan *dnsutils.DNSMessage{}
+	config.Normalize.Enable = true
+	config.Normalize.ReplaceNonPrintable = true
 
-	subprocessor := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
-	dm := dnsutils.GetFakeDNSMessage()
-	dm.DNS.Qname = "en.wikipedia.org"
+	outChans := []chan *dnsutils.DNSMessage{}
+	norm := NewNormalizeTransform(config, logger.New(false), "test", 0, outChans)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		// subprocessor.InitDNSMessage(&dm)
-		subprocessor.GetEffectiveTld(&dm)
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "clean ascii domain",
+			input:    "www.google.com",
+			expected: "www.google.com",
+		},
+		{
+			name:     "domain with space",
+			input:    "www.goo gle.com",
+			expected: "www.goo\\032gle.com",
+		},
+		{
+			name:     "domain with null byte",
+			input:    "www.goo\x00gle.com",
+			expected: "www.goo\\000gle.com",
+		},
+		{
+			name:     "domain with newline and tab",
+			input:    "www.goo\ngle\t.com",
+			expected: "www.goo\\010gle\\009.com",
+		},
 	}
-}
 
-func BenchmarkNormalize_GetEffectiveTldPlusOne(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
-	channels := []chan *dnsutils.DNSMessage{}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			dm := dnsutils.GetFakeDNSMessage()
+			dm.DNS.Qname = tc.input
 
-	subprocessor := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
-	dm := dnsutils.GetFakeDNSMessage()
-	dm.DNS.Qname = "en.wikipedia.org"
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		// subprocessor.InitDNSMessage(&dm)
-		subprocessor.GetEffectiveTld(&dm)
-	}
-}
-
-func BenchmarkNormalize_QnameLowercase(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
-	channels := []chan *dnsutils.DNSMessage{}
-
-	subprocessor := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
-	dm := dnsutils.GetFakeDNSMessage()
-	dm.DNS.Qname = "EN.Wikipedia.Org"
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		subprocessor.QnameLowercase(&dm)
-	}
-}
-
-func BenchmarkNormalize_RRLowercase(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
-	channels := []chan *dnsutils.DNSMessage{}
-
-	transform := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
-
-	name := "En.Tikipedia.Org"
-	dm := dnsutils.GetFakeDNSMessage()
-	dm.DNS.Qname = name
-	dm.DNS.DNSRRs.Answers = append(dm.DNS.DNSRRs.Answers, dnsutils.DNSAnswer{Name: name})
-	dm.DNS.DNSRRs.Nameservers = append(dm.DNS.DNSRRs.Nameservers, dnsutils.DNSAnswer{Name: name})
-	dm.DNS.DNSRRs.Records = append(dm.DNS.DNSRRs.Records, dnsutils.DNSAnswer{Name: name})
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		transform.RRLowercase(&dm)
-	}
-}
-
-func BenchmarkNormalize_QuietText(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
-	channels := []chan *dnsutils.DNSMessage{}
-
-	subprocessor := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
-	dm := dnsutils.GetFakeDNSMessage()
-	dm.DNS.Qname = "EN.Wikipedia.Org"
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		subprocessor.QuietText(&dm)
+			ret, err := norm.ReplaceNonprintable(&dm)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if ret != ReturnKeep {
+				t.Errorf("expected return code ReturnKeep, got %d", ret)
+			}
+			if dm.DNS.Qname != tc.expected {
+				t.Errorf("got %q, want %q", dm.DNS.Qname, tc.expected)
+			}
+		})
 	}
 }
