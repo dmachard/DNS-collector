@@ -197,12 +197,18 @@ func (w *RedisPub) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 		}
 
 		if w.GetConfig().Loggers.RedisPub.Mode == pkgconfig.ModeFlatJSON {
-			flat, err := dm.Flatten()
-			if err != nil {
-				w.LogError("flattening DNS message failed: %e", err)
-				continue
+			if dm.Relabeling != nil {
+				flat, err := dm.Flatten()
+				if err != nil {
+					w.LogError("flattening DNS message failed: %e", err)
+					continue
+				}
+				encoder.Encode(flat)
+			} else {
+				escapeBuffer.Reset()
+				dm.GetTimestampRFC3339()
+				dm.EncodeFlatJSON(escapeBuffer)
 			}
-			encoder.Encode(flat)
 			w.transportWriter.WriteString(strconv.Quote(escapeBuffer.String()))
 			w.transportWriter.WriteString(w.GetConfig().Loggers.RedisPub.PayloadDelimiter)
 		}

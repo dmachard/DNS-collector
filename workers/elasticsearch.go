@@ -169,16 +169,22 @@ func (w *ElasticSearchClient) StartLogging() {
 				return
 			}
 
-			// append dns message to buffer
-			flat, err := dm.Flatten()
-			if err != nil {
-				w.LogError("flattening DNS message failed: %e", err)
-				w.CountEgressDiscarded()
-				dm.Release()
-				continue
+			if dm.Relabeling != nil {
+				flat, err := dm.Flatten()
+				if err != nil {
+					w.LogError("flattening DNS message failed: %e", err)
+					w.CountEgressDiscarded()
+					dm.Release()
+					continue
+				}
+				buffer.WriteString("{ \"create\" : {}}\n")
+				encoder.Encode(flat)
+			} else {
+				buffer.WriteString("{ \"create\" : {}}\n")
+				dm.GetTimestampRFC3339()
+				dm.EncodeFlatJSON(buffer)
+				buffer.WriteByte('\n')
 			}
-			buffer.WriteString("{ \"create\" : {}}\n")
-			encoder.Encode(flat)
 
 			// Send data and reset buffer
 			if buffer.Len() >= w.GetConfig().Loggers.ElasticSearchClient.BulkSize {

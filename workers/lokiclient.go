@@ -304,7 +304,12 @@ func (w *LokiClient) StartLogging() {
 				entry.Line = buffer.String()
 				buffer.Reset()
 			case pkgconfig.ModeFlatJSON:
-				if len(flat) == 0 {
+				switch {
+				case len(flat) > 0:
+					json.NewEncoder(buffer).Encode(flat)
+					entry.Line = buffer.String()
+					buffer.Reset()
+				case dm.Relabeling != nil:
 					flat, err = dm.Flatten()
 					if err != nil {
 						w.LogError("flattening DNS message failed: %e", err)
@@ -312,10 +317,17 @@ func (w *LokiClient) StartLogging() {
 						dm.Release()
 						continue
 					}
+					json.NewEncoder(buffer).Encode(flat)
+					entry.Line = buffer.String()
+					buffer.Reset()
+				default:
+					buffer.Reset()
+					dm.GetTimestampRFC3339()
+					dm.EncodeFlatJSON(buffer)
+					buffer.WriteByte('\n')
+					entry.Line = buffer.String()
+					buffer.Reset()
 				}
-				json.NewEncoder(buffer).Encode(flat)
-				entry.Line = buffer.String()
-				buffer.Reset()
 			}
 			key := string(lbls.Bytes(byteBuffer))
 			ls, ok := w.streams[key]

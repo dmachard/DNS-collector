@@ -654,14 +654,21 @@ func (w *LogFile) StartLogging() {
 				buf.Reset()
 
 				if w.GetConfig().Loggers.LogFile.Mode == pkgconfig.ModeFlatJSON {
-					flat, err := dm.Flatten()
-					if err != nil {
-						w.CountEgressDiscarded()
-						w.LogError("flattening DNS message failed: %e", err)
-						dm.Release()
-						continue
+					if dm.Relabeling != nil {
+						flat, err := dm.Flatten()
+						if err != nil {
+							w.CountEgressDiscarded()
+							w.LogError("flattening DNS message failed: %e", err)
+							w.PutTextBuffer(buf)
+							dm.Release()
+							continue
+						}
+						json.NewEncoder(buf).Encode(flat)
+					} else {
+						dm.GetTimestampRFC3339()
+						dm.EncodeFlatJSON(buf)
+						buf.WriteByte('\n')
 					}
-					json.NewEncoder(buf).Encode(flat)
 				} else {
 					json.NewEncoder(buf).Encode(dm)
 				}

@@ -291,16 +291,19 @@ func (w *Syslog) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 			buffer.Reset()
 
 		case pkgconfig.ModeFlatJSON:
-			// get flatten object
-			flat, errflat := dm.Flatten()
-			if errflat != nil {
-				w.LogError("flattening DNS message failed: %e", errflat)
-				w.CountEgressDiscarded()
-				continue
+			if dm.Relabeling != nil {
+				flat, errflat := dm.Flatten()
+				if errflat != nil {
+					w.LogError("flattening DNS message failed: %e", errflat)
+					w.CountEgressDiscarded()
+					continue
+				}
+				json.NewEncoder(buffer).Encode(flat)
+			} else {
+				dm.GetTimestampRFC3339()
+				dm.EncodeFlatJSON(buffer)
+				buffer.WriteByte('\n')
 			}
-
-			// encode to json
-			json.NewEncoder(buffer).Encode(flat)
 
 			// write the content of the buffer to s.syslogWriter
 			// and reset the buffer
