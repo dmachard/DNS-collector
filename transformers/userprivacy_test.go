@@ -14,82 +14,6 @@ var (
 	IPv6ShortND = "fe80::"
 )
 
-// bench
-func BenchmarkUserPrivacy_ReduceQname(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.UserPrivacy.Enable = true
-	config.UserPrivacy.MinimizeQname = true
-
-	channels := []chan *dnsutils.DNSMessage{}
-
-	userprivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, channels)
-	userprivacy.GetTransforms()
-
-	dm := dnsutils.GetFakeDNSMessage()
-	dm.DNS.Qname = "localhost.domain.local.home"
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		userprivacy.minimizeQname(&dm)
-	}
-}
-
-func BenchmarkUserPrivacy_HashIP(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.UserPrivacy.Enable = true
-	config.UserPrivacy.HashQueryIP = true
-
-	channels := []chan *dnsutils.DNSMessage{}
-
-	userprivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, channels)
-	userprivacy.GetTransforms()
-
-	dm := dnsutils.GetFakeDNSMessage()
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		userprivacy.hashQueryIP(&dm)
-	}
-}
-
-func BenchmarkUserPrivacy_HashIPSha512(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.UserPrivacy.Enable = true
-	config.UserPrivacy.HashQueryIP = true
-	config.UserPrivacy.HashIPAlgo = "sha512"
-
-	channels := []chan *dnsutils.DNSMessage{}
-
-	userprivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, channels)
-	userprivacy.GetTransforms()
-
-	dm := dnsutils.GetFakeDNSMessage()
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		userprivacy.hashQueryIP(&dm)
-	}
-}
-
-func BenchmarkUserPrivacy_AnonymizeIP(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.UserPrivacy.Enable = true
-	config.UserPrivacy.AnonymizeIP = true
-
-	channels := []chan *dnsutils.DNSMessage{}
-
-	userprivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, channels)
-	userprivacy.GetTransforms()
-
-	dm := dnsutils.GetFakeDNSMessage()
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		userprivacy.anonymizeQueryIP(&dm)
-	}
-}
-
-// other tests
 func TestUserPrivacy_ReduceQname(t *testing.T) {
 	// enable feature
 	config := pkgconfig.GetFakeConfigTransformers()
@@ -266,29 +190,5 @@ func TestUserPrivacy_AnonymizeIPRemove(t *testing.T) {
 				t.Errorf("anonymization failed got %s, want %s", dm.NetworkInfo.QueryIP, tc.expectedIP)
 			}
 		})
-	}
-}
-
-func BenchmarkHashIP_Sha1(b *testing.B) {
-	ip := "192.168.1.2"
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = HashIP(ip, "sha1")
-	}
-}
-
-func BenchmarkHashIP_Sha256(b *testing.B) {
-	ip := "192.168.1.2"
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = HashIP(ip, "sha256")
-	}
-}
-
-func BenchmarkHashIP_Sha512(b *testing.B) {
-	ip := "192.168.1.2"
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = HashIP(ip, "sha512")
 	}
 }

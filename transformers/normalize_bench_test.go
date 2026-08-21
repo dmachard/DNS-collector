@@ -38,17 +38,17 @@ func BenchmarkNormalize_GetEffectiveTldPlusOne(b *testing.B) {
 	}
 }
 
-func BenchmarkNormalize_QnameLowercase(b *testing.B) {
+func BenchmarkNormalize_QnameLowercase_MixedCase(b *testing.B) {
 	config := pkgconfig.GetFakeConfigTransformers()
 	channels := []chan *dnsutils.DNSMessage{}
 
 	subprocessor := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
 	dm := dnsutils.GetFakeDNSMessage()
-	dm.DNS.Qname = "EN.Wikipedia.Org"
 
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
+		dm.DNS.Qname = "EN.Wikipedia.Org"
 		subprocessor.QnameLowercase(&dm)
 	}
 }
@@ -68,18 +68,37 @@ func BenchmarkNormalize_QnameLowercase_AlreadyLower(b *testing.B) {
 	}
 }
 
-func BenchmarkNormalize_RRLowercase(b *testing.B) {
+func BenchmarkNormalize_RRLowercase_MixedCase(b *testing.B) {
 	config := pkgconfig.GetFakeConfigTransformers()
 	channels := []chan *dnsutils.DNSMessage{}
 
 	transform := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
-
-	name := "En.Tikipedia.Org"
 	dm := dnsutils.GetFakeDNSMessage()
-	dm.DNS.Qname = name
-	dm.DNS.DNSRRs.Answers = append(dm.DNS.DNSRRs.Answers, dnsutils.DNSAnswer{Name: name})
-	dm.DNS.DNSRRs.Nameservers = append(dm.DNS.DNSRRs.Nameservers, dnsutils.DNSAnswer{Name: name})
-	dm.DNS.DNSRRs.Records = append(dm.DNS.DNSRRs.Records, dnsutils.DNSAnswer{Name: name})
+	dm.DNS.DNSRRs.Answers = []dnsutils.DNSAnswer{{Name: "En.Wikipedia.Org", Rdatatype: "CNAME", Rdata: "Target.Domain.Com"}}
+	dm.DNS.DNSRRs.Nameservers = []dnsutils.DNSAnswer{{Name: "Ns1.Domain.Org", Rdatatype: "NS", Rdata: "Ns1.Other.Com"}}
+	dm.DNS.DNSRRs.Records = []dnsutils.DNSAnswer{{Name: "Extra.Domain.Org"}}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		dm.DNS.DNSRRs.Answers[0].Name = "En.Wikipedia.Org"
+		dm.DNS.DNSRRs.Answers[0].Rdata = "Target.Domain.Com"
+		dm.DNS.DNSRRs.Nameservers[0].Name = "Ns1.Domain.Org"
+		dm.DNS.DNSRRs.Nameservers[0].Rdata = "Ns1.Other.Com"
+		dm.DNS.DNSRRs.Records[0].Name = "Extra.Domain.Org"
+		transform.RRLowercase(&dm)
+	}
+}
+
+func BenchmarkNormalize_RRLowercase_AlreadyLower(b *testing.B) {
+	config := pkgconfig.GetFakeConfigTransformers()
+	channels := []chan *dnsutils.DNSMessage{}
+
+	transform := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
+	dm := dnsutils.GetFakeDNSMessage()
+	dm.DNS.DNSRRs.Answers = []dnsutils.DNSAnswer{{Name: "en.wikipedia.org", Rdatatype: "CNAME", Rdata: "target.domain.com"}}
+	dm.DNS.DNSRRs.Nameservers = []dnsutils.DNSAnswer{{Name: "ns1.domain.org", Rdatatype: "NS", Rdata: "ns1.other.com"}}
+	dm.DNS.DNSRRs.Records = []dnsutils.DNSAnswer{{Name: "extra.domain.org"}}
 
 	b.ReportAllocs()
 	b.ResetTimer()

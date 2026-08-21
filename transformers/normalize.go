@@ -37,12 +37,33 @@ var (
 	}
 )
 
+func toLowerASCII(s string) string {
+	hasUpper := false
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c >= 'A' && c <= 'Z' {
+			hasUpper = true
+			break
+		}
+	}
+	if !hasUpper {
+		return s
+	}
+	b := []byte(s)
+	for i := 0; i < len(b); i++ {
+		if b[i] >= 'A' && b[i] <= 'Z' {
+			b[i] += 'a' - 'A'
+		}
+	}
+	return string(b)
+}
+
 func processRecords(records []dnsutils.DNSAnswer) {
 	for i := range records {
-		records[i].Name = strings.ToLower(records[i].Name)
+		records[i].Name = toLowerASCII(records[i].Name)
 		switch records[i].Rdatatype {
 		case "CNAME", "SOA", "NS", "MX", "PTR", "SRV":
-			records[i].Rdata = strings.ToLower(records[i].Rdata)
+			records[i].Rdata = toLowerASCII(records[i].Rdata)
 		}
 	}
 }
@@ -80,7 +101,7 @@ func (t *NormalizeTransform) GetTransforms() ([]Subtransform, error) {
 }
 
 func (t *NormalizeTransform) QnameLowercase(dm *dnsutils.DNSMessage) (int, error) {
-	dm.DNS.Qname = strings.ToLower(dm.DNS.Qname)
+	dm.DNS.Qname = toLowerASCII(dm.DNS.Qname)
 	return ReturnKeep, nil
 }
 
@@ -152,7 +173,7 @@ func (t *NormalizeTransform) GetEffectiveTld(dm *dnsutils.DNSMessage) (int, erro
 
 	// PublicSuffix is case-sensitive.
 	// remove ending dot ?
-	qname := strings.ToLower(dm.DNS.Qname)
+	qname := toLowerASCII(dm.DNS.Qname)
 	qname = strings.TrimSuffix(qname, ".")
 
 	// search
@@ -172,7 +193,7 @@ func (t *NormalizeTransform) GetEffectiveTldPlusOne(dm *dnsutils.DNSMessage) (in
 	}
 
 	// PublicSuffix is case-sensitive, remove ending dot ?
-	qname := strings.ToLower(dm.DNS.Qname)
+	qname := toLowerASCII(dm.DNS.Qname)
 	qname = strings.TrimSuffix(qname, ".")
 
 	etld, err := publicsuffixlist.EffectiveTLDPlusOne(qname)
