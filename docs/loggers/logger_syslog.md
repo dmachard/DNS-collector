@@ -67,8 +67,6 @@ Options:
 * `flush-interval` (integer)
   > interval in second before to flush the buffer
 
-  > Specifies the maximum number of packets that can be buffered before discard additional packets.
-  > Set to zero to use the default global value.
 
 Default values:
 

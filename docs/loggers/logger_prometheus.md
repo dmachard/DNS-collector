@@ -41,8 +41,6 @@ Options:
 * `top-n` (string)
   > default number of items on top
 
-  > Specifies the maximum number of packets that can be buffered before discard additional packets.
-  > Set to zero to use the default global value.
 
 * `histogram-metrics-enabled` (boolean)
   > compute histogram for qnames length, latencies, queries and replies size repartition

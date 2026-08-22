@@ -18,8 +18,6 @@ Options:
 * `jinja-format` (string)
   > jinja template, please refer [Jinja templating](../formats.md#jinja-templating) to see all available directives 
   
-  > Specifies the maximum number of packets that can be buffered before discard additional packets.
-  > Set to zero to use the default global value.
 
 * `overwrite-dns-port-pcap` (bool)
   > This option is used only with the `pcap` output mode.

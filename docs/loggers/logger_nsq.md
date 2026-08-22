@@ -19,8 +19,6 @@ Options:
   > Specifies the NSQ topic where DNS messages will be published.
   > Default: `dnscollector`
 
-  > Specifies the maximum number of packets that can be buffered before discard additional packets.
-  > Set to zero to use the default global value.
 
 Default values:
 

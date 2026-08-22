@@ -41,8 +41,6 @@ Options:
 * `reset-conn` (bool)
   > Set whether to send a TCP Reset to force the cleanup of the connection on the remote side when the server exits.
 
-  > Specifies the maximum number of packets that can be buffered before discard additional packets.
-  > Set to zero to use the default global value.
 
 * `num-workers` (int)
   > Specifies the number of worker goroutines for parallel frame processing per connection.

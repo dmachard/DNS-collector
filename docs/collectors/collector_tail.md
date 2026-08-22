@@ -22,8 +22,6 @@ Options:
 * `pattern-reply` (string)
   > Specifies the regular expression pattern used to match replies.
 
-  > Specifies the maximum number of packets that can be buffered before discard additional packets.
-  > Set to zero to use the default global value.
 
 Defaults:
 

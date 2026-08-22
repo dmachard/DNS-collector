@@ -25,8 +25,6 @@ Options:
   > Compression for bulk messages: `none`, `gzip`.
   > Specifies the compression algorithm to use.
 
-  > Specifies the maximum number of packets that can be buffered before discard additional packets.
-  > Set to zero to use the default global value.
 
 * `flush-interval` (integer)
   > Interval in seconds before to flush the buffer.

@@ -20,8 +20,6 @@ Options:
 * `database` (string)
   > Clickhouse database name
 
-  > Specifies the maximum number of packets that can be buffered before discard additional packets.
-  > Set to zero to use the default global value.
 
 Defaults:
 
