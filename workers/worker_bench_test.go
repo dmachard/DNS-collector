@@ -1,6 +1,7 @@
 package workers
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
@@ -144,5 +145,35 @@ func Benchmark_Worker_E2E_SingleMessage(b *testing.B) {
 		msg := dm
 		batch.Messages = append(batch.Messages, &msg)
 		sink.GetInputChannel() <- batch
+	}
+}
+
+func Benchmark_Worker_BatchSize_Comparison(b *testing.B) {
+	sizes := []int{1, 16, 32, 64, 128, 256, 512, 1024}
+	dm := dnsutils.GetFakeDNSMessage()
+
+	for _, sz := range sizes {
+		sz := sz
+		b.Run("BatchSize_"+strconv.Itoa(sz), func(subB *testing.B) {
+			config := pkgconfig.GetDefaultConfig()
+			config.Global.Telemetry.Enabled = true
+			config.Global.Worker.ChannelBufferSize = 65536
+
+			sink := NewDevNull(config, logger.New(false), "sink-devnull")
+			go sink.StartCollect()
+			defer sink.Stop()
+
+			subB.ReportAllocs()
+			subB.ResetTimer()
+
+			for i := 0; i < subB.N; i += sz {
+				batch := dnsutils.AcquireDNSMessageBatch(sz)
+				for j := 0; j < sz; j++ {
+					msg := dm
+					batch.Messages = append(batch.Messages, &msg)
+				}
+				sink.GetInputChannel() <- batch
+			}
+		})
 	}
 }
