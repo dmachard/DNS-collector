@@ -14,7 +14,7 @@ import (
 func TestGeoIP_Json(t *testing.T) {
 	// enable feature
 	config := pkgconfig.GetFakeConfigTransformers()
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// get fake
 	dm := dnsutils.GetFakeDNSMessage()
@@ -72,7 +72,7 @@ func TestGeoIP_LookupCountry(t *testing.T) {
 	config.GeoIP.Enable = true
 	config.GeoIP.DBCountryFile = "../tests/testsdata/GeoLite2-Country.mmdb"
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
 	geoip := NewDNSGeoIPTransform(config, logger.New(false), "test", 0, outChans)
@@ -107,7 +107,7 @@ func TestGeoIP_LookupAsn(t *testing.T) {
 	config.GeoIP.Enable = true
 	config.GeoIP.DBASNFile = "../tests/testsdata/GeoLite2-ASN.mmdb"
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
 	geoip := NewDNSGeoIPTransform(config, logger.New(false), "test", 0, outChans)
@@ -134,7 +134,7 @@ func TestGeoIP_Lookup_ECS(t *testing.T) {
 	config.GeoIP.DBCountryFile = "../tests/testsdata/GeoLite2-Country.mmdb"
 	config.GeoIP.LookupECS = true
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
 	geoip := NewDNSGeoIPTransform(config, logger.New(false), "test", 0, outChans)
@@ -166,7 +166,7 @@ func TestGeoIP_LookupCoordinate(t *testing.T) {
 	config.GeoIP.Enable = true
 	config.GeoIP.DBASNFile = "../tests/testsdata/GeoLite2-ASN.mmdb"
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
 	geoip := NewDNSGeoIPTransform(config, logger.New(false), "test", 0, outChans)

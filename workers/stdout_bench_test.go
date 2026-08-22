@@ -33,7 +33,7 @@ func benchmarkStdoutMode(b *testing.B, mode string) {
 
 	for i := 0; i < b.N; i++ {
 		msg := dm
-		inChan <- &msg
+		inChan <- dnsutils.NewDNSMessageBatchFromMessage(&msg)
 	}
 }
 

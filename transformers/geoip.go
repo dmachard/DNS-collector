@@ -57,7 +57,7 @@ type GeoIPTransform struct {
 	dbCountry, dbCity, dbAsn, dbCoordinate *maxminddb.Reader
 }
 
-func NewDNSGeoIPTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessage) *GeoIPTransform {
+func NewDNSGeoIPTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *GeoIPTransform {
 	t := &GeoIPTransform{GenericTransformer: NewTransformer(config, logger, "geoip", name, instance, nextWorkers)}
 	return t
 }

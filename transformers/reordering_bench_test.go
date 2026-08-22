@@ -15,8 +15,8 @@ func BenchmarkReordering_ReorderAndFlush(b *testing.B) {
 	config.Reordering.MaxBufferSize = 1000
 
 	log := logger.New(false)
-	outChans := []chan *dnsutils.DNSMessage{
-		make(chan *dnsutils.DNSMessage, 2000),
+	outChans := []chan *dnsutils.DNSMessageBatch{
+		make(chan *dnsutils.DNSMessageBatch, 2000),
 	}
 
 	reorder := NewReorderingTransform(config, log, "test", 0, outChans)

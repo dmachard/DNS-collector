@@ -197,25 +197,28 @@ func (w *Syslog) StartCollect() {
 			w.ReadConfig()
 			subprocessors.ReloadConfig(&cfg.OutgoingTransformers)
 
-		case dm, opened := <-w.GetInputChannel():
+		case batch, opened := <-w.GetInputChannel():
 			if !opened {
 				w.LogInfo("input channel closed!")
 				return
 			}
-			// count global messages
-			w.CountIngressTraffic()
+			for _, dm := range batch.Messages {
+				// count global messages
+				w.CountIngressTraffic()
 
-			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(dm)
-			if err != nil {
-				w.LogError(err.Error())
-			}
-			if transformResult == transformers.ReturnDrop {
-				w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-				continue
-			}
+				// apply transforms, init dns message with additional parts if necessary
+				transformResult, err := subprocessors.ProcessMessage(dm)
+				if err != nil {
+					w.LogError(err.Error())
+				}
+				if transformResult == transformers.ReturnDrop {
+					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
+					continue
+				}
 
-			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+				w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+			}
+			batch.Release()
 		}
 	}
 }
@@ -355,25 +358,29 @@ func (w *Syslog) StartLogging() {
 			w.syslogReady = true
 
 			// incoming dns message to process
-		case dm, opened := <-w.GetOutputChannel():
+		case batch, opened := <-w.GetOutputChannel():
 			if !opened {
 				w.LogInfo("output channel closed!")
 				return
 			}
 
-			// discard dns message if the connection is not ready
-			if !w.syslogReady {
-				w.CountEgressDiscarded()
-				dm.Release()
-				continue
-			}
-			// append dns message to buffer
-			bufferDm = append(bufferDm, dm)
+			for _, dm := range batch.Messages {
+				// discard dns message if the connection is not ready
+				if !w.syslogReady {
+					w.CountEgressDiscarded()
+					continue
+				}
 
-			// buffer is full ?
-			if len(bufferDm) >= w.GetConfig().Loggers.Syslog.BufferSize {
-				w.FlushBuffer(&bufferDm)
+				dm.Retain(1)
+				// append dns message to buffer
+				bufferDm = append(bufferDm, dm)
+
+				// buffer is full ?
+				if len(bufferDm) >= w.GetConfig().Loggers.Syslog.BufferSize {
+					w.FlushBuffer(&bufferDm)
+				}
 			}
+			batch.Release()
 
 			// flush the buffer
 		case <-flushTimer.C:

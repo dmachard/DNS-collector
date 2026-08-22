@@ -529,26 +529,29 @@ func (w *LogFile) StartCollect() {
 			w.ReadConfig()
 			subprocessors.ReloadConfig(&cfg.OutgoingTransformers)
 
-		case dm, opened := <-w.GetInputChannel():
+		case batch, opened := <-w.GetInputChannel():
 			if !opened {
 				w.LogInfo("input channel closed!")
 				return
 			}
 
-			// count global messages
-			w.CountIngressTraffic()
+			for _, dm := range batch.Messages {
+				// count global messages
+				w.CountIngressTraffic()
 
-			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(dm)
-			if err != nil {
-				w.LogError(err.Error())
-			}
-			if transformResult == transformers.ReturnDrop {
-				w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-				continue
-			}
+				// apply transforms, init dns message with additional parts if necessary
+				transformResult, err := subprocessors.ProcessMessage(dm)
+				if err != nil {
+					w.LogError(err.Error())
+				}
+				if transformResult == transformers.ReturnDrop {
+					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
+					continue
+				}
 
-			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+				w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+			}
+			batch.Release()
 		}
 	}
 }
@@ -597,120 +600,117 @@ func (w *LogFile) StartLogging() {
 
 			return
 
-		case dm, opened := <-w.GetOutputChannel():
+		case batch, opened := <-w.GetOutputChannel():
 			if !opened {
 				w.LogInfo("output channel closed!")
 				return
 			}
 
-			// Process the message based on the configured mode
-			switch w.GetConfig().Loggers.LogFile.Mode {
+			for _, dm := range batch.Messages {
+				// Process the message based on the configured mode
+				switch w.GetConfig().Loggers.LogFile.Mode {
 
-			// with basic text mode
-			case pkgconfig.ModeText:
-				// get a text buffer from pool
-				buf := w.GetTextBuffer()
-				buf.Reset()
+				// with basic text mode
+				case pkgconfig.ModeText:
+					// get a text buffer from pool
+					buf := w.GetTextBuffer()
+					buf.Reset()
 
-				// encode to text line the dns message
-				var err error
-				if w.textFormatter != nil {
-					err = w.textFormatter.Format(dm, buf)
-				} else {
-					err = dm.ToTextLine(
-						w.textFormat,
-						w.GetConfig().Global.TextFormatDelimiter,
-						w.GetConfig().Global.TextFormatBoundary,
-						buf,
-					)
-				}
-				if err != nil {
-					w.CountEgressDiscarded()
-					w.LogError("logfile: could not encode to text format: %s", err)
-					w.PutTextBuffer(buf)
-					dm.Release()
-					break
-				}
-
-				// ensure it ends in a \n
-				data := buf.Bytes()
-				if len(data) == 0 || data[len(data)-1] != '\n' {
-					buf.WriteByte('\n')
-				}
-
-				// write and return text buffer to pool
-				w.WriteToPlain(buf.Bytes())
-				w.PutTextBuffer(buf)
-
-			// with custom text mode
-			case pkgconfig.ModeJinja:
-				textLine, err := dm.ToTextTemplate(w.jinjaFormat)
-				if err != nil {
-					w.CountEgressDiscarded()
-					w.LogError("jinja template: %s", err)
-					dm.Release()
-					continue
-				}
-				data := []byte(textLine)
-				if len(data) > 0 && data[len(data)-1] != '\n' {
-					data = append(data, '\n')
-				}
-				w.WriteToPlain(data)
-
-			// with json mode
-			case pkgconfig.ModeJSON, pkgconfig.ModeFlatJSON:
-				buf := w.GetTextBuffer()
-				buf.Reset()
-
-				if w.GetConfig().Loggers.LogFile.Mode == pkgconfig.ModeFlatJSON {
-					if dm.Relabeling != nil {
-						flat, err := dm.Flatten()
-						if err != nil {
-							w.CountEgressDiscarded()
-							w.LogError("flattening DNS message failed: %e", err)
-							w.PutTextBuffer(buf)
-							dm.Release()
-							continue
-						}
-						json.NewEncoder(buf).Encode(flat)
+					// encode to text line the dns message
+					var err error
+					if w.textFormatter != nil {
+						err = w.textFormatter.Format(dm, buf)
 					} else {
-						dm.GetTimestampRFC3339()
-						dm.EncodeFlatJSON(buf)
+						err = dm.ToTextLine(
+							w.textFormat,
+							w.GetConfig().Global.TextFormatDelimiter,
+							w.GetConfig().Global.TextFormatBoundary,
+							buf,
+						)
+					}
+					if err != nil {
+						w.CountEgressDiscarded()
+						w.LogError("logfile: could not encode to text format: %s", err)
+						w.PutTextBuffer(buf)
+						continue
+					}
+
+					// ensure it ends in a \n
+					data := buf.Bytes()
+					if len(data) == 0 || data[len(data)-1] != '\n' {
 						buf.WriteByte('\n')
 					}
-				} else {
-					json.NewEncoder(buf).Encode(dm)
+
+					// write and return text buffer to pool
+					w.WriteToPlain(buf.Bytes())
+					w.PutTextBuffer(buf)
+
+				// with custom text mode
+				case pkgconfig.ModeJinja:
+					textLine, err := dm.ToTextTemplate(w.jinjaFormat)
+					if err != nil {
+						w.CountEgressDiscarded()
+						w.LogError("jinja template: %s", err)
+						continue
+					}
+					data := []byte(textLine)
+					if len(data) > 0 && data[len(data)-1] != '\n' {
+						data = append(data, '\n')
+					}
+					w.WriteToPlain(data)
+
+				// with json mode
+				case pkgconfig.ModeJSON, pkgconfig.ModeFlatJSON:
+					buf := w.GetTextBuffer()
+					buf.Reset()
+
+					if w.GetConfig().Loggers.LogFile.Mode == pkgconfig.ModeFlatJSON {
+						if dm.Relabeling != nil {
+							flat, err := dm.Flatten()
+							if err != nil {
+								w.CountEgressDiscarded()
+								w.LogError("flattening DNS message failed: %e", err)
+								w.PutTextBuffer(buf)
+								continue
+							}
+							json.NewEncoder(buf).Encode(flat)
+						} else {
+							dm.GetTimestampRFC3339()
+							dm.EncodeFlatJSON(buf)
+							buf.WriteByte('\n')
+						}
+					} else {
+						json.NewEncoder(buf).Encode(dm)
+					}
+
+					// send to file and return buffer to pool
+					w.WriteToPlain(buf.Bytes())
+					w.PutTextBuffer(buf)
+
+				// with dnstap mode
+				case pkgconfig.ModeDNSTap:
+					data, err := dm.ToDNSTap(w.GetConfig().Loggers.LogFile.ExtendedSupport)
+					if err != nil {
+						w.CountEgressDiscarded()
+						w.LogError("failed to encode to DNStap protobuf: %s", err)
+						continue
+					}
+					w.WriteToDnstap(data)
+
+				// with pcap mode
+				case pkgconfig.ModePCAP:
+					pkt, err := dm.ToPacketLayer(w.GetConfig().Loggers.LogFile.OverwriteDNSPortPcap)
+					if err != nil {
+						w.CountEgressDiscarded()
+						w.LogError("failed to encode to packet layer: %s", err)
+						continue
+					}
+
+					// write the packet
+					w.WriteToPcap(dm, pkt)
 				}
-
-				// send to file and return buffer to pool
-				w.WriteToPlain(buf.Bytes())
-				w.PutTextBuffer(buf)
-
-			// with dnstap mode
-			case pkgconfig.ModeDNSTap:
-				data, err := dm.ToDNSTap(w.GetConfig().Loggers.LogFile.ExtendedSupport)
-				if err != nil {
-					w.CountEgressDiscarded()
-					w.LogError("failed to encode to DNStap protobuf: %s", err)
-					dm.Release()
-					continue
-				}
-				w.WriteToDnstap(data)
-
-			// with pcap mode
-			case pkgconfig.ModePCAP:
-				pkt, err := dm.ToPacketLayer(w.GetConfig().Loggers.LogFile.OverwriteDNSPortPcap)
-				if err != nil {
-					w.CountEgressDiscarded()
-					w.LogError("failed to encode to packet layer: %s", err)
-					dm.Release()
-					continue
-				}
-
-				// write the packet
-				w.WriteToPcap(dm, pkt)
 			}
-			dm.Release()
+			batch.Release()
 
 		case <-flushTicker.C:
 			w.FlushWriters()

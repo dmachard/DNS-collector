@@ -29,7 +29,7 @@ func Benchmark_DNSMessageWorker_Passthrough(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		msg := dm
-		inChan <- &msg
+		inChan <- dnsutils.NewDNSMessageBatchFromMessage(&msg)
 	}
 }
 
@@ -58,7 +58,7 @@ func Benchmark_DNSMessageWorker_MatchingInclude(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		msg := dm
-		inChan <- &msg
+		inChan <- dnsutils.NewDNSMessageBatchFromMessage(&msg)
 	}
 }
 
@@ -88,6 +88,6 @@ func Benchmark_DNSMessageWorker_MatchingExclude(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		msg := dm
-		inChan <- &msg
+		inChan <- dnsutils.NewDNSMessageBatchFromMessage(&msg)
 	}
 }

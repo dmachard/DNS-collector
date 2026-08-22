@@ -33,22 +33,22 @@ func TestDnsMessage_RoutingPolicy(t *testing.T) {
 
 	// this message should be kept by the collector
 	dm1 := dnsutils.GetFakeDNSMessage()
-	c.GetInputChannel() <- &dm1
+	c.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm1)
 
 	// this message should dropped by the collector
 	dm2 := dnsutils.GetFakeDNSMessage()
 	dm2.DNS.Qname = "dropped.collector"
-	c.GetInputChannel() <- &dm2
+	c.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm2)
 
 	// the 1er message should be in th k worker
-	dmKept := <-kept.GetInputChannel()
-	if dmKept.DNS.Qname != "dns.collector" {
+	batchKept := <-kept.GetInputChannel()
+	if len(batchKept.Messages) == 0 || batchKept.Messages[0].DNS.Qname != "dns.collector" {
 		t.Errorf("invalid dns message with default routing policy")
 	}
 
 	// the 2nd message should be in the d worker
-	dmDropped := <-dropped.GetInputChannel()
-	if dmDropped.DNS.Qname != "dropped.collector" {
+	batchDropped := <-dropped.GetInputChannel()
+	if len(batchDropped.Messages) == 0 || batchDropped.Messages[0].DNS.Qname != "dropped.collector" {
 		t.Errorf("invalid dns message with dropped routing policy")
 	}
 
@@ -74,7 +74,7 @@ func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 	// add a shot of dnsmessages to collector
 	for i := 0; i < 512; i++ {
 		dmIn := dnsutils.GetFakeDNSMessage()
-		c.GetInputChannel() <- &dmIn
+		c.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dmIn)
 	}
 
 	// waiting monitor to run in consumer
@@ -89,15 +89,15 @@ func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 	}
 
 	// read dnsmessage from next logger
-	dmOut := <-nxt.GetInputChannel()
-	if dmOut.DNS.Qname != pkgconfig.ExpectedQname2 {
-		t.Errorf("invalid qname in dns message: %s", dmOut.DNS.Qname)
+	batchOut := <-nxt.GetInputChannel()
+	if len(batchOut.Messages) == 0 || batchOut.Messages[0].DNS.Qname != pkgconfig.ExpectedQname2 {
+		t.Errorf("invalid qname in dns message: %v", batchOut.Messages)
 	}
 
 	// send second shot of packets to consumer
 	for i := 0; i < 1024; i++ {
 		dmIn := dnsutils.GetFakeDNSMessage()
-		c.GetInputChannel() <- &dmIn
+		c.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dmIn)
 	}
 
 	// waiting monitor to run in consumer
@@ -111,9 +111,9 @@ func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 		}
 	}
 	// read dnsmessage from next logger
-	dm2 := <-nxt.GetInputChannel()
-	if dm2.DNS.Qname != pkgconfig.ExpectedQname2 {
-		t.Errorf("invalid qname in dns message: %s", dm2.DNS.Qname)
+	batch2 := <-nxt.GetInputChannel()
+	if len(batch2.Messages) == 0 || batch2.Messages[0].DNS.Qname != pkgconfig.ExpectedQname2 {
+		t.Errorf("invalid qname in dns message: %v", batch2.Messages)
 	}
 
 	// stop all

@@ -336,7 +336,8 @@ func (w *DNSTapProcessor) StartCollect() {
 				edt := &dnsutils.ExtendedDnstap{}
 				fCache := &frameCache{}
 				transforms := transformers.NewTransforms(&w.GetConfig().IngoingTransformers, w.GetLogger(), w.GetName(), defaultRoutes, w.ConnID)
-
+				batchSize := w.GetBatchSize()
+				curBatch := dnsutils.AcquireDNSMessageBatch(batchSize)
 				for {
 					select {
 					case cfg := <-cChan:
@@ -344,10 +345,22 @@ func (w *DNSTapProcessor) StartCollect() {
 
 					case data, opened := <-w.GetDataChannel():
 						if !opened {
+							if len(curBatch.Messages) > 0 {
+								w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+							} else {
+								curBatch.Release()
+							}
 							transforms.Reset()
 							return
 						}
-						w.processFrame(data, dt, edt, &transforms, fCache, defaultRoutes, defaultNames, droppedRoutes, droppedNames)
+						dm, drop := w.processFrame(data, dt, edt, &transforms, fCache, droppedRoutes, droppedNames)
+						if dm != nil && !drop {
+							curBatch.Messages = append(curBatch.Messages, dm)
+							if len(curBatch.Messages) >= batchSize || len(w.GetDataChannel()) == 0 {
+								w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+								curBatch = dnsutils.AcquireDNSMessageBatch(batchSize)
+							}
+						}
 					}
 				}
 			}(cfgChan)
@@ -372,6 +385,8 @@ func (w *DNSTapProcessor) StartCollect() {
 		edt := &dnsutils.ExtendedDnstap{}
 		fCache := &frameCache{}
 		transforms := transformers.NewTransforms(&w.GetConfig().IngoingTransformers, w.GetLogger(), w.GetName(), defaultRoutes, w.ConnID)
+		batchSize := w.GetBatchSize()
+		curBatch := dnsutils.AcquireDNSMessageBatch(batchSize)
 
 		// read incoming dns message
 		for {
@@ -381,16 +396,33 @@ func (w *DNSTapProcessor) StartCollect() {
 				transforms.ReloadConfig(&cfg.IngoingTransformers)
 
 			case <-w.OnStop():
+				if len(curBatch.Messages) > 0 {
+					w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+				} else {
+					curBatch.Release()
+				}
 				transforms.Reset()
 				close(w.GetDataChannel())
 				return
 
 			case data, opened := <-w.GetDataChannel():
 				if !opened {
+					if len(curBatch.Messages) > 0 {
+						w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+					} else {
+						curBatch.Release()
+					}
 					w.LogInfo("channel closed, exit")
 					return
 				}
-				w.processFrame(data, dt, edt, &transforms, fCache, defaultRoutes, defaultNames, droppedRoutes, droppedNames)
+				dm, drop := w.processFrame(data, dt, edt, &transforms, fCache, droppedRoutes, droppedNames)
+				if dm != nil && !drop {
+					curBatch.Messages = append(curBatch.Messages, dm)
+					if len(curBatch.Messages) >= batchSize || len(w.GetDataChannel()) == 0 {
+						w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+						curBatch = dnsutils.AcquireDNSMessageBatch(batchSize)
+					}
+				}
 			}
 		}
 	}
@@ -409,11 +441,9 @@ func (w *DNSTapProcessor) processFrame(
 	edt *dnsutils.ExtendedDnstap,
 	transforms *transformers.Transforms,
 	fCache *frameCache,
-	defaultRoutes []chan *dnsutils.DNSMessage,
-	defaultNames []string,
-	droppedRoutes []chan *dnsutils.DNSMessage,
+	droppedRoutes []chan *dnsutils.DNSMessageBatch,
 	droppedNames []string,
-) {
+) (*dnsutils.DNSMessage, bool) {
 	// count global messages
 	w.CountIngressTraffic()
 
@@ -434,7 +464,7 @@ func (w *DNSTapProcessor) processFrame(
 	if !useFastDecoder {
 		err := proto.Unmarshal(data, dt)
 		if err != nil {
-			return
+			return nil, false
 		}
 	}
 
@@ -495,7 +525,7 @@ func (w *DNSTapProcessor) processFrame(
 		if w.GetConfig().Collectors.Dnstap.ExtendedSupport {
 			err := proto.Unmarshal(dt.GetExtra(), edt)
 			if err != nil {
-				return
+				return nil, false
 			}
 
 			// get original extra value
@@ -697,9 +727,8 @@ func (w *DNSTapProcessor) processFrame(
 	}
 	if transformResult == transformers.ReturnDrop {
 		w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-		return
+		return nil, true
 	}
 
-	// dispatch dns message to connected routes
-	w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+	return dm, false
 }

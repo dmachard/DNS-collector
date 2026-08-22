@@ -18,8 +18,8 @@ func TestReorderingTransform_SortByTimestamp(t *testing.T) {
 	log := logger.New(false)
 
 	// create output channels
-	outChans := []chan *dnsutils.DNSMessage{
-		make(chan *dnsutils.DNSMessage, 10),
+	outChans := []chan *dnsutils.DNSMessageBatch{
+		make(chan *dnsutils.DNSMessageBatch, 10),
 	}
 
 	// initialize transformer
@@ -46,8 +46,8 @@ func TestReorderingTransform_SortByTimestamp(t *testing.T) {
 	done := false
 	for !done {
 		select {
-		case msg := <-outChans[0]:
-			results = append(results, msg)
+		case b := <-outChans[0]:
+			results = append(results, b.Messages...)
 		default:
 			done = true
 		}

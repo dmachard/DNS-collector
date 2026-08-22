@@ -218,7 +218,9 @@ func (w *TZSPSniffer) StartCollect() {
 						continue
 					}
 
-					dnsProcessor.GetInputChannel() <- dm
+					b := dnsutils.AcquireDNSMessageBatch(1)
+					b.Messages = append(b.Messages, dm)
+					dnsProcessor.GetInputChannel() <- b
 				} else {
 					dm.Release()
 				}

@@ -12,6 +12,8 @@ import (
 	"github.com/dmachard/go-logger"
 )
 
+// Ensure time import is used by Monitor() ticker; declared here to keep linter happy.
+
 type Worker interface {
 	SetMetrics(metrics *telemetry.PrometheusCollector)
 	AddDefaultRoute(wrk Worker)
@@ -22,7 +24,7 @@ type Worker interface {
 	StartCollect()
 	CountIngressTraffic()
 	CountEgressTraffic()
-	GetInputChannel() chan *dnsutils.DNSMessage
+	GetInputChannel() chan *dnsutils.DNSMessageBatch
 	ReadConfig()
 	ReloadConfig(config *pkgconfig.Config)
 	GetMetrics() *telemetry.PrometheusCollector
@@ -39,7 +41,7 @@ type GenericWorker struct {
 	droppedRoutes, defaultRoutes                                         []Worker
 	droppedWorker                                                        chan string
 	droppedWorkerCount                                                   map[string]int
-	dnsMessageIn, dnsMessageOut                                          chan *dnsutils.DNSMessage
+	dnsMessageIn, dnsMessageOut                                          chan *dnsutils.DNSMessageBatch
 
 	metrics                                                                 atomic.Pointer[telemetry.PrometheusCollector]
 	totalIngress, totalEgress, totalForwarded, totalDropped, totalDiscarded atomic.Uint64
@@ -63,8 +65,8 @@ func NewGenericWorker(config *pkgconfig.Config, logger *logger.Logger, name stri
 		stopProcess:        make(chan bool),
 		droppedWorker:      make(chan string),
 		droppedWorkerCount: map[string]int{},
-		dnsMessageIn:       make(chan *dnsutils.DNSMessage, bufferSize),
-		dnsMessageOut:      make(chan *dnsutils.DNSMessage, bufferSize),
+		dnsMessageIn:       make(chan *dnsutils.DNSMessageBatch, bufferSize),
+		dnsMessageOut:      make(chan *dnsutils.DNSMessageBatch, bufferSize),
 		TextBufferPool: &sync.Pool{
 			New: func() interface{} { return new(bytes.Buffer) },
 		},
@@ -89,6 +91,20 @@ func (w *GenericWorker) GetConfig() *pkgconfig.Config { return w.config }
 
 func (w *GenericWorker) SetConfig(config *pkgconfig.Config) { w.config = config }
 
+func (w *GenericWorker) GetBatchSize() int {
+	if w.config != nil && w.config.Global.Worker.BatchSize > 0 {
+		return w.config.Global.Worker.BatchSize
+	}
+	return pkgconfig.DefaultBatchSize
+}
+
+func (w *GenericWorker) GetFlushInterval() time.Duration {
+	if w.config != nil && w.config.Global.Worker.BatchFlushIntervalMs > 0 {
+		return time.Duration(w.config.Global.Worker.BatchFlushIntervalMs) * time.Millisecond
+	}
+	return time.Duration(pkgconfig.DefaultFlushInterval) * time.Millisecond
+}
+
 func (w *GenericWorker) ReadConfig() {}
 
 func (w *GenericWorker) NewConfig() chan *pkgconfig.Config { return w.configChan }
@@ -99,20 +115,16 @@ func (w *GenericWorker) GetDroppedRoutes() []Worker { return w.droppedRoutes }
 
 func (w *GenericWorker) GetDefaultRoutes() []Worker { return w.defaultRoutes }
 
-func (w *GenericWorker) GetInputChannel() chan *dnsutils.DNSMessage { return w.dnsMessageIn }
+func (w *GenericWorker) GetInputChannel() chan *dnsutils.DNSMessageBatch { return w.dnsMessageIn }
 
-func (w *GenericWorker) GetInputChannelAsList() []chan *dnsutils.DNSMessage {
-	listChannel := []chan *dnsutils.DNSMessage{}
-	listChannel = append(listChannel, w.GetInputChannel())
-	return listChannel
+func (w *GenericWorker) GetInputChannelAsList() []chan *dnsutils.DNSMessageBatch {
+	return []chan *dnsutils.DNSMessageBatch{w.dnsMessageIn}
 }
 
-func (w *GenericWorker) GetOutputChannel() chan *dnsutils.DNSMessage { return w.dnsMessageOut }
+func (w *GenericWorker) GetOutputChannel() chan *dnsutils.DNSMessageBatch { return w.dnsMessageOut }
 
-func (w *GenericWorker) GetOutputChannelAsList() []chan *dnsutils.DNSMessage {
-	listChannel := []chan *dnsutils.DNSMessage{}
-	listChannel = append(listChannel, w.GetOutputChannel())
-	return listChannel
+func (w *GenericWorker) GetOutputChannelAsList() []chan *dnsutils.DNSMessageBatch {
+	return []chan *dnsutils.DNSMessageBatch{w.dnsMessageOut}
 }
 
 func (w *GenericWorker) AddDroppedRoute(wrk Worker) {
@@ -133,7 +145,7 @@ func (w *GenericWorker) SetDefaultDropped(workers []Worker) {
 
 func (w *GenericWorker) SetLoggers(loggers []Worker) { w.defaultRoutes = loggers }
 
-func (w *GenericWorker) Loggers() ([]chan *dnsutils.DNSMessage, []string) {
+func (w *GenericWorker) Loggers() ([]chan *dnsutils.DNSMessageBatch, []string) {
 	return GetRoutes(w.defaultRoutes)
 }
 
@@ -282,59 +294,100 @@ func (w *GenericWorker) CountEgressDiscarded() {
 	}
 }
 
-func (w *GenericWorker) SendDroppedTo(routes []chan *dnsutils.DNSMessage, routesName []string, dm *dnsutils.DNSMessage) {
+// sendBatch is the internal helper that dispatches a *DNSMessageBatch to all routes.
+// It handles reference counting for fan-out and drops + telemetry when a route is full.
+func (w *GenericWorker) sendBatch(routes []chan *dnsutils.DNSMessageBatch, routesName []string, b *dnsutils.DNSMessageBatch, dropped bool) {
 	if len(routes) == 0 {
-		dm.Release()
+		b.Release()
 		return
 	}
 	if len(routes) > 1 {
-		dm.Retain(int32(len(routes) - 1))
+		b.Retain(int32(len(routes) - 1))
 	}
 	for i := range routes {
 		select {
-		case routes[i] <- dm:
+		case routes[i] <- b:
 			if w.config.Global.Telemetry.Enabled {
-				w.totalDropped.Add(1)
+				if dropped {
+					w.totalDropped.Add(uint64(len(b.Messages)))
+				} else {
+					w.totalForwarded.Add(uint64(len(b.Messages)))
+				}
 			}
 		default:
-			dm.Release()
+			b.Release()
 			if w.config.Global.Telemetry.Enabled {
-				w.totalDiscarded.Add(1)
+				w.totalDiscarded.Add(uint64(len(b.Messages)))
 			}
 			w.WorkerIsBusy(routesName[i])
 		}
 	}
 }
 
-func (w *GenericWorker) SendForwardedTo(routes []chan *dnsutils.DNSMessage, routesName []string, dm *dnsutils.DNSMessage) {
-	if len(routes) == 0 {
-		dm.Release()
+// SendDroppedTo wraps dm in a batch-of-1 and dispatches it to all dropped routes.
+func (w *GenericWorker) SendDroppedTo(routes []chan *dnsutils.DNSMessageBatch, routesName []string, dm *dnsutils.DNSMessage) {
+	dm.Retain(1)
+	b := dnsutils.AcquireDNSMessageBatch(1)
+	b.Messages = append(b.Messages, dm)
+	w.sendBatch(routes, routesName, b, true)
+}
+
+// SendForwardedTo wraps dm in a batch-of-1 and dispatches it to all default routes.
+func (w *GenericWorker) SendForwardedTo(routes []chan *dnsutils.DNSMessageBatch, routesName []string, dm *dnsutils.DNSMessage) {
+	dm.Retain(1)
+	b := dnsutils.AcquireDNSMessageBatch(1)
+	b.Messages = append(b.Messages, dm)
+	w.sendBatch(routes, routesName, b, false)
+}
+
+// SendForwardedBatchTo dispatches a pre-assembled *DNSMessageBatch to all default routes.
+// This is the high-throughput path — callers that can accumulate messages should use this.
+func (w *GenericWorker) SendForwardedBatchTo(routes []chan *dnsutils.DNSMessageBatch, routesName []string, batch *dnsutils.DNSMessageBatch) {
+	if batch == nil || len(batch.Messages) == 0 {
+		if batch != nil {
+			batch.Release()
+		}
 		return
 	}
-	if len(routes) > 1 {
-		dm.Retain(int32(len(routes) - 1))
-	}
-	for i := range routes {
+	w.sendBatch(routes, routesName, batch, false)
+}
+
+// RunBatchLoop reads *DNSMessageBatch values from the input channel and calls
+// process() for each one. Batching is now done by the producer (via SendForwardedBatchTo
+// or SendForwardedTo which wraps into batch-of-1). No accumulation or ticker needed here.
+func (w *GenericWorker) RunBatchLoop(process func(*dnsutils.DNSMessageBatch)) {
+	for {
 		select {
-		case routes[i] <- dm:
-			if w.config.Global.Telemetry.Enabled {
-				w.totalForwarded.Add(1)
+		case <-w.OnStop():
+			return
+
+		case batch, opened := <-w.dnsMessageIn:
+			if !opened {
+				w.LogInfo("run: input channel closed!")
+				return
 			}
-		default:
-			dm.Release()
-			if w.config.Global.Telemetry.Enabled {
-				w.totalDiscarded.Add(1)
-			}
-			w.WorkerIsBusy(routesName[i])
+			process(batch)
 		}
 	}
 }
 
-func (w *GenericWorker) SendToOutputAndForward(routes []chan *dnsutils.DNSMessage, routesName []string, dm *dnsutils.DNSMessage) {
+func (w *GenericWorker) SendToOutputAndForward(routes []chan *dnsutils.DNSMessageBatch, routesName []string, dm *dnsutils.DNSMessage) {
 	w.CountEgressTraffic()
 	dm.Retain(1)
-	w.SendForwardedTo(routes, routesName, dm)
-	w.GetOutputChannel() <- dm
+	b := dnsutils.AcquireDNSMessageBatch(1)
+	b.Messages = append(b.Messages, dm)
+
+	outChan := w.GetOutputChannel()
+	switch {
+	case outChan != nil && len(routes) > 0:
+		b.Retain(1)
+		w.sendBatch(routes, routesName, b, false)
+		outChan <- b
+	case outChan != nil:
+		outChan <- b
+	default:
+		w.sendBatch(routes, routesName, b, false)
+	}
 }
 
 func (w *GenericWorker) GetTextBuffer() *bytes.Buffer {
@@ -346,8 +399,8 @@ func (w *GenericWorker) PutTextBuffer(buf *bytes.Buffer) {
 	w.TextBufferPool.Put(buf)
 }
 
-func GetRoutes(routes []Worker) ([]chan *dnsutils.DNSMessage, []string) {
-	channels := []chan *dnsutils.DNSMessage{}
+func GetRoutes(routes []Worker) ([]chan *dnsutils.DNSMessageBatch, []string) {
+	channels := []chan *dnsutils.DNSMessageBatch{}
 	names := []string{}
 	for _, p := range routes {
 		if c := p.GetInputChannel(); c != nil {

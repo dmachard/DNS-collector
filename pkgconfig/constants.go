@@ -41,6 +41,8 @@ var (
 	PrefixLogTransformer  = "transformer - "
 	DefaultBufferSize     = 512
 	DefaultBufferOne      = 1
+	DefaultBatchSize      = 64
+	DefaultFlushInterval  = 10
 	DefaultMonitor        = true
 	WorkerMonitorDisabled = false
 

@@ -49,25 +49,27 @@ func (w *FalcoClient) StartCollect() {
 			w.ReadConfig()
 			subprocessors.ReloadConfig(&cfg.OutgoingTransformers)
 
-		case dm, opened := <-w.GetInputChannel():
+		case batch, opened := <-w.GetInputChannel():
 			if !opened {
 				w.LogInfo("input channel closed!")
 				return
 			}
-			// count global messages
-			w.CountIngressTraffic()
+			for _, dm := range batch.Messages {
+				// count global messages
+				w.CountIngressTraffic()
 
-			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(dm)
-			if err != nil {
-				w.LogError(err.Error())
+				// apply transforms, init dns message with additional parts if necessary
+				transformResult, err := subprocessors.ProcessMessage(dm)
+				if err != nil {
+					w.LogError(err.Error())
+				}
+				if transformResult == transformers.ReturnDrop {
+					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
+					continue
+				}
+				w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
 			}
-			if transformResult == transformers.ReturnDrop {
-				w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-				continue
-			}
-
-			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+			batch.Release()
 		}
 	}
 }
@@ -84,28 +86,29 @@ func (w *FalcoClient) StartLogging() {
 			return
 
 		// incoming dns message to process
-		case dm, opened := <-w.GetOutputChannel():
+		case batch, opened := <-w.GetOutputChannel():
 			if !opened {
 				w.LogInfo("output channel closed!")
 				return
 			}
+			for _, dm := range batch.Messages {
+				// encode
+				json.NewEncoder(buffer).Encode(dm)
 
-			// encode
-			json.NewEncoder(buffer).Encode(dm)
+				req, _ := http.NewRequest("POST", w.GetConfig().Loggers.FalcoClient.URL, buffer)
+				req.Header.Set("Content-Type", "application/json")
+				client := &http.Client{
+					Timeout: 5 * time.Second,
+				}
+				_, err := client.Do(req)
+				if err != nil {
+					w.LogError(err.Error())
+				}
 
-			req, _ := http.NewRequest("POST", w.GetConfig().Loggers.FalcoClient.URL, buffer)
-			req.Header.Set("Content-Type", "application/json")
-			client := &http.Client{
-				Timeout: 5 * time.Second,
+				// finally reset the buffer for next iter
+				buffer.Reset()
 			}
-			_, err := client.Do(req)
-			if err != nil {
-				w.LogError(err.Error())
-			}
-
-			// finally reset the buffer for next iter
-			buffer.Reset()
-			dm.Release()
+			batch.Release()
 		}
 	}
 }

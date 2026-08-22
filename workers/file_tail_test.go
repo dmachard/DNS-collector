@@ -43,8 +43,8 @@ func TestTailRun(t *testing.T) {
 	w.Flush()
 
 	// waiting message in channel
-	msg := <-g.GetInputChannel()
-	if msg.DNS.Qname != "www.google.org" {
-		t.Errorf("want www.google.org, got %s", msg.DNS.Qname)
+	batch := <-g.GetInputChannel()
+	if len(batch.Messages) == 0 || batch.Messages[0].DNS.Qname != "www.google.org" {
+		t.Errorf("want www.google.org, got %v", batch.Messages)
 	}
 }

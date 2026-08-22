@@ -29,11 +29,11 @@ type GenericTransformer struct {
 	config            *pkgconfig.ConfigTransformers
 	logger            *logger.Logger
 	name              string
-	nextWorkers       []chan *dnsutils.DNSMessage
+	nextWorkers       []chan *dnsutils.DNSMessageBatch
 	LogInfo, LogError func(msg string, v ...interface{})
 }
 
-func NewTransformer(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, workerName string, instance int, nextWorkers []chan *dnsutils.DNSMessage) GenericTransformer {
+func NewTransformer(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, workerName string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) GenericTransformer {
 	t := GenericTransformer{config: config, logger: logger, nextWorkers: nextWorkers, name: name}
 
 	t.LogInfo = func(msg string, v ...interface{}) {
@@ -69,7 +69,7 @@ type Transforms struct {
 	activeProcessTransforms []func(dm *dnsutils.DNSMessage) (int, error)
 }
 
-func NewTransforms(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, nextWorkers []chan *dnsutils.DNSMessage, instance int) Transforms {
+func NewTransforms(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, nextWorkers []chan *dnsutils.DNSMessageBatch, instance int) Transforms {
 
 	d := Transforms{config: config, logger: logger, name: name, instance: instance}
 

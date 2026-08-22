@@ -187,67 +187,70 @@ func (w *DNSMessage) StartCollect() {
 			w.SetConfig(cfg)
 			w.ReadConfig()
 
-		case dm, opened := <-w.GetInputChannel():
+		case batch, opened := <-w.GetInputChannel():
 			if !opened {
 				w.LogInfo("channel closed, exit")
 				return
 			}
-			// count global messages
-			w.CountIngressTraffic()
+			for _, dm := range batch.Messages {
+				// count global messages
+				w.CountIngressTraffic()
 
-			// matching enabled, filtering DNS messages ?
-			matched := true
-			matchedInclude := false
-			matchedExclude := false
+				// matching enabled, filtering DNS messages ?
+				matched := true
+				matchedInclude := false
+				matchedExclude := false
 
-			if len(w.GetConfig().Collectors.DNSMessage.Matching.Include) > 0 {
-				err, matchedInclude = dm.Matching(w.GetConfig().Collectors.DNSMessage.Matching.Include)
-				if err != nil {
-					w.LogError(err.Error())
+				if len(w.GetConfig().Collectors.DNSMessage.Matching.Include) > 0 {
+					err, matchedInclude = dm.Matching(w.GetConfig().Collectors.DNSMessage.Matching.Include)
+					if err != nil {
+						w.LogError(err.Error())
+					}
+					if matched && matchedInclude {
+						matched = true
+					} else {
+						matched = false
+					}
 				}
-				if matched && matchedInclude {
-					matched = true
-				} else {
-					matched = false
-				}
-			}
 
-			if len(w.GetConfig().Collectors.DNSMessage.Matching.Exclude) > 0 {
-				err, matchedExclude = dm.Matching(w.GetConfig().Collectors.DNSMessage.Matching.Exclude)
-				if err != nil {
-					w.LogError(err.Error())
+				if len(w.GetConfig().Collectors.DNSMessage.Matching.Exclude) > 0 {
+					err, matchedExclude = dm.Matching(w.GetConfig().Collectors.DNSMessage.Matching.Exclude)
+					if err != nil {
+						w.LogError(err.Error())
+					}
+					if matched && !matchedExclude {
+						matched = true
+					} else {
+						matched = false
+					}
 				}
-				if matched && !matchedExclude {
-					matched = true
-				} else {
-					matched = false
-				}
-			}
 
-			// count output packets
-			w.CountEgressTraffic()
+				// count output packets
+				w.CountEgressTraffic()
 
-			// apply transform on matched packets only
-			// init dns message with additional parts if necessary
-			if matched {
-				transformResult, err := subprocessors.ProcessMessage(dm)
-				if err != nil {
-					w.LogError(err.Error())
+				// apply transform on matched packets only
+				// init dns message with additional parts if necessary
+				if matched {
+					transformResult, err := subprocessors.ProcessMessage(dm)
+					if err != nil {
+						w.LogError(err.Error())
+					}
+					if transformResult == transformers.ReturnDrop {
+						w.SendDroppedTo(droppedRoutes, droppedNames, dm)
+						continue
+					}
 				}
-				if transformResult == transformers.ReturnDrop {
+
+				// drop packet ?
+				if !matched {
 					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
 					continue
 				}
-			}
 
-			// drop packet ?
-			if !matched {
-				w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-				continue
+				// send to next
+				w.SendForwardedTo(defaultRoutes, defaultNames, dm)
 			}
-
-			// send to next
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+			batch.Release()
 		}
 	}
 }

@@ -202,7 +202,9 @@ func (w *XDPSniffer) StartCollect() {
 			// update identity with config ?
 			dm.DNSTap.Identity = w.GetConfig().GetServerIdentity()
 
-			dnsProcessor.GetInputChannel() <- dm
+			b := dnsutils.AcquireDNSMessageBatch(1)
+			b.Messages = append(b.Messages, dm)
+			dnsProcessor.GetInputChannel() <- b
 		}
 	}
 }

@@ -22,7 +22,7 @@ func BenchmarkTransforms_InitAndProcess(b *testing.B) {
 	config.Filtering.Enable = true
 	config.Filtering.KeepDomainFile = ".././tests/testsdata/filtering_keep_domains.txt"
 
-	channels := []chan *dnsutils.DNSMessage{}
+	channels := []chan *dnsutils.DNSMessageBatch{}
 	transformers := NewTransforms(config, logger.New(false), "test", channels, 0)
 
 	dm := dnsutils.GetFakeDNSMessage()

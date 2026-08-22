@@ -60,7 +60,7 @@ func Test_LogFileText(t *testing.T) {
 			// send fake dns message to logger
 			dm := dnsutils.GetFakeDNSMessage()
 			dm.DNSTap.Identity = dnsutils.DNSTapIdentityTest
-			g.GetInputChannel() <- &dm
+			g.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm)
 
 			time.Sleep(time.Second)
 			g.Stop()
@@ -113,7 +113,7 @@ func Test_LogFilePcap_ContentVerification(t *testing.T) {
 		0x00, 0x01, // Type: A
 		0x00, 0x01, // Class: IN
 	}
-	g.GetInputChannel() <- &dm
+	g.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm)
 
 	// stop worker
 	time.Sleep(time.Second)
@@ -228,7 +228,7 @@ func Test_LogFileRotation(t *testing.T) {
 				for i := 0; i < tc.queries; i++ {
 					dm := dnsutils.GetFakeDNSMessage()
 					dm.DNS.Qname = strings.Repeat("a", 1000) // Adds 1KB per message
-					w.GetInputChannel() <- &dm
+					w.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm)
 				}
 
 				// Ensure we wait enough for the timer-based rotations
@@ -279,7 +279,7 @@ func Test_LogFileBatchProcessing(t *testing.T) {
 	for i := range numMessages {
 		dm := dnsutils.GetFakeDNSMessage()
 		dm.DNS.Qname = fmt.Sprintf("message-%d.batch.test", i)
-		g.GetInputChannel() <- &dm
+		g.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm)
 	}
 
 	// wait to ensure all messages are processed

@@ -156,7 +156,9 @@ func (w *FileIngestor) ProcessPcap(filePath string) {
 				nbPackets++
 
 				// send DNS message to DNS processor
-				w.dnsProcessor.GetInputChannel() <- dm
+				b := dnsutils.AcquireDNSMessageBatch(1)
+				b.Messages = append(b.Messages, dm)
+				w.dnsProcessor.GetInputChannel() <- b
 			case <-time.After(10 * time.Second):
 				elapsed := time.Since(lastReceivedTime)
 				if elapsed >= 10*time.Second {

@@ -72,7 +72,7 @@ type NormalizeTransform struct {
 	GenericTransformer
 }
 
-func NewNormalizeTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessage) *NormalizeTransform {
+func NewNormalizeTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *NormalizeTransform {
 	t := &NormalizeTransform{GenericTransformer: NewTransformer(config, logger, "normalize", name, instance, nextWorkers)}
 	return t
 }

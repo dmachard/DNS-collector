@@ -37,7 +37,7 @@ type UserPrivacyTransform struct {
 	v4Mask, v6Mask net.IPMask
 }
 
-func NewUserPrivacyTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessage) *UserPrivacyTransform {
+func NewUserPrivacyTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *UserPrivacyTransform {
 	t := &UserPrivacyTransform{GenericTransformer: NewTransformer(config, logger, "userprivacy", name, instance, nextWorkers)}
 	return t
 }

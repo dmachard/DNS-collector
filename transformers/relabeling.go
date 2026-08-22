@@ -13,7 +13,7 @@ type RelabelTransform struct {
 	RelabelingRules []dnsutils.RelabelingRule
 }
 
-func NewRelabelTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessage) *RelabelTransform {
+func NewRelabelTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *RelabelTransform {
 	t := &RelabelTransform{GenericTransformer: NewTransformer(config, logger, "relabeling", name, instance, nextWorkers)}
 	return t
 }

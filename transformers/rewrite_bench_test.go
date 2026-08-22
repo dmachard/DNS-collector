@@ -15,7 +15,7 @@ func BenchmarkRewrite_UpdateValues(b *testing.B) {
 	config.Rewrite.Identifiers["dns.qname"] = "rewritten.qname.com"
 	config.Rewrite.Identifiers["network.query-ip"] = "1.1.1.1"
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 	rewrite := NewRewriteTransform(config, logger.New(false), "test", 0, outChans)
 	rewrite.GetTransforms()
 

@@ -70,7 +70,7 @@ func Test_NSQ_ClientAndPublishing(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	dm := dnsutils.GetFakeDNSMessage()
-	nsqClient.GetInputChannel() <- &dm
+	nsqClient.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm)
 
 	// Wait for message to be processed
 	time.Sleep(200 * time.Millisecond)

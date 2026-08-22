@@ -293,7 +293,9 @@ func (w *AfpacketSniffer) StartCollect() {
 			dm.DNSTap.TimeNsec = int(timestamp - seconds*int64(time.Second)*int64(time.Nanosecond))
 
 			// send DNS message to DNS processor
-			dnsProcessor.GetInputChannel() <- dm
+			b := dnsutils.AcquireDNSMessageBatch(1)
+			b.Messages = append(b.Messages, dm)
+			dnsProcessor.GetInputChannel() <- b
 		}
 	}
 }

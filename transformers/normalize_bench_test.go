@@ -10,7 +10,7 @@ import (
 
 func BenchmarkNormalize_GetEffectiveTld(b *testing.B) {
 	config := pkgconfig.GetFakeConfigTransformers()
-	channels := []chan *dnsutils.DNSMessage{}
+	channels := []chan *dnsutils.DNSMessageBatch{}
 
 	subprocessor := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
 	dm := dnsutils.GetFakeDNSMessage()
@@ -25,7 +25,7 @@ func BenchmarkNormalize_GetEffectiveTld(b *testing.B) {
 
 func BenchmarkNormalize_GetEffectiveTldPlusOne(b *testing.B) {
 	config := pkgconfig.GetFakeConfigTransformers()
-	channels := []chan *dnsutils.DNSMessage{}
+	channels := []chan *dnsutils.DNSMessageBatch{}
 
 	subprocessor := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
 	dm := dnsutils.GetFakeDNSMessage()
@@ -40,7 +40,7 @@ func BenchmarkNormalize_GetEffectiveTldPlusOne(b *testing.B) {
 
 func BenchmarkNormalize_QnameLowercase_MixedCase(b *testing.B) {
 	config := pkgconfig.GetFakeConfigTransformers()
-	channels := []chan *dnsutils.DNSMessage{}
+	channels := []chan *dnsutils.DNSMessageBatch{}
 
 	subprocessor := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
 	dm := dnsutils.GetFakeDNSMessage()
@@ -55,7 +55,7 @@ func BenchmarkNormalize_QnameLowercase_MixedCase(b *testing.B) {
 
 func BenchmarkNormalize_QnameLowercase_AlreadyLower(b *testing.B) {
 	config := pkgconfig.GetFakeConfigTransformers()
-	channels := []chan *dnsutils.DNSMessage{}
+	channels := []chan *dnsutils.DNSMessageBatch{}
 
 	subprocessor := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
 	dm := dnsutils.GetFakeDNSMessage()
@@ -70,7 +70,7 @@ func BenchmarkNormalize_QnameLowercase_AlreadyLower(b *testing.B) {
 
 func BenchmarkNormalize_RRLowercase_MixedCase(b *testing.B) {
 	config := pkgconfig.GetFakeConfigTransformers()
-	channels := []chan *dnsutils.DNSMessage{}
+	channels := []chan *dnsutils.DNSMessageBatch{}
 
 	transform := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
 	dm := dnsutils.GetFakeDNSMessage()
@@ -92,7 +92,7 @@ func BenchmarkNormalize_RRLowercase_MixedCase(b *testing.B) {
 
 func BenchmarkNormalize_RRLowercase_AlreadyLower(b *testing.B) {
 	config := pkgconfig.GetFakeConfigTransformers()
-	channels := []chan *dnsutils.DNSMessage{}
+	channels := []chan *dnsutils.DNSMessageBatch{}
 
 	transform := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
 	dm := dnsutils.GetFakeDNSMessage()
@@ -109,7 +109,7 @@ func BenchmarkNormalize_RRLowercase_AlreadyLower(b *testing.B) {
 
 func BenchmarkNormalize_QuietText(b *testing.B) {
 	config := pkgconfig.GetFakeConfigTransformers()
-	channels := []chan *dnsutils.DNSMessage{}
+	channels := []chan *dnsutils.DNSMessageBatch{}
 
 	subprocessor := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
 	dm := dnsutils.GetFakeDNSMessage()
@@ -124,7 +124,7 @@ func BenchmarkNormalize_QuietText(b *testing.B) {
 
 func BenchmarkNormalize_ReplaceNonprintable_Printable(b *testing.B) {
 	config := pkgconfig.GetFakeConfigTransformers()
-	channels := []chan *dnsutils.DNSMessage{}
+	channels := []chan *dnsutils.DNSMessageBatch{}
 
 	subprocessor := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
 	dm := dnsutils.GetFakeDNSMessage()
@@ -139,7 +139,7 @@ func BenchmarkNormalize_ReplaceNonprintable_Printable(b *testing.B) {
 
 func BenchmarkNormalize_ReplaceNonprintable_WithSpecial(b *testing.B) {
 	config := pkgconfig.GetFakeConfigTransformers()
-	channels := []chan *dnsutils.DNSMessage{}
+	channels := []chan *dnsutils.DNSMessageBatch{}
 
 	subprocessor := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
 	dm := dnsutils.GetFakeDNSMessage()

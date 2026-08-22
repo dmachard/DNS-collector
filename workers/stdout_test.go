@@ -79,7 +79,7 @@ func Test_StdoutTextMode(t *testing.T) {
 			// print dns message to stdout buffer
 			dm := dnsutils.GetFakeDNSMessage()
 			dm.DNS.Qname = tc.qname
-			g.GetInputChannel() <- &dm
+			g.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm)
 
 			// stop logger
 			time.Sleep(time.Second)
@@ -122,7 +122,7 @@ func Test_StdoutJsonMode(t *testing.T) {
 
 			// print dns message to stdout buffer
 			dm := dnsutils.GetFakeDNSMessage()
-			g.GetInputChannel() <- &dm
+			g.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm)
 
 			// stop logger
 			time.Sleep(time.Second)
@@ -153,7 +153,7 @@ func Test_StdoutPcapMode(t *testing.T) {
 
 	// send DNSMessage to channel
 	dm := dnsutils.GetFakeDNSMessageWithPayload()
-	g.GetInputChannel() <- &dm
+	g.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm)
 
 	// stop logger
 	time.Sleep(time.Second)
@@ -194,7 +194,7 @@ func Test_StdoutPcapMode_NoDNSPayload(t *testing.T) {
 
 	// send DNSMessage to channel
 	dm := dnsutils.GetFakeDNSMessage()
-	g.GetInputChannel() <- &dm
+	g.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm)
 
 	// stop logger
 	time.Sleep(time.Second)
@@ -232,7 +232,7 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 	// add a shot of dnsmessages to collector
 	for range 512 {
 		dmIn := dnsutils.GetFakeDNSMessage()
-		g.GetInputChannel() <- &dmIn
+		g.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dmIn)
 	}
 
 	// waiting monitor to run in consumer
@@ -247,15 +247,15 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 	}
 
 	// read dns message from dnstap consumer
-	dmOut := <-nxt.GetInputChannel()
-	if dmOut.DNS.Qname != pkgconfig.ExpectedQname2 {
-		t.Errorf("invalid qname in dns message: %s", dmOut.DNS.Qname)
+	batchOut := <-nxt.GetInputChannel()
+	if len(batchOut.Messages) == 0 || batchOut.Messages[0].DNS.Qname != pkgconfig.ExpectedQname2 {
+		t.Errorf("invalid qname in dns message: %v", batchOut.Messages)
 	}
 
 	// send second shot of packets to consumer
 	for range 1024 {
 		dmIn := dnsutils.GetFakeDNSMessage()
-		g.GetInputChannel() <- &dmIn
+		g.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dmIn)
 	}
 
 	// waiting monitor to run in consumer
@@ -269,9 +269,9 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 	}
 
 	// read dns message from dnstap consumer
-	dmOut2 := <-nxt.GetInputChannel()
-	if dmOut2.DNS.Qname != pkgconfig.ExpectedQname2 {
-		t.Errorf("invalid qname in second dns message: %s", dmOut2.DNS.Qname)
+	batchOut2 := <-nxt.GetInputChannel()
+	if len(batchOut2.Messages) == 0 || batchOut2.Messages[0].DNS.Qname != pkgconfig.ExpectedQname2 {
+		t.Errorf("invalid qname in second dns message: %v", batchOut2.Messages)
 	}
 
 	// stop loggers
@@ -292,7 +292,7 @@ func Test_StdoutTextMode_Batching(t *testing.T) {
 
 	for range 5 {
 		dm := dnsutils.GetFakeDNSMessage()
-		g.GetInputChannel() <- &dm
+		g.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm)
 	}
 
 	// wait for flush 2s > to the default 1s flush interval

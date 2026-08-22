@@ -225,6 +225,8 @@ func (w *PdnsProcessor) StartCollect() {
 
 	// prepare enabled transformers
 	transforms := transformers.NewTransforms(&w.GetConfig().IngoingTransformers, w.GetLogger(), w.GetName(), defaultRoutes, w.ConnID)
+	batchSize := w.GetBatchSize()
+	curBatch := dnsutils.AcquireDNSMessageBatch(batchSize)
 
 	// read incoming dns message
 	for {
@@ -234,12 +236,22 @@ func (w *PdnsProcessor) StartCollect() {
 			transforms.ReloadConfig(&cfg.IngoingTransformers)
 
 		case <-w.OnStop():
+			if len(curBatch.Messages) > 0 {
+				w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+			} else {
+				curBatch.Release()
+			}
 			transforms.Reset()
 			close(w.GetDataChannel())
 			return
 
 		case data, opened := <-w.GetDataChannel():
 			if !opened {
+				if len(curBatch.Messages) > 0 {
+					w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+				} else {
+					curBatch.Release()
+				}
 				w.LogInfo("channel closed, exit")
 				return
 			}
@@ -476,8 +488,12 @@ func (w *PdnsProcessor) StartCollect() {
 				continue
 			}
 
-			// dispatch dns messages to connected loggers
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+			// append to batch and dispatch
+			curBatch.Messages = append(curBatch.Messages, dm)
+			if len(curBatch.Messages) >= batchSize || len(w.GetDataChannel()) == 0 {
+				w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+				curBatch = dnsutils.AcquireDNSMessageBatch(batchSize)
+			}
 		}
 	}
 }

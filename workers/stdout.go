@@ -121,26 +121,29 @@ func (w *StdOut) StartCollect() {
 			w.ReadConfig()
 			subprocessors.ReloadConfig(&cfg.OutgoingTransformers)
 
-		case dm, opened := <-w.GetInputChannel():
+		case batch, opened := <-w.GetInputChannel():
 			if !opened {
 				w.LogInfo("run: input channel closed!")
 				return
 			}
 
-			// count global messages
-			w.CountIngressTraffic()
+			for _, dm := range batch.Messages {
+				// count global messages
+				w.CountIngressTraffic()
 
-			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(dm)
-			if err != nil {
-				w.LogError(err.Error())
-			}
-			if transformResult == transformers.ReturnDrop {
-				w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-				continue
-			}
+				// apply transforms, init dns message with additional parts if necessary
+				transformResult, err := subprocessors.ProcessMessage(dm)
+				if err != nil {
+					w.LogError(err.Error())
+				}
+				if transformResult == transformers.ReturnDrop {
+					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
+					continue
+				}
 
-			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+				w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+			}
+			batch.Release()
 		}
 	}
 }
@@ -177,113 +180,109 @@ func (w *StdOut) StartLogging() {
 		case <-flushTicker.C:
 			w.writerRaw.Flush()
 
-		case dm, opened := <-w.GetOutputChannel():
+		case batch, opened := <-w.GetOutputChannel():
 			if !opened {
 				w.LogInfo("process: output channel closed!")
 				return
 			}
 
-			switch w.GetConfig().Loggers.Stdout.Mode {
-			case pkgconfig.ModePCAP:
-				if len(dm.DNS.Payload) == 0 {
-					w.CountEgressDiscarded()
-					w.LogError("process: no dns payload to encode, drop it")
-					dm.Release()
-					continue
-				}
-
-				pkt, err := dm.ToPacketLayer(w.GetConfig().Loggers.Stdout.OverwriteDNSPortPcap)
-				if err != nil {
-					w.CountEgressDiscarded()
-					w.LogError("process: unable to pack layer: %s", err)
-					dm.Release()
-					continue
-				}
-
-				buf := gopacket.NewSerializeBuffer()
-				opts := gopacket.SerializeOptions{
-					FixLengths:       true,
-					ComputeChecksums: true,
-				}
-				for _, l := range pkt {
-					l.SerializeTo(buf, opts)
-				}
-
-				bufSize := len(buf.Bytes())
-				ci := gopacket.CaptureInfo{
-					Timestamp:     time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec)),
-					CaptureLength: bufSize,
-					Length:        bufSize,
-				}
-
-				w.writerPcap.WritePacket(ci, buf.Bytes())
-
-			case pkgconfig.ModeText:
-				// get buffer from pool
-				buf := w.GetTextBuffer()
-				buf.Reset()
-
-				var err error
-				if w.textFormatter != nil {
-					err = w.textFormatter.Format(dm, buf)
-				} else {
-					err = dm.ToTextLine(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary, buf)
-				}
-				if err == nil {
-					w.writerRaw.Write(buf.Bytes())
-					w.writerRaw.WriteByte('\n')
-				}
-
-				// return buffer to pool
-				w.PutTextBuffer(buf)
-
-			case pkgconfig.ModeJinja:
-				textLine, err := dm.ToTextTemplate(w.jinjaFormat)
-				if err != nil {
-					w.CountEgressDiscarded()
-					w.LogError("process: unable to update template: %s", err)
-					dm.Release()
-					continue
-				}
-				w.writerRaw.WriteString(textLine)
-				w.writerRaw.WriteByte('\n')
-
-			case pkgconfig.ModeJSON:
-				err := jsonEncoder.Encode(dm)
-				if err != nil {
-					w.CountEgressDiscarded()
-					w.LogError("process: unable to encode json: %s", err)
-					dm.Release()
-					continue
-				}
-
-			case pkgconfig.ModeFlatJSON:
-				if dm.Relabeling != nil {
-					flat, err := dm.Flatten()
-					if err != nil {
+			for _, dm := range batch.Messages {
+				switch w.GetConfig().Loggers.Stdout.Mode {
+				case pkgconfig.ModePCAP:
+					if len(dm.DNS.Payload) == 0 {
 						w.CountEgressDiscarded()
-						w.LogError("process: flattening DNS message failed: %e", err)
-						dm.Release()
+						w.LogError("process: no dns payload to encode, drop it")
 						continue
 					}
-					err = jsonEncoder.Encode(flat)
+
+					pkt, err := dm.ToPacketLayer(w.GetConfig().Loggers.Stdout.OverwriteDNSPortPcap)
 					if err != nil {
 						w.CountEgressDiscarded()
-						w.LogError("process: unable to encode flat json: %s", err)
-						dm.Release()
+						w.LogError("process: unable to pack layer: %s", err)
 						continue
 					}
-				} else {
+
+					buf := gopacket.NewSerializeBuffer()
+					opts := gopacket.SerializeOptions{
+						FixLengths:       true,
+						ComputeChecksums: true,
+					}
+					for _, l := range pkt {
+						l.SerializeTo(buf, opts)
+					}
+
+					bufSize := len(buf.Bytes())
+					ci := gopacket.CaptureInfo{
+						Timestamp:     time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec)),
+						CaptureLength: bufSize,
+						Length:        bufSize,
+					}
+
+					w.writerPcap.WritePacket(ci, buf.Bytes())
+
+				case pkgconfig.ModeText:
+					// get buffer from pool
 					buf := w.GetTextBuffer()
 					buf.Reset()
-					dm.GetTimestampRFC3339()
-					dm.EncodeFlatJSON(buf)
-					buf.WriteByte('\n')
-					w.writerRaw.Write(buf.Bytes())
+
+					var err error
+					if w.textFormatter != nil {
+						err = w.textFormatter.Format(dm, buf)
+					} else {
+						err = dm.ToTextLine(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary, buf)
+					}
+					if err == nil {
+						w.writerRaw.Write(buf.Bytes())
+						w.writerRaw.WriteByte('\n')
+					}
+
+					// return buffer to pool
 					w.PutTextBuffer(buf)
+
+				case pkgconfig.ModeJinja:
+					textLine, err := dm.ToTextTemplate(w.jinjaFormat)
+					if err != nil {
+						w.CountEgressDiscarded()
+						w.LogError("process: unable to update template: %s", err)
+						continue
+					}
+					w.writerRaw.WriteString(textLine)
+					w.writerRaw.WriteByte('\n')
+
+				case pkgconfig.ModeJSON:
+					err := jsonEncoder.Encode(dm)
+					if err != nil {
+						w.CountEgressDiscarded()
+						w.LogError("process: unable to encode json: %s", err)
+						continue
+					}
+
+				case pkgconfig.ModeFlatJSON:
+					if dm.Relabeling != nil {
+						flat, err := dm.Flatten()
+						if err != nil {
+							w.CountEgressDiscarded()
+							w.LogError("process: flattening DNS message failed: %e", err)
+							continue
+						}
+						err = jsonEncoder.Encode(flat)
+						if err != nil {
+							w.CountEgressDiscarded()
+							w.LogError("process: unable to encode flat json: %s", err)
+							continue
+						}
+					} else {
+						buf := w.GetTextBuffer()
+						buf.Reset()
+						dm.GetTimestampRFC3339()
+						dm.EncodeFlatJSON(buf)
+						buf.WriteByte('\n')
+						w.writerRaw.Write(buf.Bytes())
+						w.PutTextBuffer(buf)
+					}
 				}
 			}
-			dm.Release()
+			batch.Release()
 		}
 	}
 }

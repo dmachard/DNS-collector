@@ -30,7 +30,7 @@ func TestTransforms_ProcessOrder(t *testing.T) {
 	testURL2 := "test.github.com"
 
 	// init the transformer
-	subprocessors := NewTransforms(config, logger.New(false), "test", []chan *dnsutils.DNSMessage{}, 0)
+	subprocessors := NewTransforms(config, logger.New(false), "test", []chan *dnsutils.DNSMessageBatch{}, 0)
 
 	// create test message
 	dm := dnsutils.GetFakeDNSMessage()
@@ -72,7 +72,7 @@ func TestTransforms_ConfigurableOrder(t *testing.T) {
 	config.Normalize.Enable = true
 	config.Normalize.QnameLowerCase = true
 
-	subprocessors := NewTransforms(config, logger.New(false), "test", []chan *dnsutils.DNSMessage{}, 0)
+	subprocessors := NewTransforms(config, logger.New(false), "test", []chan *dnsutils.DNSMessageBatch{}, 0)
 
 	if len(subprocessors.activeTransforms) != 2 {
 		t.Fatalf("expected 2 active transforms, got %d", len(subprocessors.activeTransforms))
@@ -98,7 +98,7 @@ func TestTransforms_ConfigurableOrder(t *testing.T) {
 
 	// Reverse order
 	config.Order = []string{"normalize", "geoip"}
-	subprocessors = NewTransforms(config, logger.New(false), "test", []chan *dnsutils.DNSMessage{}, 0)
+	subprocessors = NewTransforms(config, logger.New(false), "test", []chan *dnsutils.DNSMessageBatch{}, 0)
 
 	st0, _ = subprocessors.activeTransforms[0].GetTransforms()
 	found = false

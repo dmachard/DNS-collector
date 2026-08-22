@@ -40,78 +40,87 @@ func (w *DNSProcessor) StartCollect() {
 			transforms.Reset()
 			return
 
-		case dm, opened := <-w.GetInputChannel():
+		case batch, opened := <-w.GetInputChannel():
 			if !opened {
 				w.LogInfo("channel closed, exit")
 				return
 			}
-			// count global messages
-			w.CountIngressTraffic()
+			outBatch := dnsutils.AcquireDNSMessageBatch(len(batch.Messages))
+			for _, dm := range batch.Messages {
+				// count global messages
+				w.CountIngressTraffic()
 
-			// compute timestamp
-			ts := time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec))
-			dm.DNSTap.Timestamp = ts.UnixNano()
-			dm.DNSTap.TimestampRFC3339 = "-"
+				// compute timestamp
+				ts := time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec))
+				dm.DNSTap.Timestamp = ts.UnixNano()
+				dm.DNSTap.TimestampRFC3339 = "-"
 
-			// decode the dns payload
-			dnsHeader, err := dnsutils.DecodeDNS(dm.DNS.Payload)
-			if err != nil {
-				dm.DNS.MalformedPacket = true
-				w.LogError("dns parser malformed packet: %s - %v+", err, dm)
-			}
-
-			// get number of questions and answers
-			dm.DNS.QdCount = dnsHeader.Qdcount
-			dm.DNS.AnCount = dnsHeader.Ancount
-			dm.DNS.ArCount = dnsHeader.Arcount
-			dm.DNS.NsCount = dnsHeader.Nscount
-
-			// dns reply ?
-			if dnsHeader.Qr == 1 {
-				dm.DNSTap.Operation = "CLIENT_RESPONSE"
-				dm.DNS.Type = dnsutils.DNSReply
-				qip := dm.NetworkInfo.QueryIP
-				qport := dm.NetworkInfo.QueryPort
-				qbuf := dm.NetworkInfo.QueryIPBuf
-				qlen := dm.NetworkInfo.QueryIPLen
-				dm.NetworkInfo.QueryIP = dm.NetworkInfo.ResponseIP
-				dm.NetworkInfo.QueryPort = dm.NetworkInfo.ResponsePort
-				dm.NetworkInfo.QueryIPBuf = dm.NetworkInfo.ResponseIPBuf
-				dm.NetworkInfo.QueryIPLen = dm.NetworkInfo.ResponseIPLen
-				dm.NetworkInfo.ResponseIP = qip
-				dm.NetworkInfo.ResponsePort = qport
-				dm.NetworkInfo.ResponseIPBuf = qbuf
-				dm.NetworkInfo.ResponseIPLen = qlen
-			} else {
-				dm.DNS.Type = dnsutils.DNSQuery
-				dm.DNSTap.Operation = dnsutils.DNSTapClientQuery
-			}
-
-			if err = dnsutils.DecodePayload(dm, &dnsHeader, w.GetConfig()); err != nil {
-				w.LogError("%v - %v", err, dm)
-			}
-
-			if dm.DNS.MalformedPacket {
-				if w.GetConfig().Global.Trace.LogMalformed {
-					w.LogInfo("payload: %v", dm.DNS.Payload)
+				// decode the dns payload
+				dnsHeader, err := dnsutils.DecodeDNS(dm.DNS.Payload)
+				if err != nil {
+					dm.DNS.MalformedPacket = true
+					w.LogError("dns parser malformed packet: %s - %v+", err, dm)
 				}
-			}
 
-			// count output packets
-			w.CountEgressTraffic()
+				// get number of questions and answers
+				dm.DNS.QdCount = dnsHeader.Qdcount
+				dm.DNS.AnCount = dnsHeader.Ancount
+				dm.DNS.ArCount = dnsHeader.Arcount
+				dm.DNS.NsCount = dnsHeader.Nscount
 
-			// apply all enabled transformers
-			transformResult, err := transforms.ProcessMessage(dm)
-			if err != nil {
-				w.LogError(err.Error())
-			}
-			if transformResult == transformers.ReturnDrop {
-				w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-				continue
-			}
+				// dns reply ?
+				if dnsHeader.Qr == 1 {
+					dm.DNSTap.Operation = "CLIENT_RESPONSE"
+					dm.DNS.Type = dnsutils.DNSReply
+					qip := dm.NetworkInfo.QueryIP
+					qport := dm.NetworkInfo.QueryPort
+					qbuf := dm.NetworkInfo.QueryIPBuf
+					qlen := dm.NetworkInfo.QueryIPLen
+					dm.NetworkInfo.QueryIP = dm.NetworkInfo.ResponseIP
+					dm.NetworkInfo.QueryPort = dm.NetworkInfo.ResponsePort
+					dm.NetworkInfo.QueryIPBuf = dm.NetworkInfo.ResponseIPBuf
+					dm.NetworkInfo.QueryIPLen = dm.NetworkInfo.ResponseIPLen
+					dm.NetworkInfo.ResponseIP = qip
+					dm.NetworkInfo.ResponsePort = qport
+					dm.NetworkInfo.ResponseIPBuf = qbuf
+					dm.NetworkInfo.ResponseIPLen = qlen
+				} else {
+					dm.DNS.Type = dnsutils.DNSQuery
+					dm.DNSTap.Operation = dnsutils.DNSTapClientQuery
+				}
 
-			// dispatch dns message to all generators
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+				if err = dnsutils.DecodePayload(dm, &dnsHeader, w.GetConfig()); err != nil {
+					w.LogError("%v - %v", err, dm)
+				}
+
+				if dm.DNS.MalformedPacket {
+					if w.GetConfig().Global.Trace.LogMalformed {
+						w.LogInfo("payload: %v", dm.DNS.Payload)
+					}
+				}
+
+				// count output packets
+				w.CountEgressTraffic()
+
+				// apply all enabled transformers
+				transformResult, err := transforms.ProcessMessage(dm)
+				if err != nil {
+					w.LogError(err.Error())
+				}
+				if transformResult == transformers.ReturnDrop {
+					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
+					continue
+				}
+
+				// append to output batch
+				outBatch.Messages = append(outBatch.Messages, dm)
+			}
+			if len(outBatch.Messages) > 0 {
+				w.SendForwardedBatchTo(defaultRoutes, defaultNames, outBatch)
+			} else {
+				outBatch.Release()
+			}
+			batch.Release()
 		}
 	}
 }

@@ -15,7 +15,7 @@ func TestNormalize_LowercaseQname(t *testing.T) {
 	config.Normalize.Enable = true
 	config.Normalize.QnameLowerCase = true
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
 	normTransformer := NewNormalizeTransform(config, logger.New(false), "test", 0, outChans)
@@ -42,7 +42,7 @@ func TestNormalize_RRLowercaseQname(t *testing.T) {
 	config := pkgconfig.GetFakeConfigTransformers()
 	config.Normalize.Enable = true
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
 	normTransformer := NewNormalizeTransform(config, logger.New(false), "test", 0, outChans)
@@ -84,7 +84,7 @@ func TestNormalize_QuietText(t *testing.T) {
 	config.Normalize.Enable = true
 	config.Normalize.QuietText = true
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
 	norm := NewNormalizeTransform(config, logger.New(false), "test", 0, outChans)
@@ -107,7 +107,7 @@ func TestNormalize_AddTLD(t *testing.T) {
 	config.Normalize.Enable = true
 	config.Normalize.AddTld = true
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
 	psl := NewNormalizeTransform(config, logger.New(false), "test", 0, outChans)
@@ -157,7 +157,7 @@ func TestNormalize_AddTldPlusOne(t *testing.T) {
 	config.Normalize.Enable = true
 	config.Normalize.AddTld = true
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
 	psl := NewNormalizeTransform(config, logger.New(false), "test", 0, outChans)
@@ -199,7 +199,7 @@ func TestNormalize_AddTldPlusOne(t *testing.T) {
 func TestNormalize_SuffixUnmanaged(t *testing.T) {
 	// enable feature
 	config := pkgconfig.GetFakeConfigTransformers()
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
 	psl := NewNormalizeTransform(config, logger.New(true), "test", 0, outChans)
@@ -224,7 +224,7 @@ func TestNormalize_SuffixUnmanaged(t *testing.T) {
 func TestNormalize_SuffixICANNManaged(t *testing.T) {
 	// enable feature
 	config := pkgconfig.GetFakeConfigTransformers()
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
 	psl := NewNormalizeTransform(config, logger.New(true), "test", 0, outChans)
@@ -250,7 +250,7 @@ func TestNormalize_ReplaceNonprintable(t *testing.T) {
 	config.Normalize.Enable = true
 	config.Normalize.ReplaceNonPrintable = true
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 	norm := NewNormalizeTransform(config, logger.New(false), "test", 0, outChans)
 
 	tests := []struct {

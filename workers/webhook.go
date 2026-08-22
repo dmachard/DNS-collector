@@ -79,28 +79,34 @@ func (w *Webhook) StartCollect() {
 			w.SetConfig(cfg)
 			w.ReadConfig()
 
-		case dm, opened := <-w.GetInputChannel():
+		case batch, opened := <-w.GetInputChannel():
 			if !opened {
 				w.LogInfo("channel closed, exit")
 				cancel()
 				return
 			}
-			// count global messages
-			w.CountIngressTraffic()
+			for _, dm := range batch.Messages {
+				// count global messages
+				w.CountIngressTraffic()
 
-			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(dm)
-			if err != nil {
-				w.LogError(err.Error())
-			}
-			if transformResult == transformers.ReturnDrop {
-				w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-				continue
-			}
-			// count output packets
-			w.CountEgressTraffic()
+				// apply transforms, init dns message with additional parts if necessary
+				transformResult, err := subprocessors.ProcessMessage(dm)
+				if err != nil {
+					w.LogError(err.Error())
+				}
+				if transformResult == transformers.ReturnDrop {
+					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
+					continue
+				}
+				// count output packets
+				w.CountEgressTraffic()
 
-			w.GetOutputChannel() <- dm
+				dm.Retain(1)
+				b := dnsutils.AcquireDNSMessageBatch(1)
+				b.Messages = append(b.Messages, dm)
+				w.GetOutputChannel() <- b
+			}
+			batch.Release()
 		}
 	}
 }
@@ -116,17 +122,20 @@ func (w *Webhook) StartLogging(threadnum int, ctx context.Context) {
 		case <-ctx.Done():
 			return
 
-		case dm, opened := <-w.GetOutputChannel():
+		case batch, opened := <-w.GetOutputChannel():
 			if !opened {
 				w.LogInfo("output channel closed!")
 				return
 			}
 
-			// enrich dm with HTTP data
-			w.Request(dm)
+			for _, dm := range batch.Messages {
+				// enrich dm with HTTP data
+				w.Request(dm)
 
-			// send to next
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+				// send to next
+				w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+			}
+			batch.Release()
 		}
 	}
 }

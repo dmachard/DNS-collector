@@ -23,8 +23,10 @@ type ConfigGlobal struct {
 	ServerIdentity string `yaml:"server-identity" default:""`
 	PidFile        string `yaml:"pid-file" default:""`
 	Worker         struct {
-		InternalMonitor   int `yaml:"interval-monitor" default:"10"`
-		ChannelBufferSize int `yaml:"buffer-size" default:"8192"`
+		InternalMonitor      int `yaml:"interval-monitor" default:"10"`
+		ChannelBufferSize    int `yaml:"buffer-size" default:"8192"`
+		BatchSize            int `yaml:"batch-size" default:"64"`
+		BatchFlushIntervalMs int `yaml:"flush-interval-ms" default:"10"`
 	} `yaml:"worker"`
 	Telemetry struct {
 		Enabled         bool   `yaml:"enabled" default:"false"`

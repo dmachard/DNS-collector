@@ -82,23 +82,29 @@ func (w *NsqClient) StartLogging() {
 			w.Disconnect()
 			return
 
-		case msg, opened := <-w.GetOutputChannel():
+		case batch, opened := <-w.GetOutputChannel():
 			if !opened {
 				w.LogInfo("output channel closed!")
 				return
 			}
 
-			encoded, err := json.Marshal(msg)
-			if err != nil {
-				w.LogError("json encoding error: %v", err)
-				w.CountEgressDiscarded()
-				continue
-			}
+			for _, dm := range batch.Messages {
+				encoded, err := json.Marshal(dm)
+				if err != nil {
+					w.LogError("json encoding error: %v", err)
+					w.CountEgressDiscarded()
+					continue
+				}
 
-			err = w.nsqProducer.Publish(topic, encoded)
-			if err != nil {
-				w.LogError("failed to publish to NSQ: %v", err)
+				err = w.nsqProducer.Publish(topic, encoded)
+				if err != nil {
+					w.LogError("failed to publish to NSQ: %v", err)
+					w.CountEgressDiscarded()
+					continue
+				}
+				w.CountEgressTraffic()
 			}
+			batch.Release()
 		}
 	}
 }

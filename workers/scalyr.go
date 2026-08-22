@@ -158,25 +158,28 @@ func (w *ScalyrClient) StartCollect() {
 			w.ReadConfig()
 			subprocessors.ReloadConfig(&cfg.OutgoingTransformers)
 
-		case dm, opened := <-w.GetInputChannel():
+		case batch, opened := <-w.GetInputChannel():
 			if !opened {
 				w.LogInfo("input channel closed!")
 				return
 			}
-			// count global messages
-			w.CountIngressTraffic()
+			for _, dm := range batch.Messages {
+				// count global messages
+				w.CountIngressTraffic()
 
-			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(dm)
-			if err != nil {
-				w.LogError(err.Error())
-			}
-			if transformResult == transformers.ReturnDrop {
-				w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-				continue
-			}
+				// apply transforms, init dns message with additional parts if necessary
+				transformResult, err := subprocessors.ProcessMessage(dm)
+				if err != nil {
+					w.LogError(err.Error())
+				}
+				if transformResult == transformers.ReturnDrop {
+					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
+					continue
+				}
 
-			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+				w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+			}
+			batch.Release()
 		}
 	}
 }
@@ -223,64 +226,64 @@ func (w *ScalyrClient) StartLogging() {
 			return
 
 			// incoming dns message to process
-		case dm, opened := <-w.GetOutputChannel():
+		case batch, opened := <-w.GetOutputChannel():
 			if !opened {
 				w.LogInfo("output channel closed!")
 				return
 			}
 
-			switch w.mode {
-			case pkgconfig.ModeText:
-				buf := w.GetTextBuffer() // get buffer from pool
-				var err error
-				if w.textFormatter != nil {
-					err = w.textFormatter.Format(dm, buf)
-				} else {
-					err = dm.ToTextLine(
-						w.textFormat,
-						w.GetConfig().Global.TextFormatDelimiter,
-						w.GetConfig().Global.TextFormatBoundary,
-						buf,
-					)
-				}
-				if err != nil {
-					w.CountEgressDiscarded()
-					w.LogError("could not encode to text format: %s", err)
-					w.PutTextBuffer(buf)
-					dm.Release()
-					continue
-				}
+			for _, dm := range batch.Messages {
+				switch w.mode {
+				case pkgconfig.ModeText:
+					buf := w.GetTextBuffer() // get buffer from pool
+					var err error
+					if w.textFormatter != nil {
+						err = w.textFormatter.Format(dm, buf)
+					} else {
+						err = dm.ToTextLine(
+							w.textFormat,
+							w.GetConfig().Global.TextFormatDelimiter,
+							w.GetConfig().Global.TextFormatBoundary,
+							buf,
+						)
+					}
+					if err != nil {
+						w.CountEgressDiscarded()
+						w.LogError("could not encode to text format: %s", err)
+						w.PutTextBuffer(buf)
+						continue
+					}
 
-				attrs["message"] = buf.String() // assign buffer content
-				w.PutTextBuffer(buf)            // return buffer to pool
-			case pkgconfig.ModeJSON:
-				attrs["message"] = dm
-			case pkgconfig.ModeFlatJSON:
-				var err error
-				if attrs, err = dm.Flatten(); err != nil {
-					w.LogError("unable to flatten: %e", err)
-					dm.Release()
-					break
-				}
-				// Add user's attrs without overwriting flattened ones
-				for k, v := range w.GetConfig().Loggers.ScalyrClient.Attrs {
-					if _, ok := attrs[k]; !ok {
-						attrs[k] = v
+					attrs["message"] = buf.String() // assign buffer content
+					w.PutTextBuffer(buf)            // return buffer to pool
+				case pkgconfig.ModeJSON:
+					attrs["message"] = dm
+				case pkgconfig.ModeFlatJSON:
+					var err error
+					if attrs, err = dm.Flatten(); err != nil {
+						w.LogError("unable to flatten: %e", err)
+						continue
+					}
+					// Add user's attrs without overwriting flattened ones
+					for k, v := range w.GetConfig().Loggers.ScalyrClient.Attrs {
+						if _, ok := attrs[k]; !ok {
+							attrs[k] = v
+						}
 					}
 				}
+				events = append(events, event{
+					TS:    strconv.FormatInt(time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec)).UnixNano(), 10),
+					Sev:   SeverityInfo,
+					Attrs: attrs,
+				})
+				if len(events) >= 400 {
+					// Maximum size of a POST is 6MB. 400 events would mean that each dnstap entry
+					// can be a little over 15 kB in JSON, which should be plenty.
+					w.submitEventRecord(sInfo, events)
+					events = []event{}
+				}
 			}
-			events = append(events, event{
-				TS:    strconv.FormatInt(time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec)).UnixNano(), 10),
-				Sev:   SeverityInfo,
-				Attrs: attrs,
-			})
-			dm.Release()
-			if len(events) >= 400 {
-				// Maximum size of a POST is 6MB. 400 events would mean that each dnstap entry
-				// can be a little over 15 kB in JSON, which should be plenty.
-				w.submitEventRecord(sInfo, events)
-				events = []event{}
-			}
+			batch.Release()
 		case <-w.flush.C:
 			if len(events) > 0 {
 				w.submitEventRecord(sInfo, events)

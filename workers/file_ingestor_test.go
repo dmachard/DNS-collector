@@ -42,10 +42,10 @@ func Test_FileIngestor(t *testing.T) {
 			// waiting message in channel
 			for {
 				// read dns message from channel
-				msg := <-g.GetInputChannel()
+				batch := <-g.GetInputChannel()
 
 				// check qname
-				if msg.DNSTap.Operation == dnsutils.DNSTapClientQuery {
+				if len(batch.Messages) > 0 && batch.Messages[0].DNSTap.Operation == dnsutils.DNSTapClientQuery {
 					break
 				}
 			}

@@ -134,9 +134,9 @@ func Test_DnstapCollector(t *testing.T) {
 			}
 
 			// waiting message in channel
-			msg := <-g.GetInputChannel()
-			if msg.DNSTap.Operation != tc.operation {
-				t.Errorf("want %s, got %s", tc.operation, msg.DNSTap.Operation)
+			batch := <-g.GetInputChannel()
+			if len(batch.Messages) == 0 || batch.Messages[0].DNSTap.Operation != tc.operation {
+				t.Errorf("want %s, got %v", tc.operation, batch.Messages)
 			}
 
 			c.Stop()
@@ -235,9 +235,9 @@ func Test_DnstapProcessor_toDNSMessage(t *testing.T) {
 	consumer.GetDataChannel() <- data
 
 	// read dns message from dnstap consumer
-	dm := <-fl.GetInputChannel()
-	if dm.DNS.Qname != pkgconfig.ExpectedQname {
-		t.Errorf("invalid qname in dns message: %s", dm.DNS.Qname)
+	batch := <-fl.GetInputChannel()
+	if len(batch.Messages) == 0 || batch.Messages[0].DNS.Qname != pkgconfig.ExpectedQname {
+		t.Errorf("invalid qname in dns message: %v", batch.Messages)
 	}
 }
 
@@ -273,7 +273,11 @@ func Test_DnstapProcessor_DecodeDNSCounters(t *testing.T) {
 	consumer.GetDataChannel() <- data
 
 	// read dns message from dnstap consumer
-	dm := <-fl.GetInputChannel()
+	batch := <-fl.GetInputChannel()
+	if len(batch.Messages) == 0 {
+		t.Fatalf("expected message in batch")
+	}
+	dm := batch.Messages[0]
 	if dm.DNS.QdCount != 1 {
 		t.Errorf("invalid number of questions in dns message: got %d expect 1", dm.DNS.QdCount)
 	}
@@ -320,8 +324,8 @@ func Test_DnstapProcessor_MalformedDnsHeader(t *testing.T) {
 	consumer.GetDataChannel() <- data
 
 	// read dns message from dnstap consumer
-	dm := <-fl.GetInputChannel()
-	if dm.DNS.MalformedPacket == false {
+	batch := <-fl.GetInputChannel()
+	if len(batch.Messages) == 0 || batch.Messages[0].DNS.MalformedPacket == false {
 		t.Errorf("malformed packet not detected")
 	}
 }
@@ -357,8 +361,8 @@ func Test_DnstapProcessor_MalformedDnsQuestion(t *testing.T) {
 	consumer.GetDataChannel() <- data
 
 	// read dns message from dnstap consumer
-	dm := <-fl.GetInputChannel()
-	if dm.DNS.MalformedPacket == false {
+	batch := <-fl.GetInputChannel()
+	if len(batch.Messages) == 0 || batch.Messages[0].DNS.MalformedPacket == false {
 		t.Errorf("malformed packet not detected")
 	}
 }
@@ -395,8 +399,8 @@ func Test_DnstapProcessor_MalformedDnsAnswer(t *testing.T) {
 	consumer.GetDataChannel() <- data
 
 	// read dns message from dnstap consumer
-	dm := <-fl.GetInputChannel()
-	if dm.DNS.MalformedPacket == false {
+	batch := <-fl.GetInputChannel()
+	if len(batch.Messages) == 0 || batch.Messages[0].DNS.MalformedPacket == false {
 		t.Errorf("malformed packet not detected")
 	}
 }
@@ -427,8 +431,8 @@ func Test_DnstapProcessor_EmptyDnsPayload(t *testing.T) {
 	consumer.GetDataChannel() <- data
 
 	// read dns message from dnstap consumer
-	dm := <-fl.GetInputChannel()
-	if dm.DNS.MalformedPacket == true {
+	batch := <-fl.GetInputChannel()
+	if len(batch.Messages) == 0 || batch.Messages[0].DNS.MalformedPacket == true {
 		t.Errorf("malformed packet detected, should not with empty payload")
 	}
 }
@@ -468,9 +472,9 @@ func Test_DnstapProcessor_DisableDNSParser(t *testing.T) {
 	consumer.GetDataChannel() <- data
 
 	// read dns message from dnstap consumer
-	dm := <-fl.GetInputChannel()
-	if dm.DNS.ID != 0 {
-		t.Errorf("DNS ID should be equal to zero: %d", dm.DNS.ID)
+	batch := <-fl.GetInputChannel()
+	if len(batch.Messages) == 0 || batch.Messages[0].DNS.ID != 0 {
+		t.Errorf("DNS ID should be equal to zero: %v", batch.Messages)
 	}
 }
 
@@ -528,7 +532,11 @@ func Test_DnstapProcessor_Extended(t *testing.T) {
 	consumer.GetDataChannel() <- data
 
 	// read dns message from dnstap consumer
-	dm := <-fl.GetInputChannel()
+	batch := <-fl.GetInputChannel()
+	if len(batch.Messages) == 0 {
+		t.Fatalf("expected message in batch")
+	}
+	dm := batch.Messages[0]
 	if dm.DNSTap.Extra != "originalextrafield" {
 		t.Errorf("invalid extra field: %s", dm.DNSTap.Extra)
 	}
@@ -596,9 +604,9 @@ func Test_DnstapProcessor_BufferLoggerIsFull(t *testing.T) {
 	}
 
 	// read dns message from dnstap consumer
-	dm := <-fl.GetInputChannel()
-	if dm.DNS.Qname != pkgconfig.ExpectedQname {
-		t.Errorf("invalid qname in dns message: %s", dm.DNS.Qname)
+	batch := <-fl.GetInputChannel()
+	if len(batch.Messages) == 0 || batch.Messages[0].DNS.Qname != pkgconfig.ExpectedQname {
+		t.Errorf("invalid qname in dns message: %v", batch.Messages)
 	}
 
 	// send second shot of packets to consumer
@@ -618,9 +626,9 @@ func Test_DnstapProcessor_BufferLoggerIsFull(t *testing.T) {
 	}
 
 	// read dns message from dnstap consumer
-	dm2 := <-fl.GetInputChannel()
-	if dm2.DNS.Qname != pkgconfig.ExpectedQname {
-		t.Errorf("invalid qname in second dns message: %s", dm2.DNS.Qname)
+	batch2 := <-fl.GetInputChannel()
+	if len(batch2.Messages) == 0 || batch2.Messages[0].DNS.Qname != pkgconfig.ExpectedQname {
+		t.Errorf("invalid qname in second dns message: %v", batch2.Messages)
 	}
 }
 

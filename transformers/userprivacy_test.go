@@ -20,7 +20,7 @@ func TestUserPrivacy_ReduceQname(t *testing.T) {
 	config.UserPrivacy.Enable = true
 	config.UserPrivacy.MinimizeQname = true
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
 	userPrivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, outChans)
@@ -84,7 +84,7 @@ func TestUserPrivacy_HashIP(t *testing.T) {
 				config.UserPrivacy.HashIPAlgo = tc.hashAlgo
 			}
 
-			outChans := []chan *dnsutils.DNSMessage{}
+			outChans := []chan *dnsutils.DNSMessageBatch{}
 
 			// Init the processor
 			userPrivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, outChans)
@@ -115,7 +115,7 @@ func TestUserPrivacy_AnonymizeIP(t *testing.T) {
 	config.UserPrivacy.Enable = true
 	config.UserPrivacy.AnonymizeIP = true
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// Init the processor
 	userPrivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, outChans)
@@ -179,7 +179,7 @@ func TestUserPrivacy_AnonymizeIPRemove(t *testing.T) {
 	config.UserPrivacy.AnonymizeIPV6Bits = "::/0"
 
 	// Init the processor
-	userPrivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, []chan *dnsutils.DNSMessage{})
+	userPrivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, []chan *dnsutils.DNSMessageBatch{})
 	userPrivacy.GetTransforms()
 
 	// Define test cases

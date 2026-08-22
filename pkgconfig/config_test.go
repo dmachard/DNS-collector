@@ -144,6 +144,24 @@ pipelines:
 `,
 			wantErr: false,
 		},
+		{
+			name: "Deprecated chan-buffer-size should not fail validation",
+			content: `
+pipelines:
+  - name: tap
+    dnstap:
+      listen-ip: 0.0.0.0
+      chan-buffer-size: 1024
+    routing-policy:
+      forward: [ console ]
+
+  - name: console
+    stdout:
+      mode: text
+      chan-buffer-size: 2048
+`,
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
