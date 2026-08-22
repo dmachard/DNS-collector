@@ -1,6 +1,7 @@
 package dnsutils
 
 import (
+	"bytes"
 	"errors"
 	"net"
 	"testing"
@@ -99,5 +100,58 @@ func TestDecodeDns_HeaderTooShort(t *testing.T) {
 	_, err := DecodeDNS(decoded)
 	if !errors.Is(err, ErrDecodeDNSHeaderTooShort) {
 		t.Errorf("bad error returned: %v", err)
+	}
+}
+
+func TestWriteIPv4(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []byte
+		expected string
+	}{
+		{"Localhost", []byte{127, 0, 0, 1}, "127.0.0.1"},
+		{"Zero", []byte{0, 0, 0, 0}, "0.0.0.0"},
+		{"Broadcast", []byte{255, 255, 255, 255}, "255.255.255.255"},
+		{"Private A", []byte{10, 255, 0, 42}, "10.255.0.42"},
+		{"Private C", []byte{192, 168, 1, 100}, "192.168.1.100"},
+		{"Public DNS 1", []byte{8, 8, 8, 8}, "8.8.8.8"},
+		{"Public DNS 2", []byte{1, 1, 1, 1}, "1.1.1.1"},
+		{"Mixed digits", []byte{100, 200, 150, 99}, "100.200.150.99"},
+		{"Single digit octets", []byte{1, 2, 3, 4}, "1.2.3.4"},
+		{"Invalid length fallback", []byte{10, 0, 1}, net.IP([]byte{10, 0, 1}).String()},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			WriteIPv4(&buf, tt.input)
+			if got := buf.String(); got != tt.expected {
+				t.Errorf("WriteIPv4(%v) = %q, want %q", tt.input, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestWriteIP(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []byte
+		expected string
+	}{
+		{"IPv4 standard", []byte{192, 168, 0, 1}, "192.168.0.1"},
+		{"IPv6 loopback", net.ParseIP("::1").To16(), "::1"},
+		{"IPv6 full", net.ParseIP("2001:4860:4860::8888").To16(), "2001:4860:4860::8888"},
+		{"Empty input", []byte{}, "-"},
+		{"Nil input", nil, "-"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			WriteIP(&buf, tt.input)
+			if got := buf.String(); got != tt.expected {
+				t.Errorf("WriteIP(%v) = %q, want %q", tt.input, got, tt.expected)
+			}
+		})
 	}
 }

@@ -59,13 +59,15 @@ go test -run=^$ -bench=BenchmarkDecodeDNSTap ./dnsutils -benchmem
 ### Benchmark Results (AMD Ryzen 9 9900X):
 
 ```text
-BenchmarkDecodeDNSTapWire-24                11 268 451     105.6 ns/op      64 B/op     4 allocs/op
-BenchmarkDecodeDNSTapStandardProtobuf-24     3 548 641     338.0 ns/op     488 B/op    21 allocs/op
+BenchmarkDecodeDNSTapWire-24                13 955 434      87.5 ns/op      48 B/op     2 allocs/op
+BenchmarkDecodeDNSTapStandardProtobuf-24     3 009 538     346.9 ns/op     488 B/op    21 allocs/op
 ```
 
-- **Protobuf wire decoding**: **~3× faster** CPU time per packet.
-- **Heap allocations**: **-81% memory allocated** (from `488 B` down to `64 B` per decoded DNSMessage).
-- **Protobuf internal structs**: **0 allocations** (all nested structs and pointers eliminated).
+- **Protobuf wire decoding**: **~4× faster** CPU time per packet (`87.5 ns` vs `346.9 ns`).
+- **Heap allocations**: **-90% memory allocated** (from `488 B` down to `48 B` per decoded DNSMessage).
+- **Allocations count**: **-90% allocations** (from `21` down to `2 allocs/op`).
+- **Protobuf internal structs & IP strings**: **0 allocations** (nested structs eliminated, native binary IP representation with zero-alloc streaming formatters).
+
 
 ---
 

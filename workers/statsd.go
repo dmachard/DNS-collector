@@ -87,10 +87,11 @@ func (w *StatsdClient) RecordDNSMessage(dm *dnsutils.DNSMessage) {
 			w.Stats.Streams[dm.DNSTap.Identity].Nxdomains[dm.DNS.Qname] += 1
 		}
 	}
-	if _, exists := w.Stats.Streams[dm.DNSTap.Identity].Clients[dm.NetworkInfo.QueryIP]; !exists {
-		w.Stats.Streams[dm.DNSTap.Identity].Clients[dm.NetworkInfo.QueryIP] = 1
+	queryIP := dm.NetworkInfo.GetQueryIP()
+	if _, exists := w.Stats.Streams[dm.DNSTap.Identity].Clients[queryIP]; !exists {
+		w.Stats.Streams[dm.DNSTap.Identity].Clients[queryIP] = 1
 	} else {
-		w.Stats.Streams[dm.DNSTap.Identity].Clients[dm.NetworkInfo.QueryIP] += 1
+		w.Stats.Streams[dm.DNSTap.Identity].Clients[queryIP] += 1
 	}
 
 	// record ip proto

@@ -174,6 +174,10 @@ func (p *Transforms) LogError(msg string, v ...interface{}) {
 }
 
 func (p *Transforms) ProcessMessage(dm *dnsutils.DNSMessage) (int, error) {
+	if len(p.activeProcessTransforms) > 0 {
+		dm.NetworkInfo.GetQueryIP()
+		dm.NetworkInfo.GetResponseIP()
+	}
 	for _, transform := range p.activeProcessTransforms {
 		if result, err := transform(dm); err != nil {
 			return ReturnKeep, fmt.Errorf("error on transform processing: %v", err.Error())
