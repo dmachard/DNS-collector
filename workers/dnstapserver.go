@@ -423,217 +423,250 @@ func (w *DNSTapProcessor) processFrame(
 	// count global messages
 	w.CountIngressTraffic()
 
-	err := proto.Unmarshal(data, dt)
-	if err != nil {
-		return
-	}
-
 	// init dns message from pool
 	dm := dnsutils.AcquireDNSMessage()
-
 	dm.DNSTap.PeerName = w.PeerName
 
-	// init dns message with additional parts
-	identity := dt.GetIdentity()
-	if len(identity) > 0 {
-		if fCache != nil && bytes.Equal(identity, fCache.lastIdBytes) {
-			dm.DNSTap.Identity = fCache.lastIdStr
-		} else {
-			str := string(identity)
-			if fCache != nil {
-				fCache.lastIdBytes = append(fCache.lastIdBytes[:0], identity...)
-				fCache.lastIdStr = str
-			}
-			dm.DNSTap.Identity = str
+	useFastDecoder := w.GetConfig().Collectors.Dnstap.FastDecoder && !w.GetConfig().Collectors.Dnstap.ExtendedSupport
+
+	if useFastDecoder {
+		err := dnsutils.DecodeDNSTapWire(data, dm)
+		if err != nil {
+			// fallback to standard protobuf unmarshal on error
+			useFastDecoder = false
 		}
 	}
 
-	version := dt.GetVersion()
-	if len(version) > 0 {
-		if fCache != nil && bytes.Equal(version, fCache.lastVerBytes) {
-			dm.DNSTap.Version = fCache.lastVerStr
-		} else {
-			str := string(version)
-			if fCache != nil {
-				fCache.lastVerBytes = append(fCache.lastVerBytes[:0], version...)
-				fCache.lastVerStr = str
-			}
-			dm.DNSTap.Version = str
-		}
-	}
-
-	msgType := dt.GetMessage().GetType()
-	dm.DNSTap.Operation = dnsutils.DnstapOperationToString(int(msgType))
-
-	// extended extra field ?
-	if w.GetConfig().Collectors.Dnstap.ExtendedSupport {
-		err := proto.Unmarshal(dt.GetExtra(), edt)
+	if !useFastDecoder {
+		err := proto.Unmarshal(data, dt)
 		if err != nil {
 			return
 		}
+	}
 
-		// get original extra value
-		originalExtra := string(edt.GetOriginalDnstapExtra())
-		if len(originalExtra) > 0 {
-			dm.DNSTap.Extra = originalExtra
-		}
-
-		// get atags
-		atags := edt.GetAtags()
-		if atags != nil {
-			dm.ATags = &dnsutils.TransformATags{
-				Tags: atags.GetTags(),
+	if useFastDecoder {
+		// apply frame-cache on Identity and Version strings if available
+		if len(dm.DNSTap.Identity) > 0 && fCache != nil {
+			idBytes := []byte(dm.DNSTap.Identity)
+			if bytes.Equal(idBytes, fCache.lastIdBytes) {
+				dm.DNSTap.Identity = fCache.lastIdStr
+			} else {
+				fCache.lastIdBytes = append(fCache.lastIdBytes[:0], idBytes...)
+				fCache.lastIdStr = dm.DNSTap.Identity
 			}
 		}
-
-		// get public suffix
-		norm := edt.GetNormalize()
-		if norm != nil {
-			dm.PublicSuffix = &dnsutils.TransformPublicSuffix{}
-			if len(norm.GetTld()) > 0 {
-				dm.PublicSuffix.QnamePublicSuffix = norm.GetTld()
+		if len(dm.DNSTap.Version) > 0 && fCache != nil {
+			verBytes := []byte(dm.DNSTap.Version)
+			if bytes.Equal(verBytes, fCache.lastVerBytes) {
+				dm.DNSTap.Version = fCache.lastVerStr
+			} else {
+				fCache.lastVerBytes = append(fCache.lastVerBytes[:0], verBytes...)
+				fCache.lastVerStr = dm.DNSTap.Version
 			}
-			if len(norm.GetEtldPlusOne()) > 0 {
-				dm.PublicSuffix.QnameEffectiveTLDPlusOne = norm.GetEtldPlusOne()
-			}
-		}
-
-		// filtering
-		sampleRate := edt.GetFiltering()
-		if sampleRate != nil {
-			dm.Filtering = &dnsutils.TransformFiltering{}
-			dm.Filtering.SampleRate = int(sampleRate.SampleRate)
 		}
 	} else {
-		extra := string(dt.GetExtra())
-		if len(extra) > 0 {
-			dm.DNSTap.Extra = extra
+		// init dns message with additional parts
+		identity := dt.GetIdentity()
+		if len(identity) > 0 {
+			if fCache != nil && bytes.Equal(identity, fCache.lastIdBytes) {
+				dm.DNSTap.Identity = fCache.lastIdStr
+			} else {
+				str := string(identity)
+				if fCache != nil {
+					fCache.lastIdBytes = append(fCache.lastIdBytes[:0], identity...)
+					fCache.lastIdStr = str
+				}
+				dm.DNSTap.Identity = str
+			}
 		}
-	}
 
-	switch dt.GetMessage().GetSocketFamily() {
-	case dnstap.SocketFamily_INET:
-		dm.NetworkInfo.Family = "INET"
-	case dnstap.SocketFamily_INET6:
-		dm.NetworkInfo.Family = "INET6"
-	default:
-		dm.NetworkInfo.Family = pkgconfig.StrUnknown
-	}
+		version := dt.GetVersion()
+		if len(version) > 0 {
+			if fCache != nil && bytes.Equal(version, fCache.lastVerBytes) {
+				dm.DNSTap.Version = fCache.lastVerStr
+			} else {
+				str := string(version)
+				if fCache != nil {
+					fCache.lastVerBytes = append(fCache.lastVerBytes[:0], version...)
+					fCache.lastVerStr = str
+				}
+				dm.DNSTap.Version = str
+			}
+		}
 
-	switch dt.GetMessage().GetSocketProtocol() {
-	case dnstap.SocketProtocol_UDP:
-		dm.NetworkInfo.Protocol = "UDP"
-	case dnstap.SocketProtocol_TCP:
-		dm.NetworkInfo.Protocol = "TCP"
-	case dnstap.SocketProtocol_DOT:
-		dm.NetworkInfo.Protocol = "DOT"
-	case dnstap.SocketProtocol_DOH:
-		dm.NetworkInfo.Protocol = "DOH"
-	case dnstap.SocketProtocol_DNSCryptUDP:
-		dm.NetworkInfo.Protocol = "DNSCryptUDP"
-	case dnstap.SocketProtocol_DNSCryptTCP:
-		dm.NetworkInfo.Protocol = "DNSCryptTCP"
-	case dnstap.SocketProtocol_DOQ:
-		dm.NetworkInfo.Protocol = "DOQ"
-	default:
-		dm.NetworkInfo.Protocol = pkgconfig.StrUnknown
-	}
+		msgType := dt.GetMessage().GetType()
+		dm.DNSTap.Operation = dnsutils.DnstapOperationToString(int(msgType))
 
-	// decode query address and port
-	queryip := dt.GetMessage().GetQueryAddress()
-	if len(queryip) > 0 {
-		dm.NetworkInfo.QueryIP = dnsutils.FastIPv4ToString(queryip)
-	}
-	queryport := dt.GetMessage().GetQueryPort()
-	if queryport > 0 {
-		if queryport == 53 {
-			dm.NetworkInfo.QueryPort = "53"
+		// extended extra field ?
+		if w.GetConfig().Collectors.Dnstap.ExtendedSupport {
+			err := proto.Unmarshal(dt.GetExtra(), edt)
+			if err != nil {
+				return
+			}
+
+			// get original extra value
+			originalExtra := string(edt.GetOriginalDnstapExtra())
+			if len(originalExtra) > 0 {
+				dm.DNSTap.Extra = originalExtra
+			}
+
+			// get atags
+			atags := edt.GetAtags()
+			if atags != nil {
+				dm.ATags = &dnsutils.TransformATags{
+					Tags: atags.GetTags(),
+				}
+			}
+
+			// get public suffix
+			norm := edt.GetNormalize()
+			if norm != nil {
+				dm.PublicSuffix = &dnsutils.TransformPublicSuffix{}
+				if len(norm.GetTld()) > 0 {
+					dm.PublicSuffix.QnamePublicSuffix = norm.GetTld()
+				}
+				if len(norm.GetEtldPlusOne()) > 0 {
+					dm.PublicSuffix.QnameEffectiveTLDPlusOne = norm.GetEtldPlusOne()
+				}
+			}
+
+			// filtering
+			sampleRate := edt.GetFiltering()
+			if sampleRate != nil {
+				dm.Filtering = &dnsutils.TransformFiltering{}
+				dm.Filtering.SampleRate = int(sampleRate.SampleRate)
+			}
 		} else {
-			dm.NetworkInfo.QueryPort = strconv.FormatUint(uint64(queryport), 10)
+			extra := string(dt.GetExtra())
+			if len(extra) > 0 {
+				dm.DNSTap.Extra = extra
+			}
 		}
-	}
 
-	// decode response address and port
-	responseip := dt.GetMessage().GetResponseAddress()
-	if len(responseip) > 0 {
-		dm.NetworkInfo.ResponseIP = dnsutils.FastIPv4ToString(responseip)
-	}
-	responseport := dt.GetMessage().GetResponsePort()
-	if responseport > 0 {
-		if responseport == 53 {
-			dm.NetworkInfo.ResponsePort = "53"
+		switch dt.GetMessage().GetSocketFamily() {
+		case dnstap.SocketFamily_INET:
+			dm.NetworkInfo.Family = "INET"
+		case dnstap.SocketFamily_INET6:
+			dm.NetworkInfo.Family = "INET6"
+		default:
+			dm.NetworkInfo.Family = pkgconfig.StrUnknown
+		}
+
+		switch dt.GetMessage().GetSocketProtocol() {
+		case dnstap.SocketProtocol_UDP:
+			dm.NetworkInfo.Protocol = "UDP"
+		case dnstap.SocketProtocol_TCP:
+			dm.NetworkInfo.Protocol = "TCP"
+		case dnstap.SocketProtocol_DOT:
+			dm.NetworkInfo.Protocol = "DOT"
+		case dnstap.SocketProtocol_DOH:
+			dm.NetworkInfo.Protocol = "DOH"
+		case dnstap.SocketProtocol_DNSCryptUDP:
+			dm.NetworkInfo.Protocol = "DNSCryptUDP"
+		case dnstap.SocketProtocol_DNSCryptTCP:
+			dm.NetworkInfo.Protocol = "DNSCryptTCP"
+		case dnstap.SocketProtocol_DOQ:
+			dm.NetworkInfo.Protocol = "DOQ"
+		default:
+			dm.NetworkInfo.Protocol = pkgconfig.StrUnknown
+		}
+
+		// decode query address and port
+		queryip := dt.GetMessage().GetQueryAddress()
+		if len(queryip) > 0 {
+			dm.NetworkInfo.QueryIP = dnsutils.FastIPv4ToString(queryip)
+		}
+		queryport := dt.GetMessage().GetQueryPort()
+		if queryport > 0 {
+			if queryport == 53 {
+				dm.NetworkInfo.QueryPort = "53"
+			} else {
+				dm.NetworkInfo.QueryPort = strconv.FormatUint(uint64(queryport), 10)
+			}
+		}
+
+		// decode response address and port
+		responseip := dt.GetMessage().GetResponseAddress()
+		if len(responseip) > 0 {
+			dm.NetworkInfo.ResponseIP = dnsutils.FastIPv4ToString(responseip)
+		}
+		responseport := dt.GetMessage().GetResponsePort()
+		if responseport > 0 {
+			if responseport == 53 {
+				dm.NetworkInfo.ResponsePort = "53"
+			} else {
+				dm.NetworkInfo.ResponsePort = strconv.FormatUint(uint64(responseport), 10)
+			}
+		}
+
+		// get dns payload and timestamp according to the type (query or response)
+		op := int(msgType)
+		if op%2 == 1 {
+			dnsPayload := dt.GetMessage().GetQueryMessage()
+			dm.DNS.Payload = dnsPayload
+			dm.DNS.Length = len(dnsPayload)
+			dm.DNS.Type = dnsutils.DNSQuery
+			dm.DNSTap.TimeSec = int(dt.GetMessage().GetQueryTimeSec())
+			dm.DNSTap.TimeNsec = int(dt.GetMessage().GetQueryTimeNsec())
 		} else {
-			dm.NetworkInfo.ResponsePort = strconv.FormatUint(uint64(responseport), 10)
+			dnsPayload := dt.GetMessage().GetResponseMessage()
+			dm.DNS.Payload = dnsPayload
+			dm.DNS.Length = len(dnsPayload)
+			dm.DNS.Type = dnsutils.DNSReply
+			dm.DNSTap.TimeSec = int(dt.GetMessage().GetResponseTimeSec())
+			dm.DNSTap.TimeNsec = int(dt.GetMessage().GetResponseTimeNsec())
+
+			tsQuery := float64(dt.GetMessage().GetQueryTimeSec()) + float64(dt.GetMessage().GetQueryTimeNsec())/1e9
+			tsReply := float64(dt.GetMessage().GetResponseTimeSec()) + float64(dt.GetMessage().GetResponseTimeNsec())/1e9
+
+			// compute latency
+			if tsQuery != 0 && tsReply >= tsQuery {
+				dm.DNSTap.Latency = tsReply - tsQuery
+				dm.DNSTap.LatencyMs = int((tsReply - tsQuery) * 1000)
+			}
 		}
-	}
 
-	// get dns payload and timestamp according to the type (query or response)
-	op := int(msgType)
-	if op%2 == 1 {
-		dnsPayload := dt.GetMessage().GetQueryMessage()
-		dm.DNS.Payload = dnsPayload
-		dm.DNS.Length = len(dnsPayload)
-		dm.DNS.Type = dnsutils.DNSQuery
-		dm.DNSTap.TimeSec = int(dt.GetMessage().GetQueryTimeSec())
-		dm.DNSTap.TimeNsec = int(dt.GetMessage().GetQueryTimeNsec())
-	} else {
-		dnsPayload := dt.GetMessage().GetResponseMessage()
-		dm.DNS.Payload = dnsPayload
-		dm.DNS.Length = len(dnsPayload)
-		dm.DNS.Type = dnsutils.DNSReply
-		dm.DNSTap.TimeSec = int(dt.GetMessage().GetResponseTimeSec())
-		dm.DNSTap.TimeNsec = int(dt.GetMessage().GetResponseTimeNsec())
-
-		tsQuery := float64(dt.GetMessage().GetQueryTimeSec()) + float64(dt.GetMessage().GetQueryTimeNsec())/1e9
-		tsReply := float64(dt.GetMessage().GetResponseTimeSec()) + float64(dt.GetMessage().GetResponseTimeNsec())/1e9
-
-		// compute latency
-		if tsQuery != 0 && tsReply >= tsQuery {
-			dm.DNSTap.Latency = tsReply - tsQuery
-			dm.DNSTap.LatencyMs = int((tsReply - tsQuery) * 1000)
+		// policy
+		policyType := dt.GetMessage().GetPolicy().GetType()
+		if len(policyType) > 0 {
+			dm.DNSTap.PolicyType = policyType
 		}
-	}
 
-	// policy
-	policyType := dt.GetMessage().GetPolicy().GetType()
-	if len(policyType) > 0 {
-		dm.DNSTap.PolicyType = policyType
-	}
-
-	policyRule := string(dt.GetMessage().GetPolicy().GetRule())
-	if len(policyRule) > 0 {
-		dm.DNSTap.PolicyRule = policyRule
-	}
-
-	policyAction := dt.GetMessage().GetPolicy().GetAction().String()
-	if len(policyAction) > 0 {
-		dm.DNSTap.PolicyAction = policyAction
-	}
-
-	policyMatch := dt.GetMessage().GetPolicy().GetMatch().String()
-	if len(policyMatch) > 0 {
-		dm.DNSTap.PolicyMatch = policyMatch
-	}
-
-	policyValue := string(dt.GetMessage().GetPolicy().GetValue())
-	if len(policyValue) > 0 {
-		dm.DNSTap.PolicyValue = policyValue
-	}
-
-	// get http protocol
-	httpProtocol := dt.GetMessage().GetHttpProtocol().String()
-	if len(httpProtocol) > 0 {
-		dm.DNSTap.HttpProtocol = httpProtocol
-	}
-
-	// decode query zone if provided
-	queryZone := dt.GetMessage().GetQueryZone()
-	if len(queryZone) > 0 {
-		qz, _, err := dnsutils.ParseLabels(0, queryZone, true)
-		if err != nil {
-			w.LogError("invalid query zone: %v - %v", err, queryZone)
+		policyRule := string(dt.GetMessage().GetPolicy().GetRule())
+		if len(policyRule) > 0 {
+			dm.DNSTap.PolicyRule = policyRule
 		}
-		dm.DNSTap.QueryZone = qz
+
+		policyAction := dt.GetMessage().GetPolicy().GetAction().String()
+		if len(policyAction) > 0 {
+			dm.DNSTap.PolicyAction = policyAction
+		}
+
+		policyMatch := dt.GetMessage().GetPolicy().GetMatch().String()
+		if len(policyMatch) > 0 {
+			dm.DNSTap.PolicyMatch = policyMatch
+		}
+
+		policyValue := string(dt.GetMessage().GetPolicy().GetValue())
+		if len(policyValue) > 0 {
+			dm.DNSTap.PolicyValue = policyValue
+		}
+
+		// get http protocol
+		httpProtocol := dt.GetMessage().GetHttpProtocol().String()
+		if len(httpProtocol) > 0 {
+			dm.DNSTap.HttpProtocol = httpProtocol
+		}
+
+		// decode query zone if provided
+		queryZone := dt.GetMessage().GetQueryZone()
+		if len(queryZone) > 0 {
+			qz, _, err := dnsutils.ParseLabels(0, queryZone, true)
+			if err != nil {
+				w.LogError("invalid query zone: %v - %v", err, queryZone)
+			}
+			dm.DNSTap.QueryZone = qz
+		}
 	}
 
 	// compute timestamp

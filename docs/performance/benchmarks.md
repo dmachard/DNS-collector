@@ -48,7 +48,50 @@ Throughput                  2243831.68           2235081.59           -0.39%
 
 ---
 
-## 2. Go Microbenchmarks (`go test -bench`)
+## 2. DNSTap Fast Wire Decoder Microbenchmarks
+
+DNS-collector provides an internal microbenchmark comparing the standard Google Protobuf decoding against the custom zero-allocation binary wire decoder:
+
+```bash
+go test -run=^$ -bench=BenchmarkDecodeDNSTap ./dnsutils -benchmem
+```
+
+### Benchmark Results (AMD Ryzen 9 9900X):
+
+```text
+BenchmarkDecodeDNSTapWire-24                11 268 451     105.6 ns/op      64 B/op     4 allocs/op
+BenchmarkDecodeDNSTapStandardProtobuf-24     3 548 641     338.0 ns/op     488 B/op    21 allocs/op
+```
+
+- **Protobuf wire decoding**: **~3× faster** CPU time per packet.
+- **Heap allocations**: **-81% memory allocated** (from `488 B` down to `64 B` per decoded DNSMessage).
+- **Protobuf internal structs**: **0 allocations** (all nested structs and pointers eliminated).
+
+---
+
+## 3. DNS Payload Parser Microbenchmarks (`Custom` vs `miekg/dns`)
+
+DNS-collector embeds a minimalist DNS binary parser designed specifically for passive monitoring, extracting only required fields without the overhead of generic DNS libraries.
+
+```bash
+go test -run=^$ -bench="Benchmark.*DecodeDNS" ./dnsutils -benchmem
+```
+
+### Benchmark Results (AMD Ryzen 9 9900X):
+
+```text
+BenchmarkCustomDecodeDNS_Query-24           38 373 133        28.4 ns/op       16 B/op       1 allocs/op
+BenchmarkCustomDecodeDNS-24                  7 799 892       154.8 ns/op      128 B/op       8 allocs/op
+BenchmarkMiekgDecodeDNS-24                   2 942 716       407.6 ns/op      440 B/op      17 allocs/op
+```
+
+- **Query Parsing Speed**: **~28 ns/op** for standard queries.
+- **Full Packet Parsing (Query+Answer)**: **~2.6× faster** than `miekg/dns` (`154.8 ns` vs `407.6 ns`).
+- **Memory Allocations**: **-71% memory allocated** (`128 B` vs `440 B`) and **-53% allocations** (`8 allocs` vs `17 allocs`).
+
+---
+
+## 4. Other Go Microbenchmarks (`go test -bench`)
 
 Internal Go benchmarks measure sub-nanosecond processing efficiency and memory allocations per operation (`B/op`, `allocs/op`).
 
@@ -61,3 +104,10 @@ go test -run=^$ -bench=Benchmark_DNSTapProcessor ./workers -benchmem
 ```bash
 go test -run=^$ -bench=. ./transformers -benchmem
 ```
+
+### Running All DNSUtils Benchmarks:
+```bash
+go test -run=^$ -bench=. ./dnsutils -benchmem
+```
+
+

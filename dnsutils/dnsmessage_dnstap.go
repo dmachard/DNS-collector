@@ -5,7 +5,7 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/dmachard/go-dnstap-protobuf"
+	dnstap "github.com/dmachard/go-dnstap-protobuf"
 	"github.com/dmachard/go-netutils"
 	"google.golang.org/protobuf/proto"
 )
