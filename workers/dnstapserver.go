@@ -574,29 +574,21 @@ func (w *DNSTapProcessor) processFrame(
 		// decode query address and port
 		queryip := dt.GetMessage().GetQueryAddress()
 		if len(queryip) > 0 {
-			dm.NetworkInfo.QueryIP = dnsutils.FastIPv4ToString(queryip)
+			dm.NetworkInfo.SetQueryIPBytes(queryip)
 		}
 		queryport := dt.GetMessage().GetQueryPort()
 		if queryport > 0 {
-			if queryport == 53 {
-				dm.NetworkInfo.QueryPort = "53"
-			} else {
-				dm.NetworkInfo.QueryPort = strconv.FormatUint(uint64(queryport), 10)
-			}
+			dm.NetworkInfo.QueryPort = dnsutils.FastPortToString(queryport)
 		}
 
 		// decode response address and port
 		responseip := dt.GetMessage().GetResponseAddress()
 		if len(responseip) > 0 {
-			dm.NetworkInfo.ResponseIP = dnsutils.FastIPv4ToString(responseip)
+			dm.NetworkInfo.SetResponseIPBytes(responseip)
 		}
 		responseport := dt.GetMessage().GetResponsePort()
 		if responseport > 0 {
-			if responseport == 53 {
-				dm.NetworkInfo.ResponsePort = "53"
-			} else {
-				dm.NetworkInfo.ResponsePort = strconv.FormatUint(uint64(responseport), 10)
-			}
+			dm.NetworkInfo.ResponsePort = dnsutils.FastPortToString(responseport)
 		}
 
 		// get dns payload and timestamp according to the type (query or response)

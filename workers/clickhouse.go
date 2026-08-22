@@ -110,7 +110,7 @@ func (w *ClickhouseClient) StartLogging() {
 			timensec := strconv.FormatInt(dm.DNSTap.Timestamp, 10)
 			data := ClickhouseData{
 				Identity:  dm.DNSTap.Identity,
-				QueryIP:   dm.NetworkInfo.QueryIP,
+				QueryIP:   dm.NetworkInfo.GetQueryIP(),
 				QName:     dm.DNS.Qname,
 				Operation: dm.DNSTap.Operation,
 				Family:    dm.NetworkInfo.Family,

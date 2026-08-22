@@ -173,12 +173,12 @@ func (w *TZSPSniffer) StartCollect() {
 					switch layertyp {
 					case layers.LayerTypeIPv4:
 						dm.NetworkInfo.Family = netutils.ProtoIPv4
-						dm.NetworkInfo.QueryIP = ip4.SrcIP.String()
-						dm.NetworkInfo.ResponseIP = ip4.DstIP.String()
+						dm.NetworkInfo.SetQueryIPBytes(ip4.SrcIP)
+						dm.NetworkInfo.SetResponseIPBytes(ip4.DstIP)
 
 					case layers.LayerTypeIPv6:
-						dm.NetworkInfo.QueryIP = ip6.SrcIP.String()
-						dm.NetworkInfo.ResponseIP = ip6.DstIP.String()
+						dm.NetworkInfo.SetQueryIPBytes(ip6.SrcIP)
+						dm.NetworkInfo.SetResponseIPBytes(ip6.DstIP)
 						dm.NetworkInfo.Family = netutils.ProtoIPv6
 
 					case layers.LayerTypeUDP:

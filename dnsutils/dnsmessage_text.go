@@ -192,7 +192,7 @@ func compileDirective(directive string, fieldDelimiter string, fieldBoundary str
 
 	case "queryip":
 		return func(dm *DNSMessage, s *bytes.Buffer) error {
-			s.WriteString(dm.NetworkInfo.QueryIP)
+			dm.NetworkInfo.WriteQueryIPText(s)
 			return nil
 		}, nil
 
@@ -204,7 +204,7 @@ func compileDirective(directive string, fieldDelimiter string, fieldBoundary str
 
 	case "responseip":
 		return func(dm *DNSMessage, s *bytes.Buffer) error {
-			s.WriteString(dm.NetworkInfo.ResponseIP)
+			dm.NetworkInfo.WriteResponseIPText(s)
 			return nil
 		}, nil
 

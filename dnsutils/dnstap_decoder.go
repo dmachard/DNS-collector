@@ -322,14 +322,16 @@ func DecodeDNSTapWire(buf []byte, dm *DNSMessage) error {
 
 	// Addresses and Ports
 	if len(queryIP) > 0 {
-		dm.NetworkInfo.QueryIP = FastIPv4ToString(queryIP)
+		n := copy(dm.NetworkInfo.QueryIPBuf[:], queryIP)
+		dm.NetworkInfo.QueryIPLen = uint8(n)
 	}
 	if queryPort > 0 {
 		dm.NetworkInfo.QueryPort = FastPortToString(queryPort)
 	}
 
 	if len(responseIP) > 0 {
-		dm.NetworkInfo.ResponseIP = FastIPv4ToString(responseIP)
+		n := copy(dm.NetworkInfo.ResponseIPBuf[:], responseIP)
+		dm.NetworkInfo.ResponseIPLen = uint8(n)
 	}
 	if responsePort > 0 {
 		dm.NetworkInfo.ResponsePort = FastPortToString(responsePort)

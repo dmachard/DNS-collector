@@ -200,9 +200,11 @@ func (dm *DNSMessage) EncodeFlatJSON(buffer *bytes.Buffer) {
 	writeString("network.family", dm.NetworkInfo.Family)
 	writeBool("network.ip-defragmented", dm.NetworkInfo.IPDefragmented)
 	writeString("network.protocol", dm.NetworkInfo.Protocol)
-	writeString("network.query-ip", dm.NetworkInfo.QueryIP)
+	writeKey("network.query-ip")
+	dm.NetworkInfo.WriteQueryIPJSON(buffer)
 	writeString("network.query-port", dm.NetworkInfo.QueryPort)
-	writeString("network.response-ip", dm.NetworkInfo.ResponseIP)
+	writeKey("network.response-ip")
+	dm.NetworkInfo.WriteResponseIPJSON(buffer)
 	writeString("network.response-port", dm.NetworkInfo.ResponsePort)
 	writeBool("network.tcp-reassembled", dm.NetworkInfo.TCPReassembled)
 
@@ -357,9 +359,9 @@ func (dm *DNSMessage) Flatten() (map[string]interface{}, error) {
 	dnsFields["network.family"] = dm.NetworkInfo.Family
 	dnsFields["network.ip-defragmented"] = dm.NetworkInfo.IPDefragmented
 	dnsFields["network.protocol"] = dm.NetworkInfo.Protocol
-	dnsFields["network.query-ip"] = dm.NetworkInfo.QueryIP
+	dnsFields["network.query-ip"] = dm.NetworkInfo.GetQueryIP()
 	dnsFields["network.query-port"] = dm.NetworkInfo.QueryPort
-	dnsFields["network.response-ip"] = dm.NetworkInfo.ResponseIP
+	dnsFields["network.response-ip"] = dm.NetworkInfo.GetResponseIP()
 	dnsFields["network.response-port"] = dm.NetworkInfo.ResponsePort
 	dnsFields["network.tcp-reassembled"] = dm.NetworkInfo.TCPReassembled
 
@@ -734,11 +736,11 @@ func (net *DNSNetInfo) EncodeJSON(buf *bytes.Buffer) {
 	buf.WriteString(`,"protocol":`)
 	WriteJSONString(buf, net.Protocol)
 	buf.WriteString(`,"query-ip":`)
-	WriteJSONString(buf, net.QueryIP)
+	net.WriteQueryIPJSON(buf)
 	buf.WriteString(`,"query-port":`)
 	WriteJSONString(buf, net.QueryPort)
 	buf.WriteString(`,"response-ip":`)
-	WriteJSONString(buf, net.ResponseIP)
+	net.WriteResponseIPJSON(buf)
 	buf.WriteString(`,"response-port":`)
 	WriteJSONString(buf, net.ResponsePort)
 	buf.WriteString(`,"ip-defragmented":`)

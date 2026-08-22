@@ -524,15 +524,16 @@ func (w *RestAPI) RecordDNSMessage(dm *dnsutils.DNSMessage) {
 	}
 
 	// uniq record for queries
-	if _, exists := w.HitsUniq.Clients[dm.NetworkInfo.QueryIP]; !exists {
-		w.HitsUniq.Clients[dm.NetworkInfo.QueryIP] = 1
+	queryIP := dm.NetworkInfo.GetQueryIP()
+	if _, exists := w.HitsUniq.Clients[queryIP]; !exists {
+		w.HitsUniq.Clients[queryIP] = 1
 	} else {
-		w.HitsUniq.Clients[dm.NetworkInfo.QueryIP] += 1
+		w.HitsUniq.Clients[queryIP] += 1
 	}
 
 	// uniq top qnames and clients
 	w.TopQnames.Record(dm.DNS.Qname, w.HitsUniq.Domains[dm.DNS.Qname])
-	w.TopClients.Record(dm.NetworkInfo.QueryIP, w.HitsUniq.Clients[dm.NetworkInfo.QueryIP])
+	w.TopClients.Record(queryIP, w.HitsUniq.Clients[queryIP])
 	if dm.PublicSuffix != nil {
 		w.TopTLDs.Record(dm.PublicSuffix.QnamePublicSuffix, w.HitsUniq.PublicSuffixes[dm.PublicSuffix.QnamePublicSuffix])
 	}
@@ -550,17 +551,17 @@ func (w *RestAPI) RecordDNSMessage(dm *dnsutils.DNSMessage) {
 	}
 
 	// continue with the query IP
-	if _, exists := w.HitsStream.Streams[dm.DNSTap.Identity].Clients[dm.NetworkInfo.QueryIP]; !exists {
-		w.HitsStream.Streams[dm.DNSTap.Identity].Clients[dm.NetworkInfo.QueryIP] = &HitsRecord{Hits: make(map[string]int), TotalHits: 1}
+	if _, exists := w.HitsStream.Streams[dm.DNSTap.Identity].Clients[queryIP]; !exists {
+		w.HitsStream.Streams[dm.DNSTap.Identity].Clients[queryIP] = &HitsRecord{Hits: make(map[string]int), TotalHits: 1}
 	} else {
-		w.HitsStream.Streams[dm.DNSTap.Identity].Clients[dm.NetworkInfo.QueryIP].TotalHits += 1
+		w.HitsStream.Streams[dm.DNSTap.Identity].Clients[queryIP].TotalHits += 1
 	}
 
 	// continue with Qname
-	if _, exists := w.HitsStream.Streams[dm.DNSTap.Identity].Clients[dm.NetworkInfo.QueryIP].Hits[dm.DNS.Qname]; !exists {
-		w.HitsStream.Streams[dm.DNSTap.Identity].Clients[dm.NetworkInfo.QueryIP].Hits[dm.DNS.Qname] = 1
+	if _, exists := w.HitsStream.Streams[dm.DNSTap.Identity].Clients[queryIP].Hits[dm.DNS.Qname]; !exists {
+		w.HitsStream.Streams[dm.DNSTap.Identity].Clients[queryIP].Hits[dm.DNS.Qname] = 1
 	} else {
-		w.HitsStream.Streams[dm.DNSTap.Identity].Clients[dm.NetworkInfo.QueryIP].Hits[dm.DNS.Qname] += 1
+		w.HitsStream.Streams[dm.DNSTap.Identity].Clients[queryIP].Hits[dm.DNS.Qname] += 1
 	}
 
 	// domain doesn't exists in domains map?
@@ -571,10 +572,10 @@ func (w *RestAPI) RecordDNSMessage(dm *dnsutils.DNSMessage) {
 	}
 
 	// domain doesn't exists in domains map?
-	if _, exists := w.HitsStream.Streams[dm.DNSTap.Identity].Domains[dm.DNS.Qname].Hits[dm.NetworkInfo.QueryIP]; !exists {
-		w.HitsStream.Streams[dm.DNSTap.Identity].Domains[dm.DNS.Qname].Hits[dm.NetworkInfo.QueryIP] = 1
+	if _, exists := w.HitsStream.Streams[dm.DNSTap.Identity].Domains[dm.DNS.Qname].Hits[queryIP]; !exists {
+		w.HitsStream.Streams[dm.DNSTap.Identity].Domains[dm.DNS.Qname].Hits[queryIP] = 1
 	} else {
-		w.HitsStream.Streams[dm.DNSTap.Identity].Domains[dm.DNS.Qname].Hits[dm.NetworkInfo.QueryIP] += 1
+		w.HitsStream.Streams[dm.DNSTap.Identity].Domains[dm.DNS.Qname].Hits[queryIP] += 1
 	}
 }
 

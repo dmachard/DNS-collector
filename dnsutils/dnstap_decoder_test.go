@@ -39,11 +39,11 @@ func TestDecodeDNSTapWire_QueryAndReply(t *testing.T) {
 	if decodedQuery.NetworkInfo.Protocol != dmQuery.NetworkInfo.Protocol {
 		t.Errorf("expected protocol %s, got %s", dmQuery.NetworkInfo.Protocol, decodedQuery.NetworkInfo.Protocol)
 	}
-	if decodedQuery.NetworkInfo.QueryIP != dmQuery.NetworkInfo.QueryIP {
-		t.Errorf("expected query IP %s, got %s", dmQuery.NetworkInfo.QueryIP, decodedQuery.NetworkInfo.QueryIP)
+	if decodedQuery.NetworkInfo.GetQueryIP() != dmQuery.NetworkInfo.QueryIP {
+		t.Errorf("expected query IP %s, got %s", dmQuery.NetworkInfo.QueryIP, decodedQuery.NetworkInfo.GetQueryIP())
 	}
-	if decodedQuery.NetworkInfo.ResponseIP != dmQuery.NetworkInfo.ResponseIP {
-		t.Errorf("expected response IP %s, got %s", dmQuery.NetworkInfo.ResponseIP, decodedQuery.NetworkInfo.ResponseIP)
+	if decodedQuery.NetworkInfo.GetResponseIP() != dmQuery.NetworkInfo.ResponseIP {
+		t.Errorf("expected response IP %s, got %s", dmQuery.NetworkInfo.ResponseIP, decodedQuery.NetworkInfo.GetResponseIP())
 	}
 	if decodedQuery.NetworkInfo.QueryPort != dmQuery.NetworkInfo.QueryPort {
 		t.Errorf("expected query port %s, got %s", dmQuery.NetworkInfo.QueryPort, decodedQuery.NetworkInfo.QueryPort)

@@ -72,10 +72,16 @@ func (w *DNSProcessor) StartCollect() {
 				dm.DNS.Type = dnsutils.DNSReply
 				qip := dm.NetworkInfo.QueryIP
 				qport := dm.NetworkInfo.QueryPort
+				qbuf := dm.NetworkInfo.QueryIPBuf
+				qlen := dm.NetworkInfo.QueryIPLen
 				dm.NetworkInfo.QueryIP = dm.NetworkInfo.ResponseIP
 				dm.NetworkInfo.QueryPort = dm.NetworkInfo.ResponsePort
+				dm.NetworkInfo.QueryIPBuf = dm.NetworkInfo.ResponseIPBuf
+				dm.NetworkInfo.QueryIPLen = dm.NetworkInfo.ResponseIPLen
 				dm.NetworkInfo.ResponseIP = qip
 				dm.NetworkInfo.ResponsePort = qport
+				dm.NetworkInfo.ResponseIPBuf = qbuf
+				dm.NetworkInfo.ResponseIPLen = qlen
 			} else {
 				dm.DNS.Type = dnsutils.DNSQuery
 				dm.DNSTap.Operation = dnsutils.DNSTapClientQuery

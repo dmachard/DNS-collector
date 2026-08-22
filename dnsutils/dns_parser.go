@@ -1,6 +1,7 @@
 package dnsutils
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -128,6 +129,54 @@ func FastIPv4ToString(ip []byte) string {
 		n++
 	}
 	return string(buf[:n])
+}
+
+// WriteIPv4 formats a 4-byte IPv4 slice directly into a bytes.Buffer without any heap allocation.
+func WriteIPv4(buf *bytes.Buffer, ip []byte) {
+	if len(ip) != 4 {
+		buf.WriteString(net.IP(ip).String())
+		return
+	}
+	var tmp [15]byte
+	n := 0
+	for i := 0; i < 4; i++ {
+		if i > 0 {
+			tmp[n] = '.'
+			n++
+		}
+		b := ip[i]
+		if b >= 100 {
+			tmp[n] = '0' + b/100
+			n++
+			b %= 100
+			tmp[n] = '0' + b/10
+			n++
+			b %= 10
+		} else if b >= 10 {
+			tmp[n] = '0' + b/10
+			n++
+			b %= 10
+		}
+		tmp[n] = '0' + b
+		n++
+	}
+	buf.Write(tmp[:n])
+}
+
+// WriteIP writes an IPv4 or IPv6 byte slice into a bytes.Buffer without heap allocation.
+func WriteIP(buf *bytes.Buffer, ip []byte) {
+	switch len(ip) {
+	case 4:
+		WriteIPv4(buf, ip)
+	case 16:
+		buf.WriteString(net.IP(ip).String())
+	default:
+		if len(ip) > 0 {
+			buf.WriteString(net.IP(ip).String())
+		} else {
+			buf.WriteByte('-')
+		}
+	}
 }
 
 // Various errors returned during DNS packet decoding

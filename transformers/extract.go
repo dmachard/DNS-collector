@@ -44,9 +44,9 @@ func (t *ExtractTransform) initExtractors() {
 func getExtractor(tag string) ExtractorFunc {
 	switch tag {
 	case "network.query-ip":
-		return func(dm *dnsutils.DNSMessage) (interface{}, bool) { return dm.NetworkInfo.QueryIP, true }
+		return func(dm *dnsutils.DNSMessage) (interface{}, bool) { return dm.NetworkInfo.GetQueryIP(), true }
 	case "network.response-ip":
-		return func(dm *dnsutils.DNSMessage) (interface{}, bool) { return dm.NetworkInfo.ResponseIP, true }
+		return func(dm *dnsutils.DNSMessage) (interface{}, bool) { return dm.NetworkInfo.GetResponseIP(), true }
 	case "dns.qname":
 		return func(dm *dnsutils.DNSMessage) (interface{}, bool) { return dm.DNS.Qname, true }
 	case "dns.qtype":

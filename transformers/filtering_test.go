@@ -115,6 +115,18 @@ func TestFilteringByKeepQueryIp(t *testing.T) {
 	if result, _ := filtering.keepQueryIPFilter(&dm); result != ReturnKeep {
 		t.Errorf("dns query should not be dropped!")
 	}
+
+	// Test with binary buffer (lazy IP)
+	dm = dnsutils.GetFakeDNSMessage()
+	dm.NetworkInfo.SetQueryIPBytes([]byte{192, 168, 0, 1})
+	if result, _ := filtering.keepQueryIPFilter(&dm); result != ReturnDrop {
+		t.Errorf("lazy IP dns query should be dropped!")
+	}
+
+	dm.NetworkInfo.SetQueryIPBytes([]byte{192, 168, 1, 10})
+	if result, _ := filtering.keepQueryIPFilter(&dm); result != ReturnKeep {
+		t.Errorf("lazy IP dns query should not be dropped!")
+	}
 }
 
 func TestFilteringByDropQueryIp(t *testing.T) {
@@ -150,6 +162,17 @@ func TestFilteringByDropQueryIp(t *testing.T) {
 		t.Errorf("dns query should be dropped!")
 	}
 
+	// Test with binary buffer (lazy IP)
+	dm = dnsutils.GetFakeDNSMessage()
+	dm.NetworkInfo.SetQueryIPBytes([]byte{192, 168, 0, 1})
+	if result, _ := filtering.dropQueryIPFilter(&dm); result != ReturnKeep {
+		t.Errorf("lazy IP dns query should not be dropped!")
+	}
+
+	dm.NetworkInfo.SetQueryIPBytes([]byte{192, 168, 1, 15})
+	if result, _ := filtering.dropQueryIPFilter(&dm); result != ReturnDrop {
+		t.Errorf("lazy IP dns query should be dropped!")
+	}
 }
 
 func TestFilteringByKeepRdataIp(t *testing.T) {

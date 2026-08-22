@@ -82,6 +82,21 @@ tests: check-go
 
 	@rm -f test_output.json coverage.out
 
+# Calculates code coverage quickly.
+coverage: check-go
+	@echo "Calculating code coverage..."
+	@go test -coverprofile=coverage.out ./pkgconfig ./pkginit ./dnsutils ./transformers ./telemetry ./workers
+	@go tool cover -func=coverage.out | grep total:
+	@rm -f coverage.out
+
+# Generates and opens HTML coverage report.
+coverage-html: check-go
+	@echo "Generating HTML coverage report..."
+	@go test -coverprofile=coverage.out ./pkgconfig ./pkginit ./dnsutils ./transformers ./telemetry ./workers
+	@go tool cover -html=coverage.out -o coverage.html
+	@rm -f coverage.out
+	@echo "Coverage report generated: coverage.html"
+
 test-dns:
 	./tests/run_local_dns_tests.sh
 

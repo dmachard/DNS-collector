@@ -205,7 +205,7 @@ func (t *GeoIPTransform) geoipTransform(dm *dnsutils.DNSMessage) (int, error) {
 	}
 
 	if parsedIP == nil {
-		parsedIP = net.ParseIP(dm.NetworkInfo.QueryIP)
+		parsedIP = net.ParseIP(dm.NetworkInfo.GetQueryIP())
 	}
 
 	geoInfo, err := t.LookupParsed(parsedIP)

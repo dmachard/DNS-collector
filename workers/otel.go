@@ -185,19 +185,21 @@ func (w *OpenTelemetryClient) StartLogging() {
 }
 
 func (w *OpenTelemetryClient) handleClientQuery(requestorSpans, messageSpans *sync.Map, tracer trace.Tracer, dm *dnsutils.DNSMessage, timestamp time.Time) {
+	queryIP := dm.NetworkInfo.GetQueryIP()
+	responseIP := dm.NetworkInfo.GetResponseIP()
 	if parentSpan, ok := requestorSpans.Load(dm.PowerDNS.RequestorID); ok {
-		_, childSpan := tracer.Start(trace.ContextWithSpan(context.Background(), parentSpan.(trackedSpan).span), "Client Query "+dm.NetworkInfo.ResponseIP+" ("+dm.DNS.Qname+" / "+dm.DNS.Qtype+" )", trace.WithTimestamp(timestamp))
+		_, childSpan := tracer.Start(trace.ContextWithSpan(context.Background(), parentSpan.(trackedSpan).span), "Client Query "+responseIP+" ("+dm.DNS.Qname+" / "+dm.DNS.Qtype+" )", trace.WithTimestamp(timestamp))
 		childSpan.SetAttributes(attribute.String("dns.qname", dm.DNS.Qname))
-		childSpan.SetAttributes(attribute.String("source.ip", dm.NetworkInfo.QueryIP))
-		childSpan.SetAttributes(attribute.String("destination.ip", dm.NetworkInfo.ResponseIP))
+		childSpan.SetAttributes(attribute.String("source.ip", queryIP))
+		childSpan.SetAttributes(attribute.String("destination.ip", responseIP))
 
 		messageSpans.Store(dm.PowerDNS.MessageID, trackedSpan{span: childSpan, startTime: timestamp})
 		dm.OpenTelemetry.TraceID = childSpan.SpanContext().TraceID().String()
 	} else {
-		_, clientSpan := tracer.Start(context.Background(), "Client Query "+dm.NetworkInfo.ResponseIP+" ("+dm.DNS.Qname+" / "+dm.DNS.Qtype+" )", trace.WithTimestamp(timestamp))
+		_, clientSpan := tracer.Start(context.Background(), "Client Query "+responseIP+" ("+dm.DNS.Qname+" / "+dm.DNS.Qtype+" )", trace.WithTimestamp(timestamp))
 		clientSpan.SetAttributes(attribute.String("dns.qname", dm.DNS.Qname))
-		clientSpan.SetAttributes(attribute.String("source.ip", dm.NetworkInfo.QueryIP))
-		clientSpan.SetAttributes(attribute.String("destination.ip", dm.NetworkInfo.ResponseIP))
+		clientSpan.SetAttributes(attribute.String("source.ip", queryIP))
+		clientSpan.SetAttributes(attribute.String("destination.ip", responseIP))
 		requestorSpans.Store(dm.PowerDNS.RequestorID, trackedSpan{span: clientSpan, startTime: timestamp})
 		messageSpans.Store(dm.PowerDNS.MessageID, trackedSpan{span: clientSpan, startTime: timestamp})
 		dm.OpenTelemetry.TraceID = clientSpan.SpanContext().TraceID().String()
@@ -208,6 +210,7 @@ func (w *OpenTelemetryClient) handleClientResponse(requestorSpans, messageSpans 
 	if span, ok := messageSpans.Load(dm.PowerDNS.MessageID); ok {
 		tracked := span.(trackedSpan)
 		tracked.span.SetAttributes(attribute.String("dns.rcode", dm.DNS.Rcode))
+
 		if dm.DNS.Rcode != dnsutils.DNSRcodeNoError {
 			tracked.span.SetAttributes(attribute.String("error", "true"))
 			tracked.span.SetAttributes(attribute.String("error.message", "Non-successful DNS response code"))
@@ -233,19 +236,21 @@ func (w *OpenTelemetryClient) handleClientResponse(requestorSpans, messageSpans 
 }
 
 func (w *OpenTelemetryClient) handleResolverQuery(messageSpans, resolverSpans *sync.Map, tracer trace.Tracer, dm *dnsutils.DNSMessage, timestamp time.Time) {
+	queryIP := dm.NetworkInfo.GetQueryIP()
+	responseIP := dm.NetworkInfo.GetResponseIP()
 	if tracked, ok := messageSpans.Load(dm.PowerDNS.InitialRequestorID); ok {
-		_, resolverSpan := tracer.Start(trace.ContextWithSpan(context.Background(), tracked.(trackedSpan).span), "Resolver Query "+dm.NetworkInfo.ResponseIP+" ("+dm.DNS.Qname+" / "+dm.DNS.Qtype+" )", trace.WithTimestamp(timestamp))
+		_, resolverSpan := tracer.Start(trace.ContextWithSpan(context.Background(), tracked.(trackedSpan).span), "Resolver Query "+responseIP+" ("+dm.DNS.Qname+" / "+dm.DNS.Qtype+" )", trace.WithTimestamp(timestamp))
 		resolverSpan.SetAttributes(attribute.String("dns.qname", dm.DNS.Qname))
-		resolverSpan.SetAttributes(attribute.String("source.ip", dm.NetworkInfo.QueryIP))
-		resolverSpan.SetAttributes(attribute.String("destination.ip", dm.NetworkInfo.ResponseIP))
+		resolverSpan.SetAttributes(attribute.String("source.ip", queryIP))
+		resolverSpan.SetAttributes(attribute.String("destination.ip", responseIP))
 		resolverSpans.Store(dm.PowerDNS.MessageID, trackedSpan{span: resolverSpan, startTime: timestamp})
 		dm.OpenTelemetry.TraceID = resolverSpan.SpanContext().TraceID().String()
 	} else {
 		// No parent span found, create a root span
 		_, resolverSpan := tracer.Start(context.Background(), "Resolver Query ("+dm.DNS.Qname+")", trace.WithTimestamp(timestamp))
 		resolverSpan.SetAttributes(attribute.String("dns.qname", dm.DNS.Qname))
-		resolverSpan.SetAttributes(attribute.String("source.ip", dm.NetworkInfo.QueryIP))
-		resolverSpan.SetAttributes(attribute.String("destination.ip", dm.NetworkInfo.ResponseIP))
+		resolverSpan.SetAttributes(attribute.String("source.ip", queryIP))
+		resolverSpan.SetAttributes(attribute.String("destination.ip", responseIP))
 		resolverSpans.Store(dm.PowerDNS.MessageID, trackedSpan{span: resolverSpan, startTime: timestamp})
 		dm.OpenTelemetry.TraceID = resolverSpan.SpanContext().TraceID().String()
 	}

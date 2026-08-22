@@ -1,6 +1,7 @@
 package dnsutils
 
 import (
+	"bytes"
 	"regexp"
 	"sync"
 	"sync/atomic"
@@ -41,6 +42,85 @@ type DNSNetInfo struct {
 	ResponsePort   string `json:"response-port"`
 	IPDefragmented bool   `json:"ip-defragmented"`
 	TCPReassembled bool   `json:"tcp-reassembled"`
+
+	QueryIPBuf    [16]byte `json:"-"`
+	QueryIPLen    uint8    `json:"-"`
+	ResponseIPBuf [16]byte `json:"-"`
+	ResponseIPLen uint8    `json:"-"`
+}
+
+func (net *DNSNetInfo) GetQueryIP() string {
+	if net.QueryIP == "-" && net.QueryIPLen > 0 {
+		net.QueryIP = FastIPv4ToString(net.QueryIPBuf[:net.QueryIPLen])
+	}
+	return net.QueryIP
+}
+
+func (net *DNSNetInfo) GetResponseIP() string {
+	if net.ResponseIP == "-" && net.ResponseIPLen > 0 {
+		net.ResponseIP = FastIPv4ToString(net.ResponseIPBuf[:net.ResponseIPLen])
+	}
+	return net.ResponseIP
+}
+
+func (net *DNSNetInfo) SetQueryIPBytes(ip []byte) {
+	n := copy(net.QueryIPBuf[:], ip)
+	net.QueryIPLen = uint8(n)
+	net.QueryIP = "-"
+}
+
+func (net *DNSNetInfo) SetResponseIPBytes(ip []byte) {
+	n := copy(net.ResponseIPBuf[:], ip)
+	net.ResponseIPLen = uint8(n)
+	net.ResponseIP = "-"
+}
+
+func (net *DNSNetInfo) WriteQueryIPJSON(buf *bytes.Buffer) {
+	switch {
+	case net.QueryIPLen > 0:
+		buf.WriteByte('"')
+		WriteIP(buf, net.QueryIPBuf[:net.QueryIPLen])
+		buf.WriteByte('"')
+	case net.QueryIP != "-":
+		WriteJSONString(buf, net.QueryIP)
+	default:
+		buf.WriteString(`"-"`)
+	}
+}
+
+func (net *DNSNetInfo) WriteResponseIPJSON(buf *bytes.Buffer) {
+	switch {
+	case net.ResponseIPLen > 0:
+		buf.WriteByte('"')
+		WriteIP(buf, net.ResponseIPBuf[:net.ResponseIPLen])
+		buf.WriteByte('"')
+	case net.ResponseIP != "-":
+		WriteJSONString(buf, net.ResponseIP)
+	default:
+		buf.WriteString(`"-"`)
+	}
+}
+
+func (net *DNSNetInfo) WriteQueryIPText(buf *bytes.Buffer) {
+	switch {
+	case net.QueryIPLen > 0:
+		WriteIP(buf, net.QueryIPBuf[:net.QueryIPLen])
+	case len(net.QueryIP) > 0:
+		buf.WriteString(net.QueryIP)
+	default:
+		buf.WriteByte('-')
+	}
+}
+
+func (net *DNSNetInfo) WriteResponseIPText(buf *bytes.Buffer) {
+	switch {
+	case net.ResponseIPLen > 0:
+		WriteIP(buf, net.ResponseIPBuf[:net.ResponseIPLen])
+	case len(net.ResponseIP) > 0:
+		buf.WriteString(net.ResponseIP)
+	default:
+		buf.WriteByte('-')
+	}
 }
 
 type DNSRRs struct {

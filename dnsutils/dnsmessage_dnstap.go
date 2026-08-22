@@ -58,19 +58,27 @@ func (dm *DNSMessage) ToDNSTap(extended bool) ([]byte, error) {
 	msg.SocketFamily = &sf
 	msg.SocketProtocol = &sp
 
-	reqIP := net.ParseIP(dm.NetworkInfo.QueryIP)
-	if dm.NetworkInfo.Family == netutils.ProtoIPv4 {
-		msg.QueryAddress = reqIP.To4()
-	} else {
-		msg.QueryAddress = reqIP.To16()
+	if dm.NetworkInfo.QueryIPLen > 0 {
+		msg.QueryAddress = dm.NetworkInfo.QueryIPBuf[:dm.NetworkInfo.QueryIPLen]
+	} else if dm.NetworkInfo.QueryIP != "-" {
+		reqIP := net.ParseIP(dm.NetworkInfo.GetQueryIP())
+		if dm.NetworkInfo.Family == netutils.ProtoIPv4 {
+			msg.QueryAddress = reqIP.To4()
+		} else {
+			msg.QueryAddress = reqIP.To16()
+		}
 	}
 	msg.QueryPort = &qport
 
-	rspIP := net.ParseIP(dm.NetworkInfo.ResponseIP)
-	if dm.NetworkInfo.Family == netutils.ProtoIPv4 {
-		msg.ResponseAddress = rspIP.To4()
-	} else {
-		msg.ResponseAddress = rspIP.To16()
+	if dm.NetworkInfo.ResponseIPLen > 0 {
+		msg.ResponseAddress = dm.NetworkInfo.ResponseIPBuf[:dm.NetworkInfo.ResponseIPLen]
+	} else if dm.NetworkInfo.ResponseIP != "-" {
+		rspIP := net.ParseIP(dm.NetworkInfo.GetResponseIP())
+		if dm.NetworkInfo.Family == netutils.ProtoIPv4 {
+			msg.ResponseAddress = rspIP.To4()
+		} else {
+			msg.ResponseAddress = rspIP.To16()
+		}
 	}
 	msg.ResponsePort = &rport
 

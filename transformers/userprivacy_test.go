@@ -154,6 +154,20 @@ func TestUserPrivacy_AnonymizeIP(t *testing.T) {
 			}
 		})
 	}
+
+	// Test with binary buffer (lazy IP)
+	dm := dnsutils.GetFakeDNSMessage()
+	dm.NetworkInfo.SetQueryIPBytes([]byte{192, 168, 1, 2})
+	returnCode, err := userPrivacy.anonymizeQueryIP(&dm)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if dm.NetworkInfo.QueryIP != "192.168.0.0" {
+		t.Errorf("Lazy IP anonymization failed, got %s, want 192.168.0.0", dm.NetworkInfo.QueryIP)
+	}
+	if returnCode != ReturnKeep {
+		t.Errorf("Return code is %v, want %v", returnCode, ReturnKeep)
+	}
 }
 
 func TestUserPrivacy_AnonymizeIPRemove(t *testing.T) {

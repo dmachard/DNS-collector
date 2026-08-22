@@ -334,7 +334,7 @@ func (t *FilteringTransform) dropRCodeFilter(dm *dnsutils.DNSMessage) (int, erro
 }
 
 func (t *FilteringTransform) keepQueryIPFilter(dm *dnsutils.DNSMessage) (int, error) {
-	ip, _ := netaddr.ParseIP(dm.NetworkInfo.QueryIP)
+	ip, _ := netaddr.ParseIP(dm.NetworkInfo.GetQueryIP())
 	if t.ipsetKeep.Contains(ip) {
 		return ReturnKeep, nil
 	}
@@ -342,7 +342,7 @@ func (t *FilteringTransform) keepQueryIPFilter(dm *dnsutils.DNSMessage) (int, er
 }
 
 func (t *FilteringTransform) dropQueryIPFilter(dm *dnsutils.DNSMessage) (int, error) {
-	ip, _ := netaddr.ParseIP(dm.NetworkInfo.QueryIP)
+	ip, _ := netaddr.ParseIP(dm.NetworkInfo.GetQueryIP())
 	if t.ipsetDrop.Contains(ip) {
 		return ReturnDrop, nil
 	}

@@ -135,7 +135,7 @@ func (w *InfluxDBClient) StartLogging() {
 
 			p := influxdb2.NewPointWithMeasurement("dns").
 				AddTag("Identity", dm.DNSTap.Identity).
-				AddTag("QueryIP", dm.NetworkInfo.QueryIP).
+				AddTag("QueryIP", dm.NetworkInfo.GetQueryIP()).
 				AddTag("Qname", dm.DNS.Qname).
 				AddField("Operation", dm.DNSTap.Operation).
 				AddField("Family", dm.NetworkInfo.Family).
