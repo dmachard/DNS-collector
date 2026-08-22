@@ -359,9 +359,9 @@ func (dm *DNSMessage) Flatten() (map[string]interface{}, error) {
 	dnsFields["network.family"] = dm.NetworkInfo.Family
 	dnsFields["network.ip-defragmented"] = dm.NetworkInfo.IPDefragmented
 	dnsFields["network.protocol"] = dm.NetworkInfo.Protocol
-	dnsFields["network.query-ip"] = dm.NetworkInfo.QueryIP
+	dnsFields["network.query-ip"] = dm.NetworkInfo.GetQueryIP()
 	dnsFields["network.query-port"] = dm.NetworkInfo.QueryPort
-	dnsFields["network.response-ip"] = dm.NetworkInfo.ResponseIP
+	dnsFields["network.response-ip"] = dm.NetworkInfo.GetResponseIP()
 	dnsFields["network.response-port"] = dm.NetworkInfo.ResponsePort
 	dnsFields["network.tcp-reassembled"] = dm.NetworkInfo.TCPReassembled
 

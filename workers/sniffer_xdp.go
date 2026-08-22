@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"net"
 	"time"
 
@@ -153,10 +152,10 @@ func (w *XDPSniffer) StartCollect() {
 					dm.DNSTap.Operation = dnsutils.DNSTapClientQuery
 				}
 
-				dm.NetworkInfo.QueryIP = saddr.String()
-				dm.NetworkInfo.QueryPort = fmt.Sprint(pkt.SrcPort)
-				dm.NetworkInfo.ResponseIP = daddr.String()
-				dm.NetworkInfo.ResponsePort = fmt.Sprint(pkt.DstPort)
+				dm.NetworkInfo.SetQueryIPBytes(saddr)
+				dm.NetworkInfo.QueryPort = dnsutils.FastPortToString(uint32(pkt.SrcPort))
+				dm.NetworkInfo.SetResponseIPBytes(daddr)
+				dm.NetworkInfo.ResponsePort = dnsutils.FastPortToString(uint32(pkt.DstPort))
 
 				if pkt.IpVersion == 0x0800 {
 					dm.NetworkInfo.Family = netutils.ProtoIPv4

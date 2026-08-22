@@ -379,9 +379,10 @@ func (w *PrometheusCountersSet) Record(dm *dnsutils.DNSMessage) {
 	if w.requesters != nil || w.allDomains != nil || w.validDomains != nil || w.nxDomains != nil || w.sfDomains != nil || w.evicted != nil || w.tlds != nil || w.etldplusone != nil || w.suspicious != nil {
 		w.Lock()
 		if w.requesters != nil {
-			count, _ := w.requesters.Get(dm.NetworkInfo.QueryIP)
-			w.requesters.Add(dm.NetworkInfo.QueryIP, count+1)
-			w.topRequesters.Record(dm.NetworkInfo.QueryIP, count+1)
+			queryIP := dm.NetworkInfo.GetQueryIP()
+			count, _ := w.requesters.Get(queryIP)
+			w.requesters.Add(queryIP, count+1)
+			w.topRequesters.Record(queryIP, count+1)
 		}
 
 		if w.allDomains != nil {

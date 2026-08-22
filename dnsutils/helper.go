@@ -104,12 +104,14 @@ func GetIPPort(dm *DNSMessage) (string, int, string, int) {
 		srcIP, dstIP = "::", "::"
 	}
 
-	if dm.NetworkInfo.QueryIP != "-" {
-		srcIP = dm.NetworkInfo.QueryIP
+	qip := dm.NetworkInfo.GetQueryIP()
+	if qip != "-" {
+		srcIP = qip
 		srcPort, _ = strconv.Atoi(dm.NetworkInfo.QueryPort)
 	}
-	if dm.NetworkInfo.ResponseIP != "-" {
-		dstIP = dm.NetworkInfo.ResponseIP
+	rip := dm.NetworkInfo.GetResponseIP()
+	if rip != "-" {
+		dstIP = rip
 		dstPort, _ = strconv.Atoi(dm.NetworkInfo.ResponsePort)
 	}
 

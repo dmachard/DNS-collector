@@ -281,11 +281,13 @@ func (w *PdnsProcessor) StartCollect() {
 			dm.NetworkInfo.Protocol = pbdm.GetSocketProtocol().String()
 
 			if pbdm.From != nil {
-				dm.NetworkInfo.QueryIP = net.IP(pbdm.From).String()
+				dm.NetworkInfo.SetQueryIPBytes(pbdm.From)
 			}
-			dm.NetworkInfo.QueryPort = strconv.FormatUint(uint64(pbdm.GetFromPort()), 10)
-			dm.NetworkInfo.ResponseIP = net.IP(pbdm.To).String()
-			dm.NetworkInfo.ResponsePort = strconv.FormatUint(uint64(pbdm.GetToPort()), 10)
+			dm.NetworkInfo.QueryPort = dnsutils.FastPortToString(pbdm.GetFromPort())
+			if pbdm.To != nil {
+				dm.NetworkInfo.SetResponseIPBytes(pbdm.To)
+			}
+			dm.NetworkInfo.ResponsePort = dnsutils.FastPortToString(pbdm.GetToPort())
 
 			dm.DNS.ID = int(pbdm.GetId())
 			dm.DNS.Length = int(pbdm.GetInBytes())

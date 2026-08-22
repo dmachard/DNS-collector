@@ -119,9 +119,9 @@ func getAccessor(tag string) FieldAccessor {
 	case "dnstap.operation":
 		return func(dm *dnsutils.DNSMessage) string { return dm.DNSTap.Operation }
 	case "network.query-ip":
-		return func(dm *dnsutils.DNSMessage) string { return dm.NetworkInfo.QueryIP }
+		return func(dm *dnsutils.DNSMessage) string { return dm.NetworkInfo.GetQueryIP() }
 	case "network.response-ip":
-		return func(dm *dnsutils.DNSMessage) string { return dm.NetworkInfo.ResponseIP }
+		return func(dm *dnsutils.DNSMessage) string { return dm.NetworkInfo.GetResponseIP() }
 	case "dns.qname":
 		return func(dm *dnsutils.DNSMessage) string { return dm.DNS.Qname }
 	case "dns.qtype":

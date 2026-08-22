@@ -136,10 +136,11 @@ func (t *LatencyTransform) GetTransforms() ([]Subtransform, error) {
 }
 
 func (t *LatencyTransform) measureLatency(dm *dnsutils.DNSMessage) (int, error) {
+	queryIP := dm.NetworkInfo.GetQueryIP()
 	queryport, _ := strconv.Atoi(dm.NetworkInfo.QueryPort)
-	if len(dm.NetworkInfo.QueryIP) > 0 && queryport > 0 && !dm.DNS.MalformedPacket {
+	if len(queryIP) > 0 && queryIP != "-" && queryport > 0 && !dm.DNS.MalformedPacket {
 		// compute the hash of the query
-		hashData := []string{dm.NetworkInfo.QueryIP, dm.NetworkInfo.QueryPort, strconv.Itoa(dm.DNS.ID)}
+		hashData := []string{queryIP, dm.NetworkInfo.QueryPort, strconv.Itoa(dm.DNS.ID)}
 
 		hashfnv := fnv.New64a()
 		hashfnv.Write([]byte(strings.Join(hashData, "+")))
@@ -161,11 +162,11 @@ func (t *LatencyTransform) measureLatency(dm *dnsutils.DNSMessage) (int, error) 
 }
 
 func (t *LatencyTransform) detectEvictedTimeout(dm *dnsutils.DNSMessage) (int, error) {
-
+	queryIP := dm.NetworkInfo.GetQueryIP()
 	queryport, _ := strconv.Atoi(dm.NetworkInfo.QueryPort)
-	if len(dm.NetworkInfo.QueryIP) > 0 && queryport > 0 && !dm.DNS.MalformedPacket {
+	if len(queryIP) > 0 && queryIP != "-" && queryport > 0 && !dm.DNS.MalformedPacket {
 		// compute the hash of the query
-		hashData := []string{dm.NetworkInfo.QueryIP, dm.NetworkInfo.QueryPort, strconv.Itoa(dm.DNS.ID)}
+		hashData := []string{queryIP, dm.NetworkInfo.QueryPort, strconv.Itoa(dm.DNS.ID)}
 
 		hashfnv := fnv.New64a()
 		hashfnv.Write([]byte(strings.Join(hashData, "+")))

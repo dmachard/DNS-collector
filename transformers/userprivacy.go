@@ -78,9 +78,10 @@ func (t *UserPrivacyTransform) GetTransforms() ([]Subtransform, error) {
 }
 
 func (t *UserPrivacyTransform) anonymizeQueryIP(dm *dnsutils.DNSMessage) (int, error) {
-	queryIP := net.ParseIP(dm.NetworkInfo.QueryIP)
+	rawIP := dm.NetworkInfo.GetQueryIP()
+	queryIP := net.ParseIP(rawIP)
 	if queryIP == nil {
-		return ReturnKeep, fmt.Errorf("not a valid query ip: %v", dm.NetworkInfo.QueryIP)
+		return ReturnKeep, fmt.Errorf("not a valid query ip: %v", rawIP)
 	}
 
 	switch {
@@ -94,12 +95,12 @@ func (t *UserPrivacyTransform) anonymizeQueryIP(dm *dnsutils.DNSMessage) (int, e
 }
 
 func (t *UserPrivacyTransform) hashQueryIP(dm *dnsutils.DNSMessage) (int, error) {
-	dm.NetworkInfo.QueryIP = HashIP(dm.NetworkInfo.QueryIP, t.config.UserPrivacy.HashIPAlgo)
+	dm.NetworkInfo.QueryIP = HashIP(dm.NetworkInfo.GetQueryIP(), t.config.UserPrivacy.HashIPAlgo)
 	return ReturnKeep, nil
 }
 
 func (t *UserPrivacyTransform) hashReplyIP(dm *dnsutils.DNSMessage) (int, error) {
-	dm.NetworkInfo.ResponseIP = HashIP(dm.NetworkInfo.ResponseIP, t.config.UserPrivacy.HashIPAlgo)
+	dm.NetworkInfo.ResponseIP = HashIP(dm.NetworkInfo.GetResponseIP(), t.config.UserPrivacy.HashIPAlgo)
 	return ReturnKeep, nil
 }
 

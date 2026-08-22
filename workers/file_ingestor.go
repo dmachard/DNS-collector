@@ -140,8 +140,8 @@ func (w *FileIngestor) ProcessPcap(filePath string) {
 				dm.Init()
 
 				dm.NetworkInfo.Family = dnsPacket.IPLayer.EndpointType().String()
-				dm.NetworkInfo.QueryIP = dnsPacket.IPLayer.Src().String()
-				dm.NetworkInfo.ResponseIP = dnsPacket.IPLayer.Dst().String()
+				dm.NetworkInfo.SetQueryIPBytes(dnsPacket.IPLayer.Src().Raw())
+				dm.NetworkInfo.SetResponseIPBytes(dnsPacket.IPLayer.Dst().Raw())
 				dm.NetworkInfo.QueryPort = dnsPacket.TransportLayer.Src().String()
 				dm.NetworkInfo.ResponsePort = dnsPacket.TransportLayer.Dst().String()
 				dm.NetworkInfo.Protocol = dnsPacket.TransportLayer.EndpointType().String()
