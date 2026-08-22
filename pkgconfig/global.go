@@ -24,7 +24,7 @@ type ConfigGlobal struct {
 	PidFile        string `yaml:"pid-file" default:""`
 	Worker         struct {
 		InternalMonitor      int `yaml:"interval-monitor" default:"10"`
-		ChannelBufferSize    int `yaml:"buffer-size" default:"8192"`
+		ChannelBufferSize    int `yaml:"buffer-size" default:"512"`
 		BatchSize            int `yaml:"batch-size" default:"64"`
 		BatchFlushIntervalMs int `yaml:"flush-interval-ms" default:"10"`
 	} `yaml:"worker"`

@@ -17,7 +17,7 @@ global:
   text-jinja: ""
   worker:
     interval-monitor: 10
-    buffer-size: 8192
+    buffer-size: 512
     batch-size: 64
     flush-interval-ms: 10
   telemetry:
