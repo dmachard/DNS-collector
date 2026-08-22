@@ -60,7 +60,7 @@ func getFakePowerDNSResponse() []byte {
 
 func Benchmark_PdnsProcessor_Query(b *testing.B) {
 	config := pkgconfig.GetDefaultConfig()
-	config.Collectors.PowerDNS.ChannelBufferSize = 65536
+	config.Global.Worker.ChannelBufferSize = 65536
 
 	devNull := NewDevNull(config, logger.New(false), "devnull")
 	go devNull.StartCollect()
@@ -84,7 +84,7 @@ func Benchmark_PdnsProcessor_Query(b *testing.B) {
 
 func Benchmark_PdnsProcessor_Response(b *testing.B) {
 	config := pkgconfig.GetDefaultConfig()
-	config.Collectors.PowerDNS.ChannelBufferSize = 65536
+	config.Global.Worker.ChannelBufferSize = 65536
 
 	devNull := NewDevNull(config, logger.New(false), "devnull")
 	go devNull.StartCollect()
@@ -108,7 +108,7 @@ func Benchmark_PdnsProcessor_Response(b *testing.B) {
 
 func Benchmark_PdnsProcessor_AddDNSPayload(b *testing.B) {
 	config := pkgconfig.GetDefaultConfig()
-	config.Collectors.PowerDNS.ChannelBufferSize = 65536
+	config.Global.Worker.ChannelBufferSize = 65536
 	config.Collectors.PowerDNS.AddDNSPayload = true
 
 	devNull := NewDevNull(config, logger.New(false), "devnull")

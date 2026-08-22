@@ -12,7 +12,6 @@ pipelines:
       cert-file: ""
       key-file: ""
       reset-conn: true
-      chan-buffer-size: 0
       add-dns-payload: false
     transforms:
       normalize:

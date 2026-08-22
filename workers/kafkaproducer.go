@@ -45,9 +45,6 @@ type KafkaProducer struct {
 
 func NewKafkaProducer(config *pkgconfig.Config, logger *logger.Logger, name string) *KafkaProducer {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.KafkaProducer.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.KafkaProducer.ChannelBufferSize
-	}
 	w := &KafkaProducer{
 		GenericWorker: NewGenericWorker(config, logger, name, "kafka", bufSize, pkgconfig.DefaultMonitor),
 		// kafkaReady:     make(chan bool),

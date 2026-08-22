@@ -11,7 +11,6 @@ Options:
 * `listen-port` (int)
   > Set the local port that the server will bind to.
 
-* `chan-buffer-size` (int)
   > Specifies the maximum number of packets that can be buffered before discard additional packets.
   > Set to zero to use the default global value.
 
@@ -22,7 +21,6 @@ Defaults:
   tzsp:
     listen-ip: 0.0.0.0
     listen-port: 10000
-    chan-buffer-size: 0
 ```
 
 Example rules for Mikrotik brand devices to send the traffic (only works if routed or the device serves as DNS server).

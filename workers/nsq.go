@@ -21,10 +21,7 @@ type NsqClient struct {
 }
 
 func NewNsqClient(config *pkgconfig.Config, console *logger.Logger, name string) *NsqClient {
-	bufferSize := config.Loggers.Nsq.ChannelBufferSize
-	if bufferSize == 0 {
-		bufferSize = config.Global.Worker.ChannelBufferSize
-	}
+	bufferSize := config.Global.Worker.ChannelBufferSize
 
 	s := &NsqClient{
 		GenericWorker: NewGenericWorker(config, console, name, "nsq", bufferSize, pkgconfig.DefaultMonitor),

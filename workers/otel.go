@@ -31,9 +31,6 @@ type OpenTelemetryClient struct {
 
 func NewOpenTelemetryClient(config *pkgconfig.Config, console *logger.Logger, name string) *OpenTelemetryClient {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.OpenTelemetryClient.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.OpenTelemetryClient.ChannelBufferSize
-	}
 
 	w := &OpenTelemetryClient{
 		GenericWorker:   NewGenericWorker(config, console, name, "opentelemetry", bufSize, pkgconfig.DefaultMonitor),

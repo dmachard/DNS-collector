@@ -18,7 +18,7 @@ func TestGenericWorker(t *testing.T) {
 func Test_MultiLogger_ConcurrentRace(t *testing.T) {
 	config := pkgconfig.GetDefaultConfig()
 	config.Collectors.Dnstap.DisableDNSParser = false
-	config.Collectors.Dnstap.ChannelBufferSize = 1000
+	config.Global.Worker.ChannelBufferSize = 1000
 
 	// Create 5 consumer workers (multi-logger scenario)
 	numLoggers := 5

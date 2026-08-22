@@ -32,4 +32,3 @@ pipelines:
       host: "127.0.0.1"
       port: 4150
       topic: "dns-logs"
-      chan-buffer-size: 1000

@@ -30,7 +30,6 @@ Options:
 * `enable-defrag-ip` (bool)
   > Enable IP defrag support
 
-* `chan-buffer-size` (int)
   > Specifies the maximum number of packets that can be buffered before discard additional packets.
   > Set to zero to use the default global value.
 
@@ -44,7 +43,6 @@ Defaults values:
     enable-rawip: false
     enable-gre: false
     enable-defrag-ip: true
-    chan-buffer-size: 0
 ```
 
 This configuration is designed to enable traffic capture on a GRE interface (e.g., gre1) in Raw IP mode, 

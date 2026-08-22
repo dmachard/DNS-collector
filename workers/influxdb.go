@@ -20,9 +20,6 @@ type InfluxDBClient struct {
 
 func NewInfluxDBClient(config *pkgconfig.Config, logger *logger.Logger, name string) *InfluxDBClient {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.InfluxDB.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.InfluxDB.ChannelBufferSize
-	}
 	w := &InfluxDBClient{GenericWorker: NewGenericWorker(config, logger, name, "influxdb", bufSize, pkgconfig.DefaultMonitor)}
 	w.ReadConfig()
 	return w

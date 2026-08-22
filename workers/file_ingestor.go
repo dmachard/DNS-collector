@@ -43,9 +43,6 @@ type FileIngestor struct {
 
 func NewFileIngestor(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *FileIngestor {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Collectors.FileIngestor.ChannelBufferSize > 0 {
-		bufSize = config.Collectors.FileIngestor.ChannelBufferSize
-	}
 	w := &FileIngestor{
 		GenericWorker: NewGenericWorker(config, logger, name, "fileingestor", bufSize, pkgconfig.DefaultMonitor),
 		watcherTimers: make(map[string]*time.Timer)}
@@ -314,9 +311,6 @@ func (w *FileIngestor) StartCollect() {
 	defer w.CollectDone()
 
 	bufSize := w.GetConfig().Global.Worker.ChannelBufferSize
-	if w.GetConfig().Collectors.FileIngestor.ChannelBufferSize > 0 {
-		bufSize = w.GetConfig().Collectors.FileIngestor.ChannelBufferSize
-	}
 
 	dnsProcessor := NewDNSProcessor(w.GetConfig(), w.GetLogger(), w.GetName(), bufSize)
 	dnsProcessor.SetDefaultRoutes(w.GetDefaultRoutes())

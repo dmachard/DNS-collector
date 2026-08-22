@@ -208,7 +208,7 @@ func Test_LogFileRotation(t *testing.T) {
 				config.Loggers.LogFile.MaxSize = tc.maxSize
 				config.Loggers.LogFile.MaxFiles = tc.maxFiles
 				config.Loggers.LogFile.RotationInterval = tc.rotationInterval
-				config.Loggers.LogFile.ChannelBufferSize = 1
+				config.Global.Worker.ChannelBufferSize = 1
 
 				t.Logf("\n[Rotation Config - %s]\n"+
 					" ├─ Interval (s): %d\n"+

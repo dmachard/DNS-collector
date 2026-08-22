@@ -36,9 +36,6 @@ type StatsdClient struct {
 
 func NewStatsdClient(config *pkgconfig.Config, logger *logger.Logger, name string) *StatsdClient {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.Statsd.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.Statsd.ChannelBufferSize
-	}
 	w := &StatsdClient{GenericWorker: NewGenericWorker(config, logger, name, "statsd", bufSize, pkgconfig.DefaultMonitor)}
 	w.Stats = StreamStats{Streams: make(map[string]*StatsPerStream)}
 	w.ReadConfig()

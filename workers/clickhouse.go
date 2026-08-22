@@ -32,9 +32,6 @@ type ClickhouseClient struct {
 
 func NewClickhouseClient(config *pkgconfig.Config, console *logger.Logger, name string) *ClickhouseClient {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.ClickhouseClient.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.ClickhouseClient.ChannelBufferSize
-	}
 	w := &ClickhouseClient{GenericWorker: NewGenericWorker(config, console, name, "clickhouse", bufSize, pkgconfig.DefaultMonitor)}
 	w.ReadConfig()
 	return w

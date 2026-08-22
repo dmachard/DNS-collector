@@ -32,9 +32,6 @@ type TCPClient struct {
 
 func NewTCPClient(config *pkgconfig.Config, logger *logger.Logger, name string) *TCPClient {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.TCPClient.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.TCPClient.ChannelBufferSize
-	}
 	w := &TCPClient{GenericWorker: NewGenericWorker(config, logger, name, "tcpclient", bufSize, pkgconfig.DefaultMonitor)}
 	w.transportReady = make(chan bool)
 	w.transportReconnect = make(chan bool)

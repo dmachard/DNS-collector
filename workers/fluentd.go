@@ -24,9 +24,6 @@ type FluentdClient struct {
 
 func NewFluentdClient(config *pkgconfig.Config, logger *logger.Logger, name string) *FluentdClient {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.Fluentd.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.Fluentd.ChannelBufferSize
-	}
 	w := &FluentdClient{GenericWorker: NewGenericWorker(config, logger, name, "fluentd", bufSize, pkgconfig.DefaultMonitor)}
 	w.transportReady = make(chan bool)
 	w.transportReconnect = make(chan bool)

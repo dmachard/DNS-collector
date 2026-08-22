@@ -17,7 +17,7 @@ func benchmarkLogFileMode(b *testing.B, mode string) {
 	config := pkgconfig.GetDefaultConfig()
 	config.Loggers.LogFile.FilePath = filePath
 	config.Loggers.LogFile.Mode = mode
-	config.Loggers.LogFile.ChannelBufferSize = 65536
+	config.Global.Worker.ChannelBufferSize = 65536
 	config.Loggers.LogFile.FlushInterval = 0
 
 	g := NewLogFile(config, logger.New(false), "bench-logfile")

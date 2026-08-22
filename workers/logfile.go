@@ -66,9 +66,6 @@ type LogFile struct {
 
 func NewLogFile(config *pkgconfig.Config, logger *logger.Logger, name string) *LogFile {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.LogFile.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.LogFile.ChannelBufferSize
-	}
 	w := &LogFile{
 		GenericWorker: NewGenericWorker(config, logger, name, "file", bufSize, pkgconfig.DefaultMonitor),
 		compressQueue: make(chan string, 1),

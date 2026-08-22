@@ -29,9 +29,6 @@ type Syslog struct {
 
 func NewSyslog(config *pkgconfig.Config, console *logger.Logger, name string) *Syslog {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.Syslog.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.Syslog.ChannelBufferSize
-	}
 	w := &Syslog{GenericWorker: NewGenericWorker(config, console, name, "syslog", bufSize, pkgconfig.DefaultMonitor)}
 	w.transportReady = make(chan bool)
 	w.transportReconnect = make(chan bool)
@@ -262,9 +259,11 @@ func (w *Syslog) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 			// because the NULL is at end of log in syslog
 			nullReplace := w.GetConfig().Loggers.Syslog.ReplaceNullChar
 			data := buf.Bytes()
-			for i := 0; i < len(data); i++ {
-				if data[i] == 0 {
-					data[i] = nullReplace[0]
+			if len(nullReplace) > 0 {
+				for i := 0; i < len(data); i++ {
+					if data[i] == 0 {
+						data[i] = nullReplace[0]
+					}
 				}
 			}
 

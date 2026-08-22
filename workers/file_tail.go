@@ -24,9 +24,6 @@ type Tail struct {
 
 func NewTail(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *Tail {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Collectors.Tail.ChannelBufferSize > 0 {
-		bufSize = config.Collectors.Tail.ChannelBufferSize
-	}
 	w := &Tail{GenericWorker: NewGenericWorker(config, logger, name, "tail", bufSize, pkgconfig.DefaultMonitor)}
 	w.SetDefaultRoutes(next)
 	return w

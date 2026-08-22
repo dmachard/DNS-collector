@@ -21,9 +21,6 @@ type DnstapProxifier struct {
 
 func NewDnstapProxifier(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *DnstapProxifier {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Collectors.DnstapProxifier.ChannelBufferSize > 0 {
-		bufSize = config.Collectors.DnstapProxifier.ChannelBufferSize
-	}
 	s := &DnstapProxifier{GenericWorker: NewGenericWorker(config, logger, name, "dnstaprelay", bufSize, pkgconfig.DefaultMonitor)}
 	s.SetDefaultRoutes(next)
 	s.CheckConfig()
@@ -69,9 +66,6 @@ func (w *DnstapProxifier) HandleConn(conn net.Conn, connID uint64, forceClose ch
 	w.LogInfo("new connection from %s\n", peer)
 
 	bufSize := w.config.Global.Worker.ChannelBufferSize
-	if w.config.Collectors.DnstapProxifier.ChannelBufferSize > 0 {
-		bufSize = w.config.Collectors.DnstapProxifier.ChannelBufferSize
-	}
 
 	recvChan := make(chan []byte, bufSize)
 	defaultRoutes, _ := GetRoutes(w.GetDefaultRoutes())

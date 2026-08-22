@@ -29,9 +29,6 @@ type PdnsServer struct {
 
 func NewPdnsServer(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *PdnsServer {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Collectors.PowerDNS.ChannelBufferSize > 0 {
-		bufSize = config.Collectors.PowerDNS.ChannelBufferSize
-	}
 	w := &PdnsServer{GenericWorker: NewGenericWorker(config, logger, name, "powerdns", bufSize, pkgconfig.DefaultMonitor)}
 	w.SetDefaultRoutes(next)
 	w.CheckConfig()
@@ -59,9 +56,6 @@ func (w *PdnsServer) HandleConn(conn net.Conn, connID uint64, forceClose chan bo
 
 	// start protobuf subprocessor
 	bufSize := w.GetConfig().Global.Worker.ChannelBufferSize
-	if w.GetConfig().Collectors.PowerDNS.ChannelBufferSize > 0 {
-		bufSize = w.GetConfig().Collectors.PowerDNS.ChannelBufferSize
-	}
 	pdnsProcessor := NewPdnsProcessor(int(connID), peerName, w.GetConfig(), w.GetLogger(), w.GetName(), bufSize)
 	pdnsProcessor.SetMetrics(w.GetMetrics())
 	pdnsProcessor.SetDefaultRoutes(w.GetDefaultRoutes())

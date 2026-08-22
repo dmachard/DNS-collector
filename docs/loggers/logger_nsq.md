@@ -19,7 +19,6 @@ Options:
   > Specifies the NSQ topic where DNS messages will be published.
   > Default: `dnscollector`
 
-* `chan-buffer-size` (int)
   > Specifies the maximum number of packets that can be buffered before discard additional packets.
   > Set to zero to use the default global value.
 
@@ -31,5 +30,4 @@ nsq:
   host: 127.0.0.1
   port: 4150
   topic: dnscollector
-  chan-buffer-size: 0
 ```

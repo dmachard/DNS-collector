@@ -32,9 +32,6 @@ type MQTT struct {
 
 func NewMQTT(config *pkgconfig.Config, logger *logger.Logger, name string) *MQTT {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.MQTT.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.MQTT.ChannelBufferSize
-	}
 	w := &MQTT{
 		GenericWorker: NewGenericWorker(config, logger, name, "mqtt", bufSize, pkgconfig.DefaultMonitor),
 		mqttReady:     make(chan bool),

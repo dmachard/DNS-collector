@@ -30,9 +30,6 @@ type DnstapServer struct {
 
 func NewDnstapServer(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *DnstapServer {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Collectors.Dnstap.ChannelBufferSize > 0 {
-		bufSize = config.Collectors.Dnstap.ChannelBufferSize
-	}
 	w := &DnstapServer{GenericWorker: NewGenericWorker(config, logger, name, "dnstap", bufSize, pkgconfig.DefaultMonitor)}
 	w.SetDefaultRoutes(next)
 	w.CheckConfig()
@@ -60,9 +57,6 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 
 	// start dnstap processor and run it
 	bufSize := w.GetConfig().Global.Worker.ChannelBufferSize
-	if w.GetConfig().Collectors.Dnstap.ChannelBufferSize > 0 {
-		bufSize = w.GetConfig().Collectors.Dnstap.ChannelBufferSize
-	}
 	dnstapProcessor := NewDNSTapProcessor(int(connID), peerName, w.GetConfig(), w.GetLogger(), w.GetName(), bufSize)
 	dnstapProcessor.SetMetrics(w.GetMetrics())
 	dnstapProcessor.SetDefaultRoutes(w.GetDefaultRoutes())

@@ -41,9 +41,6 @@ type StdOut struct {
 
 func NewStdOut(config *pkgconfig.Config, console *logger.Logger, name string) *StdOut {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.Stdout.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.Stdout.ChannelBufferSize
-	}
 	w := &StdOut{GenericWorker: NewGenericWorker(config, console, name, "stdout", bufSize, pkgconfig.DefaultMonitor)}
 
 	// init writers with buffer to minimize syscalls

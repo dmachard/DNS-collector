@@ -26,7 +26,6 @@ Options:
 * `delete-after:` (boolean)
   > Determines whether the pcap file should be deleted after ingestion.
 
-* `chan-buffer-size` (int)
   > Specifies the maximum number of packets that can be buffered before discard additional packets.
   > Set to zero to use the default global value.
 
@@ -39,5 +38,4 @@ Defaults:
     watch-mode: pcap
     pcap-dns-port: 53
     delete-after: false
-    chan-buffer-size: 0
 ```

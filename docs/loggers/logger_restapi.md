@@ -34,11 +34,6 @@ Basic authentication is supported.
 
 * `top-n` (integer)
   > Default number of items returned for top stats queries
-
-* `chan-buffer-size` (integer)
-  > Specifies the maximum number of packets that can be buffered before discarding additional packets.
-  > Set to zero to use the default global value.
-
 ### Default Values
 
 ```yaml
@@ -53,7 +48,6 @@ restapi:
   cert-file: "./tests/testsdata/server.crt"
   key-file: "./tests/testsdata/server.key"
   top-n: 100
-  chan-buffer-size: 0
 ```
 
 ## REST API Reference

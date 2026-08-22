@@ -91,16 +91,18 @@ global:
 
 ### Worker Settings
 
-Configure internal processing:
+Configure internal processing queue capacity:
 
 ```yaml
 global:
   worker:
     interval-monitor: 10    # Monitoring interval in seconds
-    buffer-size: 8192      # Internal buffer size
+    buffer-size: 8192      # Global channel buffer capacity for all workers
 ```
 
-**Important**: Increase `buffer-size` if you see "buffer is full, xxx packet(s) dropped" warnings.
+> [!NOTE]
+> **Channel Capacity (`buffer-size`)**: Channel queue sizes are centrally controlled via `global.worker.buffer-size`. Increase `buffer-size` if you see `"buffer is full, xxx packet(s) dropped"` warnings under burst traffic.
+> *(Note: The legacy per-worker `chan-buffer-size` setting has been removed in favor of this global configuration).*
 
 ### Process Management
 

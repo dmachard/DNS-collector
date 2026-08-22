@@ -10,7 +10,7 @@ import (
 
 func Benchmark_DNSMessageWorker_Passthrough(b *testing.B) {
 	config := pkgconfig.GetDefaultConfig()
-	config.Collectors.DNSMessage.ChannelBufferSize = 65536
+	config.Global.Worker.ChannelBufferSize = 65536
 
 	devNull := NewDevNull(config, logger.New(false), "devnull")
 	go devNull.StartCollect()
@@ -35,7 +35,7 @@ func Benchmark_DNSMessageWorker_Passthrough(b *testing.B) {
 
 func Benchmark_DNSMessageWorker_MatchingInclude(b *testing.B) {
 	config := pkgconfig.GetDefaultConfig()
-	config.Collectors.DNSMessage.ChannelBufferSize = 65536
+	config.Global.Worker.ChannelBufferSize = 65536
 	config.Collectors.DNSMessage.Matching.Include = map[string]interface{}{
 		"dns.qname": "dns.collector",
 	}
@@ -64,7 +64,7 @@ func Benchmark_DNSMessageWorker_MatchingInclude(b *testing.B) {
 
 func Benchmark_DNSMessageWorker_MatchingExclude(b *testing.B) {
 	config := pkgconfig.GetDefaultConfig()
-	config.Collectors.DNSMessage.ChannelBufferSize = 65536
+	config.Global.Worker.ChannelBufferSize = 65536
 	config.Collectors.DNSMessage.Matching.Exclude = map[string]interface{}{
 		"dns.qname": "drop.me",
 	}

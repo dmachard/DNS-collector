@@ -11,9 +11,6 @@ type DevNull struct {
 
 func NewDevNull(config *pkgconfig.Config, console *logger.Logger, name string) *DevNull {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.DevNull.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.DevNull.ChannelBufferSize
-	}
 	s := &DevNull{GenericWorker: NewGenericWorker(config, console, name, "devnull", bufSize, pkgconfig.DefaultMonitor)}
 	s.ReadConfig()
 	return s

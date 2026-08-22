@@ -25,7 +25,6 @@ Options:
   > Compression for bulk messages: `none`, `gzip`.
   > Specifies the compression algorithm to use.
 
-* `chan-buffer-size` (integer)
   > Specifies the maximum number of packets that can be buffered before discard additional packets.
   > Set to zero to use the default global value.
 
@@ -80,7 +79,6 @@ Defaults:
   elasticsearch:
     server: "http://127.0.0.1:9200/"
     index:  "dnscollector"
-    chan-buffer-size: 0
     bulk-size: 1048576 # 1MB
     flush-interval: 10 # in seconds
     compression: none

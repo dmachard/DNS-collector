@@ -25,9 +25,6 @@ type ElasticSearchClient struct {
 
 func NewElasticSearchClient(config *pkgconfig.Config, console *logger.Logger, name string) *ElasticSearchClient {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.ElasticSearchClient.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.ElasticSearchClient.ChannelBufferSize
-	}
 	w := &ElasticSearchClient{GenericWorker: NewGenericWorker(config, console, name, "elasticsearch", bufSize, pkgconfig.DefaultMonitor)}
 	w.httpClient = &http.Client{Timeout: 5 * time.Second}
 	w.ReadConfig()

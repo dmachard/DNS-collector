@@ -46,9 +46,6 @@ type ScalyrClient struct {
 
 func NewScalyrClient(config *pkgconfig.Config, console *logger.Logger, name string) *ScalyrClient {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.ScalyrClient.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.ScalyrClient.ChannelBufferSize
-	}
 	w := &ScalyrClient{GenericWorker: NewGenericWorker(config, console, name, "scalyr", bufSize, pkgconfig.DefaultMonitor)}
 	w.mode = pkgconfig.ModeText
 	w.endpoint = makeEndpoint("app.scalyr.com")

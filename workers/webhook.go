@@ -25,9 +25,6 @@ type Webhook struct {
 
 func NewWebhook(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *Webhook {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Collectors.Webhook.ChannelBufferSize > 0 {
-		bufSize = config.Collectors.Webhook.ChannelBufferSize
-	}
 	w := &Webhook{GenericWorker: NewGenericWorker(config, logger, name, "webhook", bufSize, pkgconfig.DefaultMonitor)}
 	w.SetDefaultRoutes(next)
 	w.ReadConfig()

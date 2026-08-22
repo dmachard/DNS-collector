@@ -32,4 +32,3 @@ pipelines:
       basic-auth-pwd-file: ""
       tenant-id: ""
       relabel-configs: []
-      chan-buffer-size: 0

@@ -23,7 +23,6 @@ Options:
 * `text-format`: (string) custom text format (only when mode is "text")
 * `buffer-size`: (integer) maximum buffer size before flush, default: 100
 * `flush-interval`: (integer) flush interval in seconds, default: 10
-* `chan-buffer-size`: (integer) channel buffer size, default: 65535
 
 Default values:
 
@@ -42,7 +41,6 @@ mqtt:
   mode: "flat-json"
   buffer-size: 100
   flush-interval: 10
-  chan-buffer-size: 65535
 ```
 
 ## Examples
@@ -128,7 +126,6 @@ pipelines:
       qos: 0
       buffer-size: 1000
       flush-interval: 5
-      chan-buffer-size: 100000
 ```
 
 ## Protocol Version Selection
@@ -154,7 +151,7 @@ Choose based on your reliability requirements vs. performance needs.
 ## Performance Considerations
 
 - **QoS 0** provides the highest throughput with lowest latency
-- Increase `buffer-size` and `chan-buffer-size` for high-volume scenarios
+- Increase `buffer-size` and `global.worker.buffer-size` for high-volume scenarios
 - Decrease `flush-interval` for lower latency (at cost of more network traffic)
 - Use `flat-json` mode for compact output, `json` for readable output
 
@@ -164,5 +161,5 @@ The logger automatically reconnects to the MQTT broker if the connection is lost
 
 - Initial connection timeout: `connect-timeout` seconds
 - Reconnection attempts: every `retry-interval` seconds
-- Messages are buffered during disconnection up to `chan-buffer-size`
+- Messages are buffered during disconnection up to `global.worker.buffer-size`
 - Buffered messages are published once reconnected
