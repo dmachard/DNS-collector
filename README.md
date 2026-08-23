@@ -63,7 +63,7 @@ To get started quickly, you can use this default [`config.yml`](config.yml).
 | [🔍 Examples](docs/examples.md) | Ready-to-use configs |
 | [🔗 Sources & Sinks](docs/platforms/dns_servers.md) | Integration with popular tools and DNS servers |
 | [⭐ Enhanced DNStap](docs/platforms/extended_dnstap.md) | Enhanced DNSTap features |
-| [📊 Telemetry](docs/telemetry.md) | REST API and Prometheus metrics |
+| [📊 Telemetry](docs/performance/metrics.md) | REST API and Prometheus metrics |
 | [⚡ Performance Tuning](docs/performance/tuning.md) | Performance tuning guide |
 
 ## 👥 Contributions
