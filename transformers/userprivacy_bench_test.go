@@ -8,107 +8,78 @@ import (
 	"github.com/dmachard/go-logger"
 )
 
-func BenchmarkUserPrivacy_ReduceQname(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.UserPrivacy.Enable = true
-	config.UserPrivacy.MinimizeQname = true
-
-	channels := []chan *dnsutils.DNSMessageBatch{}
-
-	userprivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, channels)
-	userprivacy.GetTransforms()
-
-	dm := dnsutils.GetFakeDNSMessage()
-	dm.DNS.Qname = "localhost.domain.local.home"
-
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		userprivacy.minimizeQname(&dm)
-	}
-}
-
-func BenchmarkUserPrivacy_HashIP(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.UserPrivacy.Enable = true
-	config.UserPrivacy.HashQueryIP = true
-
-	channels := []chan *dnsutils.DNSMessageBatch{}
-
-	userprivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, channels)
-	userprivacy.GetTransforms()
-
-	dm := dnsutils.GetFakeDNSMessage()
-
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		userprivacy.hashQueryIP(&dm)
-	}
-}
-
-func BenchmarkUserPrivacy_HashIPSha512(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.UserPrivacy.Enable = true
-	config.UserPrivacy.HashQueryIP = true
-	config.UserPrivacy.HashIPAlgo = "sha512"
-
-	channels := []chan *dnsutils.DNSMessageBatch{}
-
-	userprivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, channels)
-	userprivacy.GetTransforms()
-
-	dm := dnsutils.GetFakeDNSMessage()
-
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		userprivacy.hashQueryIP(&dm)
-	}
-}
-
-func BenchmarkUserPrivacy_AnonymizeIP(b *testing.B) {
+func Benchmark_UserPrivacy_AnonymizeIPv4_Binary(b *testing.B) {
 	config := pkgconfig.GetFakeConfigTransformers()
 	config.UserPrivacy.Enable = true
 	config.UserPrivacy.AnonymizeIP = true
+	userPrivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, nil)
+	userPrivacy.GetTransforms()
 
-	channels := []chan *dnsutils.DNSMessageBatch{}
+	dm := dnsutils.GetFakeDNSMessage()
+	ipBytes := []byte{192, 168, 1, 2}
 
-	userprivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, channels)
-	userprivacy.GetTransforms()
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		dm.NetworkInfo.SetQueryIPBytes(ipBytes)
+		userPrivacy.anonymizeQueryIP(&dm)
+	}
+}
+
+func Benchmark_UserPrivacy_AnonymizeIPv4_String(b *testing.B) {
+	config := pkgconfig.GetFakeConfigTransformers()
+	config.UserPrivacy.Enable = true
+	config.UserPrivacy.AnonymizeIP = true
+	userPrivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, nil)
+	userPrivacy.GetTransforms()
 
 	dm := dnsutils.GetFakeDNSMessage()
 
 	b.ReportAllocs()
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
-		userprivacy.anonymizeQueryIP(&dm)
+		dm.NetworkInfo.QueryIP = "192.168.1.2"
+		dm.NetworkInfo.QueryIPLen = 0
+		userPrivacy.anonymizeQueryIP(&dm)
 	}
 }
 
-func BenchmarkHashIP_Sha1(b *testing.B) {
-	ip := "192.168.1.2"
+func Benchmark_UserPrivacy_AnonymizeIPv6_String(b *testing.B) {
+	config := pkgconfig.GetFakeConfigTransformers()
+	config.UserPrivacy.Enable = true
+	config.UserPrivacy.AnonymizeIP = true
+	userPrivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, nil)
+	userPrivacy.GetTransforms()
+
+	dm := dnsutils.GetFakeDNSMessage()
+
 	b.ReportAllocs()
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
-		_ = HashIP(ip, "sha1")
+		dm.NetworkInfo.QueryIP = "fe80::6111:626:c1b2:2353"
+		dm.NetworkInfo.QueryIPLen = 0
+		userPrivacy.anonymizeQueryIP(&dm)
 	}
 }
 
-func BenchmarkHashIP_Sha256(b *testing.B) {
-	ip := "192.168.1.2"
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = HashIP(ip, "sha256")
-	}
-}
+func Benchmark_UserPrivacy_AnonymizeIPv6_Binary(b *testing.B) {
+	config := pkgconfig.GetFakeConfigTransformers()
+	config.UserPrivacy.Enable = true
+	config.UserPrivacy.AnonymizeIP = true
+	userPrivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, nil)
+	userPrivacy.GetTransforms()
 
-func BenchmarkHashIP_Sha512(b *testing.B) {
-	ip := "192.168.1.2"
+	dm := dnsutils.GetFakeDNSMessage()
+	ipBytes := []byte{0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0x61, 0x11, 0x06, 0x26, 0xc1, 0xb2, 0x23, 0x53}
+
 	b.ReportAllocs()
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
-		_ = HashIP(ip, "sha512")
+		dm.NetworkInfo.SetQueryIPBytes(ipBytes)
+		userPrivacy.anonymizeQueryIP(&dm)
 	}
 }
