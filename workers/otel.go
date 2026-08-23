@@ -31,9 +31,6 @@ type OpenTelemetryClient struct {
 
 func NewOpenTelemetryClient(config *pkgconfig.Config, console *logger.Logger, name string) *OpenTelemetryClient {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.OpenTelemetryClient.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.OpenTelemetryClient.ChannelBufferSize
-	}
 
 	w := &OpenTelemetryClient{
 		GenericWorker:   NewGenericWorker(config, console, name, "opentelemetry", bufSize, pkgconfig.DefaultMonitor),
@@ -97,28 +94,33 @@ func (w *OpenTelemetryClient) StartCollect() {
 			w.ReadConfig()
 			subprocessors.ReloadConfig(&cfg.OutgoingTransformers)
 
-		case dm, opened := <-w.GetInputChannel():
+		case batch, opened := <-w.GetInputChannel():
 			if !opened {
 				w.LogInfo("input channel closed!")
 				return
 			}
 
-			// count global messages
-			w.CountIngressTraffic()
+			for _, dm := range batch.Messages {
+				// count global messages
+				w.CountIngressTraffic()
 
-			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(dm)
-			if err != nil {
-				w.LogError(err.Error())
-			}
-			if transformResult == transformers.ReturnDrop {
-				w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-				continue
-			}
+				// apply transforms, init dns message with additional parts if necessary
+				transformResult, err := subprocessors.ProcessMessage(dm)
+				if err != nil {
+					w.LogError(err.Error())
+				}
+				if transformResult == transformers.ReturnDrop {
+					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
+					continue
+				}
 
-			// send to output channel
-			w.CountEgressTraffic()
-			w.GetOutputChannel() <- dm
+				// send to output channel
+				w.CountEgressTraffic()
+				b := dnsutils.AcquireDNSMessageBatch(1)
+				b.Messages = append(b.Messages, dm)
+				w.GetOutputChannel() <- b
+			}
+			batch.Release()
 		}
 	}
 }
@@ -143,43 +145,45 @@ func (w *OpenTelemetryClient) StartLogging() {
 			return
 
 		// incoming dns message to process
-		case dm, opened := <-w.GetOutputChannel():
+		case batch, opened := <-w.GetOutputChannel():
 			if !opened {
 				w.LogInfo("output channel closed!")
 				return
 			}
 
-			var timestamp time.Time
-			if dm.DNSTap.Timestamp > 0 {
-				timestamp = time.Unix(0, dm.DNSTap.Timestamp)
-			} else {
-				var err error
-				timestamp, err = time.Parse(time.RFC3339, dm.GetTimestampRFC3339())
-				if err != nil {
-					w.LogWarning("invalid timestamp: %v", err)
-					w.CountEgressDiscarded()
-					dm.Release()
-					continue
+			for _, dm := range batch.Messages {
+				var timestamp time.Time
+				if dm.DNSTap.Timestamp > 0 {
+					timestamp = time.Unix(0, dm.DNSTap.Timestamp)
+				} else {
+					var err error
+					timestamp, err = time.Parse(time.RFC3339, dm.GetTimestampRFC3339())
+					if err != nil {
+						w.LogWarning("invalid timestamp: %v", err)
+						w.CountEgressDiscarded()
+						continue
+					}
 				}
+				tracer := w.getTracer(dm.DNSTap.Identity)
+
+				// ini opentelemetry with default values
+				dm.OpenTelemetry = &dnsutils.LoggerOpenTelemetry{}
+
+				switch dm.DNSTap.Operation {
+				case "CLIENT_QUERY":
+					w.handleClientQuery(&requestorSpans, &messageSpans, tracer, dm, timestamp)
+				case "CLIENT_RESPONSE":
+					w.handleClientResponse(&requestorSpans, &messageSpans, dm, timestamp)
+				case "RESOLVER_QUERY":
+					w.handleResolverQuery(&messageSpans, &resolverSpans, tracer, dm, timestamp)
+				case "RESOLVER_RESPONSE":
+					w.handleResolverResponse(&resolverSpans, dm, timestamp)
+				}
+
+				// send to next ?
+				w.SendForwardedTo(defaultRoutes, defaultNames, dm)
 			}
-			tracer := w.getTracer(dm.DNSTap.Identity)
-
-			// ini opentelemetry with default values
-			dm.OpenTelemetry = &dnsutils.LoggerOpenTelemetry{}
-
-			switch dm.DNSTap.Operation {
-			case "CLIENT_QUERY":
-				w.handleClientQuery(&requestorSpans, &messageSpans, tracer, dm, timestamp)
-			case "CLIENT_RESPONSE":
-				w.handleClientResponse(&requestorSpans, &messageSpans, dm, timestamp)
-			case "RESOLVER_QUERY":
-				w.handleResolverQuery(&messageSpans, &resolverSpans, tracer, dm, timestamp)
-			case "RESOLVER_RESPONSE":
-				w.handleResolverResponse(&resolverSpans, dm, timestamp)
-			}
-
-			// send to next ?
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+			batch.Release()
 		}
 	}
 }

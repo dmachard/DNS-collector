@@ -15,7 +15,7 @@ func TestReducer_Json(t *testing.T) {
 	// enable feature
 	config := pkgconfig.GetFakeConfigTransformers()
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// get fake
 	dm := dnsutils.GetFakeDNSMessage()
@@ -63,8 +63,8 @@ func TestReducer_RepetitiveTrafficDetector(t *testing.T) {
 	config.Reducer.RepetitiveTrafficDetector = true
 	config.Reducer.WatchInterval = 1
 
-	outChan := make(chan *dnsutils.DNSMessage, 1)
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChan := make(chan *dnsutils.DNSMessageBatch, 1)
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 	outChans = append(outChans, outChan)
 
 	// init subprocessor
@@ -189,7 +189,8 @@ func TestReducer_RepetitiveTrafficDetector(t *testing.T) {
 			time.Sleep(1 * time.Second)
 
 			for _, dmRef := range tc.dnsMessagesOut {
-				newDm := <-outChan
+				newBatch := <-outChan
+				newDm := newBatch.Messages[0]
 				if newDm.Reducer.Occurrences != dmRef.Reducer.Occurrences {
 					t.Errorf("DNS message invalid repeated: Want=%d, Get=%d", dmRef.Reducer.Occurrences, newDm.Reducer.Occurrences)
 				}
@@ -206,8 +207,8 @@ func TestReducer_QnamePlusOne(t *testing.T) {
 	config.Reducer.QnamePlusOne = true
 	config.Reducer.WatchInterval = 1
 
-	outChan := make(chan *dnsutils.DNSMessage, 1)
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChan := make(chan *dnsutils.DNSMessageBatch, 1)
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 	outChans = append(outChans, outChan)
 
 	// init subprocessor
@@ -261,7 +262,8 @@ func TestReducer_QnamePlusOne(t *testing.T) {
 			time.Sleep(1 * time.Second)
 
 			for _, dmRef := range tc.dnsMessagesOut {
-				newDm := <-outChan
+				newBatch := <-outChan
+				newDm := newBatch.Messages[0]
 				if newDm.Reducer.Occurrences != dmRef.Reducer.Occurrences {
 					t.Errorf("DNS message invalid repeated: Want=%d, Get=%d", dmRef.Reducer.Occurrences, newDm.Reducer.Occurrences)
 				}

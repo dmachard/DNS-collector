@@ -17,11 +17,15 @@ global:
   text-jinja: ""
   worker:
     interval-monitor: 10
-    buffer-size: 8192
+    buffer-size: 512
+    batch-size: 64
+    flush-interval-ms: 10
   telemetry:
     enabled: false
     web-path: "/metrics"
     web-listen: ":9165"
+    sock-path: ""
+    sock-mode: "0660"
     prometheus-prefix: "dnscollector_exporter"
     tls-support: false
     tls-cert-file: ""

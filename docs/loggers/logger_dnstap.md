@@ -46,9 +46,6 @@ Options:
 * `buffer-size` (integer)
   > how many DNS messages will be buffered before being sent
 
-* `chan-buffer-size` (integer)
-  > Specifies the maximum number of packets that can be buffered before discard additional packets.
-  > Set to zero to use the default global value.
 
 * `extended-support` (boolean)
   > Extend the DNStap message by incorporating additional transformations, such as filtering and ATags, into the extra field.
@@ -76,7 +73,6 @@ Defaults:
     server-id: "dnscollector"
     overwrite-identity: false
     buffer-size: 100
-    chan-buffer-size: 0
     extended-support: false
     compression: none
 ```

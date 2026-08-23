@@ -31,7 +31,7 @@ func Benchmark_DNSProcessor_Query(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		msg := dm
-		inChan <- &msg
+		inChan <- dnsutils.NewDNSMessageBatch(&msg)
 	}
 }
 
@@ -60,7 +60,7 @@ func Benchmark_DNSProcessor_Response(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		msg := dm
-		inChan <- &msg
+		inChan <- dnsutils.NewDNSMessageBatch(&msg)
 	}
 }
 
@@ -88,6 +88,6 @@ func Benchmark_DNSProcessor_Malformed(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		msg := dm
-		inChan <- &msg
+		inChan <- dnsutils.NewDNSMessageBatch(&msg)
 	}
 }

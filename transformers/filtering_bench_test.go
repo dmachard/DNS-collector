@@ -27,7 +27,7 @@ func BenchmarkFiltering_DropDomainRegex(b *testing.B) {
 	config.Filtering.Enable = true
 	config.Filtering.DropDomainFile = tmpFile.Name()
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
 	_, _ = filtering.GetTransforms()
 

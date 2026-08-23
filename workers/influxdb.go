@@ -20,9 +20,6 @@ type InfluxDBClient struct {
 
 func NewInfluxDBClient(config *pkgconfig.Config, logger *logger.Logger, name string) *InfluxDBClient {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.InfluxDB.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.InfluxDB.ChannelBufferSize
-	}
 	w := &InfluxDBClient{GenericWorker: NewGenericWorker(config, logger, name, "influxdb", bufSize, pkgconfig.DefaultMonitor)}
 	w.ReadConfig()
 	return w
@@ -56,25 +53,28 @@ func (w *InfluxDBClient) StartCollect() {
 			w.ReadConfig()
 			subprocessors.ReloadConfig(&cfg.OutgoingTransformers)
 
-		case dm, opened := <-w.GetInputChannel():
+		case batch, opened := <-w.GetInputChannel():
 			if !opened {
 				w.LogInfo("input channel closed!")
 				return
 			}
-			// count global messages
-			w.CountIngressTraffic()
+			for _, dm := range batch.Messages {
+				// count global messages
+				w.CountIngressTraffic()
 
-			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(dm)
-			if err != nil {
-				w.LogError(err.Error())
-			}
-			if transformResult == transformers.ReturnDrop {
-				w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-				continue
-			}
+				// apply transforms, init dns message with additional parts if necessary
+				transformResult, err := subprocessors.ProcessMessage(dm)
+				if err != nil {
+					w.LogError(err.Error())
+				}
+				if transformResult == transformers.ReturnDrop {
+					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
+					continue
+				}
 
-			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+				w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+			}
+			batch.Release()
 		}
 	}
 }
@@ -127,26 +127,28 @@ func (w *InfluxDBClient) StartLogging() {
 			return
 
 			// incoming dns message to process
-		case dm, opened := <-w.GetOutputChannel():
+		case batch, opened := <-w.GetOutputChannel():
 			if !opened {
 				w.LogInfo("output channel closed!")
 				return
 			}
 
-			p := influxdb2.NewPointWithMeasurement("dns").
-				AddTag("Identity", dm.DNSTap.Identity).
-				AddTag("QueryIP", dm.NetworkInfo.GetQueryIP()).
-				AddTag("Qname", dm.DNS.Qname).
-				AddField("Operation", dm.DNSTap.Operation).
-				AddField("Family", dm.NetworkInfo.Family).
-				AddField("Protocol", dm.NetworkInfo.Protocol).
-				AddField("Qtype", dm.DNS.Qtype).
-				AddField("Rcode", dm.DNS.Rcode).
-				SetTime(time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec)))
+			for _, dm := range batch.Messages {
+				p := influxdb2.NewPointWithMeasurement("dns").
+					AddTag("Identity", dm.DNSTap.Identity).
+					AddTag("QueryIP", dm.NetworkInfo.GetQueryIP()).
+					AddTag("Qname", dm.DNS.Qname).
+					AddField("Operation", dm.DNSTap.Operation).
+					AddField("Family", dm.NetworkInfo.Family).
+					AddField("Protocol", dm.NetworkInfo.Protocol).
+					AddField("Qtype", dm.DNS.Qtype).
+					AddField("Rcode", dm.DNS.Rcode).
+					SetTime(time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec)))
 
-			// write asynchronously
-			w.writeAPI.WritePoint(p)
-			dm.Release()
+				// write asynchronously
+				w.writeAPI.WritePoint(p)
+			}
+			batch.Release()
 		}
 	}
 }

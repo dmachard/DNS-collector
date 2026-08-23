@@ -20,7 +20,7 @@ func TestFilteringQR(t *testing.T) {
 	config.Filtering.LogQueries = false
 	config.Filtering.LogReplies = false
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
@@ -48,7 +48,7 @@ func TestFilteringByRcodeNOERROR(t *testing.T) {
 	config.Filtering.Enable = true
 	config.Filtering.DropRcodes = []string{"NOERROR"}
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
@@ -71,7 +71,7 @@ func TestFilteringByRcodeEmpty(t *testing.T) {
 	config.Filtering.Enable = true
 	config.Filtering.DropRcodes = []string{}
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
@@ -89,7 +89,7 @@ func TestFilteringByKeepQueryIp(t *testing.T) {
 	config.Filtering.Enable = true
 	config.Filtering.KeepQueryIPFile = "../tests/testsdata/filtering_queryip_keep.txt"
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
@@ -135,7 +135,7 @@ func TestFilteringByDropQueryIp(t *testing.T) {
 	config.Filtering.Enable = true
 	config.Filtering.DropQueryIPFile = "../tests/testsdata/filtering_queryip.txt"
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
@@ -181,7 +181,7 @@ func TestFilteringByKeepRdataIp(t *testing.T) {
 	config.Filtering.Enable = true
 	config.Filtering.KeepRdataFile = "../tests/testsdata/filtering_rdataip_keep.txt"
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
@@ -280,7 +280,7 @@ func TestFilteringByFqdn(t *testing.T) {
 	config.Filtering.Enable = true
 	config.Filtering.DropFqdnFile = "../tests/testsdata/filtering_fqdn.txt"
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
@@ -309,7 +309,7 @@ func TestFilteringByDomainRegex(t *testing.T) {
 	config.Filtering.Enable = true
 	config.Filtering.DropDomainFile = "../tests/testsdata/filtering_fqdn_regex.txt"
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
@@ -341,7 +341,7 @@ func TestFilteringByKeepDomain(t *testing.T) {
 	// config
 	config := pkgconfig.GetFakeConfigTransformers()
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// file contains google.fr, test.github.com
 	config.Filtering.Enable = true
@@ -382,7 +382,7 @@ func TestFilteringByKeepDomainRegex(t *testing.T) {
 	// config
 	config := pkgconfig.GetFakeConfigTransformers()
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	/* file contains:
 	(mail|sheets).google.com$
@@ -432,7 +432,7 @@ func TestFilteringMultipleFilters(t *testing.T) {
 	config.Filtering.DropDomainFile = "../tests/testsdata/filtering_fqdn_regex.txt"
 	config.Filtering.DropQueryIPFile = "../tests/testsdata/filtering_queryip.txt"
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
@@ -449,7 +449,7 @@ func TestFilteringDownsampleFilter(t *testing.T) {
 	config.Filtering.Enable = true
 	config.Filtering.Downsample = 3
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init processor
 	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)

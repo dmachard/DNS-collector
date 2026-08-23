@@ -24,9 +24,6 @@ type Tail struct {
 
 func NewTail(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *Tail {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Collectors.Tail.ChannelBufferSize > 0 {
-		bufSize = config.Collectors.Tail.ChannelBufferSize
-	}
 	w := &Tail{GenericWorker: NewGenericWorker(config, logger, name, "tail", bufSize, pkgconfig.DefaultMonitor)}
 	w.SetDefaultRoutes(next)
 	return w
@@ -56,6 +53,8 @@ func (w *Tail) StartCollect() {
 	defaultRoutes, defaultNames := GetRoutes(w.GetDefaultRoutes())
 	droppedRoutes, droppedNames := GetRoutes(w.GetDroppedRoutes())
 	subprocessors := transformers.NewTransforms(&w.GetConfig().IngoingTransformers, w.GetLogger(), w.GetName(), defaultRoutes, 0)
+	batchSize := w.GetBatchSize()
+	curBatch := dnsutils.AcquireDNSMessageBatch(batchSize)
 
 	// init dns message
 	dm := dnsutils.DNSMessage{}
@@ -78,10 +77,23 @@ func (w *Tail) StartCollect() {
 
 		case <-w.OnStop():
 			w.LogInfo("stopping...")
+			if len(curBatch.Messages) > 0 {
+				w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+			} else {
+				curBatch.Release()
+			}
 			subprocessors.Reset()
 			return
 
-		case line := <-w.tailf.Lines:
+		case line, opened := <-w.tailf.Lines:
+			if !opened {
+				if len(curBatch.Messages) > 0 {
+					w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+				} else {
+					curBatch.Release()
+				}
+				return
+			}
 			dm := dnsutils.AcquireDNSMessage()
 			dm.Init()
 
@@ -235,8 +247,12 @@ func (w *Tail) StartCollect() {
 				continue
 			}
 
-			// send to next ?
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+			// append to batch and dispatch
+			curBatch.Messages = append(curBatch.Messages, dm)
+			if len(curBatch.Messages) >= batchSize || len(w.tailf.Lines) == 0 {
+				w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+				curBatch = dnsutils.AcquireDNSMessageBatch(batchSize)
+			}
 		}
 	}
 }

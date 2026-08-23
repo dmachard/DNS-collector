@@ -96,8 +96,8 @@ func Test_DnstapRelay(t *testing.T) {
 			}
 
 			// waiting message in channel
-			msg := <-g.GetInputChannel()
-			if len(msg.DNSTap.Payload) == 0 {
+			batch := <-g.GetInputChannel()
+			if len(batch.Messages) == 0 || len(batch.Messages[0].DNSTap.Payload) == 0 {
 				t.Errorf("DNStap payload is empty")
 			}
 

@@ -1,6 +1,7 @@
 package pkgconfig
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"reflect"
@@ -96,6 +97,11 @@ func GetDefaultConfig() *Config {
 func CheckConfigWithTags(v reflect.Value, userCfg map[string]interface{}) error {
 	t := v.Type()
 	for k, kv := range userCfg {
+		if k == "chan-buffer-size" {
+			fmt.Printf("WARNING: '%s' is deprecated and no longer supported per-worker. Please use 'global.worker.buffer-size' instead.\n", k)
+			continue
+		}
+
 		keyExist := false
 		for i := 0; i < v.NumField(); i++ {
 			fieldValue := v.Field(i)

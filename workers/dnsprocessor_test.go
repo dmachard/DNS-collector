@@ -26,12 +26,12 @@ func Test_DnsProcessor(t *testing.T) {
 	go consumer.StartCollect()
 
 	dm := dnsutils.GetFakeDNSMessageWithPayload()
-	consumer.GetInputChannel() <- &dm
+	consumer.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
 
 	// read dns message from dnstap consumer
-	dmOut := <-fl.GetInputChannel()
-	if dmOut.DNS.Qname != pkgconfig.ExpectedQname {
-		t.Errorf("invalid qname in dns message: %s", dm.DNS.Qname)
+	batchOut := <-fl.GetInputChannel()
+	if len(batchOut.Messages) == 0 || batchOut.Messages[0].DNS.Qname != pkgconfig.ExpectedQname {
+		t.Errorf("invalid qname in dns message: %v", batchOut.Messages)
 	}
 }
 
@@ -57,10 +57,14 @@ func Test_DnsProcessor_DecodeCounters(t *testing.T) {
 	dm.DNS.Length = len(responsePacket)
 
 	// send dm to consumer
-	consumer.GetInputChannel() <- &dm
+	consumer.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
 
 	// read dns message from dnstap consumer
-	dmOut := <-fl.GetInputChannel()
+	batchOut := <-fl.GetInputChannel()
+	if len(batchOut.Messages) == 0 {
+		t.Fatalf("expected message in batch")
+	}
+	dmOut := batchOut.Messages[0]
 	if dmOut.DNS.QdCount != 1 {
 		t.Errorf("invalid number of questions in dns message: got %d expect 1", dmOut.DNS.QdCount)
 	}
@@ -77,7 +81,7 @@ func Test_DnsProcessor_DecodeCounters(t *testing.T) {
 
 func Test_DnsProcessor_BufferLoggerIsFull(t *testing.T) {
 	// redirect stdout output to bytes buffer
-	logsChan := make(chan logger.LogEntry, 10)
+	logsChan := make(chan logger.LogEntry, 512)
 	lg := logger.New(true)
 	lg.SetOutputChannel((logsChan))
 
@@ -91,7 +95,7 @@ func Test_DnsProcessor_BufferLoggerIsFull(t *testing.T) {
 	// add packets to consumer
 	for i := 0; i < 512; i++ {
 		dm := dnsutils.GetFakeDNSMessageWithPayload()
-		consumer.GetInputChannel() <- &dm
+		consumer.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
 	}
 
 	// waiting monitor to run in consumer
@@ -105,16 +109,16 @@ func Test_DnsProcessor_BufferLoggerIsFull(t *testing.T) {
 		}
 	}
 
-	// read dns message from dnstap consumer
-	dmOut := <-fl.GetInputChannel()
-	if dmOut.DNS.Qname != pkgconfig.ExpectedQname {
-		t.Errorf("invalid qname in dns message: %s", dmOut.DNS.Qname)
+	// read dnsmessage from dnstap consumer
+	batchOut := <-fl.GetInputChannel()
+	if len(batchOut.Messages) == 0 || batchOut.Messages[0].DNS.Qname != pkgconfig.ExpectedQname {
+		t.Errorf("invalid qname in dns message: %v", batchOut.Messages)
 	}
 
 	// send second shot of packets to consumer
 	for i := 0; i < 1024; i++ {
 		dm := dnsutils.GetFakeDNSMessageWithPayload()
-		consumer.GetInputChannel() <- &dm
+		consumer.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
 	}
 
 	// waiting monitor to run in consumer
@@ -128,9 +132,9 @@ func Test_DnsProcessor_BufferLoggerIsFull(t *testing.T) {
 		}
 	}
 
-	// read dns message from dnstap consumer
-	dm2 := <-fl.GetInputChannel()
-	if dm2.DNS.Qname != pkgconfig.ExpectedQname {
-		t.Errorf("invalid qname in second dns message: %s", dm2.DNS.Qname)
+	// read dnsmessage from dnstap consumer
+	batch2 := <-fl.GetInputChannel()
+	if len(batch2.Messages) == 0 || batch2.Messages[0].DNS.Qname != pkgconfig.ExpectedQname {
+		t.Errorf("invalid qname in second dns message: %v", batch2.Messages)
 	}
 }

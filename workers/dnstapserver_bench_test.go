@@ -17,7 +17,7 @@ import (
 func benchmarkDNSTapProcessorWithWorkers(b *testing.B, numWorkers int) {
 	config := pkgconfig.GetDefaultConfig()
 	config.Collectors.Dnstap.DisableDNSParser = false
-	config.Collectors.Dnstap.ChannelBufferSize = 65536
+	config.Global.Worker.ChannelBufferSize = 65536
 	config.Collectors.Dnstap.NumWorkers = numWorkers
 
 	devNull := NewDevNull(config, logger.New(false), "devnull")
@@ -35,7 +35,7 @@ func benchmarkDNSTapProcessorWithWorkers(b *testing.B, numWorkers int) {
 		b.Fatalf("dnstap proto marshal error: %v", err)
 	}
 
-	proc := NewDNSTapProcessor(1, "bench-peer", config, logger.New(false), "bench-proc", config.Collectors.Dnstap.ChannelBufferSize)
+	proc := NewDNSTapProcessor(1, "bench-peer", config, logger.New(false), "bench-proc", config.Global.Worker.ChannelBufferSize)
 	proc.SetDefaultRoutes([]Worker{devNull})
 	go proc.StartCollect()
 	defer proc.Stop()
@@ -69,7 +69,7 @@ func Benchmark_DNSTapProcessor_WorkerPool_8(b *testing.B) {
 func Test_DNSTapProcessor_FramestreamBehavior(t *testing.T) {
 	config := pkgconfig.GetDefaultConfig()
 	config.Collectors.Dnstap.DisableDNSParser = false
-	config.Collectors.Dnstap.ChannelBufferSize = 1000
+	config.Global.Worker.ChannelBufferSize = 1000
 
 	devNull := NewDevNull(config, logger.New(false), "devnull")
 	go devNull.StartCollect()
@@ -114,7 +114,7 @@ func benchmarkDnstapServerReadBuf(b *testing.B, readBufSize int) {
 	config := pkgconfig.GetDefaultConfig()
 	config.Collectors.Dnstap.ListenPort = 6001
 	config.Collectors.Dnstap.ReadBufferSize = readBufSize
-	config.Collectors.Dnstap.ChannelBufferSize = 100000
+	config.Global.Worker.ChannelBufferSize = 100000
 
 	devNull := NewDevNull(config, logger.New(false), "devnull")
 	go devNull.StartCollect()

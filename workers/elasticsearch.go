@@ -25,9 +25,6 @@ type ElasticSearchClient struct {
 
 func NewElasticSearchClient(config *pkgconfig.Config, console *logger.Logger, name string) *ElasticSearchClient {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.ElasticSearchClient.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.ElasticSearchClient.ChannelBufferSize
-	}
 	w := &ElasticSearchClient{GenericWorker: NewGenericWorker(config, console, name, "elasticsearch", bufSize, pkgconfig.DefaultMonitor)}
 	w.httpClient = &http.Client{Timeout: 5 * time.Second}
 	w.ReadConfig()
@@ -112,25 +109,28 @@ func (w *ElasticSearchClient) StartCollect() {
 			w.ReadConfig()
 			subprocessors.ReloadConfig(&cfg.OutgoingTransformers)
 
-		case dm, opened := <-w.GetInputChannel():
+		case batch, opened := <-w.GetInputChannel():
 			if !opened {
 				w.LogInfo("input channel closed!")
 				return
 			}
-			// count global messages
-			w.CountIngressTraffic()
+			for _, dm := range batch.Messages {
+				// count global messages
+				w.CountIngressTraffic()
 
-			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(dm)
-			if err != nil {
-				w.LogError(err.Error())
-			}
-			if transformResult == transformers.ReturnDrop {
-				w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-				continue
-			}
+				// apply transforms, init dns message with additional parts if necessary
+				transformResult, err := subprocessors.ProcessMessage(dm)
+				if err != nil {
+					w.LogError(err.Error())
+				}
+				if transformResult == transformers.ReturnDrop {
+					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
+					continue
+				}
 
-			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+				w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+			}
+			batch.Release()
 		}
 	}
 }
@@ -163,42 +163,43 @@ func (w *ElasticSearchClient) StartLogging() {
 			return
 
 			// incoming dns message to process
-		case dm, opened := <-w.GetOutputChannel():
+		case batch, opened := <-w.GetOutputChannel():
 			if !opened {
 				w.LogInfo("output channel closed!")
 				return
 			}
 
-			if dm.Relabeling != nil {
-				flat, err := dm.Flatten()
-				if err != nil {
-					w.LogError("flattening DNS message failed: %e", err)
-					w.CountEgressDiscarded()
-					dm.Release()
-					continue
+			for _, dm := range batch.Messages {
+				if dm.Relabeling != nil {
+					flat, err := dm.Flatten()
+					if err != nil {
+						w.LogError("flattening DNS message failed: %e", err)
+						w.CountEgressDiscarded()
+						continue
+					}
+					buffer.WriteString("{ \"create\" : {}}\n")
+					encoder.Encode(flat)
+				} else {
+					buffer.WriteString("{ \"create\" : {}}\n")
+					dm.GetTimestampRFC3339()
+					dm.EncodeFlatJSON(buffer)
+					buffer.WriteByte('\n')
 				}
-				buffer.WriteString("{ \"create\" : {}}\n")
-				encoder.Encode(flat)
-			} else {
-				buffer.WriteString("{ \"create\" : {}}\n")
-				dm.GetTimestampRFC3339()
-				dm.EncodeFlatJSON(buffer)
-				buffer.WriteByte('\n')
-			}
 
-			// Send data and reset buffer
-			if buffer.Len() >= w.GetConfig().Loggers.ElasticSearchClient.BulkSize {
-				bufCopy := make([]byte, buffer.Len())
-				copy(bufCopy, buffer.Bytes())
-				buffer.Reset()
+				// Send data and reset buffer
+				if buffer.Len() >= w.GetConfig().Loggers.ElasticSearchClient.BulkSize {
+					bufCopy := make([]byte, buffer.Len())
+					copy(bufCopy, buffer.Bytes())
+					buffer.Reset()
 
-				select {
-				case dataBuffer <- bufCopy:
-				default:
-					w.LogWarning("Send buffer is full, bulk dropped")
+					select {
+					case dataBuffer <- bufCopy:
+					default:
+						w.LogWarning("Send buffer is full, bulk dropped")
+					}
 				}
 			}
-			dm.Release()
+			batch.Release()
 
 		// flush the buffer every ?
 		case <-ticker.C:

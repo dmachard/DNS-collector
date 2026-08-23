@@ -52,9 +52,13 @@ func Test_Webhook(t *testing.T) {
 
 	// send fake dns message to logger
 	dm := dnsutils.GetFakeDNSMessage()
-	c.GetInputChannel() <- &dm
+	c.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
 
-	dmOut := <-kept.GetInputChannel()
+	batchOut := <-kept.GetInputChannel()
+	if len(batchOut.Messages) == 0 {
+		t.Fatalf("expected message in batch")
+	}
+	dmOut := batchOut.Messages[0]
 
 	// check results
 	if dmOut.Rest.Failed != false {

@@ -14,7 +14,7 @@ func BenchmarkExtract_AddBase64AndHexFields(b *testing.B) {
 	config.Extract.Base64Fields = []string{"dns.qname", "network.query-ip"}
 	config.Extract.HexFields = []string{"dns.qname", "network.query-ip"}
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 	extract := NewExtractTransform(config, logger.New(false), "test", 0, outChans)
 	extract.GetTransforms()
 

@@ -75,9 +75,6 @@ Options:
   > Specifies the Kafka partition to which messages will be sent.
   > If partition parameter is null, then use `round-robin` partitioner for kafka (default behavior)
 
-* `chan-buffer-size` (int) - advanced setting, will be remove in future version
-  > Specifies the maximum number of packets that can be buffered before discard additional packets.
-  > Set to zero to use the default global value.
 
 * `compression` (string)
   > Specifies the compression algorithm to use for Kafka messages.
@@ -102,6 +99,5 @@ kafkaproducer:
   batch-size: 100
   topic: "dnscollector"
   partition: null
-  chan-buffer-size: 0
   compression: none
 ```

@@ -91,16 +91,20 @@ global:
 
 ### Worker Settings
 
-Configure internal processing:
+Configure internal pipeline queue capacity and batching:
 
 ```yaml
 global:
   worker:
-    interval-monitor: 10    # Monitoring interval in seconds
-    buffer-size: 8192      # Internal buffer size
+    interval-monitor: 10     # Monitoring interval in seconds (default: 10)
+    buffer-size: 512         # Channel buffer capacity in batches (default: 512)
+    batch-size: 64           # Maximum messages per batch (default: 64)
+    flush-interval-ms: 10    # Maximum flush delay in milliseconds (default: 10)
 ```
 
-**Important**: Increase `buffer-size` if you see "buffer is full, xxx packet(s) dropped" warnings.
+> [!NOTE]
+> **Channel Capacity (`buffer-size`)**: Channel queue sizes are centrally controlled via `global.worker.buffer-size`. With `buffer-size: 512` and `batch-size: 64`, the pipeline can buffer up to **32,768 messages** during bursts while keeping memory usage minimal.
+> *(Note: The legacy per-worker `chan-buffer-size` setting is deprecated in favor of this global configuration).*
 
 ### Process Management
 

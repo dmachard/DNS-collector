@@ -12,7 +12,7 @@ import (
 func benchmarkStdoutMode(b *testing.B, mode string) {
 	config := pkgconfig.GetDefaultConfig()
 	config.Loggers.Stdout.Mode = mode
-	config.Loggers.Stdout.ChannelBufferSize = 65536
+	config.Global.Worker.ChannelBufferSize = 65536
 
 	stdout := NewStdOut(config, logger.New(false), "stdout")
 	if mode == pkgconfig.ModePCAP {
@@ -33,7 +33,7 @@ func benchmarkStdoutMode(b *testing.B, mode string) {
 
 	for i := 0; i < b.N; i++ {
 		msg := dm
-		inChan <- &msg
+		inChan <- dnsutils.NewDNSMessageBatch(&msg)
 	}
 }
 

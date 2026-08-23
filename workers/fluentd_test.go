@@ -60,7 +60,7 @@ func Test_FluentdClient(t *testing.T) {
 			maxDm := 256
 			for i := 0; i < maxDm; i++ {
 				dm := dnsutils.GetFakeDNSMessage()
-				g.GetInputChannel() <- &dm
+				g.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
 			}
 			time.Sleep(time.Second)
 

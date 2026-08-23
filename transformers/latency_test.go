@@ -12,7 +12,7 @@ import (
 func TestLatency_MeasureLatencyAndMs(t *testing.T) {
 	// enable feature
 	config := pkgconfig.GetFakeConfigTransformers()
-	outChannels := []chan *dnsutils.DNSMessage{}
+	outChannels := []chan *dnsutils.DNSMessageBatch{}
 
 	// init transformer
 	latency := NewLatencyTransform(config, logger.New(true), "test", 0, outChannels)
@@ -71,8 +71,8 @@ func TestLatency_DetectEvictedTimeout(t *testing.T) {
 	config.Latency.Enable = true
 	config.Latency.QueriesTimeout = 1
 
-	outChannels := []chan *dnsutils.DNSMessage{}
-	outChannels = append(outChannels, make(chan *dnsutils.DNSMessage, 1))
+	outChannels := []chan *dnsutils.DNSMessageBatch{}
+	outChannels = append(outChannels, make(chan *dnsutils.DNSMessageBatch, 1))
 
 	// init transformer
 	latency := NewLatencyTransform(config, logger.New(true), "test", 0, outChannels)
@@ -107,9 +107,9 @@ func TestLatency_DetectEvictedTimeout(t *testing.T) {
 
 			time.Sleep(2 * time.Second)
 
-			dmTimeout := <-outChannels[0]
-			if dmTimeout.DNS.Rcode != "TIMEOUT" {
-				t.Errorf("incorrect rcode, expected=TIMEOUT, got=%s", dmTimeout.DNS.Rcode)
+			batchTimeout := <-outChannels[0]
+			if len(batchTimeout.Messages) == 0 || batchTimeout.Messages[0].DNS.Rcode != "TIMEOUT" {
+				t.Errorf("incorrect rcode, expected=TIMEOUT, got=%s", batchTimeout.Messages[0].DNS.Rcode)
 			}
 		})
 	}

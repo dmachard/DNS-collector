@@ -29,9 +29,6 @@ type PdnsServer struct {
 
 func NewPdnsServer(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *PdnsServer {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Collectors.PowerDNS.ChannelBufferSize > 0 {
-		bufSize = config.Collectors.PowerDNS.ChannelBufferSize
-	}
 	w := &PdnsServer{GenericWorker: NewGenericWorker(config, logger, name, "powerdns", bufSize, pkgconfig.DefaultMonitor)}
 	w.SetDefaultRoutes(next)
 	w.CheckConfig()
@@ -59,9 +56,6 @@ func (w *PdnsServer) HandleConn(conn net.Conn, connID uint64, forceClose chan bo
 
 	// start protobuf subprocessor
 	bufSize := w.GetConfig().Global.Worker.ChannelBufferSize
-	if w.GetConfig().Collectors.PowerDNS.ChannelBufferSize > 0 {
-		bufSize = w.GetConfig().Collectors.PowerDNS.ChannelBufferSize
-	}
 	pdnsProcessor := NewPdnsProcessor(int(connID), peerName, w.GetConfig(), w.GetLogger(), w.GetName(), bufSize)
 	pdnsProcessor.SetMetrics(w.GetMetrics())
 	pdnsProcessor.SetDefaultRoutes(w.GetDefaultRoutes())
@@ -125,7 +119,7 @@ func (w *PdnsServer) HandleConn(conn net.Conn, connID uint64, forceClose chan bo
 		select {
 		case pdnsProcessor.GetDataChannel() <- payload.Data(): // Successful send
 		default:
-			w.WorkerIsBusy("dnstap-processor")
+			w.WorkerIsBusy("dnstap-processor", 1)
 		}
 	}
 }
@@ -231,6 +225,8 @@ func (w *PdnsProcessor) StartCollect() {
 
 	// prepare enabled transformers
 	transforms := transformers.NewTransforms(&w.GetConfig().IngoingTransformers, w.GetLogger(), w.GetName(), defaultRoutes, w.ConnID)
+	batchSize := w.GetBatchSize()
+	curBatch := dnsutils.AcquireDNSMessageBatch(batchSize)
 
 	// read incoming dns message
 	for {
@@ -240,12 +236,22 @@ func (w *PdnsProcessor) StartCollect() {
 			transforms.ReloadConfig(&cfg.IngoingTransformers)
 
 		case <-w.OnStop():
+			if len(curBatch.Messages) > 0 {
+				w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+			} else {
+				curBatch.Release()
+			}
 			transforms.Reset()
 			close(w.GetDataChannel())
 			return
 
 		case data, opened := <-w.GetDataChannel():
 			if !opened {
+				if len(curBatch.Messages) > 0 {
+					w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+				} else {
+					curBatch.Release()
+				}
 				w.LogInfo("channel closed, exit")
 				return
 			}
@@ -482,8 +488,12 @@ func (w *PdnsProcessor) StartCollect() {
 				continue
 			}
 
-			// dispatch dns messages to connected loggers
-			w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+			// append to batch and dispatch
+			curBatch.Messages = append(curBatch.Messages, dm)
+			if len(curBatch.Messages) >= batchSize || len(w.GetDataChannel()) == 0 {
+				w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+				curBatch = dnsutils.AcquireDNSMessageBatch(batchSize)
+			}
 		}
 	}
 }

@@ -41,9 +41,6 @@ Options:
 * `reset-conn` (bool)
   > Set whether to send a TCP Reset to force the cleanup of the connection on the remote side when the server exits.
 
-* `chan-buffer-size` (int)
-  > Specifies the maximum number of packets that can be buffered before discard additional packets.
-  > Set to zero to use the default global value.
 
 * `num-workers` (int)
   > Specifies the number of worker goroutines for parallel frame processing per connection.
@@ -81,7 +78,6 @@ Defaults:
     sock-rcvbuf: 0
     sock-read-buffer-size: 65536
     reset-conn: true
-    chan-buffer-size: 0
     num-workers: 0
     disable-dnsparser: true
     extended-support: false

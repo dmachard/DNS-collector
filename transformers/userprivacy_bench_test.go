@@ -13,7 +13,7 @@ func BenchmarkUserPrivacy_ReduceQname(b *testing.B) {
 	config.UserPrivacy.Enable = true
 	config.UserPrivacy.MinimizeQname = true
 
-	channels := []chan *dnsutils.DNSMessage{}
+	channels := []chan *dnsutils.DNSMessageBatch{}
 
 	userprivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, channels)
 	userprivacy.GetTransforms()
@@ -33,7 +33,7 @@ func BenchmarkUserPrivacy_HashIP(b *testing.B) {
 	config.UserPrivacy.Enable = true
 	config.UserPrivacy.HashQueryIP = true
 
-	channels := []chan *dnsutils.DNSMessage{}
+	channels := []chan *dnsutils.DNSMessageBatch{}
 
 	userprivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, channels)
 	userprivacy.GetTransforms()
@@ -53,7 +53,7 @@ func BenchmarkUserPrivacy_HashIPSha512(b *testing.B) {
 	config.UserPrivacy.HashQueryIP = true
 	config.UserPrivacy.HashIPAlgo = "sha512"
 
-	channels := []chan *dnsutils.DNSMessage{}
+	channels := []chan *dnsutils.DNSMessageBatch{}
 
 	userprivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, channels)
 	userprivacy.GetTransforms()
@@ -72,7 +72,7 @@ func BenchmarkUserPrivacy_AnonymizeIP(b *testing.B) {
 	config.UserPrivacy.Enable = true
 	config.UserPrivacy.AnonymizeIP = true
 
-	channels := []chan *dnsutils.DNSMessage{}
+	channels := []chan *dnsutils.DNSMessageBatch{}
 
 	userprivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, channels)
 	userprivacy.GetTransforms()

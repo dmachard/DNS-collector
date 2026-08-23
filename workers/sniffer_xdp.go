@@ -25,9 +25,6 @@ type XDPSniffer struct {
 
 func NewXDPSniffer(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *XDPSniffer {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Collectors.XdpLiveCapture.ChannelBufferSize > 0 {
-		bufSize = config.Collectors.XdpLiveCapture.ChannelBufferSize
-	}
 	w := &XDPSniffer{GenericWorker: NewGenericWorker(config, logger, name, "xdp sniffer", bufSize, pkgconfig.DefaultMonitor)}
 	w.SetDefaultRoutes(next)
 	return w
@@ -39,9 +36,6 @@ func (w *XDPSniffer) StartCollect() {
 
 	// init dns processor
 	bufSize := w.GetConfig().Global.Worker.ChannelBufferSize
-	if w.GetConfig().Collectors.XdpLiveCapture.ChannelBufferSize > 0 {
-		bufSize = w.GetConfig().Collectors.XdpLiveCapture.ChannelBufferSize
-	}
 	dnsProcessor := NewDNSProcessor(w.GetConfig(), w.GetLogger(), w.GetName(), bufSize)
 	dnsProcessor.SetDefaultRoutes(w.GetDefaultRoutes())
 	dnsProcessor.SetDefaultDropped(w.GetDroppedRoutes())
@@ -208,7 +202,9 @@ func (w *XDPSniffer) StartCollect() {
 			// update identity with config ?
 			dm.DNSTap.Identity = w.GetConfig().GetServerIdentity()
 
-			dnsProcessor.GetInputChannel() <- dm
+			b := dnsutils.AcquireDNSMessageBatch(1)
+			b.Messages = append(b.Messages, dm)
+			dnsProcessor.GetInputChannel() <- b
 		}
 	}
 }

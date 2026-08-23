@@ -59,9 +59,9 @@ func Test_PowerDNSProcessor(t *testing.T) {
 	consumer.GetDataChannel() <- data
 
 	// read dns message from dnstap consumer
-	msg := <-fl.GetInputChannel()
-	if msg.DNSTap.Identity != pkgconfig.ExpectedIdentity {
-		t.Errorf("invalid identity in dns message: %s", msg.DNSTap.Identity)
+	batch := <-fl.GetInputChannel()
+	if len(batch.Messages) == 0 || batch.Messages[0].DNSTap.Identity != pkgconfig.ExpectedIdentity {
+		t.Errorf("invalid identity in dns message: %v", batch.Messages)
 	}
 }
 
@@ -97,9 +97,11 @@ func Test_PowerDNSProcessor_AddDNSPayload_Valid(t *testing.T) {
 	consumer.GetDataChannel() <- data
 
 	// read dns message
-	msg := <-fl.GetInputChannel()
-
-	// checks
+	batch := <-fl.GetInputChannel()
+	if len(batch.Messages) == 0 {
+		t.Fatalf("expected message in batch")
+	}
+	msg := batch.Messages[0]
 	if msg.DNS.Length == 0 {
 		t.Errorf("invalid length got %d", msg.DNS.Length)
 	}
@@ -151,8 +153,8 @@ func Test_PowerDNSProcessor_AddDNSPayload_InvalidLabelLength(t *testing.T) {
 	consumer.GetDataChannel() <- data
 
 	// read dns message from dnstap consumer
-	msg := <-fl.GetInputChannel()
-	if !msg.DNS.MalformedPacket {
+	batch := <-fl.GetInputChannel()
+	if len(batch.Messages) == 0 || !batch.Messages[0].DNS.MalformedPacket {
 		t.Errorf("DNS message should malformed")
 	}
 }
@@ -189,8 +191,8 @@ func Test_PowerDNSProcessor_AddDNSPayload_QnameTooLongDomain(t *testing.T) {
 	consumer.GetDataChannel() <- data
 
 	// read dns message from dnstap consumer
-	msg := <-fl.GetInputChannel()
-	if !msg.DNS.MalformedPacket {
+	batch := <-fl.GetInputChannel()
+	if len(batch.Messages) == 0 || !batch.Messages[0].DNS.MalformedPacket {
 		t.Errorf("DNS message should malformed because of qname too long")
 	}
 }
@@ -238,10 +240,8 @@ func Test_PowerDNSProcessor_AddDNSPayload_AnswersTooLongDomain(t *testing.T) {
 	consumer.GetDataChannel() <- data
 
 	// read dns message from dnstap consumer
-	msg := <-fl.GetInputChannel()
-
-	// tests verifications
-	if !msg.DNS.MalformedPacket {
+	batch := <-fl.GetInputChannel()
+	if len(batch.Messages) == 0 || !batch.Messages[0].DNS.MalformedPacket {
 		t.Errorf("DNS message is not malformed")
 	}
 }
@@ -252,12 +252,13 @@ func Test_PowerDNSProcessor_BufferLoggerIsFull(t *testing.T) {
 	fl := GetWorkerForTest(pkgconfig.DefaultBufferOne)
 
 	// redirect stdout output to bytes buffer
-	logsChan := make(chan logger.LogEntry, 10)
+	logsChan := make(chan logger.LogEntry, 512)
 	lg := logger.New(true)
 	lg.SetOutputChannel((logsChan))
 
 	// init the dnstap consumer
 	cfg := pkgconfig.GetDefaultConfig()
+	cfg.Global.Worker.BatchSize = 1
 	consumer := NewPdnsProcessor(0, "peername", cfg, lg, "test", 512)
 	consumer.AddDefaultRoute(fl)
 	consumer.AddDroppedRoute(fl)
@@ -295,9 +296,9 @@ func Test_PowerDNSProcessor_BufferLoggerIsFull(t *testing.T) {
 	}
 
 	// read dns message from dnstap consumer
-	msg := <-fl.GetInputChannel()
-	if msg.DNSTap.Identity != pkgconfig.ExpectedIdentity {
-		t.Errorf("invalid identity in dns message: %s", msg.DNSTap.Identity)
+	batch := <-fl.GetInputChannel()
+	if len(batch.Messages) == 0 || batch.Messages[0].DNSTap.Identity != pkgconfig.ExpectedIdentity {
+		t.Errorf("invalid identity in dns message: %v", batch.Messages)
 	}
 
 	// send second shot of packets to consumer
@@ -316,8 +317,8 @@ func Test_PowerDNSProcessor_BufferLoggerIsFull(t *testing.T) {
 	}
 
 	// read just one dns message from dnstap consumer
-	msg2 := <-fl.GetInputChannel()
-	if msg2.DNSTap.Identity != pkgconfig.ExpectedIdentity {
-		t.Errorf("invalid identity in second dns message: %s", msg2.DNSTap.Identity)
+	batch2 := <-fl.GetInputChannel()
+	if len(batch2.Messages) == 0 || batch2.Messages[0].DNSTap.Identity != pkgconfig.ExpectedIdentity {
+		t.Errorf("invalid identity in second dns message: %v", batch2.Messages)
 	}
 }

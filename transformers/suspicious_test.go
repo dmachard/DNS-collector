@@ -14,7 +14,7 @@ func TestSuspicious_Json(t *testing.T) {
 	// enable feature
 	config := pkgconfig.GetFakeConfigTransformers()
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// get fake
 	dm := dnsutils.GetFakeDNSMessage()
@@ -74,7 +74,7 @@ func TestSuspicious_MalformedPacket(t *testing.T) {
 	config := pkgconfig.GetFakeConfigTransformers()
 	config.Suspicious.Enable = true
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
 	suspicious := NewSuspiciousTransform(config, logger.New(false), "test", 0, outChans)
@@ -109,7 +109,7 @@ func TestSuspicious_LongDomain(t *testing.T) {
 	config.Suspicious.Enable = true
 	config.Suspicious.ThresholdQnameLen = 4
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
 	suspicious := NewSuspiciousTransform(config, logger.New(false), "test", 0, outChans)
@@ -143,7 +143,7 @@ func TestSuspicious_SlowDomain(t *testing.T) {
 	config.Suspicious.Enable = true
 	config.Suspicious.ThresholdSlow = 3.0
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
 	suspicious := NewSuspiciousTransform(config, logger.New(false), "test", 0, outChans)
@@ -177,7 +177,7 @@ func TestSuspicious_LargePacket(t *testing.T) {
 	config.Suspicious.Enable = true
 	config.Suspicious.ThresholdPacketLen = 4
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
 	suspicious := NewSuspiciousTransform(config, logger.New(false), "test", 0, outChans)
@@ -210,7 +210,7 @@ func TestSuspicious_UncommonQtype(t *testing.T) {
 	config := pkgconfig.GetFakeConfigTransformers()
 	config.Suspicious.Enable = true
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
 	suspicious := NewSuspiciousTransform(config, logger.New(false), "test", 0, outChans)
@@ -244,7 +244,7 @@ func TestSuspicious_ExceedMaxLabels(t *testing.T) {
 	config.Suspicious.Enable = true
 	config.Suspicious.ThresholdMaxLabels = 2
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
 	suspicious := NewSuspiciousTransform(config, logger.New(false), "test", 0, outChans)
@@ -277,7 +277,7 @@ func TestSuspicious_UnallowedChars(t *testing.T) {
 	config := pkgconfig.GetFakeConfigTransformers()
 	config.Suspicious.Enable = true
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
 	suspicious := NewSuspiciousTransform(config, logger.New(false), "test", 0, outChans)
@@ -310,7 +310,7 @@ func TestSuspicious_WhitelistDomains(t *testing.T) {
 	config := pkgconfig.GetFakeConfigTransformers()
 	config.Suspicious.Enable = true
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
 	suspicious := NewSuspiciousTransform(config, logger.New(false), "test", 0, outChans)

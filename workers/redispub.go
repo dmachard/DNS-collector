@@ -33,9 +33,6 @@ type RedisPub struct {
 
 func NewRedisPub(config *pkgconfig.Config, logger *logger.Logger, name string) *RedisPub {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.RedisPub.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.RedisPub.ChannelBufferSize
-	}
 	w := &RedisPub{GenericWorker: NewGenericWorker(config, logger, name, "redispub", bufSize, pkgconfig.DefaultMonitor)}
 	w.stopRead = make(chan bool)
 	w.doneRead = make(chan bool)
@@ -258,25 +255,28 @@ func (w *RedisPub) StartCollect() {
 			w.ReadConfig()
 			subprocessors.ReloadConfig(&cfg.OutgoingTransformers)
 
-		case dm, opened := <-w.GetInputChannel():
+		case batch, opened := <-w.GetInputChannel():
 			if !opened {
 				w.LogInfo("input channel closed!")
 				return
 			}
-			// count global messages
-			w.CountIngressTraffic()
+			for _, dm := range batch.Messages {
+				// count global messages
+				w.CountIngressTraffic()
 
-			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(dm)
-			if err != nil {
-				w.LogError(err.Error())
-			}
-			if transformResult == transformers.ReturnDrop {
-				w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-				continue
-			}
+				// apply transforms, init dns message with additional parts if necessary
+				transformResult, err := subprocessors.ProcessMessage(dm)
+				if err != nil {
+					w.LogError(err.Error())
+				}
+				if transformResult == transformers.ReturnDrop {
+					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
+					continue
+				}
 
-			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+				w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+			}
+			batch.Release()
 		}
 	}
 }
@@ -310,27 +310,30 @@ func (w *RedisPub) StartLogging() {
 			go w.ReadFromConnection()
 
 			// incoming dns message to process
-		case dm, opened := <-w.GetOutputChannel():
+		case batch, opened := <-w.GetOutputChannel():
 			if !opened {
 				w.LogInfo("output channel closed!")
 				return
 			}
 
-			// drop dns message if the connection is not ready to avoid memory leak or
-			// to block the channel
-			if !w.writerReady {
-				w.CountEgressDiscarded()
-				dm.Release()
-				continue
-			}
+			for _, dm := range batch.Messages {
+				// drop dns message if the connection is not ready to avoid memory leak or
+				// to block the channel
+				if !w.writerReady {
+					w.CountEgressDiscarded()
+					continue
+				}
 
-			// append dns message to buffer
-			bufferDm = append(bufferDm, dm)
+				dm.Retain(1)
+				// append dns message to buffer
+				bufferDm = append(bufferDm, dm)
 
-			// buffer is full ?
-			if len(bufferDm) >= w.GetConfig().Loggers.RedisPub.BufferSize {
-				w.FlushBuffer(&bufferDm)
+				// buffer is full ?
+				if len(bufferDm) >= w.GetConfig().Loggers.RedisPub.BufferSize {
+					w.FlushBuffer(&bufferDm)
+				}
 			}
+			batch.Release()
 
 		// flush the buffer
 		case <-flushTimer.C:

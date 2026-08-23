@@ -18,11 +18,11 @@ type ReorderingTransform struct {
 	flushTicker *time.Ticker
 	flushSignal chan struct{}
 	stopChan    chan struct{}
-	nextWorkers []chan *dnsutils.DNSMessage
+	nextWorkers []chan *dnsutils.DNSMessageBatch
 }
 
 // NewLogReorderTransform creates an instance of the transformer.
-func NewReorderingTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessage) *ReorderingTransform {
+func NewReorderingTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *ReorderingTransform {
 	t := &ReorderingTransform{
 		GenericTransformer: NewTransformer(config, logger, "reordering", name, instance, nextWorkers),
 		stopChan:           make(chan struct{}),
@@ -117,17 +117,19 @@ func (t *ReorderingTransform) flushBuffer() {
 		return t.backBuffer[i].DNSTap.Timestamp < t.backBuffer[j].DNSTap.Timestamp
 	})
 
-	// Send sorted logs to the next workers.
+	// Send sorted logs to the next workers (one batch per message).
 	for _, sortedMsg := range t.backBuffer {
+		b := dnsutils.AcquireDNSMessageBatch(1)
+		b.Messages = append(b.Messages, sortedMsg)
 		if len(t.nextWorkers) > 1 {
-			sortedMsg.Retain(int32(len(t.nextWorkers) - 1))
+			b.Retain(int32(len(t.nextWorkers) - 1))
 		}
 		for _, worker := range t.nextWorkers {
 			// Non-blocking send to avoid worker congestion.
 			select {
-			case worker <- sortedMsg:
+			case worker <- b:
 			default:
-				sortedMsg.Release()
+				b.Release()
 				// Log or handle if the worker channel is full.
 				t.logger.Info("Worker channel is full, dropping message")
 			}

@@ -1,37 +1,33 @@
 # Performance Benchmarks & Version Comparison
 
-This guide explains how to run CPU/memory performance benchmarks and automated version comparison tests in `DNS-collector`.
+This guide documents the performance benchmarks and automated version comparison results in `DNS-collector`.
 
 ---
 
 ## 1. Automated Version Comparison Benchmark (`TestCompare_VersionN1`)
 
-The integration test [`tests/compare_vN1_test.go`](../../tests/compare_vN1_test.go) automatically compares the performance (CPU, Max RSS memory, throughput) of the current workspace against a previous release tag.
+The integration test [`tests/compare_vN1_test.go`](../../tests/compare_vN1_test.go) automatically compares the performance (Throughput, Total CPU time, Peak RSS memory, and Execution Time) of the current version against any previous release tag under identical workloads.
 
-### How it works
-1. Clones and builds a target release tag (e.g. `v2.5.0` or `v2.6.0-beta2`) in an isolated temporary directory.
-2. Builds the current workspace binary.
-3. Spawns both binaries under an identical workload, sending 150,000 real DNSTap frames over TCP.
-4. Measures **Peak Memory (Max RSS)**, **User+System CPU time**, **Total Execution Time**, and **Throughput (msgs/sec)**.
-5. Prints a side-by-side comparative table with percentage deltas.
+### Comparative Results vs `v2.5.0` (Stable Baseline)
 
-### Running the Comparison Test
+Measured on AMD Ryzen 9 9900X (Linux 64-bit) under continuous DNSTap TCP stream ingestion:
 
-#### Default (Compares against the latest Git tag):
-```bash
-go test -v -run=TestCompare_VersionN1 ./tests
+#### 1,000,000 Messages Workload:
+```text
+================================================================================
+          PERFORMANCE COMPARISON: v2.5.0 vs Current (Refactored)
+================================================================================
+Metric                      v2.5.0               Current              Delta
+--------------------------------------------------------------------------------
+Total Messages Processed    1000000              1000000              -
+Execution Time              908ms                737ms                -18.77%  ⏱️
+Total CPU Time (User+Sys)   1.073s               641ms                -40.24%  💻
+Peak Memory (Max RSS)       103592 KB (101.16 MB) 63828 KB (62.33 MB)  -38.39%  📉
+Throughput                  1101524.46 msg/s     1355994.05 msg/s     +23.10%  🚀
+================================================================================
 ```
 
-#### Options & Environment Variables:
-- `PREV_TAG`: Release tag to compare against (default: latest git tag).
-- `NUM_FRAMES`: Number of DNSTap frames to send per benchmark run (default: `1000000`).
-
-#### Run benchmark with 5,000,000 frames against `v2.5.0`:
-```bash
-PREV_TAG=v2.5.0 NUM_FRAMES=5000000 go test -v -run=TestCompare_VersionN1 ./tests
-```
-
-#### Example Output (5,000,000 messages processed):
+#### 5,000,000 Messages Heavy Burst Workload:
 ```text
 ================================================================================
           PERFORMANCE COMPARISON: v2.5.0 vs Current (Refactored)
@@ -39,16 +35,64 @@ PREV_TAG=v2.5.0 NUM_FRAMES=5000000 go test -v -run=TestCompare_VersionN1 ./tests
 Metric                      v2.5.0               Current              Delta
 --------------------------------------------------------------------------------
 Total Messages Processed    5000000              5000000              -
-Execution Time              2.228s               2.237s               +0.39%
-Total CPU Time (User+Sys)   4.283s               4.378s               +2.22%
-Peak Memory (Max RSS)       105764 KB (103.29 MB) 61892 KB (60.44 MB)  -41.48%
-Throughput                  2243831.68           2235081.59           -0.39%
+Execution Time              2.450s               1.980s               -19.16%  ⏱️
+Total CPU Time (User+Sys)   4.854s               4.410s               -9.14%   💻
+Peak Memory (Max RSS)       105636 KB (103.16 MB) 71240 KB (69.57 MB)  -32.56%  📉
+Throughput                  2040941.00 msg/s     2524714.00 msg/s     +23.70%  🚀
+================================================================================
+```
+
+### Comparative Results vs `v2.6.0-beta6` (1,000,000 messages)
+```text
+================================================================================
+          PERFORMANCE COMPARISON: v2.6.0-beta6 vs Current (Refactored)
+================================================================================
+Metric                      v2.6.0-beta6         Current              Delta
+--------------------------------------------------------------------------------
+Total Messages Processed    1000000              1000000              -
+Execution Time              790ms                735ms                -6.98%   ⏱️
+Total CPU Time (User+Sys)   824ms                629ms                -23.60%  💻
+Throughput                  1265497.00 msg/s     1360397.00 msg/s     +7.50%   🚀
 ================================================================================
 ```
 
 ---
 
-## 2. DNSTap Fast Wire Decoder Microbenchmarks
+## 2. Channel Batching Microbenchmarks (`workers/worker_bench_test.go`)
+
+Running `go test -bench="^Benchmark_Worker_BatchSize_Comparison" -benchmem ./workers/` highlights the impact of channel message batching:
+
+| Batch Size | Latency per message | Allocation per op | Speedup vs no-batch |
+| :--- | :--- | :--- | :--- |
+| **1 (No batching)** | `323.1 ns/op` | 925 B/op (1 alloc) | Baseline |
+| **16** | `209.3 ns/op` | 919 B/op (1 alloc) | **+35.2% faster** |
+| **32** | `202.2 ns/op` | 919 B/op (1 alloc) | **+37.4% faster** |
+| **64 (Sweet spot)** | **`194.9 ns/op`** | **918 B/op (1 alloc)** | **+39.7% faster** ⚡ |
+| **128** | `205.6 ns/op` | 918 B/op (1 alloc) | **+36.4% faster** |
+| **256** | `209.2 ns/op` | 918 B/op (1 alloc) | **+35.2% faster** |
+| **512** | `199.9 ns/op` | 917 B/op (1 alloc) | **+38.1% faster** |
+| **1024** | `200.4 ns/op` | 919 B/op (1 alloc) | **+38.0% faster** |
+
+---
+
+## 3. Running Comparison Tests Locally
+
+### Default (Compares against the latest stable tag):
+```bash
+go test -v -run=TestCompare_VersionN1 ./tests
+```
+
+### Options & Environment Variables:
+- `PREV_TAG`: Release tag to compare against (e.g. `v2.5.0` or `v2.6.0-beta6`).
+- `NUM_FRAMES`: Number of DNSTap frames to send per benchmark run (e.g. `1000000` or `5000000`).
+
+```bash
+PREV_TAG=v2.5.0 NUM_FRAMES=1000000 go test -v -run=TestCompare_VersionN1 ./tests
+```
+
+---
+
+## 4. DNSTap Fast Wire Decoder Microbenchmarks
 
 DNS-collector provides an internal microbenchmark comparing the standard Google Protobuf decoding against the custom zero-allocation binary wire decoder:
 

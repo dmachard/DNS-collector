@@ -61,9 +61,6 @@ Options:
 * `key-file` (string)
   > Specifies the path to the key file corresponding to the certificate file. This is a required parameter if TLS support is enabled.
 
-* `chan-buffer-size` (int)
-  > Specifies the maximum number of packets that can be buffered before discard additional packets.
-  > Set to zero to use the default global value.
 
 Default values:
 
@@ -78,5 +75,4 @@ statsd:
   ca-file: ""
   cert-file: ""
   key-file: ""
-  chan-buffer-size: 0
 ```

@@ -21,9 +21,6 @@ type DnstapProxifier struct {
 
 func NewDnstapProxifier(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *DnstapProxifier {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Collectors.DnstapProxifier.ChannelBufferSize > 0 {
-		bufSize = config.Collectors.DnstapProxifier.ChannelBufferSize
-	}
 	s := &DnstapProxifier{GenericWorker: NewGenericWorker(config, logger, name, "dnstaprelay", bufSize, pkgconfig.DefaultMonitor)}
 	s.SetDefaultRoutes(next)
 	s.CheckConfig()
@@ -36,7 +33,7 @@ func (w *DnstapProxifier) CheckConfig() {
 	}
 }
 
-func (w *DnstapProxifier) HandleFrame(recvFrom chan []byte, sendTo []chan *dnsutils.DNSMessage) {
+func (w *DnstapProxifier) HandleFrame(recvFrom chan []byte, sendTo []chan *dnsutils.DNSMessageBatch) {
 	defer w.LogInfo("frame handler terminated")
 
 	for data := range recvFrom {
@@ -46,12 +43,15 @@ func (w *DnstapProxifier) HandleFrame(recvFrom chan []byte, sendTo []chan *dnsut
 		// register payload
 		dm.DNSTap.Payload = data
 
+		b := dnsutils.AcquireDNSMessageBatch(1)
+		b.Messages = append(b.Messages, dm)
+
 		if len(sendTo) > 1 {
-			dm.Retain(int32(len(sendTo) - 1))
+			b.Retain(int32(len(sendTo) - 1))
 		}
 		// forward to outputs
 		for i := range sendTo {
-			sendTo[i] <- dm
+			sendTo[i] <- b
 		}
 	}
 }
@@ -69,9 +69,6 @@ func (w *DnstapProxifier) HandleConn(conn net.Conn, connID uint64, forceClose ch
 	w.LogInfo("new connection from %s\n", peer)
 
 	bufSize := w.config.Global.Worker.ChannelBufferSize
-	if w.config.Collectors.DnstapProxifier.ChannelBufferSize > 0 {
-		bufSize = w.config.Collectors.DnstapProxifier.ChannelBufferSize
-	}
 
 	recvChan := make(chan []byte, bufSize)
 	defaultRoutes, _ := GetRoutes(w.GetDefaultRoutes())

@@ -19,9 +19,6 @@ Options:
 * `device` (str)
   > Interface name to use for XDP sniffing.
 
-* `chan-buffer-size` (int)
-  > Specifies the maximum number of packets that can be buffered before discard additional packets.
-  > Set to zero to use the default global value.
 
 Defaults:
 
@@ -29,5 +26,4 @@ Defaults:
 - name: sniffer
   xdp-sniffer:
     device: wlp2s0
-    chan-buffer-size: 0
 ```

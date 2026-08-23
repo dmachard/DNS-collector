@@ -76,9 +76,6 @@ type LokiClient struct {
 
 func NewLokiClient(config *pkgconfig.Config, logger *logger.Logger, name string) *LokiClient {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.LokiClient.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.LokiClient.ChannelBufferSize
-	}
 	w := &LokiClient{GenericWorker: NewGenericWorker(config, logger, name, "loki", bufSize, pkgconfig.DefaultMonitor)}
 	w.streams = make(map[string]*LokiStream)
 	w.ReadConfig()
@@ -168,25 +165,28 @@ func (w *LokiClient) StartCollect() {
 			w.ReadConfig()
 			subprocessors.ReloadConfig(&cfg.OutgoingTransformers)
 
-		case dm, opened := <-w.GetInputChannel():
+		case batch, opened := <-w.GetInputChannel():
 			if !opened {
 				w.LogInfo("input channel closed!")
 				return
 			}
-			// count global messages
-			w.CountIngressTraffic()
+			for _, dm := range batch.Messages {
+				// count global messages
+				w.CountIngressTraffic()
 
-			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(dm)
-			if err != nil {
-				w.LogError(err.Error())
-			}
-			if transformResult == transformers.ReturnDrop {
-				w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-				continue
-			}
+				// apply transforms, init dns message with additional parts if necessary
+				transformResult, err := subprocessors.ProcessMessage(dm)
+				if err != nil {
+					w.LogError(err.Error())
+				}
+				if transformResult == transformers.ReturnDrop {
+					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
+					continue
+				}
 
-			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+				w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+			}
+			batch.Release()
 		}
 	}
 }
@@ -209,170 +209,167 @@ func (w *LokiClient) StartLogging() {
 			return
 
 		// incoming dns message to process
-		case dm, opened := <-w.GetOutputChannel():
+		case batch, opened := <-w.GetOutputChannel():
 			if !opened {
 				w.LogInfo("output channel closed!")
 				return
 			}
 
-			lbls := labels.FromStrings(
-				"identity", dm.DNSTap.Identity,
-				"job", w.GetConfig().Loggers.LokiClient.JobName,
-			)
-			var err error
-			var flat map[string]interface{}
-			if len(w.GetConfig().Loggers.LokiClient.RelabelConfigs) > 0 {
-				finalSet := []labels.Label{
-					{Name: "identity", Value: dm.DNSTap.Identity},
-					{Name: "job", Value: w.GetConfig().Loggers.LokiClient.JobName},
-				}
-				// flatten dns message
-				flat, err = dm.Flatten()
-				if err != nil {
-					w.LogError("flattening DNS message failed: %e", err)
-					w.CountEgressDiscarded()
-					dm.Release()
-					continue
-				}
-				for k, v := range flat {
-					cleanKey := strings.ReplaceAll(strings.ReplaceAll(k, ".", "_"), "-", "_")
-					key := fmt.Sprintf("__%s", cleanKey)
-					finalSet = append(finalSet, labels.Label{Name: key, Value: fmt.Sprint(v)})
-				}
-
-				// Apply relabeling
-				ls := labels.New(finalSet...)
-				sb := labels.NewBuilder(ls)
-
-				// to support prometheus > 3.0.7
-				configs := w.GetConfig().Loggers.LokiClient.RelabelConfigs
-				for _, cfg := range configs {
-					if cfg.NameValidationScheme == 0 {
-						cfg.NameValidationScheme = model.LegacyValidation
-					}
-				}
-
-				keep := relabel.ProcessBuilder(sb, configs...)
-				if !keep {
-					w.LogInfo("dropping %v because of relabel config", dm)
-					w.CountEgressDiscarded()
-					dm.Release()
-					continue
-				}
-
-				// remove internal labels
-				sb.Range(func(l labels.Label) {
-					if strings.HasPrefix(l.Name, "__") {
-						sb.Del(l.Name)
-					}
-				})
-
-				lbls = sb.Labels()
-				if lbls.Len() == 0 {
-					w.LogInfo("dropping %v since it has no labels", dm)
-					w.CountEgressDiscarded()
-					dm.Release()
-					continue
-				}
-			}
-
-			// prepare entry
-			entry := logproto.Entry{}
-			entry.Timestamp = time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec))
-
-			switch w.GetConfig().Loggers.LokiClient.Mode {
-			case pkgconfig.ModeText:
-				// get buffer from pool
-				buf := w.GetTextBuffer()
-				buf.Reset()
-
-				// write the DNSMessage to the buffer
+			for _, dm := range batch.Messages {
+				lbls := labels.FromStrings(
+					"identity", dm.DNSTap.Identity,
+					"job", w.GetConfig().Loggers.LokiClient.JobName,
+				)
 				var err error
-				if w.textFormatter != nil {
-					err = w.textFormatter.Format(dm, buf)
-				} else {
-					err = dm.ToTextLine(
-						w.textFormat,
-						w.GetConfig().Global.TextFormatDelimiter,
-						w.GetConfig().Global.TextFormatBoundary,
-						buf,
-					)
-				}
-				if err != nil {
-					w.CountEgressDiscarded()
-					w.LogError("process: could not encode to text format: %s", err)
-					w.PutTextBuffer(buf)
-					dm.Release()
-					continue
-				}
-
-				// assign buffer content to Loki entry
-				entry.Line = buf.String()
-
-				// return buffer to pool
-				w.PutTextBuffer(buf)
-
-			case pkgconfig.ModeJSON:
-				json.NewEncoder(buffer).Encode(dm)
-				entry.Line = buffer.String()
-				buffer.Reset()
-			case pkgconfig.ModeFlatJSON:
-				switch {
-				case len(flat) > 0:
-					json.NewEncoder(buffer).Encode(flat)
-					entry.Line = buffer.String()
-					buffer.Reset()
-				case dm.Relabeling != nil:
+				var flat map[string]interface{}
+				if len(w.GetConfig().Loggers.LokiClient.RelabelConfigs) > 0 {
+					finalSet := []labels.Label{
+						{Name: "identity", Value: dm.DNSTap.Identity},
+						{Name: "job", Value: w.GetConfig().Loggers.LokiClient.JobName},
+					}
+					// flatten dns message
 					flat, err = dm.Flatten()
 					if err != nil {
 						w.LogError("flattening DNS message failed: %e", err)
 						w.CountEgressDiscarded()
-						dm.Release()
 						continue
 					}
-					json.NewEncoder(buffer).Encode(flat)
-					entry.Line = buffer.String()
-					buffer.Reset()
-				default:
-					buffer.Reset()
-					dm.GetTimestampRFC3339()
-					dm.EncodeFlatJSON(buffer)
-					buffer.WriteByte('\n')
-					entry.Line = buffer.String()
-					buffer.Reset()
+					for k, v := range flat {
+						cleanKey := strings.ReplaceAll(strings.ReplaceAll(k, ".", "_"), "-", "_")
+						key := fmt.Sprintf("__%s", cleanKey)
+						finalSet = append(finalSet, labels.Label{Name: key, Value: fmt.Sprint(v)})
+					}
+
+					// Apply relabeling
+					ls := labels.New(finalSet...)
+					sb := labels.NewBuilder(ls)
+
+					// to support prometheus > 3.0.7
+					configs := w.GetConfig().Loggers.LokiClient.RelabelConfigs
+					for _, cfg := range configs {
+						if cfg.NameValidationScheme == 0 {
+							cfg.NameValidationScheme = model.LegacyValidation
+						}
+					}
+
+					keep := relabel.ProcessBuilder(sb, configs...)
+					if !keep {
+						w.LogInfo("dropping %v because of relabel config", dm)
+						w.CountEgressDiscarded()
+						continue
+					}
+
+					// remove internal labels
+					sb.Range(func(l labels.Label) {
+						if strings.HasPrefix(l.Name, "__") {
+							sb.Del(l.Name)
+						}
+					})
+
+					lbls = sb.Labels()
+					if lbls.Len() == 0 {
+						w.LogInfo("dropping %v since it has no labels", dm)
+						w.CountEgressDiscarded()
+						continue
+					}
 				}
-			}
-			key := string(lbls.Bytes(byteBuffer))
-			ls, ok := w.streams[key]
-			if !ok {
-				ls = &LokiStream{config: w.GetConfig(), logger: w.GetLogger(), labels: lbls}
-				ls.Init()
-				w.streams[key] = ls
-			}
-			ls.sizeentries += len(entry.Line)
 
-			// append entry to the stream
-			ls.stream.Entries = append(ls.stream.Entries, entry)
+				// prepare entry
+				entry := logproto.Entry{}
+				entry.Timestamp = time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec))
 
-			// flush ?
-			if ls.sizeentries >= w.GetConfig().Loggers.LokiClient.BatchSize {
-				// encode log entries
-				buf, err := ls.Encode2Proto()
-				if err != nil {
-					w.LogError("error encoding log entries - %v", err)
-					// reset push request and entries
+				switch w.GetConfig().Loggers.LokiClient.Mode {
+				case pkgconfig.ModeText:
+					// get buffer from pool
+					buf := w.GetTextBuffer()
+					buf.Reset()
+
+					// write the DNSMessage to the buffer
+					var err error
+					if w.textFormatter != nil {
+						err = w.textFormatter.Format(dm, buf)
+					} else {
+						err = dm.ToTextLine(
+							w.textFormat,
+							w.GetConfig().Global.TextFormatDelimiter,
+							w.GetConfig().Global.TextFormatBoundary,
+							buf,
+						)
+					}
+					if err != nil {
+						w.CountEgressDiscarded()
+						w.LogError("process: could not encode to text format: %s", err)
+						w.PutTextBuffer(buf)
+						continue
+					}
+
+					// assign buffer content to Loki entry
+					entry.Line = buf.String()
+
+					// return buffer to pool
+					w.PutTextBuffer(buf)
+
+				case pkgconfig.ModeJSON:
+					json.NewEncoder(buffer).Encode(dm)
+					entry.Line = buffer.String()
+					buffer.Reset()
+				case pkgconfig.ModeFlatJSON:
+					switch {
+					case len(flat) > 0:
+						json.NewEncoder(buffer).Encode(flat)
+						entry.Line = buffer.String()
+						buffer.Reset()
+					case dm.Relabeling != nil:
+						flat, err = dm.Flatten()
+						if err != nil {
+							w.LogError("flattening DNS message failed: %e", err)
+							w.CountEgressDiscarded()
+							continue
+						}
+						json.NewEncoder(buffer).Encode(flat)
+						entry.Line = buffer.String()
+						buffer.Reset()
+					default:
+						buffer.Reset()
+						dm.GetTimestampRFC3339()
+						dm.EncodeFlatJSON(buffer)
+						buffer.WriteByte('\n')
+						entry.Line = buffer.String()
+						buffer.Reset()
+					}
+				}
+				key := string(lbls.Bytes(byteBuffer))
+				ls, ok := w.streams[key]
+				if !ok {
+					ls = &LokiStream{config: w.GetConfig(), logger: w.GetLogger(), labels: lbls}
+					ls.Init()
+					w.streams[key] = ls
+				}
+				ls.sizeentries += len(entry.Line)
+
+				// append entry to the stream
+				ls.stream.Entries = append(ls.stream.Entries, entry)
+
+				// flush ?
+				if ls.sizeentries >= w.GetConfig().Loggers.LokiClient.BatchSize {
+					// encode log entries
+					buf, err := ls.Encode2Proto()
+					if err != nil {
+						w.LogError("error encoding log entries - %v", err)
+						// reset push request and entries
+						ls.ResetEntries()
+						w.CountEgressDiscarded()
+						return
+					}
+
+					// send all entries
+					w.SendEntries(buf)
+
+					// reset entries and push request
 					ls.ResetEntries()
-					w.CountEgressDiscarded()
-					return
 				}
-
-				// send all entries
-				w.SendEntries(buf)
-
-				// reset entries and push request
-				ls.ResetEntries()
 			}
-			dm.Release()
+			batch.Release()
 
 		case <-tflush.C:
 			for _, s := range w.streams {

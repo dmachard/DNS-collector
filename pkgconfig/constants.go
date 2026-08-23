@@ -41,12 +41,14 @@ var (
 	PrefixLogTransformer  = "transformer - "
 	DefaultBufferSize     = 512
 	DefaultBufferOne      = 1
+	DefaultBatchSize      = 64
+	DefaultFlushInterval  = 10
 	DefaultMonitor        = true
 	WorkerMonitorDisabled = false
 
 	ExpectedQname         = "dnscollector.dev"
 	ExpectedQname2        = "dns.collector"
-	ExpectedBufferMsg511  = ".*buffer is full, 511.*"
-	ExpectedBufferMsg1023 = ".*buffer is full, 1023.*"
+	ExpectedBufferMsg511  = ".*buffer is full, 511 dnsmessage\\(s\\) dropped.*"
+	ExpectedBufferMsg1023 = ".*buffer is full, 1023 dnsmessage\\(s\\) dropped.*"
 	ExpectedIdentity      = "powerdnspb"
 )

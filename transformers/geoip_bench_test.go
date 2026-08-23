@@ -14,7 +14,7 @@ func BenchmarkGeoIP_Lookup(b *testing.B) {
 	config.GeoIP.DBCountryFile = "../tests/testsdata/GeoLite2-Country.mmdb"
 	config.GeoIP.DBASNFile = "../tests/testsdata/GeoLite2-ASN.mmdb"
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 	geoip := NewDNSGeoIPTransform(config, logger.New(false), "test", 0, outChans)
 	if err := geoip.Open(); err != nil {
 		b.Fatalf("geoip init failed: %v", err)
@@ -36,7 +36,7 @@ func BenchmarkGeoIP_Lookup_ECS(b *testing.B) {
 	config.GeoIP.DBCountryFile = "../tests/testsdata/GeoLite2-Country.mmdb"
 	config.GeoIP.LookupECS = true
 
-	outChans := []chan *dnsutils.DNSMessage{}
+	outChans := []chan *dnsutils.DNSMessageBatch{}
 	geoip := NewDNSGeoIPTransform(config, logger.New(false), "test", 0, outChans)
 	if err := geoip.Open(); err != nil {
 		b.Fatalf("geoip init failed: %v", err)

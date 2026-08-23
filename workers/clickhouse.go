@@ -32,9 +32,6 @@ type ClickhouseClient struct {
 
 func NewClickhouseClient(config *pkgconfig.Config, console *logger.Logger, name string) *ClickhouseClient {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.ClickhouseClient.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.ClickhouseClient.ChannelBufferSize
-	}
 	w := &ClickhouseClient{GenericWorker: NewGenericWorker(config, console, name, "clickhouse", bufSize, pkgconfig.DefaultMonitor)}
 	w.ReadConfig()
 	return w
@@ -68,25 +65,28 @@ func (w *ClickhouseClient) StartCollect() {
 			w.ReadConfig()
 			subprocessors.ReloadConfig(&cfg.OutgoingTransformers)
 
-		case dm, opened := <-w.GetInputChannel():
+		case batch, opened := <-w.GetInputChannel():
 			if !opened {
 				w.LogInfo("input channel closed!")
 				return
 			}
-			// count global messages
-			w.CountIngressTraffic()
+			for _, dm := range batch.Messages {
+				// count global messages
+				w.CountIngressTraffic()
 
-			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(dm)
-			if err != nil {
-				w.LogError(err.Error())
-			}
-			if transformResult == transformers.ReturnDrop {
-				w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-				continue
-			}
+				// apply transforms, init dns message with additional parts if necessary
+				transformResult, err := subprocessors.ProcessMessage(dm)
+				if err != nil {
+					w.LogError(err.Error())
+				}
+				if transformResult == transformers.ReturnDrop {
+					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
+					continue
+				}
 
-			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+				w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+			}
+			batch.Release()
 
 		}
 	}
@@ -102,40 +102,42 @@ func (w *ClickhouseClient) StartLogging() {
 			return
 
 			// incoming dns message to process
-		case dm, opened := <-w.GetOutputChannel():
+		case batch, opened := <-w.GetOutputChannel():
 			if !opened {
 				w.LogInfo("output channel closed!")
 				return
 			}
-			timensec := strconv.FormatInt(dm.DNSTap.Timestamp, 10)
-			data := ClickhouseData{
-				Identity:  dm.DNSTap.Identity,
-				QueryIP:   dm.NetworkInfo.GetQueryIP(),
-				QName:     dm.DNS.Qname,
-				Operation: dm.DNSTap.Operation,
-				Family:    dm.NetworkInfo.Family,
-				Protocol:  dm.NetworkInfo.Protocol,
-				QType:     dm.DNS.Qtype,
-				RCode:     dm.DNS.Rcode,
-				TimeNSec:  timensec,
-				TimeStamp: strconv.Itoa(int(int64(dm.DNSTap.TimeSec))),
-			}
-			url := w.GetConfig().Loggers.ClickhouseClient.URL + "?query=INSERT%20INTO%20"
-			url += w.GetConfig().Loggers.ClickhouseClient.Database + "." + w.GetConfig().Loggers.ClickhouseClient.Table
-			url += "(identity,queryip,qname,operation,family,protocol,qtype,rcode,timensec,timestamp)%20VALUES%20('" + data.Identity + separator
-			url += data.QueryIP + separator + data.QName + separator + data.Operation + separator + data.Family + separator + data.Protocol
-			url += separator + data.QType + separator + data.RCode + separator + data.TimeNSec + separator + data.TimeStamp + "')"
-			req, _ := http.NewRequest("POST", url, nil)
+			for _, dm := range batch.Messages {
+				timensec := strconv.FormatInt(dm.DNSTap.Timestamp, 10)
+				data := ClickhouseData{
+					Identity:  dm.DNSTap.Identity,
+					QueryIP:   dm.NetworkInfo.GetQueryIP(),
+					QName:     dm.DNS.Qname,
+					Operation: dm.DNSTap.Operation,
+					Family:    dm.NetworkInfo.Family,
+					Protocol:  dm.NetworkInfo.Protocol,
+					QType:     dm.DNS.Qtype,
+					RCode:     dm.DNS.Rcode,
+					TimeNSec:  timensec,
+					TimeStamp: strconv.Itoa(int(int64(dm.DNSTap.TimeSec))),
+				}
+				url := w.GetConfig().Loggers.ClickhouseClient.URL + "?query=INSERT%20INTO%20"
+				url += w.GetConfig().Loggers.ClickhouseClient.Database + "." + w.GetConfig().Loggers.ClickhouseClient.Table
+				url += "(identity,queryip,qname,operation,family,protocol,qtype,rcode,timensec,timestamp)%20VALUES%20('" + data.Identity + separator
+				url += data.QueryIP + separator + data.QName + separator + data.Operation + separator + data.Family + separator + data.Protocol
+				url += separator + data.QType + separator + data.RCode + separator + data.TimeNSec + separator + data.TimeStamp + "')"
+				req, _ := http.NewRequest("POST", url, nil)
 
-			req.Header.Add("Accept", "*/*")
-			req.Header.Add("X-ClickHouse-User", w.GetConfig().Loggers.ClickhouseClient.User)
-			req.Header.Add("X-ClickHouse-Key", w.GetConfig().Loggers.ClickhouseClient.Password)
+				req.Header.Add("Accept", "*/*")
+				req.Header.Add("X-ClickHouse-User", w.GetConfig().Loggers.ClickhouseClient.User)
+				req.Header.Add("X-ClickHouse-Key", w.GetConfig().Loggers.ClickhouseClient.Password)
 
-			_, errReq := http.DefaultClient.Do(req)
-			if errReq != nil {
-				w.LogError(errReq.Error())
+				_, errReq := http.DefaultClient.Do(req)
+				if errReq != nil {
+					w.LogError(errReq.Error())
+				}
 			}
-			dm.Release()
+			batch.Release()
 		}
 	}
 }

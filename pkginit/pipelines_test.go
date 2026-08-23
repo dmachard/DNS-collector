@@ -88,7 +88,7 @@ func TestPipelines_NoRoutesDefined(t *testing.T) {
 
 func TestPipelines_RoutingLoop(t *testing.T) {
 	// Create a mock configuration for testing
-	config := &pkgconfig.Config{}
+	config := pkgconfig.GetDefaultConfig()
 	config.Pipelines = []pkgconfig.ConfigPipelines{
 		{
 			Name: "stanzaA",

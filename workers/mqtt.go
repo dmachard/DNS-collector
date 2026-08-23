@@ -32,9 +32,6 @@ type MQTT struct {
 
 func NewMQTT(config *pkgconfig.Config, logger *logger.Logger, name string) *MQTT {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.MQTT.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.MQTT.ChannelBufferSize
-	}
 	w := &MQTT{
 		GenericWorker: NewGenericWorker(config, logger, name, "mqtt", bufSize, pkgconfig.DefaultMonitor),
 		mqttReady:     make(chan bool),
@@ -312,24 +309,27 @@ func (w *MQTT) StartCollect() {
 			w.ReadConfig()
 			subprocessors.ReloadConfig(&cfg.OutgoingTransformers)
 
-		case dm, opened := <-w.GetInputChannel():
+		case batch, opened := <-w.GetInputChannel():
 			if !opened {
 				w.LogInfo("input channel closed!")
 				return
 			}
 
-			w.CountIngressTraffic()
+			for _, dm := range batch.Messages {
+				w.CountIngressTraffic()
 
-			transformResult, err := subprocessors.ProcessMessage(dm)
-			if err != nil {
-				w.LogError(err.Error())
-			}
-			if transformResult == transformers.ReturnDrop {
-				w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-				continue
-			}
+				transformResult, err := subprocessors.ProcessMessage(dm)
+				if err != nil {
+					w.LogError(err.Error())
+				}
+				if transformResult == transformers.ReturnDrop {
+					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
+					continue
+				}
 
-			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+				w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+			}
+			batch.Release()
 		}
 	}
 }
@@ -354,23 +354,26 @@ func (w *MQTT) StartLogging() {
 		case <-w.mqttReady:
 			w.LogInfo("mqtt client connected with success")
 
-		case dm, opened := <-w.GetOutputChannel():
+		case batch, opened := <-w.GetOutputChannel():
 			if !opened {
 				w.LogInfo("output channel closed!")
 				return
 			}
 
-			if !w.writerReady {
-				w.CountEgressDiscarded()
-				dm.Release()
-				continue
-			}
+			for _, dm := range batch.Messages {
+				if !w.writerReady {
+					w.CountEgressDiscarded()
+					continue
+				}
 
-			bufferDm = append(bufferDm, dm)
+				dm.Retain(1)
+				bufferDm = append(bufferDm, dm)
 
-			if len(bufferDm) >= w.GetConfig().Loggers.MQTT.BufferSize {
-				w.FlushBuffer(&bufferDm)
+				if len(bufferDm) >= w.GetConfig().Loggers.MQTT.BufferSize {
+					w.FlushBuffer(&bufferDm)
+				}
 			}
+			batch.Release()
 
 		case <-flushTimer.C:
 			if !w.writerReady {

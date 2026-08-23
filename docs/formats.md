@@ -238,7 +238,7 @@ Protocol mapping:
 | **Jinja Template** | Moderate | Moderate | Custom | Complex custom human-readable log formatting |
 | **PCAP** | Fast | Minimal | Wireshark | Traffic analysis, Network forensics & troubleshooting |
 
-> **Note on I/O Bottlenecks**: The table above reflects **CPU encoding speed in Go**. When writing to local disk files or remote network sinks, overall throughput is also constrained by disk I/O (HDD vs. NVMe SSD) and network latency. For high-throughput file logging, consider tuning `flush-interval`, `batch-size`, and `chan-buffer-size`.
+> **Note on I/O Bottlenecks**: The table above reflects **CPU encoding speed in Go**. When writing to local disk files or remote network sinks, overall throughput is also constrained by disk I/O (HDD vs. NVMe SSD) and network latency. For high-throughput file logging, consider tuning `flush-interval`, `batch-size`, and `global.worker.buffer-size`.
 
 ### Comparison Guide: JSON vs. Flat JSON
 

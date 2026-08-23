@@ -36,9 +36,6 @@ type StatsdClient struct {
 
 func NewStatsdClient(config *pkgconfig.Config, logger *logger.Logger, name string) *StatsdClient {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Loggers.Statsd.ChannelBufferSize > 0 {
-		bufSize = config.Loggers.Statsd.ChannelBufferSize
-	}
 	w := &StatsdClient{GenericWorker: NewGenericWorker(config, logger, name, "statsd", bufSize, pkgconfig.DefaultMonitor)}
 	w.Stats = StreamStats{Streams: make(map[string]*StatsPerStream)}
 	w.ReadConfig()
@@ -178,25 +175,28 @@ func (w *StatsdClient) StartCollect() {
 			w.ReadConfig()
 			subprocessors.ReloadConfig(&cfg.OutgoingTransformers)
 
-		case dm, opened := <-w.GetInputChannel():
+		case batch, opened := <-w.GetInputChannel():
 			if !opened {
 				w.LogInfo("input channel closed!")
 				return
 			}
-			// count global messages
-			w.CountIngressTraffic()
+			for _, dm := range batch.Messages {
+				// count global messages
+				w.CountIngressTraffic()
 
-			// apply transforms, init dns message with additional parts if necessary
-			transformResult, err := subprocessors.ProcessMessage(dm)
-			if err != nil {
-				w.LogError(err.Error())
-			}
-			if transformResult == transformers.ReturnDrop {
-				w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-				continue
-			}
+				// apply transforms, init dns message with additional parts if necessary
+				transformResult, err := subprocessors.ProcessMessage(dm)
+				if err != nil {
+					w.LogError(err.Error())
+				}
+				if transformResult == transformers.ReturnDrop {
+					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
+					continue
+				}
 
-			w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+				w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+			}
+			batch.Release()
 		}
 	}
 }
@@ -215,15 +215,17 @@ func (w *StatsdClient) StartLogging() {
 			return
 
 		// incoming dns message to process
-		case dm, opened := <-w.GetOutputChannel():
+		case batch, opened := <-w.GetOutputChannel():
 			if !opened {
 				w.LogInfo("output channel closed!")
 				return
 			}
 
-			// record the dnstap message
-			w.RecordDNSMessage(dm)
-			dm.Release()
+			for _, dm := range batch.Messages {
+				// record the dnstap message
+				w.RecordDNSMessage(dm)
+			}
+			batch.Release()
 
 		case <-t2.C:
 			address := w.GetConfig().Loggers.Statsd.RemoteAddress + ":" + strconv.Itoa(w.GetConfig().Loggers.Statsd.RemotePort)

@@ -30,9 +30,6 @@ type TZSPSniffer struct {
 
 func NewTZSP(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *TZSPSniffer {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Collectors.Tzsp.ChannelBufferSize > 0 {
-		bufSize = config.Collectors.Tzsp.ChannelBufferSize
-	}
 	s := &TZSPSniffer{GenericWorker: NewGenericWorker(config, logger, name, "tzsp", bufSize, pkgconfig.DefaultMonitor)}
 	s.SetDefaultRoutes(next)
 	return s
@@ -85,7 +82,7 @@ func (w *TZSPSniffer) StartCollect() {
 	}
 
 	// init dns processor
-	dnsProcessor := NewDNSProcessor(w.GetConfig(), w.GetLogger(), w.GetName(), w.GetConfig().Collectors.Tzsp.ChannelBufferSize)
+	dnsProcessor := NewDNSProcessor(w.GetConfig(), w.GetLogger(), w.GetName(), w.GetConfig().Global.Worker.ChannelBufferSize)
 	dnsProcessor.SetDefaultRoutes(w.GetDefaultRoutes())
 	dnsProcessor.SetDefaultDropped(w.GetDroppedRoutes())
 	go dnsProcessor.StartCollect()
@@ -221,7 +218,9 @@ func (w *TZSPSniffer) StartCollect() {
 						continue
 					}
 
-					dnsProcessor.GetInputChannel() <- dm
+					b := dnsutils.AcquireDNSMessageBatch(1)
+					b.Messages = append(b.Messages, dm)
+					dnsProcessor.GetInputChannel() <- b
 				} else {
 					dm.Release()
 				}

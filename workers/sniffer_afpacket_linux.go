@@ -27,9 +27,6 @@ type AfpacketSniffer struct {
 
 func NewAfpacketSniffer(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *AfpacketSniffer {
 	bufSize := config.Global.Worker.ChannelBufferSize
-	if config.Collectors.AfpacketLiveCapture.ChannelBufferSize > 0 {
-		bufSize = config.Collectors.AfpacketLiveCapture.ChannelBufferSize
-	}
 	w := &AfpacketSniffer{GenericWorker: NewGenericWorker(config, logger, name, "afpacket sniffer", bufSize, pkgconfig.DefaultMonitor)}
 	w.SetDefaultRoutes(next)
 	return w
@@ -99,9 +96,6 @@ func (w *AfpacketSniffer) StartCollect() {
 	}
 
 	bufSize := w.GetConfig().Global.Worker.ChannelBufferSize
-	if w.GetConfig().Collectors.AfpacketLiveCapture.ChannelBufferSize > 0 {
-		bufSize = w.GetConfig().Collectors.AfpacketLiveCapture.ChannelBufferSize
-	}
 	dnsProcessor := NewDNSProcessor(w.GetConfig(), w.GetLogger(), w.GetName(), bufSize)
 	dnsProcessor.SetDefaultRoutes(w.GetDefaultRoutes())
 	dnsProcessor.SetDefaultDropped(w.GetDroppedRoutes())
@@ -299,7 +293,9 @@ func (w *AfpacketSniffer) StartCollect() {
 			dm.DNSTap.TimeNsec = int(timestamp - seconds*int64(time.Second)*int64(time.Nanosecond))
 
 			// send DNS message to DNS processor
-			dnsProcessor.GetInputChannel() <- dm
+			b := dnsutils.AcquireDNSMessageBatch(1)
+			b.Messages = append(b.Messages, dm)
+			dnsProcessor.GetInputChannel() <- b
 		}
 	}
 }

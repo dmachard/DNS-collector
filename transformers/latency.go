@@ -17,10 +17,10 @@ type MapQueries struct {
 	sync.RWMutex
 	ttl      time.Duration
 	kv       map[uint64]*dnsutils.DNSMessage
-	channels []chan *dnsutils.DNSMessage
+	channels []chan *dnsutils.DNSMessageBatch
 }
 
-func NewMapQueries(ttl time.Duration, channels []chan *dnsutils.DNSMessage) MapQueries {
+func NewMapQueries(ttl time.Duration, channels []chan *dnsutils.DNSMessageBatch) MapQueries {
 	return MapQueries{
 		ttl:      ttl,
 		kv:       make(map[uint64]*dnsutils.DNSMessage),
@@ -47,11 +47,13 @@ func (mp *MapQueries) Set(key uint64, dm *dnsutils.DNSMessage) {
 	time.AfterFunc(mp.ttl, func() {
 		if mp.Exists(key) {
 			dm.DNS.Rcode = "TIMEOUT"
+			b := dnsutils.AcquireDNSMessageBatch(1)
+			b.Messages = append(b.Messages, dm)
 			if len(mp.channels) > 1 {
-				dm.Retain(int32(len(mp.channels) - 1))
+				b.Retain(int32(len(mp.channels) - 1))
 			}
 			for i := range mp.channels {
-				mp.channels[i] <- dm
+				mp.channels[i] <- b
 			}
 		}
 		mp.Delete(key)
@@ -114,7 +116,7 @@ type LatencyTransform struct {
 	mapQueries  MapQueries
 }
 
-func NewLatencyTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessage) *LatencyTransform {
+func NewLatencyTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *LatencyTransform {
 	t := &LatencyTransform{GenericTransformer: NewTransformer(config, logger, "latency", name, instance, nextWorkers)}
 	t.hashQueries = NewHashQueries(time.Duration(config.Latency.QueriesTimeout) * time.Second)
 	t.mapQueries = NewMapQueries(time.Duration(config.Latency.QueriesTimeout)*time.Second, nextWorkers)

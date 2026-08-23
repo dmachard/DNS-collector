@@ -39,7 +39,7 @@ For more advanced setups, see the [Docker Deployment Guide](docker.md).
 
 ## Build from Source
 
-To compile DNS-collector yourself, you need **Go 1.22+** installed.
+To compile DNS-collector yourself, you need **Go 1.26+** installed.
 
 ### Clone the Repository
 ```bash

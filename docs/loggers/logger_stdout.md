@@ -18,9 +18,6 @@ Options:
 * `jinja-format` (string)
   > jinja template, please refer [Jinja templating](../formats.md#jinja-templating) to see all available directives 
   
-* `chan-buffer-size` (integer)
-  > Specifies the maximum number of packets that can be buffered before discard additional packets.
-  > Set to zero to use the default global value.
 
 * `overwrite-dns-port-pcap` (bool)
   > This option is used only with the `pcap` output mode.
@@ -39,7 +36,6 @@ stdout:
   mode: text
   text-format: ""
   jinja-format: ""
-  chan-buffer-size: 0
   overwrite-dns-port-pcap: false
   writer-buffer-size: 65536
   flush-interval: 1.0
