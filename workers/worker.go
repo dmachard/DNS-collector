@@ -60,12 +60,12 @@ func NewGenericWorker(config *pkgconfig.Config, logger *logger.Logger, name stri
 		logger:        logger,
 		name:          name,
 		descr:         descr,
-		doneRun:       make(chan bool),
-		doneMonitor:   make(chan bool),
-		doneProcess:   make(chan bool),
-		stopRun:       make(chan bool),
-		stopMonitor:   make(chan bool),
-		stopProcess:   make(chan bool),
+		doneRun:       make(chan bool, 1),
+		doneMonitor:   make(chan bool, 1),
+		doneProcess:   make(chan bool, 1),
+		stopRun:       make(chan bool, 1),
+		stopMonitor:   make(chan bool, 1),
+		stopProcess:   make(chan bool, 1),
 		dnsMessageIn:  make(chan *dnsutils.DNSMessageBatch, bufferSize),
 		dnsMessageOut: make(chan *dnsutils.DNSMessageBatch, bufferSize),
 		TextBufferPool: &sync.Pool{
@@ -211,11 +211,19 @@ func (w *GenericWorker) Monitor() {
 			w.LogError("monitor - recovered panic: %v", r)
 		}
 		w.LogInfo("monitor terminated")
-		w.doneMonitor <- true
+		select {
+		case w.doneMonitor <- true:
+		default:
+		}
 	}()
 
-	w.LogInfo("starting monitoring - refresh every %ds", w.config.Global.Worker.InternalMonitor)
-	ticker := time.NewTicker(time.Duration(w.config.Global.Worker.InternalMonitor) * time.Second)
+	interval := 10
+	if w.config != nil && w.config.Global.Worker.InternalMonitor > 0 {
+		interval = w.config.Global.Worker.InternalMonitor
+	}
+
+	w.LogInfo("starting monitoring - refresh every %ds", interval)
+	ticker := time.NewTicker(time.Duration(interval) * time.Second)
 	defer ticker.Stop()
 
 	for {
