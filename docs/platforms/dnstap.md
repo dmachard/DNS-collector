@@ -3,7 +3,7 @@
 [dnstap](https://dnstap.info/) is a flexible, structured binary log format for DNS servers.
 It uses [Protocol Buffers](https://protobuf.dev/) to encode DNS packets in events.
 
-dnstap can encode any DNS messages with network informations like ip and port. It includes client queries and responses.
+dnstap can encode any DNS messages with network information like ip and port. It includes client queries and responses.
 
 ## Introduction
 

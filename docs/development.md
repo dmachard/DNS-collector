@@ -14,7 +14,7 @@ Building from source
 go run .
 ```
 
-- Uses the `MakeFile` (prefered way)
+- Uses the `MakeFile` (preferred way)
 
 ```bash
 make
