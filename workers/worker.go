@@ -411,7 +411,9 @@ func (w *GenericWorker) SendToOutputAndForwardBatch(routes []chan *dnsutils.DNSM
 		}
 		return
 	}
-	w.totalEgress.Add(uint64(len(batch.Messages)))
+	if w.config.Global.Telemetry.Enabled {
+		w.totalEgress.Add(uint64(len(batch.Messages)))
+	}
 
 	outChan := w.GetOutputChannel()
 	switch {
