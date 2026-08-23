@@ -404,6 +404,28 @@ func (w *GenericWorker) SendToOutputAndForward(routes []chan *dnsutils.DNSMessag
 	}
 }
 
+func (w *GenericWorker) SendToOutputAndForwardBatch(routes []chan *dnsutils.DNSMessageBatch, routesName []string, batch *dnsutils.DNSMessageBatch) {
+	if batch == nil || len(batch.Messages) == 0 {
+		if batch != nil {
+			batch.Release()
+		}
+		return
+	}
+	w.totalEgress.Add(uint64(len(batch.Messages)))
+
+	outChan := w.GetOutputChannel()
+	switch {
+	case outChan != nil && len(routes) > 0:
+		batch.Retain(1)
+		w.sendBatch(routes, routesName, batch, false)
+		outChan <- batch
+	case outChan != nil:
+		outChan <- batch
+	default:
+		w.sendBatch(routes, routesName, batch, false)
+	}
+}
+
 func (w *GenericWorker) GetTextBuffer() *bytes.Buffer {
 	return w.TextBufferPool.Get().(*bytes.Buffer)
 }

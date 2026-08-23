@@ -315,6 +315,7 @@ func (w *MQTT) StartCollect() {
 				return
 			}
 
+			outBatch := dnsutils.AcquireDNSMessageBatch(len(batch.Messages))
 			for _, dm := range batch.Messages {
 				w.CountIngressTraffic()
 
@@ -327,8 +328,10 @@ func (w *MQTT) StartCollect() {
 					continue
 				}
 
-				w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+				dm.Retain(1)
+				outBatch.Messages = append(outBatch.Messages, dm)
 			}
+			w.SendToOutputAndForwardBatch(defaultRoutes, defaultNames, outBatch)
 			batch.Release()
 		}
 	}
