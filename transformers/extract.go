@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"reflect"
 	"strconv"
+	"unsafe"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
@@ -104,12 +105,32 @@ func (t *ExtractTransform) addBase64Payload(dm *dnsutils.DNSMessage) (int, error
 	return ReturnKeep, nil
 }
 
+func fastHexEncode(s string) string {
+	if len(s) == 0 {
+		return ""
+	}
+	return hex.EncodeToString(unsafe.Slice(unsafe.StringData(s), len(s)))
+}
+
+func fastHexEncodeInt(v int) string {
+	var buf [20]byte
+	b := strconv.AppendInt(buf[:0], int64(v), 10)
+	return hex.EncodeToString(b)
+}
+
+func fastStringToBytes(s string) []byte {
+	if len(s) == 0 {
+		return nil
+	}
+	return unsafe.Slice(unsafe.StringData(s), len(s))
+}
+
 func (t *ExtractTransform) addBase64Fields(dm *dnsutils.DNSMessage) (int, error) {
 	if dm.Extracted == nil {
 		dm.Extracted = &dnsutils.TransformExtracted{}
 	}
 	if dm.Extracted.Base64Fields == nil {
-		dm.Extracted.Base64Fields = make(map[string]interface{})
+		dm.Extracted.Base64Fields = make(map[string]interface{}, len(t.config.Extract.Base64Fields))
 	}
 
 	for i, field := range t.config.Extract.Base64Fields {
@@ -117,19 +138,21 @@ func (t *ExtractTransform) addBase64Fields(dm *dnsutils.DNSMessage) (int, error)
 		if val, found := extractor(dm); found {
 			switch v := val.(type) {
 			case string:
-				dm.Extracted.Base64Fields[field] = []byte(v)
+				dm.Extracted.Base64Fields[field] = fastStringToBytes(v)
 			case int:
-				dm.Extracted.Base64Fields[field] = []byte(strconv.Itoa(v))
+				var buf [20]byte
+				dm.Extracted.Base64Fields[field] = append([]byte(nil), strconv.AppendInt(buf[:0], int64(v), 10)...)
 			case []string:
 				encodedSlice := make([][]byte, len(v))
 				for idx, s := range v {
-					encodedSlice[idx] = []byte(s)
+					encodedSlice[idx] = fastStringToBytes(s)
 				}
 				dm.Extracted.Base64Fields[field] = encodedSlice
 			case []int:
 				encodedSlice := make([][]byte, len(v))
 				for idx, s := range v {
-					encodedSlice[idx] = []byte(strconv.Itoa(s))
+					var buf [20]byte
+					encodedSlice[idx] = append([]byte(nil), strconv.AppendInt(buf[:0], int64(s), 10)...)
 				}
 				dm.Extracted.Base64Fields[field] = encodedSlice
 			default:
@@ -137,16 +160,17 @@ func (t *ExtractTransform) addBase64Fields(dm *dnsutils.DNSMessage) (int, error)
 				switch value.Kind() {
 				case reflect.Slice, reflect.Array:
 					var encodedSlice [][]byte
-					for i := 0; i < value.Len(); i++ {
-						elem := value.Index(i)
+					for j := 0; j < value.Len(); j++ {
+						elem := value.Index(j)
 						if elem.Kind() == reflect.Interface {
 							elem = elem.Elem()
 						}
 						switch elem.Kind() {
 						case reflect.String:
-							encodedSlice = append(encodedSlice, []byte(elem.String()))
+							encodedSlice = append(encodedSlice, fastStringToBytes(elem.String()))
 						case reflect.Int:
-							encodedSlice = append(encodedSlice, []byte(strconv.Itoa(int(elem.Int()))))
+							var buf [20]byte
+							encodedSlice = append(encodedSlice, append([]byte(nil), strconv.AppendInt(buf[:0], elem.Int(), 10)...))
 						}
 					}
 					dm.Extracted.Base64Fields[field] = encodedSlice
@@ -162,7 +186,7 @@ func (t *ExtractTransform) addHexFields(dm *dnsutils.DNSMessage) (int, error) {
 		dm.Extracted = &dnsutils.TransformExtracted{}
 	}
 	if dm.Extracted.HexFields == nil {
-		dm.Extracted.HexFields = make(map[string]interface{})
+		dm.Extracted.HexFields = make(map[string]interface{}, len(t.config.Extract.HexFields))
 	}
 
 	for i, field := range t.config.Extract.HexFields {
@@ -170,19 +194,19 @@ func (t *ExtractTransform) addHexFields(dm *dnsutils.DNSMessage) (int, error) {
 		if val, found := extractor(dm); found {
 			switch v := val.(type) {
 			case string:
-				dm.Extracted.HexFields[field] = hex.EncodeToString([]byte(v))
+				dm.Extracted.HexFields[field] = fastHexEncode(v)
 			case int:
-				dm.Extracted.HexFields[field] = hex.EncodeToString([]byte(strconv.Itoa(v)))
+				dm.Extracted.HexFields[field] = fastHexEncodeInt(v)
 			case []string:
 				encodedSlice := make([]string, len(v))
 				for idx, s := range v {
-					encodedSlice[idx] = hex.EncodeToString([]byte(s))
+					encodedSlice[idx] = fastHexEncode(s)
 				}
 				dm.Extracted.HexFields[field] = encodedSlice
 			case []int:
 				encodedSlice := make([]string, len(v))
 				for idx, s := range v {
-					encodedSlice[idx] = hex.EncodeToString([]byte(strconv.Itoa(s)))
+					encodedSlice[idx] = fastHexEncodeInt(s)
 				}
 				dm.Extracted.HexFields[field] = encodedSlice
 			default:
@@ -190,16 +214,16 @@ func (t *ExtractTransform) addHexFields(dm *dnsutils.DNSMessage) (int, error) {
 				switch value.Kind() {
 				case reflect.Slice, reflect.Array:
 					var encodedSlice []string
-					for i := 0; i < value.Len(); i++ {
-						elem := value.Index(i)
+					for j := 0; j < value.Len(); j++ {
+						elem := value.Index(j)
 						if elem.Kind() == reflect.Interface {
 							elem = elem.Elem()
 						}
 						switch elem.Kind() {
 						case reflect.String:
-							encodedSlice = append(encodedSlice, hex.EncodeToString([]byte(elem.String())))
+							encodedSlice = append(encodedSlice, fastHexEncode(elem.String()))
 						case reflect.Int:
-							encodedSlice = append(encodedSlice, hex.EncodeToString([]byte(strconv.Itoa(int(elem.Int())))))
+							encodedSlice = append(encodedSlice, fastHexEncodeInt(int(elem.Int())))
 						}
 					}
 					dm.Extracted.HexFields[field] = encodedSlice

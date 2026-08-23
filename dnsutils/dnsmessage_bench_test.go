@@ -143,3 +143,18 @@ func BenchmarkDnsMessage_TextFormatter_Transformers(b *testing.B) {
 		textBufferPool.Put(buf)
 	}
 }
+
+func Benchmark_DNSMessage_ToJSON_ExtractedPayload(b *testing.B) {
+	dm := DNSMessage{}
+	dm.Init()
+	dm.Extracted = &TransformExtracted{
+		Base64Payload: []byte("example payload data for DNS message 0123456789"),
+	}
+	var buf bytes.Buffer
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		buf.Reset()
+		dm.EncodeJSON(&buf)
+	}
+}
