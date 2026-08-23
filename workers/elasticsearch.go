@@ -5,16 +5,16 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/url"
 	"path"
 	"time"
 
+	"github.com/dmachard/go-dnscollector/v2/dnsutils"
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
 	"github.com/dmachard/go-dnscollector/v2/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
-
-	"net/http"
-	"net/url"
 )
 
 type ElasticSearchClient struct {
@@ -114,6 +114,7 @@ func (w *ElasticSearchClient) StartCollect() {
 				w.LogInfo("input channel closed!")
 				return
 			}
+			outBatch := dnsutils.AcquireDNSMessageBatch(len(batch.Messages))
 			for _, dm := range batch.Messages {
 				// count global messages
 				w.CountIngressTraffic()
@@ -128,8 +129,10 @@ func (w *ElasticSearchClient) StartCollect() {
 					continue
 				}
 
-				w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+				dm.Retain(1)
+				outBatch.Messages = append(outBatch.Messages, dm)
 			}
+			w.SendToOutputAndForwardBatch(defaultRoutes, defaultNames, outBatch)
 			batch.Release()
 		}
 	}

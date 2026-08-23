@@ -223,6 +223,7 @@ func (w *DnstapSender) StartCollect() {
 				w.LogInfo("input channel closed!")
 				return
 			}
+			outBatch := dnsutils.AcquireDNSMessageBatch(len(batch.Messages))
 			for _, dm := range batch.Messages {
 				// count global messages
 				w.CountIngressTraffic()
@@ -237,9 +238,10 @@ func (w *DnstapSender) StartCollect() {
 					continue
 				}
 
-				// send to output channel and forward
-				w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+				dm.Retain(1)
+				outBatch.Messages = append(outBatch.Messages, dm)
 			}
+			w.SendToOutputAndForwardBatch(defaultRoutes, defaultNames, outBatch)
 			batch.Release()
 		}
 	}

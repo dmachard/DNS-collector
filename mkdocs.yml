@@ -138,11 +138,9 @@ nav:
       - Overview: deployment/index.md
       - Edge Deployment: deployment/edge.md
       - Centralized Deployment: deployment/centralized.md
-  - Operations:
-      - Telemetry & Monitoring: telemetry.md
   - Performance:
       - Tuning Guide: performance/tuning.md
-      - Metrics: performance/metrics.md
+      - Telemetry & Metrics: performance/metrics.md
   - For Developers:
       - Development Setup: development.md
       - How-to Guides: extending.md

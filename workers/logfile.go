@@ -535,6 +535,7 @@ func (w *LogFile) StartCollect() {
 				return
 			}
 
+			outBatch := dnsutils.AcquireDNSMessageBatch(len(batch.Messages))
 			for _, dm := range batch.Messages {
 				// count global messages
 				w.CountIngressTraffic()
@@ -549,8 +550,10 @@ func (w *LogFile) StartCollect() {
 					continue
 				}
 
-				w.SendToOutputAndForward(defaultRoutes, defaultNames, dm)
+				dm.Retain(1)
+				outBatch.Messages = append(outBatch.Messages, dm)
 			}
+			w.SendToOutputAndForwardBatch(defaultRoutes, defaultNames, outBatch)
 			batch.Release()
 		}
 	}
