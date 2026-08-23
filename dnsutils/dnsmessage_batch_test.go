@@ -34,7 +34,7 @@ func TestDNSMessageBatch_NewFromMessage(t *testing.T) {
 	dm := AcquireDNSMessage()
 	dm.DNS.Qname = "dnscollector.dev"
 
-	batch := NewDNSMessageBatchFromMessage(dm)
+	batch := NewDNSMessageBatch(dm)
 	if batch == nil {
 		t.Fatal("expected non-nil batch")
 	}

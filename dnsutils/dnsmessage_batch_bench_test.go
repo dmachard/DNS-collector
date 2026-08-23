@@ -49,7 +49,7 @@ func Benchmark_DNSMessageBatch_NewFromMessage(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		batch := NewDNSMessageBatchFromMessage(dm)
+		batch := NewDNSMessageBatch(dm)
 		// retain so dm is not reset
 		dm.Retain(1)
 		batch.Release()

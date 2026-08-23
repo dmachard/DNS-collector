@@ -65,7 +65,7 @@ func Test_TcpClientRun(t *testing.T) {
 
 			// send fake dns message to logger
 			dm := dnsutils.GetFakeDNSMessage()
-			g.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm)
+			g.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
 
 			// read data on server side and decode-it
 			reader := bufio.NewReader(conn)
@@ -124,7 +124,7 @@ func Test_TcpClient_ConnectionAttempt(t *testing.T) {
 
 	// send fake dns message to logger
 	dm := dnsutils.GetFakeDNSMessage()
-	g.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm)
+	g.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
 
 	// read data on server side and decode-it
 	reader := bufio.NewReader(conn)

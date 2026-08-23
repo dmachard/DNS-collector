@@ -33,12 +33,12 @@ func TestDnsMessage_RoutingPolicy(t *testing.T) {
 
 	// this message should be kept by the collector
 	dm1 := dnsutils.GetFakeDNSMessage()
-	c.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm1)
+	c.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm1)
 
 	// this message should dropped by the collector
 	dm2 := dnsutils.GetFakeDNSMessage()
 	dm2.DNS.Qname = "dropped.collector"
-	c.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm2)
+	c.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm2)
 
 	// the 1er message should be in th k worker
 	batchKept := <-kept.GetInputChannel()
@@ -74,7 +74,7 @@ func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 	// add a shot of dnsmessages to collector
 	for i := 0; i < 512; i++ {
 		dmIn := dnsutils.GetFakeDNSMessage()
-		c.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dmIn)
+		c.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dmIn)
 	}
 
 	// waiting monitor to run in consumer
@@ -97,7 +97,7 @@ func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 	// send second shot of packets to consumer
 	for i := 0; i < 1024; i++ {
 		dmIn := dnsutils.GetFakeDNSMessage()
-		c.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dmIn)
+		c.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dmIn)
 	}
 
 	// waiting monitor to run in consumer

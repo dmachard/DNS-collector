@@ -79,7 +79,7 @@ func Test_StdoutTextMode(t *testing.T) {
 			// print dns message to stdout buffer
 			dm := dnsutils.GetFakeDNSMessage()
 			dm.DNS.Qname = tc.qname
-			g.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm)
+			g.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
 
 			// stop logger
 			time.Sleep(time.Second)
@@ -122,7 +122,7 @@ func Test_StdoutJsonMode(t *testing.T) {
 
 			// print dns message to stdout buffer
 			dm := dnsutils.GetFakeDNSMessage()
-			g.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm)
+			g.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
 
 			// stop logger
 			time.Sleep(time.Second)
@@ -153,7 +153,7 @@ func Test_StdoutPcapMode(t *testing.T) {
 
 	// send DNSMessage to channel
 	dm := dnsutils.GetFakeDNSMessageWithPayload()
-	g.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm)
+	g.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
 
 	// stop logger
 	time.Sleep(time.Second)
@@ -194,7 +194,7 @@ func Test_StdoutPcapMode_NoDNSPayload(t *testing.T) {
 
 	// send DNSMessage to channel
 	dm := dnsutils.GetFakeDNSMessage()
-	g.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm)
+	g.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
 
 	// stop logger
 	time.Sleep(time.Second)
@@ -232,7 +232,7 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 	// add a shot of dnsmessages to collector
 	for range 512 {
 		dmIn := dnsutils.GetFakeDNSMessage()
-		g.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dmIn)
+		g.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dmIn)
 	}
 
 	// waiting monitor to run in consumer
@@ -255,7 +255,7 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 	// send second shot of packets to consumer
 	for range 1024 {
 		dmIn := dnsutils.GetFakeDNSMessage()
-		g.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dmIn)
+		g.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dmIn)
 	}
 
 	// waiting monitor to run in consumer
@@ -292,7 +292,7 @@ func Test_StdoutTextMode_Batching(t *testing.T) {
 
 	for range 5 {
 		dm := dnsutils.GetFakeDNSMessage()
-		g.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm)
+		g.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
 	}
 
 	// wait for flush 2s > to the default 1s flush interval

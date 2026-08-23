@@ -33,7 +33,7 @@ func benchmarkLogFileMode(b *testing.B, mode string) {
 
 	for i := 0; i < b.N; i++ {
 		msg := dm
-		inChan <- dnsutils.NewDNSMessageBatchFromMessage(&msg)
+		inChan <- dnsutils.NewDNSMessageBatch(&msg)
 	}
 	b.StopTimer()
 

@@ -31,9 +31,13 @@ func AcquireDNSMessageBatch(capacity int) *DNSMessageBatch {
 	return batch
 }
 
-func NewDNSMessageBatchFromMessage(dm *DNSMessage) *DNSMessageBatch {
-	b := AcquireDNSMessageBatch(1)
-	b.Messages = append(b.Messages, dm)
+func NewDNSMessageBatch(dms ...*DNSMessage) *DNSMessageBatch {
+	capacity := len(dms)
+	if capacity == 0 {
+		capacity = 1
+	}
+	b := AcquireDNSMessageBatch(capacity)
+	b.Messages = append(b.Messages, dms...)
 	return b
 }
 

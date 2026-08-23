@@ -42,7 +42,7 @@ func Test_ClickhouseClient(t *testing.T) {
 			go g.StartCollect()
 
 			dm := dnsutils.GetFakeDNSMessage()
-			g.GetInputChannel() <- dnsutils.NewDNSMessageBatchFromMessage(&dm)
+			g.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
 			// accept conn
 			conn, err := fakeRcvr.Accept()
 			if err != nil {
