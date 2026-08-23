@@ -560,12 +560,14 @@ func Test_DnstapProcessor_BufferLoggerIsFull(t *testing.T) {
 	fl := GetWorkerForTest(pkgconfig.DefaultBufferOne)
 
 	// redirect stdout output to bytes buffer
-	logsChan := make(chan logger.LogEntry, 30)
+	logsChan := make(chan logger.LogEntry, 512)
 	lg := logger.New(true)
 	lg.SetOutputChannel((logsChan))
 
 	// init the dnstap consumer
-	consumer := NewDNSTapProcessor(0, "peertest", pkgconfig.GetDefaultConfig(), lg, "test", 512)
+	cfg := pkgconfig.GetDefaultConfig()
+	cfg.Global.Worker.BatchSize = 1
+	consumer := NewDNSTapProcessor(0, "peertest", cfg, lg, "test", 512)
 	consumer.AddDefaultRoute(fl)
 	consumer.AddDroppedRoute(fl)
 

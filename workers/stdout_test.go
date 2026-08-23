@@ -212,7 +212,7 @@ func Test_StdoutPcapMode_NoDNSPayload(t *testing.T) {
 // test for issue https://github.com/dmachard/go-dnscollector/v2/issues/568
 func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 	// redirect stdout output to bytes buffer
-	logsChan := make(chan logger.LogEntry, 10)
+	logsChan := make(chan logger.LogEntry, 512)
 	lg := logger.New(true)
 	lg.SetOutputChannel((logsChan))
 

@@ -39,9 +39,12 @@ type GenericWorker struct {
 	logger                                                               *logger.Logger
 	name, descr                                                          string
 	droppedRoutes, defaultRoutes                                         []Worker
-	droppedWorker                                                        chan string
-	droppedWorkerCount                                                   map[string]int
-	dnsMessageIn, dnsMessageOut                                          chan *dnsutils.DNSMessageBatch
+	// droppedWorkerCounts maps route-name -> atomic dropped message count.
+	// Using a sync.Map of *atomic.Int64 avoids starvation that a channel-based
+	// accumulator can cause when the monitor ticker competes with a high-volume
+	// drop stream inside a single select.
+	droppedWorkerCounts         sync.Map // map[string]*atomic.Int64
+	dnsMessageIn, dnsMessageOut chan *dnsutils.DNSMessageBatch
 
 	metrics                                                                 atomic.Pointer[telemetry.PrometheusCollector]
 	totalIngress, totalEgress, totalForwarded, totalDropped, totalDiscarded atomic.Uint64
@@ -52,21 +55,19 @@ type GenericWorker struct {
 func NewGenericWorker(config *pkgconfig.Config, logger *logger.Logger, name string, descr string, bufferSize int, monitor bool) *GenericWorker {
 	logger.Info(pkgconfig.PrefixLogWorker+"[%s] %s - enabled", name, descr)
 	w := &GenericWorker{
-		config:             config,
-		configChan:         make(chan *pkgconfig.Config),
-		logger:             logger,
-		name:               name,
-		descr:              descr,
-		doneRun:            make(chan bool),
-		doneMonitor:        make(chan bool),
-		doneProcess:        make(chan bool),
-		stopRun:            make(chan bool),
-		stopMonitor:        make(chan bool),
-		stopProcess:        make(chan bool),
-		droppedWorker:      make(chan string),
-		droppedWorkerCount: map[string]int{},
-		dnsMessageIn:       make(chan *dnsutils.DNSMessageBatch, bufferSize),
-		dnsMessageOut:      make(chan *dnsutils.DNSMessageBatch, bufferSize),
+		config:        config,
+		configChan:    make(chan *pkgconfig.Config),
+		logger:        logger,
+		name:          name,
+		descr:         descr,
+		doneRun:       make(chan bool),
+		doneMonitor:   make(chan bool),
+		doneProcess:   make(chan bool),
+		stopRun:       make(chan bool),
+		stopMonitor:   make(chan bool),
+		stopProcess:   make(chan bool),
+		dnsMessageIn:  make(chan *dnsutils.DNSMessageBatch, bufferSize),
+		dnsMessageOut: make(chan *dnsutils.DNSMessageBatch, bufferSize),
 		TextBufferPool: &sync.Pool{
 			New: func() interface{} { return new(bytes.Buffer) },
 		},
@@ -219,24 +220,18 @@ func (w *GenericWorker) Monitor() {
 
 	for {
 		select {
-		case loggerName := <-w.droppedWorker:
-			if _, ok := w.droppedWorkerCount[loggerName]; !ok {
-				w.droppedWorkerCount[loggerName] = 1
-			} else {
-				w.droppedWorkerCount[loggerName]++
-			}
-
 		case <-w.stopMonitor:
-			close(w.droppedWorker)
 			return
 
 		case <-ticker.C:
-			for v, k := range w.droppedWorkerCount {
-				if k > 0 {
-					w.LogWarning("worker[%s] buffer is full, %d dnsmessage(s) dropped", v, k)
-					w.droppedWorkerCount[v] = 0
+			// Log dropped counts accumulated since last tick.
+			w.droppedWorkerCounts.Range(func(key, val any) bool {
+				counter := val.(*atomic.Int64)
+				if k := counter.Swap(0); k > 0 {
+					w.LogWarning("worker[%s] buffer is full, %d dnsmessage(s) dropped", key.(string), k)
 				}
-			}
+				return true
+			})
 
 			// send to telemetry?
 			metrics := w.metrics.Load()
@@ -262,8 +257,18 @@ func (w *GenericWorker) Monitor() {
 	}
 }
 
-func (w *GenericWorker) WorkerIsBusy(name string) {
-	w.droppedWorker <- name
+func (w *GenericWorker) WorkerIsBusy(name string, count int) {
+	// Load-or-store an *atomic.Int64 for this route name, then add atomically.
+	// This is lock-free and cannot starve the Monitor ticker.
+	var counter *atomic.Int64
+	if v, ok := w.droppedWorkerCounts.Load(name); ok {
+		counter = v.(*atomic.Int64)
+	} else {
+		new := &atomic.Int64{}
+		actual, _ := w.droppedWorkerCounts.LoadOrStore(name, new)
+		counter = actual.(*atomic.Int64)
+	}
+	counter.Add(int64(count))
 }
 
 func (w *GenericWorker) StartCollect() {
@@ -315,11 +320,12 @@ func (w *GenericWorker) sendBatch(routes []chan *dnsutils.DNSMessageBatch, route
 				}
 			}
 		default:
+			droppedCount := len(b.Messages)
 			b.Release()
 			if w.config.Global.Telemetry.Enabled {
-				w.totalDiscarded.Add(uint64(len(b.Messages)))
+				w.totalDiscarded.Add(uint64(droppedCount))
 			}
-			w.WorkerIsBusy(routesName[i])
+			w.WorkerIsBusy(routesName[i], droppedCount)
 		}
 	}
 }

@@ -113,6 +113,9 @@ func (w *DNSProcessor) StartCollect() {
 				}
 
 				// append to output batch
+				// Retain so the incoming batch's Release() does not zero dm
+				// while outBatch is still in flight to downstream routes.
+				dm.Retain(1)
 				outBatch.Messages = append(outBatch.Messages, dm)
 			}
 			if len(outBatch.Messages) > 0 {

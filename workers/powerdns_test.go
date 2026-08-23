@@ -252,12 +252,13 @@ func Test_PowerDNSProcessor_BufferLoggerIsFull(t *testing.T) {
 	fl := GetWorkerForTest(pkgconfig.DefaultBufferOne)
 
 	// redirect stdout output to bytes buffer
-	logsChan := make(chan logger.LogEntry, 10)
+	logsChan := make(chan logger.LogEntry, 512)
 	lg := logger.New(true)
 	lg.SetOutputChannel((logsChan))
 
 	// init the dnstap consumer
 	cfg := pkgconfig.GetDefaultConfig()
+	cfg.Global.Worker.BatchSize = 1
 	consumer := NewPdnsProcessor(0, "peername", cfg, lg, "test", 512)
 	consumer.AddDefaultRoute(fl)
 	consumer.AddDroppedRoute(fl)

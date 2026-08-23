@@ -56,7 +56,7 @@ func TestDnsMessage_RoutingPolicy(t *testing.T) {
 
 func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 	// redirect stdout output to bytes buffer
-	logsChan := make(chan logger.LogEntry, 50)
+	logsChan := make(chan logger.LogEntry, 512)
 	lg := logger.New(true)
 	lg.SetOutputChannel((logsChan))
 

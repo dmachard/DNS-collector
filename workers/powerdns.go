@@ -119,7 +119,7 @@ func (w *PdnsServer) HandleConn(conn net.Conn, connID uint64, forceClose chan bo
 		select {
 		case pdnsProcessor.GetDataChannel() <- payload.Data(): // Successful send
 		default:
-			w.WorkerIsBusy("dnstap-processor")
+			w.WorkerIsBusy("dnstap-processor", 1)
 		}
 	}
 }

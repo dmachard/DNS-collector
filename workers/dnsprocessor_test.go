@@ -81,7 +81,7 @@ func Test_DnsProcessor_DecodeCounters(t *testing.T) {
 
 func Test_DnsProcessor_BufferLoggerIsFull(t *testing.T) {
 	// redirect stdout output to bytes buffer
-	logsChan := make(chan logger.LogEntry, 10)
+	logsChan := make(chan logger.LogEntry, 512)
 	lg := logger.New(true)
 	lg.SetOutputChannel((logsChan))
 

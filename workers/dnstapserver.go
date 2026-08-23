@@ -161,7 +161,7 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 			select {
 			case dnstapProcessor.GetDataChannel() <- frame.Data(): // Successful send to channel
 			default:
-				w.WorkerIsBusy("dnstap-processor")
+				w.WorkerIsBusy("dnstap-processor", 1)
 			}
 		} else {
 			// ignore first 4 bytes
@@ -181,7 +181,7 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 				select {
 				case dnstapProcessor.GetDataChannel() <- data[:payloadSize]: // Successful send to channel
 				default:
-					w.WorkerIsBusy("dnstap-processor")
+					w.WorkerIsBusy("dnstap-processor", 1)
 				}
 
 				// continue for next
