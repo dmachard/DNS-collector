@@ -46,6 +46,7 @@ func BenchmarkReducer_RepetitiveTrafficDetectorParallel(b *testing.B) {
 		DNS:         dnsutils.DNS{Qname: "hello.world", Qtype: "A", Length: 64},
 		NetworkInfo: dnsutils.DNSNetInfo{QueryIP: "127.0.0.1"},
 	}
+	dm.InitTransforms()
 
 	b.ReportAllocs()
 	b.ResetTimer()
