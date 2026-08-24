@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"net"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,6 +13,66 @@ import (
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 )
+
+func Test_RedisPubReconnect(t *testing.T) {
+	cfg := pkgconfig.GetDefaultConfig()
+	cfg.Loggers.RedisPub.Transport = netutils.SocketTCP
+	cfg.Loggers.RedisPub.FlushInterval = 1
+	cfg.Loggers.RedisPub.BufferSize = 0
+	cfg.Loggers.RedisPub.Mode = pkgconfig.ModeText
+	cfg.Loggers.RedisPub.RedisChannel = "testons"
+	cfg.Loggers.RedisPub.RemoteAddress = "127.0.0.1"
+
+	listener, err := net.Listen(netutils.SocketTCP, "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	cfg.Loggers.RedisPub.RemotePort = listener.Addr().(*net.TCPAddr).Port
+
+	g := NewRedisPub(cfg, logger.New(false), "test_reconnect")
+
+	go g.StartCollect()
+	defer g.Stop()
+
+	conn1, err := listener.Accept()
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn1.SetReadDeadline(time.Now().Add(5 * time.Second))
+
+	dm1 := dnsutils.GetFakeDNSMessage()
+	g.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm1)
+
+	reader1 := bufio.NewReader(conn1)
+	if _, err := reader1.ReadString('\n'); err != nil {
+		t.Fatalf("first redis payload not received: %v", err)
+	}
+
+	if err := conn1.Close(); err != nil {
+		t.Fatalf("close first redis connection: %v", err)
+	}
+
+	conn2, err := listener.Accept()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn2.Close()
+	conn2.SetReadDeadline(time.Now().Add(5 * time.Second))
+
+	dm2 := dnsutils.GetFakeDNSMessage()
+	dm2.DNS.Qname = "reconnect.example.com"
+	g.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm2)
+
+	reader2 := bufio.NewReader(conn2)
+	line, err := reader2.ReadString('\n')
+	if err != nil {
+		t.Fatalf("second redis payload not received after reconnect: %v", err)
+	}
+	if !strings.Contains(line, "reconnect.example.com") {
+		t.Fatalf("reconnect payload missing qname: %s", line)
+	}
+}
 
 func Test_RedisPubRun(t *testing.T) {
 	testcases := []struct {
