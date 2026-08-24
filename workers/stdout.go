@@ -37,6 +37,7 @@ type StdOut struct {
 	jinjaFormat   string
 	writerRaw     *bufio.Writer
 	writerPcap    *pcapgo.Writer
+	pcapBuffer    []byte
 }
 
 func NewStdOut(config *pkgconfig.Config, console *logger.Logger, name string) *StdOut {
@@ -192,36 +193,26 @@ func (w *StdOut) StartLogging() {
 			for _, dm := range batch.Messages {
 				switch w.GetConfig().Loggers.Stdout.Mode {
 				case pkgconfig.ModePCAP:
-					if len(dm.DNS.Payload) == 0 {
-						w.CountEgressDiscarded()
-						w.LogError("process: no dns payload to encode, drop it")
-						continue
-					}
-
-					pkt, err := dm.ToPacketLayer(w.GetConfig().Loggers.Stdout.OverwriteDNSPortPcap)
+					var err error
+					w.pcapBuffer, err = dm.EncodeToPacketBytes(w.pcapBuffer[:0], w.GetConfig().Loggers.Stdout.OverwriteDNSPortPcap)
 					if err != nil {
 						w.CountEgressDiscarded()
-						w.LogError("process: unable to pack layer: %s", err)
+						w.LogError("process: unable to encode packet: %s", err)
 						continue
 					}
 
-					buf := gopacket.NewSerializeBuffer()
-					opts := gopacket.SerializeOptions{
-						FixLengths:       true,
-						ComputeChecksums: true,
-					}
-					for _, l := range pkt {
-						l.SerializeTo(buf, opts)
-					}
-
-					bufSize := len(buf.Bytes())
+					bufSize := len(w.pcapBuffer)
 					ci := gopacket.CaptureInfo{
 						Timestamp:     time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec)),
 						CaptureLength: bufSize,
 						Length:        bufSize,
 					}
 
-					w.writerPcap.WritePacket(ci, buf.Bytes())
+					if err := w.writerPcap.WritePacket(ci, w.pcapBuffer); err != nil {
+						w.CountEgressDiscarded()
+						w.LogError("process: unable to write packet: %s", err)
+						continue
+					}
 
 				case pkgconfig.ModeText:
 					// get buffer from pool
