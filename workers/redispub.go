@@ -30,7 +30,7 @@ type RedisPub struct {
 	transportConn                      net.Conn
 	transportReady, transportReconnect chan bool
 	writerReady                        bool
-	mu                                sync.Mutex
+	mu                                 sync.Mutex
 }
 
 func NewRedisPub(config *pkgconfig.Config, logger *logger.Logger, name string) *RedisPub {
