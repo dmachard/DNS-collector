@@ -63,7 +63,7 @@ func TestReducer_RepetitiveTrafficDetector(t *testing.T) {
 	config.Reducer.RepetitiveTrafficDetector = true
 	config.Reducer.WatchInterval = 1
 
-	outChan := make(chan *dnsutils.DNSMessageBatch, 1)
+	outChan := make(chan *dnsutils.DNSMessageBatch, 100)
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 	outChans = append(outChans, outChan)
 
@@ -207,7 +207,7 @@ func TestReducer_QnamePlusOne(t *testing.T) {
 	config.Reducer.QnamePlusOne = true
 	config.Reducer.WatchInterval = 1
 
-	outChan := make(chan *dnsutils.DNSMessageBatch, 1)
+	outChan := make(chan *dnsutils.DNSMessageBatch, 100)
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 	outChans = append(outChans, outChan)
 
