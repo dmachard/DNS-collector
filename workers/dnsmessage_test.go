@@ -55,6 +55,24 @@ func TestDnsMessage_RoutingPolicy(t *testing.T) {
 
 }
 
+func waitForLogMatch(ch <-chan logger.LogEntry, pattern *regexp.Regexp, timeout time.Duration) bool {
+	deadline := time.After(timeout)
+	for {
+		select {
+		case entry, ok := <-ch:
+			if !ok {
+				return false
+			}
+			fmt.Println(entry)
+			if pattern.MatchString(entry.Message) {
+				return true
+			}
+		case <-deadline:
+			return false
+		}
+	}
+}
+
 func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 	// redirect stdout output to bytes buffer
 	logsChan := make(chan logger.LogEntry, 512)
@@ -71,7 +89,6 @@ func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 
 	// run collector
 	go c.StartCollect()
-	defer c.Stop()
 
 	// add a shot of dnsmessages to collector
 	for i := 0; i < 512; i++ {
@@ -82,12 +99,8 @@ func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 	// waiting monitor to run in consumer
 	time.Sleep(12 * time.Second)
 
-	for entry := range logsChan {
-		fmt.Println(entry)
-		pattern := regexp.MustCompile(pkgconfig.ExpectedBufferMsg511)
-		if pattern.MatchString(entry.Message) {
-			break
-		}
+	if !waitForLogMatch(logsChan, regexp.MustCompile(pkgconfig.ExpectedBufferMsg511), 10*time.Second) {
+		t.Fatal("did not receive 511 dropped message log")
 	}
 
 	// read dnsmessage from next logger
@@ -105,12 +118,8 @@ func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 	// waiting monitor to run in consumer
 	time.Sleep(12 * time.Second)
 
-	for entry := range logsChan {
-		fmt.Println(entry)
-		pattern := regexp.MustCompile(pkgconfig.ExpectedBufferMsg1023)
-		if pattern.MatchString(entry.Message) {
-			break
-		}
+	if !waitForLogMatch(logsChan, regexp.MustCompile(pkgconfig.ExpectedBufferMsg1023), 10*time.Second) {
+		t.Fatal("did not receive 1023 dropped message log")
 	}
 	// read dnsmessage from next logger
 	batch2 := <-nxt.GetInputChannel()
