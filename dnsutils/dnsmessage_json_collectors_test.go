@@ -31,6 +31,9 @@ func TestDnsMessage_Json_Collectors_Reference(t *testing.T) {
 				DeviceName:            "foobar",
 				EdnsVersion:           "0",
 				OpenTelemetryData:     "5e006236c8a74f7eafc6af126e6d0689",
+				Ede:                   func(i int) *int { return &i }(15),
+				EdeText:               "Blocked by RPZ",
+				OpenTelemetryTraceID:  "4bf92f3577b34da6a3ce929d0e0e4736",
 			}},
 
 			jsonRef: `{
@@ -52,7 +55,10 @@ func TestDnsMessage_Json_Collectors_Reference(t *testing.T) {
 							"device-id": "ffffffffffffffffeaaeaeae",
 							"device-name": "foobar",
 							"edns-version": "0",
-							"opentelemetry-data": "5e006236c8a74f7eafc6af126e6d0689"
+							"opentelemetry-data": "5e006236c8a74f7eafc6af126e6d0689",
+							"ede": 15,
+							"ede-text": "Blocked by RPZ",
+							"opentelemetry-trace-id": "4bf92f3577b34da6a3ce929d0e0e4736"
 						}
 					}`,
 		},

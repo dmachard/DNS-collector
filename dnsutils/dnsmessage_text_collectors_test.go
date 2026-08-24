@@ -158,6 +158,24 @@ func TestDnsMessage_TextFormat_Directives_Pdns(t *testing.T) {
 			dm:       DNSMessage{PowerDNS: &CollectorPowerDNS{OpenTelemetryData: "5e006236c8a74f7eafc6af126e6d0689"}},
 			expected: "5e006236c8a74f7eafc6af126e6d0689",
 		},
+		{
+			name:     "ede",
+			format:   "powerdns-ede",
+			dm:       DNSMessage{PowerDNS: &CollectorPowerDNS{Ede: func(i int) *int { return &i }(15)}},
+			expected: "15",
+		},
+		{
+			name:     "ede_text",
+			format:   "powerdns-ede-text",
+			dm:       DNSMessage{PowerDNS: &CollectorPowerDNS{EdeText: "Blocked by RPZ"}},
+			expected: "Blocked by RPZ",
+		},
+		{
+			name:     "opentelemetry_trace_id",
+			format:   "powerdns-opentelemetry-trace-id",
+			dm:       DNSMessage{PowerDNS: &CollectorPowerDNS{OpenTelemetryTraceID: "4bf92f3577b34da6a3ce929d0e0e4736"}},
+			expected: "4bf92f3577b34da6a3ce929d0e0e4736",
+		},
 	}
 
 	for _, tc := range testcases {
