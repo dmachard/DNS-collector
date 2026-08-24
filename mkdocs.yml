@@ -63,6 +63,7 @@ nav:
       - Installation: installation.md
       - Configuration: configuration.md
       - Docker: docker.md
+      - Kubernetes: kubernetes.md
       - Examples: examples.md
   - Features:
       - DNS Logging: dns_logging.md
