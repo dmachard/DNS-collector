@@ -51,6 +51,7 @@ func Test_RedisPubRun(t *testing.T) {
 
 			// start the logger
 			go g.StartCollect()
+			defer g.Stop()
 
 			// accept conn from logger
 			conn, err := fakeRcvr.Accept()
@@ -58,6 +59,8 @@ func Test_RedisPubRun(t *testing.T) {
 				return
 			}
 			defer conn.Close()
+
+			_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 
 			// wait connection on logger
 			time.Sleep(time.Second)
@@ -83,10 +86,6 @@ func Test_RedisPubRun(t *testing.T) {
 			if !pattern2.MatchString(line) {
 				t.Errorf("redis error want %s, got: %s", pattern2, line)
 			}
-
-			// stop all
-			fakeRcvr.Close()
-			g.Stop()
 		})
 	}
 }

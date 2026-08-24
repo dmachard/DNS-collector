@@ -30,6 +30,7 @@ func TestDnsMessage_RoutingPolicy(t *testing.T) {
 
 	// start to collect and send DNS messages on it
 	go c.StartCollect()
+	defer c.Stop()
 
 	// this message should be kept by the collector
 	dm1 := dnsutils.GetFakeDNSMessage()
@@ -70,6 +71,7 @@ func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 
 	// run collector
 	go c.StartCollect()
+	defer c.Stop()
 
 	// add a shot of dnsmessages to collector
 	for i := 0; i < 512; i++ {

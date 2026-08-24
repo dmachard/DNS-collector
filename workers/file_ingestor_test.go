@@ -38,6 +38,7 @@ func Test_FileIngestor(t *testing.T) {
 			// init collector
 			c := NewFileIngestor([]Worker{g}, config, logger.New(false), "test")
 			go c.StartCollect()
+			defer c.Stop()
 
 			// waiting message in channel
 			for {

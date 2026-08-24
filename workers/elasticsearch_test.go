@@ -89,6 +89,7 @@ func Test_ElasticSearchClient_BulkSize_Exceeded(t *testing.T) {
 			}()
 
 			go g.StartCollect()
+			defer g.Stop()
 
 			for i := 0; i < tc.inputSize; i++ {
 				dm := dnsutils.GetFakeDNSMessage()

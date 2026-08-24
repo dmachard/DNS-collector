@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
@@ -37,6 +38,7 @@ func Test_FalcoClient(t *testing.T) {
 			g := NewFalcoClient(conf, logger.New(false), "test")
 
 			go g.StartCollect()
+			defer g.Stop()
 
 			dm := dnsutils.GetFakeDNSMessage()
 			g.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
@@ -47,6 +49,8 @@ func Test_FalcoClient(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer conn.Close()
+
+			_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 
 			// read and parse http request on server side
 			request, err := http.ReadRequest(bufio.NewReader(conn))

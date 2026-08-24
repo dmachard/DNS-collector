@@ -181,6 +181,7 @@ func Test_SyslogRunTcp(t *testing.T) {
 
 			// start the logger
 			go g.StartCollect()
+			defer g.Stop()
 
 			// accept conn from logger
 			conn, err := fakeRcvr.Accept()
@@ -188,6 +189,8 @@ func Test_SyslogRunTcp(t *testing.T) {
 				return
 			}
 			defer conn.Close()
+
+			_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 
 			// send fake dns message to logger
 			time.Sleep(time.Second)
