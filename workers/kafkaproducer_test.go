@@ -180,3 +180,52 @@ func Test_KafkaProducer_Reconnect(t *testing.T) {
 		t.Fatal("No ProduceRequest received by broker after reconnect")
 	}
 }
+
+func Test_KafkaProducer_SpecificPartition(t *testing.T) {
+	listener, broker := createMockBroker(t, 1, testAddress+":"+testPort, testTopic)
+	defer listener.Close()
+	defer broker.Close()
+
+	cfg := setupKafkaProducerConfig(testAddress, testPort, testTopic, "none")
+	partition := 1
+	cfg.Loggers.KafkaProducer.Partition = &partition
+	producer := NewKafkaProducer(cfg, logger.New(false), "test")
+	go producer.StartCollect()
+	defer producer.StopLogger()
+
+	time.Sleep(1 * time.Second)
+	dm := dnsutils.GetFakeDNSMessage()
+	producer.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
+	time.Sleep(1 * time.Second)
+
+	if count := countProduceRequests(broker); count == 0 {
+		t.Fatal("No ProduceRequest received by broker with specific partition")
+	}
+}
+
+func Test_KafkaProducer_Modes(t *testing.T) {
+	modes := []string{pkgconfig.ModeText, pkgconfig.ModeJSON, pkgconfig.ModeFlatJSON}
+
+	for _, mode := range modes {
+		t.Run("mode_"+mode, func(t *testing.T) {
+			listener, broker := createMockBroker(t, 1, testAddress+":"+testPort, testTopic)
+			defer listener.Close()
+			defer broker.Close()
+
+			cfg := setupKafkaProducerConfig(testAddress, testPort, testTopic, "none")
+			cfg.Loggers.KafkaProducer.Mode = mode
+			producer := NewKafkaProducer(cfg, logger.New(false), "test")
+			go producer.StartCollect()
+			defer producer.StopLogger()
+
+			time.Sleep(1 * time.Second)
+			dm := dnsutils.GetFakeDNSMessage()
+			producer.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
+			time.Sleep(1 * time.Second)
+
+			if count := countProduceRequests(broker); count == 0 {
+				t.Fatalf("No ProduceRequest received by broker for mode %s", mode)
+			}
+		})
+	}
+}
