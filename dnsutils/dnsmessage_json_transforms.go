@@ -2,7 +2,6 @@ package dnsutils
 
 import (
 	"bytes"
-	"encoding/base64"
 )
 
 func (t *TransformDNSGeo) EncodeJSON(buf *bytes.Buffer) {
@@ -93,7 +92,7 @@ func (t *TransformExtracted) EncodeJSON(buf *bytes.Buffer) {
 	buf.WriteString(`{"dns_payload":`)
 	if t.Base64Payload != nil {
 		buf.WriteByte('"')
-		buf.WriteString(base64.StdEncoding.EncodeToString(t.Base64Payload))
+		writeBase64(buf, t.Base64Payload)
 		buf.WriteByte('"')
 	} else {
 		buf.WriteString("null")
