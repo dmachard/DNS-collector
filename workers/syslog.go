@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"time"
-
 	"strings"
+	"sync"
+	"time"
 
 	syslog "github.com/dmachard/go-clientsyslog"
 
@@ -28,6 +28,7 @@ type Syslog struct {
 	dynamicHostname                    bool
 	hostnameField                      string
 	defaultHostname                    string
+	mu                                 sync.Mutex
 }
 
 func NewSyslog(config *pkgconfig.Config, console *logger.Logger, name string) *Syslog {
@@ -84,12 +85,36 @@ func (w *Syslog) ReadConfig() {
 	}
 }
 
+func (w *Syslog) closeSyslogWriter() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.syslogWriter != nil {
+		w.syslogWriter.Close()
+		w.syslogWriter = nil
+	}
+}
+
+func (w *Syslog) setSyslogReady(ready bool) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.syslogReady = ready
+}
+
+func (w *Syslog) getSyslogWriter() *syslog.Writer {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.syslogWriter
+}
+
+func (w *Syslog) getSyslogReady() bool {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.syslogReady
+}
+
 func (w *Syslog) ConnectToRemote() {
 	for {
-		if w.syslogWriter != nil {
-			w.syslogWriter.Close()
-			w.syslogWriter = nil
-		}
+		w.closeSyslogWriter()
 
 		var logWriter *syslog.Writer
 		var tlsConfig *tls.Config
@@ -145,48 +170,58 @@ func (w *Syslog) ConnectToRemote() {
 			continue
 		}
 
+		w.mu.Lock()
 		w.syslogWriter = logWriter
+		w.mu.Unlock()
+
+		writer := logWriter
 
 		// set syslog format
 		switch strings.ToLower(w.GetConfig().Loggers.Syslog.Formatter) {
 		case "unix":
-			w.syslogWriter.SetFormatter(syslog.UnixFormatter)
+			writer.SetFormatter(syslog.UnixFormatter)
 		case "rfc3164":
-			w.syslogWriter.SetFormatter(syslog.RFC3164Formatter)
+			writer.SetFormatter(syslog.RFC3164Formatter)
 		case "rfc5424", "":
-			w.syslogWriter.SetFormatter(syslog.RFC5424Formatter)
+			writer.SetFormatter(syslog.RFC5424Formatter)
 		}
 
 		// set syslog framer
 		switch strings.ToLower(w.GetConfig().Loggers.Syslog.Framer) {
 		case "none", "":
-			w.syslogWriter.SetFramer(syslog.DefaultFramer)
+			writer.SetFramer(syslog.DefaultFramer)
 		case "rfc5425":
-			w.syslogWriter.SetFramer(syslog.RFC5425MessageLengthFramer)
+			writer.SetFramer(syslog.RFC5425MessageLengthFramer)
 		}
 
 		// custom hostname
 		if !w.dynamicHostname && len(w.defaultHostname) > 0 {
-			w.syslogWriter.SetHostname(w.defaultHostname)
+			writer.SetHostname(w.defaultHostname)
 		}
 		// custom program name
 		if len(w.GetConfig().Loggers.Syslog.AppName) > 0 {
-			w.syslogWriter.SetProgram(w.GetConfig().Loggers.Syslog.AppName)
+			writer.SetProgram(w.GetConfig().Loggers.Syslog.AppName)
 		}
 
 		// notify process that the transport is ready
-		// block the loop until a reconnect is needed
 		w.transportReady <- true
-		w.transportReconnect <- true
+		return
 	}
 }
 
 func (w *Syslog) updateHostname(dm *dnsutils.DNSMessage) {
-	if !w.dynamicHostname || w.syslogWriter == nil {
+	w.mu.Lock()
+	writer := w.syslogWriter
+	dynamic := w.dynamicHostname
+	defaultHostname := w.defaultHostname
+	hostnameField := w.hostnameField
+	w.mu.Unlock()
+
+	if !dynamic || writer == nil {
 		return
 	}
 	var h string
-	switch w.hostnameField {
+	switch hostnameField {
 	case "identity":
 		h = dm.DNSTap.Identity
 	case "peer-name", "peer_name":
@@ -195,9 +230,9 @@ func (w *Syslog) updateHostname(dm *dnsutils.DNSMessage) {
 		h = dm.NetworkInfo.GetQueryIP()
 	}
 	if len(h) > 0 && h != "-" {
-		w.syslogWriter.SetHostname(h)
-	} else if len(w.defaultHostname) > 0 {
-		w.syslogWriter.SetHostname(w.defaultHostname)
+		writer.SetHostname(h)
+	} else if len(defaultHostname) > 0 {
+		writer.SetHostname(defaultHostname)
 	}
 }
 
@@ -269,6 +304,11 @@ func (w *Syslog) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 		*buf = nil
 	}()
 
+	writer := w.getSyslogWriter()
+	if writer == nil {
+		return
+	}
+
 	buffer := new(bytes.Buffer)
 	var err error
 
@@ -316,7 +356,7 @@ func (w *Syslog) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 
 			// write the modified content of the buffer to s.syslogWriter
 			// and reset the buffer
-			_, err = buf.WriteTo(w.syslogWriter)
+			_, err = buf.WriteTo(writer)
 			if err != nil {
 				w.LogError("syslog: write failed: %s", err)
 				w.CountEgressDiscarded()
@@ -333,7 +373,7 @@ func (w *Syslog) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 
 			// write the content of the buffer to s.syslogWriter
 			// and reset the buffer
-			_, err = buffer.WriteTo(w.syslogWriter)
+			_, err = buffer.WriteTo(writer)
 			if err != nil {
 				w.LogError("syslog write error %s", err)
 				w.CountEgressDiscarded()
@@ -359,7 +399,7 @@ func (w *Syslog) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 
 			// write the content of the buffer to s.syslogWriter
 			// and reset the buffer
-			_, err = buffer.WriteTo(w.syslogWriter)
+			_, err = buffer.WriteTo(writer)
 			if err != nil {
 				w.LogError("syslog write error %s", err)
 				w.CountEgressDiscarded()
@@ -387,16 +427,13 @@ func (w *Syslog) StartLogging() {
 		select {
 		case <-w.OnLoggerStopped():
 			// close connection
-			if w.syslogWriter != nil {
-				w.syslogWriter.Close()
-			}
+			w.closeSyslogWriter()
 			return
 
 		case <-w.transportReady:
 			w.LogInfo("syslog transport is ready")
-			w.syslogReady = true
+			w.setSyslogReady(true)
 
-			// incoming dns message to process
 		case batch, opened := <-w.GetOutputChannel():
 			if !opened {
 				w.LogInfo("output channel closed!")
@@ -404,8 +441,9 @@ func (w *Syslog) StartLogging() {
 			}
 
 			for _, dm := range batch.Messages {
+				ready := w.getSyslogReady()
 				// discard dns message if the connection is not ready
-				if !w.syslogReady {
+				if !ready {
 					w.CountEgressDiscarded()
 					continue
 				}
@@ -423,7 +461,7 @@ func (w *Syslog) StartLogging() {
 
 			// flush the buffer
 		case <-flushTimer.C:
-			if !w.syslogReady && len(bufferDm) > 0 {
+			if !w.getSyslogReady() && len(bufferDm) > 0 {
 				for _, dm := range bufferDm {
 					w.CountEgressDiscarded()
 					dm.Release()
