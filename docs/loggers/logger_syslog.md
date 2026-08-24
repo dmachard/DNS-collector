@@ -50,7 +50,11 @@ Options:
   > Set syslog framer: `none` or `rfc5425`
 
 * `hostname` (string)
-  > Set syslog hostname
+  > Set the syslog hostname in RFC3164/RFC5424 headers. Can be a static string (e.g. `my-collector`) or a dynamic field from the incoming DNS message:
+  >   * `identity` : use the DNStap server identity (e.g., DNS resolver name)
+  >   * `peer-name` : use the client/collector peer name
+  >   * `query-ip` : use the requester client IP address
+  > If empty (default), the local system hostname is used.
 
 * `app-name` (string)
   > Set syslog program name
