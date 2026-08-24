@@ -24,16 +24,17 @@ func parseIPv4Bytes(s string, dst *[4]byte) bool {
 	var acc, octet int
 	for i := 0; i < len(s); i++ {
 		c := s[i]
-		if c == '.' {
+		switch {
+		case c == '.':
 			if octet > 3 || acc > 255 {
 				return false
 			}
 			dst[octet] = byte(acc)
 			octet++
 			acc = 0
-		} else if c >= '0' && c <= '9' {
+		case c >= '0' && c <= '9':
 			acc = acc*10 + int(c-'0')
-		} else {
+		default:
 			return false
 		}
 	}
@@ -112,9 +113,10 @@ func (dm *DNSMessage) EncodeToPacketBytes(dst []byte, overwritePort bool) ([]byt
 	}
 
 	if overwritePort {
-		if dm.DNS.Type == DNSQuery {
+		switch dm.DNS.Type {
+		case DNSQuery:
 			dstPort = 53
-		} else if dm.DNS.Type == DNSReply {
+		case DNSReply:
 			srcPort = 53
 		}
 	}
