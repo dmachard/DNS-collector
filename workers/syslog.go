@@ -25,6 +25,9 @@ type Syslog struct {
 	transportReady, transportReconnect chan bool
 	textFormat                         []string
 	textFormatter                      *dnsutils.TextFormatter
+	dynamicHostname                    bool
+	hostnameField                      string
+	defaultHostname                    string
 }
 
 func NewSyslog(config *pkgconfig.Config, console *logger.Logger, name string) *Syslog {
@@ -66,6 +69,18 @@ func (w *Syslog) ReadConfig() {
 	w.textFormatter, errFormatter = dnsutils.NewTextFormatter(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary)
 	if errFormatter != nil {
 		w.LogFatal(pkgconfig.PrefixLogWorker + "invalid text format: " + errFormatter.Error())
+	}
+
+	hostnameCfg := strings.TrimSpace(w.GetConfig().Loggers.Syslog.Hostname)
+	normalized := strings.ToLower(strings.Trim(hostnameCfg, "%{} "))
+	switch normalized {
+	case "identity", "peer-name", "peer_name", "query-ip", "query_ip":
+		w.dynamicHostname = true
+		w.hostnameField = normalized
+		w.defaultHostname = ""
+	default:
+		w.dynamicHostname = false
+		w.defaultHostname = hostnameCfg
 	}
 }
 
@@ -151,8 +166,8 @@ func (w *Syslog) ConnectToRemote() {
 		}
 
 		// custom hostname
-		if len(w.GetConfig().Loggers.Syslog.Hostname) > 0 {
-			w.syslogWriter.SetHostname(w.GetConfig().Loggers.Syslog.Hostname)
+		if !w.dynamicHostname && len(w.defaultHostname) > 0 {
+			w.syslogWriter.SetHostname(w.defaultHostname)
 		}
 		// custom program name
 		if len(w.GetConfig().Loggers.Syslog.AppName) > 0 {
@@ -163,6 +178,26 @@ func (w *Syslog) ConnectToRemote() {
 		// block the loop until a reconnect is needed
 		w.transportReady <- true
 		w.transportReconnect <- true
+	}
+}
+
+func (w *Syslog) updateHostname(dm *dnsutils.DNSMessage) {
+	if !w.dynamicHostname || w.syslogWriter == nil {
+		return
+	}
+	var h string
+	switch w.hostnameField {
+	case "identity":
+		h = dm.DNSTap.Identity
+	case "peer-name", "peer_name":
+		h = dm.DNSTap.PeerName
+	case "query-ip", "query_ip":
+		h = dm.NetworkInfo.GetQueryIP()
+	}
+	if len(h) > 0 && h != "-" {
+		w.syslogWriter.SetHostname(h)
+	} else if len(w.defaultHostname) > 0 {
+		w.syslogWriter.SetHostname(w.defaultHostname)
 	}
 }
 
@@ -238,6 +273,7 @@ func (w *Syslog) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 	var err error
 
 	for _, dm := range *buf {
+		w.updateHostname(dm)
 		switch w.GetConfig().Loggers.Syslog.Mode {
 		case pkgconfig.ModeText:
 			buf := w.GetTextBuffer()

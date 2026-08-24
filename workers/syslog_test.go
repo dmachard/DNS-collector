@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"net"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -261,5 +262,93 @@ func Test_SyslogRun_RemoveNullCharacter(t *testing.T) {
 	re := regexp.MustCompile(pattern)
 	if !re.MatchString(string(buf[:n])) {
 		t.Errorf("syslog error want %s, got: %s", pattern, string(buf[:n]))
+	}
+}
+
+func Test_SyslogRun_DynamicHostname(t *testing.T) {
+	testcases := []struct {
+		name          string
+		hostnameField string
+		setupDM       func(dm *dnsutils.DNSMessage)
+		expectedHost  string
+		listenAddr    string
+	}{
+		{
+			name:          "dynamic_identity",
+			hostnameField: "identity",
+			setupDM: func(dm *dnsutils.DNSMessage) {
+				dm.DNSTap.Identity = "dns-resolver-01"
+			},
+			expectedHost: "dns-resolver-01",
+			listenAddr:   ":4010",
+		},
+		{
+			name:          "dynamic_peer_name",
+			hostnameField: "peer-name",
+			setupDM: func(dm *dnsutils.DNSMessage) {
+				dm.DNSTap.PeerName = "ns1.internal.lan"
+			},
+			expectedHost: "ns1.internal.lan",
+			listenAddr:   ":4011",
+		},
+		{
+			name:          "dynamic_query_ip",
+			hostnameField: "query-ip",
+			setupDM: func(dm *dnsutils.DNSMessage) {
+				dm.NetworkInfo.QueryIP = "192.168.1.100"
+			},
+			expectedHost: "192.168.1.100",
+			listenAddr:   ":4012",
+		},
+		{
+			name:          "static_hostname",
+			hostnameField: "custom-static-hostname",
+			setupDM: func(dm *dnsutils.DNSMessage) {
+				dm.DNSTap.Identity = "should-be-ignored"
+			},
+			expectedHost: "custom-static-hostname",
+			listenAddr:   ":4013",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			config := pkgconfig.GetDefaultConfig()
+			config.Loggers.Syslog.Transport = netutils.SocketUDP
+			config.Loggers.Syslog.RemoteAddress = tc.listenAddr
+			config.Loggers.Syslog.Mode = pkgconfig.ModeText
+			config.Loggers.Syslog.Formatter = "rfc5424"
+			config.Loggers.Syslog.Framer = ""
+			config.Loggers.Syslog.FlushInterval = 1
+			config.Loggers.Syslog.BufferSize = 0
+			config.Loggers.Syslog.Hostname = tc.hostnameField
+
+			g := NewSyslog(config, logger.New(false), "test_dynamic_host")
+
+			fakeRcvr, err := net.ListenPacket(config.Loggers.Syslog.Transport, tc.listenAddr)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer fakeRcvr.Close()
+
+			go g.StartCollect()
+
+			time.Sleep(500 * time.Millisecond)
+			dm := dnsutils.GetFakeDNSMessage()
+			tc.setupDM(&dm)
+			g.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
+
+			buf := make([]byte, 1024)
+			_ = fakeRcvr.SetReadDeadline(time.Now().Add(3 * time.Second))
+			n, _, err := fakeRcvr.ReadFrom(buf)
+			if err != nil {
+				t.Fatalf("error reading syslog data: %s", err)
+			}
+
+			received := string(buf[:n])
+			if !strings.Contains(received, tc.expectedHost) {
+				t.Errorf("syslog header expected host '%s', got: %s", tc.expectedHost, received)
+			}
+		})
 	}
 }

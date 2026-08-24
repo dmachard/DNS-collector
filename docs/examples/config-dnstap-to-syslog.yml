@@ -21,3 +21,4 @@ pipelines:
       tls-insecure: true
       formatter: "rfc5424"
       framer: "rfc5425"
+      hostname: "identity" # use dynamic DNStap resolver identity in syslog header (e.g. for Splunk/SIEM indexing)
