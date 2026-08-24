@@ -58,16 +58,28 @@ type ConfigLoggers struct {
 		DefaultDomainsCacheSize   int      `yaml:"default-domains-cache-size" default:"1000"`
 	} `yaml:"prometheus"`
 	RestAPI struct {
-		Enable         bool   `yaml:"enable" default:"false"`
-		ListenIP       string `yaml:"listen-ip" default:"127.0.0.1"`
-		ListenPort     int    `yaml:"listen-port" default:"8080"`
-		BasicAuthLogin string `yaml:"basic-auth-login" default:"admin"`
-		BasicAuthPwd   string `yaml:"basic-auth-pwd" default:"changeme"`
-		TLSSupport     bool   `yaml:"tls-support" default:"false"`
-		TLSMinVersion  string `yaml:"tls-min-version" default:"1.2"`
-		CertFile       string `yaml:"cert-file" default:""`
-		KeyFile        string `yaml:"key-file" default:""`
-		TopN           int    `yaml:"top-n" default:"100"`
+		Enable                   bool   `yaml:"enable" default:"false"`
+		ListenIP                 string `yaml:"listen-ip" default:"127.0.0.1"`
+		ListenPort               int    `yaml:"listen-port" default:"8080"`
+		BasicAuthLogin           string `yaml:"basic-auth-login" default:"admin"`
+		BasicAuthPwd             string `yaml:"basic-auth-pwd" default:"changeme"`
+		TLSSupport               bool   `yaml:"tls-support" default:"false"`
+		TLSMinVersion            string `yaml:"tls-min-version" default:"1.2"`
+		CertFile                 string `yaml:"cert-file" default:""`
+		KeyFile                  string `yaml:"key-file" default:""`
+		TopN                     int    `yaml:"top-n" default:"100"`
+		RequestersCacheTTL       int    `yaml:"requesters-cache-ttl" default:"3600"`
+		RequestersCacheSize      int    `yaml:"requesters-cache-size" default:"250000"`
+		DomainsCacheTTL          int    `yaml:"domains-cache-ttl" default:"3600"`
+		DomainsCacheSize         int    `yaml:"domains-cache-size" default:"500000"`
+		NXDomainsCacheTTL        int    `yaml:"nonexistent-domains-cache-ttl" default:"3600"`
+		NXDomainsCacheSize       int    `yaml:"nonexistent-domains-cache-size" default:"10000"`
+		ServfailDomainsCacheTTL  int    `yaml:"servfail-domains-cache-ttl" default:"3600"`
+		ServfailDomainsCacheSize int    `yaml:"servfail-domains-cache-size" default:"10000"`
+		TLDsCacheTTL             int    `yaml:"tlds-cache-ttl" default:"3600"`
+		TLDsCacheSize            int    `yaml:"tlds-cache-size" default:"10000"`
+		SuspiciousCacheTTL       int    `yaml:"suspicious-cache-ttl" default:"3600"`
+		SuspiciousCacheSize      int    `yaml:"suspicious-cache-size" default:"10000"`
 	} `yaml:"restapi"`
 	LogFile struct {
 		Enable               bool   `yaml:"enable" default:"false"`

@@ -33,7 +33,44 @@ Basic authentication is supported.
   > Path to private key server file
 
 * `top-n` (integer)
-  > Default number of items returned for top stats queries
+  > Default number of items returned for top stats queries (default: `100`)
+
+* `requesters-cache-size` (integer)
+  > Maximum number of client IPs stored in the LRU cache (default: `250000`)
+
+* `requesters-cache-ttl` (integer)
+  > Expiration time in seconds for client entries in the cache (default: `3600`)
+
+* `domains-cache-size` (integer)
+  > Maximum number of unique domains stored in the LRU cache (default: `500000`)
+
+* `domains-cache-ttl` (integer)
+  > Expiration time in seconds for domain entries in the cache (default: `3600`)
+
+* `nonexistent-domains-cache-size` (integer)
+  > Maximum number of NXDOMAINs stored in the LRU cache (default: `10000`)
+
+* `nonexistent-domains-cache-ttl` (integer)
+  > Expiration time in seconds for NXDOMAIN entries (default: `3600`)
+
+* `servfail-domains-cache-size` (integer)
+  > Maximum number of ServFail domains stored in the LRU cache (default: `10000`)
+
+* `servfail-domains-cache-ttl` (integer)
+  > Expiration time in seconds for ServFail entries (default: `3600`)
+
+* `tlds-cache-size` (integer)
+  > Maximum number of TLDs stored in the LRU cache (default: `10000`)
+
+* `tlds-cache-ttl` (integer)
+  > Expiration time in seconds for TLD entries (default: `3600`)
+
+* `suspicious-cache-size` (integer)
+  > Maximum number of suspicious domains stored in the LRU cache (default: `10000`)
+
+* `suspicious-cache-ttl` (integer)
+  > Expiration time in seconds for suspicious entries (default: `3600`)
+
 ### Default Values
 
 ```yaml
@@ -48,6 +85,18 @@ restapi:
   cert-file: "./tests/testsdata/server.crt"
   key-file: "./tests/testsdata/server.key"
   top-n: 100
+  requesters-cache-size: 250000
+  requesters-cache-ttl: 3600
+  domains-cache-size: 500000
+  domains-cache-ttl: 3600
+  nonexistent-domains-cache-size: 10000
+  nonexistent-domains-cache-ttl: 3600
+  servfail-domains-cache-size: 10000
+  servfail-domains-cache-ttl: 3600
+  tlds-cache-size: 10000
+  tlds-cache-ttl: 3600
+  suspicious-cache-size: 10000
+  suspicious-cache-ttl: 3600
 ```
 
 ## REST API Reference

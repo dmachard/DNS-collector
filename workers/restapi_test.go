@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
@@ -310,5 +311,47 @@ func TestRestAPI_GetMethod(t *testing.T) {
 				t.Errorf("Want '%s', got '%s'", tc.want, response)
 			}
 		})
+	}
+}
+
+func TestRestAPI_LRUEviction(t *testing.T) {
+	config := pkgconfig.GetDefaultConfig()
+	config.Loggers.RestAPI.DomainsCacheSize = 5
+	config.Loggers.RestAPI.RequestersCacheSize = 5
+	g := NewRestAPI(config, logger.New(false), "test_lru")
+
+	// Insert 10 unique domains
+	for i := 0; i < 10; i++ {
+		dm := dnsutils.GetFakeDNSMessage()
+		dm.DNS.Qname = "domain" + string(rune('0'+i)) + ".com"
+		g.RecordDNSMessage(&dm)
+	}
+
+	// Cache size must be bounded by DomainsCacheSize (5)
+	if g.HitsUniq.Domains.Len() > 5 {
+		t.Errorf("Expected at most 5 domains in LRU cache, got %d", g.HitsUniq.Domains.Len())
+	}
+}
+
+func TestRestAPI_TTLExpiration(t *testing.T) {
+	config := pkgconfig.GetDefaultConfig()
+	config.Loggers.RestAPI.DomainsCacheTTL = 1 // 1 second TTL
+	config.Loggers.RestAPI.DomainsCacheSize = 100
+	g := NewRestAPI(config, logger.New(false), "test_ttl")
+
+	dm := dnsutils.GetFakeDNSMessage()
+	dm.DNS.Qname = "expire.com"
+	g.RecordDNSMessage(&dm)
+
+	// Immediately should exist
+	if _, ok := g.HitsUniq.Domains.Get("expire.com"); !ok {
+		t.Errorf("Expected domain to be present immediately")
+	}
+
+	// Wait for expiration
+	time.Sleep(1200 * time.Millisecond)
+
+	if _, ok := g.HitsUniq.Domains.Get("expire.com"); ok {
+		t.Errorf("Expected domain to be expired after TTL")
 	}
 }
