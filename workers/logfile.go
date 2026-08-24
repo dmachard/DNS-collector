@@ -705,6 +705,12 @@ func (w *LogFile) StartLogging() {
 
 				// with pcap mode
 				case pkgconfig.ModePCAP:
+					if len(dm.DNS.Payload) == 0 {
+						w.CountEgressDiscarded()
+						w.LogError("no dns payload to encode, drop it")
+						continue
+					}
+
 					var err error
 					w.pcapBuffer, err = dm.EncodeToPacketBytes(w.pcapBuffer[:0], w.GetConfig().Loggers.LogFile.OverwriteDNSPortPcap)
 					if err != nil {

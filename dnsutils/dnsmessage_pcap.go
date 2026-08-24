@@ -98,9 +98,12 @@ func (dm *DNSMessage) EncodeToPacketBytes(dst []byte, overwritePort bool) ([]byt
 	if srcPort < 0 || srcPort > math.MaxUint16 {
 		return dst, errInvalidSrcPort
 	}
+	srcPortU16 := uint16(srcPort)
+
 	if dstPort < 0 || dstPort > math.MaxUint16 {
 		return dst, errInvalidDstPort
 	}
+	dstPortU16 := uint16(dstPort)
 
 	isTCP := false
 	switch dm.NetworkInfo.Protocol {
@@ -115,9 +118,9 @@ func (dm *DNSMessage) EncodeToPacketBytes(dst []byte, overwritePort bool) ([]byt
 	if overwritePort {
 		switch dm.DNS.Type {
 		case DNSQuery:
-			dstPort = 53
+			dstPortU16 = 53
 		case DNSReply:
-			srcPort = 53
+			srcPortU16 = 53
 		}
 	}
 
@@ -244,8 +247,8 @@ func (dm *DNSMessage) EncodeToPacketBytes(dst []byte, overwritePort bool) ([]byt
 	// 3. Transport Header & Payload
 	if !isTCP {
 		// UDP Header (8 bytes)
-		binary.BigEndian.PutUint16(pkt[transportOffset+0:], uint16(srcPort))
-		binary.BigEndian.PutUint16(pkt[transportOffset+2:], uint16(dstPort))
+		binary.BigEndian.PutUint16(pkt[transportOffset+0:], srcPortU16)
+		binary.BigEndian.PutUint16(pkt[transportOffset+2:], dstPortU16)
 		binary.BigEndian.PutUint16(pkt[transportOffset+4:], uint16(transportTotalLen))
 		pkt[transportOffset+6] = 0x00
 		pkt[transportOffset+7] = 0x00 // Checksum placeholder
@@ -276,8 +279,8 @@ func (dm *DNSMessage) EncodeToPacketBytes(dst []byte, overwritePort bool) ([]byt
 		binary.BigEndian.PutUint16(pkt[transportOffset+6:], csum)
 	} else {
 		// TCP Header (20 bytes)
-		binary.BigEndian.PutUint16(pkt[transportOffset+0:], uint16(srcPort))
-		binary.BigEndian.PutUint16(pkt[transportOffset+2:], uint16(dstPort))
+		binary.BigEndian.PutUint16(pkt[transportOffset+0:], srcPortU16)
+		binary.BigEndian.PutUint16(pkt[transportOffset+2:], dstPortU16)
 		binary.BigEndian.PutUint32(pkt[transportOffset+4:], 1) // Seq
 		binary.BigEndian.PutUint32(pkt[transportOffset+8:], 1) // Ack
 		pkt[transportOffset+12] = 0x50                         // Data Offset = 5 (20 bytes)

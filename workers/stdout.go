@@ -193,6 +193,12 @@ func (w *StdOut) StartLogging() {
 			for _, dm := range batch.Messages {
 				switch w.GetConfig().Loggers.Stdout.Mode {
 				case pkgconfig.ModePCAP:
+					if len(dm.DNS.Payload) == 0 {
+						w.CountEgressDiscarded()
+						w.LogError("process: no dns payload to encode, drop it")
+						continue
+					}
+
 					var err error
 					w.pcapBuffer, err = dm.EncodeToPacketBytes(w.pcapBuffer[:0], w.GetConfig().Loggers.Stdout.OverwriteDNSPortPcap)
 					if err != nil {
