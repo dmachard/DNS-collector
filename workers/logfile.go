@@ -62,6 +62,7 @@ type LogFile struct {
 	compressQueue                          chan string
 	commandQueue                           chan string
 	queueWg                                sync.WaitGroup
+	pcapBuffer                             []byte
 }
 
 func NewLogFile(config *pkgconfig.Config, logger *logger.Logger, name string) *LogFile {
@@ -396,8 +397,28 @@ func (w *LogFile) RotateFile() error {
 	return nil
 }
 
+func (w *LogFile) WriteToPcapBytes(dm *dnsutils.DNSMessage, pktBytes []byte) error {
+	packetSize := int64(16 + len(pktBytes))
+	if (w.fileSize + packetSize) > w.GetMaxSize() {
+		if err := w.RotateFile(); err != nil {
+			return err
+		}
+	}
+
+	ci := gopacket.CaptureInfo{
+		Timestamp:     time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec)),
+		CaptureLength: len(pktBytes),
+		Length:        len(pktBytes),
+	}
+
+	if err := w.writerPcap.WritePacket(ci, pktBytes); err != nil {
+		return err
+	}
+	w.fileSize += packetSize
+	return nil
+}
+
 func (w *LogFile) WriteToPcap(dm *dnsutils.DNSMessage, pkt []gopacket.SerializableLayer) {
-	// create the packet with the layers
 	buf := gopacket.NewSerializeBuffer()
 	opts := gopacket.SerializeOptions{
 		FixLengths:       true,
@@ -406,25 +427,7 @@ func (w *LogFile) WriteToPcap(dm *dnsutils.DNSMessage, pkt []gopacket.Serializab
 	for _, layer := range pkt {
 		layer.SerializeTo(buf, opts)
 	}
-
-	// rotate pcap file ?
-	packetSize := int64(16 + len(buf.Bytes()))
-	if (w.fileSize + packetSize) > w.GetMaxSize() {
-		if err := w.RotateFile(); err != nil {
-			w.LogError("failed to rotate pcap file: %s", err)
-			return
-		}
-	}
-
-	ci := gopacket.CaptureInfo{
-		Timestamp:     time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec)),
-		CaptureLength: len(buf.Bytes()),
-		Length:        len(buf.Bytes()),
-	}
-
-	// write the packet and increase size
-	w.writerPcap.WritePacket(ci, buf.Bytes())
-	w.fileSize += packetSize
+	_ = w.WriteToPcapBytes(dm, buf.Bytes())
 }
 
 func (w *LogFile) WriteToPlain(data []byte) {
@@ -702,15 +705,26 @@ func (w *LogFile) StartLogging() {
 
 				// with pcap mode
 				case pkgconfig.ModePCAP:
-					pkt, err := dm.ToPacketLayer(w.GetConfig().Loggers.LogFile.OverwriteDNSPortPcap)
+					if len(dm.DNS.Payload) == 0 {
+						w.CountEgressDiscarded()
+						w.LogError("no dns payload to encode, drop it")
+						continue
+					}
+
+					var err error
+					w.pcapBuffer, err = dm.EncodeToPacketBytes(w.pcapBuffer[:0], w.GetConfig().Loggers.LogFile.OverwriteDNSPortPcap)
 					if err != nil {
 						w.CountEgressDiscarded()
-						w.LogError("failed to encode to packet layer: %s", err)
+						w.LogError("failed to encode to packet: %s", err)
 						continue
 					}
 
 					// write the packet
-					w.WriteToPcap(dm, pkt)
+					if err := w.WriteToPcapBytes(dm, w.pcapBuffer); err != nil {
+						w.CountEgressDiscarded()
+						w.LogError("failed to write packet to pcap: %s", err)
+						continue
+					}
 				}
 			}
 			batch.Release()
