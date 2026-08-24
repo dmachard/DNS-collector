@@ -43,13 +43,6 @@ func (w *DnstapServer) CheckConfig() {
 }
 
 func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan bool, wg *sync.WaitGroup) {
-	// close connection on function exit
-	defer func() {
-		w.LogInfo("(conn #%d - connection handler terminated", connID)
-		netutils.Close(conn, w.GetConfig().Collectors.Dnstap.ResetConn)
-		wg.Done()
-	}()
-
 	// get peer address
 	peer := conn.RemoteAddr().String()
 	peerName := netutils.GetPeerName(peer)
@@ -62,6 +55,14 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 	dnstapProcessor.SetDefaultRoutes(w.GetDefaultRoutes())
 	dnstapProcessor.SetDefaultDropped(w.GetDroppedRoutes())
 	go dnstapProcessor.StartCollect()
+
+	// close connection and stop processor on function exit
+	defer func() {
+		w.LogInfo("conn #%d - connection handler terminated", connID)
+		netutils.Close(conn, w.GetConfig().Collectors.Dnstap.ResetConn)
+		dnstapProcessor.Stop()
+		wg.Done()
+	}()
 
 	readBufSize := w.GetConfig().Collectors.Dnstap.ReadBufferSize
 	if readBufSize <= 0 {
@@ -94,20 +95,15 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 	// goroutine to close the connection properly
 	go func() {
 		defer func() {
-			dnstapProcessor.Stop()
 			w.LogInfo("conn #%d - cleanup connection handler terminated", connID)
 		}()
 
-		for {
-			select {
-			case <-forceClose:
-				w.LogInfo("conn #%d - force to cleanup the connection handler", connID)
-				netutils.Close(conn, w.GetConfig().Collectors.Dnstap.ResetConn)
-				return
-			case <-cleanup:
-				w.LogInfo("conn #%d - cleanup the connection handler", connID)
-				return
-			}
+		select {
+		case <-forceClose:
+			w.LogInfo("conn #%d - force to cleanup the connection handler", connID)
+			netutils.Close(conn, w.GetConfig().Collectors.Dnstap.ResetConn)
+		case <-cleanup:
+			w.LogInfo("conn #%d - cleanup the connection handler", connID)
 		}
 	}()
 
