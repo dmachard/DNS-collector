@@ -310,12 +310,21 @@ type ConfigLoggers struct {
 		URL    string `yaml:"url" default:"http://127.0.0.1:9200"`
 	} `yaml:"falco"`
 	ClickhouseClient struct {
-		Enable   bool   `yaml:"enable" default:"false"`
-		URL      string `yaml:"url" default:"http://localhost:8123"`
-		User     string `yaml:"user" default:"default"`
-		Password string `yaml:"password" default:"password"`
-		Database string `yaml:"database" default:"dnscollector"`
-		Table    string `yaml:"table" default:"records"`
+		Enable        bool   `yaml:"enable" default:"false"`
+		URL           string `yaml:"url" default:"http://localhost:8123"`
+		User          string `yaml:"user" default:"default"`
+		Password      string `yaml:"password" default:"password"`
+		Database      string `yaml:"database" default:"dnscollector"`
+		Table         string `yaml:"table" default:"records"`
+		BufferSize    int    `yaml:"buffer-size" default:"100"`
+		FlushInterval int    `yaml:"flush-interval" default:"10"`
+		Timeout       int    `yaml:"timeout" default:"5"`
+		TLSSupport    bool   `yaml:"tls-support" default:"false"`
+		TLSInsecure   bool   `yaml:"tls-insecure" default:"false"`
+		TLSMinVersion string `yaml:"tls-min-version" default:"1.2"`
+		CAFile        string `yaml:"ca-file" default:""`
+		CertFile      string `yaml:"cert-file" default:""`
+		KeyFile       string `yaml:"key-file" default:""`
 	} `yaml:"clickhouse"`
 	MQTT struct {
 		Enable          bool   `yaml:"enable" default:"false"`
