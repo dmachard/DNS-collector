@@ -14,32 +14,57 @@ import (
 	publicsuffixlist "golang.org/x/net/publicsuffix"
 )
 
+const (
+	numReducerShards = 32
+	shardMask        = numReducerShards - 1
+	offset64         = 14695981039346656037
+	prime64          = 1099511628211
+)
+
+func hashBytes64(b []byte) uint64 {
+	h := uint64(offset64)
+	for _, c := range b {
+		h ^= uint64(c)
+		h *= prime64
+	}
+	return h
+}
+
 type expiredKey struct {
 	key     string
 	expTime time.Time
 }
 
+type trafficShard struct {
+	sync.Mutex
+	kv          map[string]*dnsutils.DNSMessage
+	expiredKeys []expiredKey
+}
+
 type MapTraffic struct {
-	sync.RWMutex
 	ttl          time.Duration
-	kv           map[string]*dnsutils.DNSMessage
+	shards       [numReducerShards]*trafficShard
 	channels     []chan *dnsutils.DNSMessageBatch
-	expiredKeys  []expiredKey
 	droppedCount int
 	logInfo      func(msg string, v ...interface{})
 	logError     func(msg string, v ...interface{})
 }
 
 func NewMapTraffic(ttl time.Duration, channels []chan *dnsutils.DNSMessageBatch,
-	logInfo func(msg string, v ...interface{}), logError func(msg string, v ...interface{})) MapTraffic {
-	return MapTraffic{
-		ttl:         ttl,
-		kv:          make(map[string]*dnsutils.DNSMessage),
-		channels:    channels,
-		expiredKeys: make([]expiredKey, 0),
-		logInfo:     logInfo,
-		logError:    logError,
+	logInfo func(msg string, v ...interface{}), logError func(msg string, v ...interface{})) *MapTraffic {
+	mp := &MapTraffic{
+		ttl:      ttl,
+		channels: channels,
+		logInfo:  logInfo,
+		logError: logError,
 	}
+	for i := 0; i < numReducerShards; i++ {
+		mp.shards[i] = &trafficShard{
+			kv:          make(map[string]*dnsutils.DNSMessage),
+			expiredKeys: make([]expiredKey, 0),
+		}
+	}
+	return mp
 }
 
 func (mp *MapTraffic) SetTTL(ttl time.Duration) {
@@ -47,11 +72,13 @@ func (mp *MapTraffic) SetTTL(ttl time.Duration) {
 }
 
 func (mp *MapTraffic) Set(keyBytes []byte, dm *dnsutils.DNSMessage) {
-	mp.Lock()
-	defer mp.Unlock()
+	h := hashBytes64(keyBytes)
+	s := mp.shards[h&shardMask]
+	s.Lock()
+	defer s.Unlock()
 
 	// Zero-allocation map lookup with string(keyBytes) compiler optimization
-	if v, ok := mp.kv[string(keyBytes)]; ok {
+	if v, ok := s.kv[string(keyBytes)]; ok {
 		v.Reducer.Occurrences++
 		v.Reducer.CumulativeLength += dm.DNS.Length
 		return
@@ -62,10 +89,10 @@ func (mp *MapTraffic) Set(keyBytes []byte, dm *dnsutils.DNSMessage) {
 	dmCopy.Reducer.Occurrences = 1
 	dmCopy.Reducer.CumulativeLength = dm.DNS.Length
 	dmCopy.Retain(1)
-	mp.kv[key] = &dmCopy
+	s.kv[key] = &dmCopy
 
 	expTime := time.Now().Add(mp.ttl)
-	mp.expiredKeys = append(mp.expiredKeys, expiredKey{key: key, expTime: expTime})
+	s.expiredKeys = append(s.expiredKeys, expiredKey{key: key, expTime: expTime})
 }
 
 func (mp *MapTraffic) Run() {
@@ -81,37 +108,38 @@ func (mp *MapTraffic) Run() {
 }
 
 func (mp *MapTraffic) ProcessExpiredKeys() {
-	mp.Lock()
 	now := time.Now()
-	if len(mp.expiredKeys) == 0 {
-		mp.Unlock()
-		return
-	}
+	var expiredMessages []*dnsutils.DNSMessage
 
-	idx := 0
-	for idx < len(mp.expiredKeys) {
-		if now.Before(mp.expiredKeys[idx].expTime) {
-			break
+	for sIdx := 0; sIdx < numReducerShards; sIdx++ {
+		s := mp.shards[sIdx]
+		s.Lock()
+		if len(s.expiredKeys) == 0 {
+			s.Unlock()
+			continue
 		}
-		idx++
-	}
 
-	if idx == 0 {
-		mp.Unlock()
-		return
-	}
-
-	expiredMessages := make([]*dnsutils.DNSMessage, 0, idx)
-	for i := 0; i < idx; i++ {
-		key := mp.expiredKeys[i].key
-		if v, ok := mp.kv[key]; ok {
-			expiredMessages = append(expiredMessages, v)
-			delete(mp.kv, key)
+		idx := 0
+		for idx < len(s.expiredKeys) {
+			if now.Before(s.expiredKeys[idx].expTime) {
+				break
+			}
+			idx++
 		}
+
+		if idx > 0 {
+			for i := 0; i < idx; i++ {
+				k := s.expiredKeys[i].key
+				if v, ok := s.kv[k]; ok {
+					expiredMessages = append(expiredMessages, v)
+					delete(s.kv, k)
+				}
+			}
+			copy(s.expiredKeys, s.expiredKeys[idx:])
+			s.expiredKeys = s.expiredKeys[:len(s.expiredKeys)-idx]
+		}
+		s.Unlock()
 	}
-	copy(mp.expiredKeys, mp.expiredKeys[idx:])
-	mp.expiredKeys = mp.expiredKeys[:len(mp.expiredKeys)-idx]
-	mp.Unlock()
 
 	for _, dm := range expiredMessages {
 		b := dnsutils.AcquireDNSMessageBatch(1)
@@ -243,7 +271,7 @@ func appendField(f fieldSpec, dm *dnsutils.DNSMessage, buf []byte) []byte {
 
 type ReducerTransform struct {
 	GenericTransformer
-	mapTraffic MapTraffic
+	mapTraffic *MapTraffic
 	fields     []fieldSpec
 }
 
