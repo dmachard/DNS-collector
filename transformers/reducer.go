@@ -1,7 +1,6 @@
 package transformers
 
 import (
-	"container/list"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -25,7 +24,7 @@ type MapTraffic struct {
 	ttl          time.Duration
 	kv           map[string]*dnsutils.DNSMessage
 	channels     []chan *dnsutils.DNSMessageBatch
-	expiredKeys  *list.List
+	expiredKeys  []expiredKey
 	droppedCount int
 	logInfo      func(msg string, v ...interface{})
 	logError     func(msg string, v ...interface{})
@@ -37,7 +36,7 @@ func NewMapTraffic(ttl time.Duration, channels []chan *dnsutils.DNSMessageBatch,
 		ttl:         ttl,
 		kv:          make(map[string]*dnsutils.DNSMessage),
 		channels:    channels,
-		expiredKeys: list.New(),
+		expiredKeys: make([]expiredKey, 0),
 		logInfo:     logInfo,
 		logError:    logError,
 	}
@@ -47,23 +46,26 @@ func (mp *MapTraffic) SetTTL(ttl time.Duration) {
 	mp.ttl = ttl
 }
 
-func (mp *MapTraffic) Set(key string, dm *dnsutils.DNSMessage) {
+func (mp *MapTraffic) Set(keyBytes []byte, dm *dnsutils.DNSMessage) {
 	mp.Lock()
 	defer mp.Unlock()
 
-	if v, ok := mp.kv[key]; ok {
+	// Zero-allocation map lookup with string(keyBytes) compiler optimization
+	if v, ok := mp.kv[string(keyBytes)]; ok {
 		v.Reducer.Occurrences++
 		v.Reducer.CumulativeLength += dm.DNS.Length
 		return
 	}
 
-	dm.Reducer.Occurrences = 1
-	dm.Reducer.CumulativeLength = dm.DNS.Length
-	dm.Retain(1)
-	mp.kv[key] = dm
+	key := string(keyBytes)
+	dmCopy := *dm
+	dmCopy.Reducer.Occurrences = 1
+	dmCopy.Reducer.CumulativeLength = dm.DNS.Length
+	dmCopy.Retain(1)
+	mp.kv[key] = &dmCopy
 
 	expTime := time.Now().Add(mp.ttl)
-	mp.expiredKeys.PushBack(expiredKey{key, expTime})
+	mp.expiredKeys = append(mp.expiredKeys, expiredKey{key: key, expTime: expTime})
 }
 
 func (mp *MapTraffic) Run() {
@@ -81,23 +83,34 @@ func (mp *MapTraffic) Run() {
 func (mp *MapTraffic) ProcessExpiredKeys() {
 	mp.Lock()
 	now := time.Now()
-	var expiredMessages []*dnsutils.DNSMessage
+	if len(mp.expiredKeys) == 0 {
+		mp.Unlock()
+		return
+	}
 
-	for e := mp.expiredKeys.Front(); e != nil; {
-		expired := e.Value.(expiredKey)
-		if now.Before(expired.expTime) {
+	idx := 0
+	for idx < len(mp.expiredKeys) {
+		if now.Before(mp.expiredKeys[idx].expTime) {
 			break
 		}
-		key := expired.key
+		idx++
+	}
+
+	if idx == 0 {
+		mp.Unlock()
+		return
+	}
+
+	expiredMessages := make([]*dnsutils.DNSMessage, 0, idx)
+	for i := 0; i < idx; i++ {
+		key := mp.expiredKeys[i].key
 		if v, ok := mp.kv[key]; ok {
 			expiredMessages = append(expiredMessages, v)
 			delete(mp.kv, key)
 		}
-
-		next := e.Next()
-		mp.expiredKeys.Remove(e)
-		e = next
 	}
+	copy(mp.expiredKeys, mp.expiredKeys[idx:])
+	mp.expiredKeys = mp.expiredKeys[:len(mp.expiredKeys)-idx]
 	mp.Unlock()
 
 	for _, dm := range expiredMessages {
@@ -107,84 +120,151 @@ func (mp *MapTraffic) ProcessExpiredKeys() {
 			b.Retain(int32(len(mp.channels) - 1))
 		}
 		for i := range mp.channels {
-			mp.channels[i] <- b
+			select {
+			case mp.channels[i] <- b:
+			default:
+				b.Release()
+				mp.droppedCount++
+			}
 		}
 	}
 }
 
-type FieldAccessor func(dm *dnsutils.DNSMessage) string
+const (
+	fieldIdentity = iota + 1
+	fieldOperation
+	fieldQueryIP
+	fieldResponseIP
+	fieldQname
+	fieldQtype
+	fieldLength
+	fieldID
+	fieldOpcode
+	fieldRcode
+	fieldQclass
+	fieldFamily
+	fieldProtocol
+	fieldQueryPort
+	fieldResponsePort
+	fieldCustom
+)
 
-func getAccessor(tag string) FieldAccessor {
+type fieldSpec struct {
+	id  int
+	tag string
+}
+
+func getFieldSpec(tag string) fieldSpec {
 	switch tag {
 	case "dnstap.identity":
-		return func(dm *dnsutils.DNSMessage) string { return dm.DNSTap.Identity }
+		return fieldSpec{id: fieldIdentity}
 	case "dnstap.operation":
-		return func(dm *dnsutils.DNSMessage) string { return dm.DNSTap.Operation }
+		return fieldSpec{id: fieldOperation}
 	case "network.query-ip":
-		return func(dm *dnsutils.DNSMessage) string { return dm.NetworkInfo.GetQueryIP() }
+		return fieldSpec{id: fieldQueryIP}
 	case "network.response-ip":
-		return func(dm *dnsutils.DNSMessage) string { return dm.NetworkInfo.GetResponseIP() }
+		return fieldSpec{id: fieldResponseIP}
 	case "dns.qname":
-		return func(dm *dnsutils.DNSMessage) string { return dm.DNS.Qname }
+		return fieldSpec{id: fieldQname}
 	case "dns.qtype":
-		return func(dm *dnsutils.DNSMessage) string { return dm.DNS.Qtype }
+		return fieldSpec{id: fieldQtype}
 	case "dns.length":
-		return func(dm *dnsutils.DNSMessage) string { return strconv.Itoa(dm.DNS.Length) }
+		return fieldSpec{id: fieldLength}
 	case "dns.id":
-		return func(dm *dnsutils.DNSMessage) string { return strconv.Itoa(dm.DNS.ID) }
+		return fieldSpec{id: fieldID}
 	case "dns.opcode":
-		return func(dm *dnsutils.DNSMessage) string { return strconv.Itoa(dm.DNS.Opcode) }
+		return fieldSpec{id: fieldOpcode}
 	case "dns.rcode":
-		return func(dm *dnsutils.DNSMessage) string { return dm.DNS.Rcode }
+		return fieldSpec{id: fieldRcode}
 	case "dns.qclass":
-		return func(dm *dnsutils.DNSMessage) string { return dm.DNS.Qclass }
+		return fieldSpec{id: fieldQclass}
 	case "network.family":
-		return func(dm *dnsutils.DNSMessage) string { return dm.NetworkInfo.Family }
+		return fieldSpec{id: fieldFamily}
 	case "network.protocol":
-		return func(dm *dnsutils.DNSMessage) string { return dm.NetworkInfo.Protocol }
+		return fieldSpec{id: fieldProtocol}
 	case "network.query-port":
-		return func(dm *dnsutils.DNSMessage) string { return dm.NetworkInfo.QueryPort }
+		return fieldSpec{id: fieldQueryPort}
 	case "network.response-port":
-		return func(dm *dnsutils.DNSMessage) string { return dm.NetworkInfo.ResponsePort }
+		return fieldSpec{id: fieldResponsePort}
+	default:
+		return fieldSpec{id: fieldCustom, tag: tag}
 	}
+}
 
-	// Fallback to reflection if not standard
-	return func(dm *dnsutils.DNSMessage) string {
+func appendField(f fieldSpec, dm *dnsutils.DNSMessage, buf []byte) []byte {
+	switch f.id {
+	case fieldIdentity:
+		return append(buf, dm.DNSTap.Identity...)
+	case fieldOperation:
+		return append(buf, dm.DNSTap.Operation...)
+	case fieldQueryIP:
+		if dm.NetworkInfo.QueryIPLen > 0 {
+			return append(buf, dm.NetworkInfo.QueryIPBuf[:dm.NetworkInfo.QueryIPLen]...)
+		}
+		return append(buf, dm.NetworkInfo.GetQueryIP()...)
+	case fieldResponseIP:
+		if dm.NetworkInfo.ResponseIPLen > 0 {
+			return append(buf, dm.NetworkInfo.ResponseIPBuf[:dm.NetworkInfo.ResponseIPLen]...)
+		}
+		return append(buf, dm.NetworkInfo.GetResponseIP()...)
+	case fieldQname:
+		return append(buf, dm.DNS.Qname...)
+	case fieldQtype:
+		return append(buf, dm.DNS.Qtype...)
+	case fieldLength:
+		return strconv.AppendInt(buf, int64(dm.DNS.Length), 10)
+	case fieldID:
+		return strconv.AppendInt(buf, int64(dm.DNS.ID), 10)
+	case fieldOpcode:
+		return strconv.AppendInt(buf, int64(dm.DNS.Opcode), 10)
+	case fieldRcode:
+		return append(buf, dm.DNS.Rcode...)
+	case fieldQclass:
+		return append(buf, dm.DNS.Qclass...)
+	case fieldFamily:
+		return append(buf, dm.NetworkInfo.Family...)
+	case fieldProtocol:
+		return append(buf, dm.NetworkInfo.Protocol...)
+	case fieldQueryPort:
+		return append(buf, dm.NetworkInfo.QueryPort...)
+	case fieldResponsePort:
+		return append(buf, dm.NetworkInfo.ResponsePort...)
+	case fieldCustom:
 		dmValue := reflect.ValueOf(dm).Elem()
-		if value, found := dnsutils.GetFieldByJSONTag(dmValue, tag); found {
+		if value, found := dnsutils.GetFieldByJSONTag(dmValue, f.tag); found {
 			switch value.Kind() {
 			case reflect.Int, reflect.String:
-				return fmt.Sprintf("%v", value.Interface())
+				return append(buf, fmt.Sprintf("%v", value.Interface())...)
 			}
 		}
-		return ""
 	}
+	return buf
 }
 
 type ReducerTransform struct {
 	GenericTransformer
 	mapTraffic MapTraffic
-	accessors  []FieldAccessor
+	fields     []fieldSpec
 }
 
 func NewReducerTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *ReducerTransform {
 	t := &ReducerTransform{GenericTransformer: NewTransformer(config, logger, "reducer", name, instance, nextWorkers)}
 	t.mapTraffic = NewMapTraffic(time.Duration(config.Reducer.WatchInterval)*time.Second, nextWorkers, t.LogInfo, t.LogError)
-	t.initAccessors(config.Reducer.UniqueFields)
+	t.initFields(config.Reducer.UniqueFields)
 	return t
 }
 
-func (t *ReducerTransform) initAccessors(fields []string) {
-	t.accessors = make([]FieldAccessor, len(fields))
+func (t *ReducerTransform) initFields(fields []string) {
+	t.fields = make([]fieldSpec, len(fields))
 	for i, field := range fields {
-		t.accessors[i] = getAccessor(field)
+		t.fields[i] = getFieldSpec(field)
 	}
 }
 
 func (t *ReducerTransform) ReloadConfig(config *pkgconfig.ConfigTransformers) {
 	t.GenericTransformer.ReloadConfig(config)
 	t.mapTraffic.SetTTL(time.Duration(config.Reducer.WatchInterval) * time.Second)
-	t.initAccessors(config.Reducer.UniqueFields)
+	t.initFields(config.Reducer.UniqueFields)
 	t.GetTransforms()
 }
 
@@ -211,15 +291,13 @@ func (t *ReducerTransform) repetitiveTrafficDetector(dm *dnsutils.DNSMessage) (i
 		}
 	}
 
-	var strBuilder strings.Builder
-	for _, accessor := range t.accessors {
-		strBuilder.WriteString(accessor(dm))
+	var keyBuf [256]byte
+	keyBytes := keyBuf[:0]
+	for _, f := range t.fields {
+		keyBytes = appendField(f, dm, keyBytes)
 	}
 
-	dmTag := strBuilder.String()
-
-	dmCopy := *dm
-	t.mapTraffic.Set(dmTag, &dmCopy)
+	t.mapTraffic.Set(keyBytes, dm)
 
 	return ReturnDrop, nil
 }
