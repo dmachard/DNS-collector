@@ -157,15 +157,7 @@ jobs:
         go-version: ${{ env.GO_VERSION }}
 
     - name: Count tests, benchmarks and fuzzers
-      run: |
-        TESTS_COUNT=$(go test -list '.*' ./... | grep -E '^(Test|Benchmark|Fuzz)' | sort -u | wc -l)
-        TEST_UNIT_COUNT=$(go test -list '.*' ./... | grep -E '^Test' | sort -u | wc -l)
-        BENCH_COUNT=$(go test -list '.*' ./... | grep -E '^Benchmark' | sort -u | wc -l)
-        FUZZ_COUNT=$(go test -list '.*' ./... | grep -E '^Fuzz' | sort -u | wc -l)
-        echo "Total tests & benchmarks : $TESTS_COUNT"
-        echo "Unit tests               : $TEST_UNIT_COUNT"
-        echo "Benchmarks               : $BENCH_COUNT"
-        echo "Fuzzers                  : $FUZZ_COUNT"
+      run: make count-tests
 
     - name: Count lines of code
       run: |
