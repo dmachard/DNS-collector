@@ -162,8 +162,8 @@ func TestUserPrivacy_AnonymizeIP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if dm.NetworkInfo.QueryIP != "192.168.0.0" {
-		t.Errorf("Lazy IP anonymization failed, got %s, want 192.168.0.0", dm.NetworkInfo.QueryIP)
+	if dm.NetworkInfo.GetQueryIP() != "192.168.0.0" {
+		t.Errorf("Lazy IP anonymization failed, got %s, want 192.168.0.0", dm.NetworkInfo.GetQueryIP())
 	}
 	if returnCode != ReturnKeep {
 		t.Errorf("Return code is %v, want %v", returnCode, ReturnKeep)
