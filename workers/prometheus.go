@@ -134,6 +134,7 @@ type PrometheusCountersSet struct {
 	validDomains, nxDomains, sfDomains *expirable.LRU[string, int] // Requests number ended up  in NOERROR, NXDOMAIN and  in SERVFAIL
 	tlds, etldplusone                  *expirable.LRU[string, int] // Requests number for a specific TLD and  eTLD+1
 	suspicious, evicted                *expirable.LRU[string, int] // Requests number for a specific name that looked suspicious and for a specific name that timed out
+	countries, asns                    *expirable.LRU[string, int] // Requests number for a specific country and ASN
 
 	epsCounters EpsCounters
 
@@ -141,6 +142,7 @@ type PrometheusCountersSet struct {
 	topValidDomains, topSfDomains, topNxDomains *topmap.TopMap
 	topTlds, topETLDPlusOne                     *topmap.TopMap
 	topSuspicious                               *topmap.TopMap
+	topCountries, topASNs                       *topmap.TopMap
 
 	labels     prometheus.Labels // Do we really need to keep that map outside of registration?
 	sync.Mutex                   // Each PrometheusCountersSet locks independently
@@ -210,6 +212,7 @@ type Prometheus struct {
 	gaugeTopNoerrDomains, gaugeTopNxDomains, gaugeTopSfDomains *prometheus.Desc
 	gaugeTopTlds, gaugeTopETldsPlusOne                         *prometheus.Desc
 	gaugeTopSuspicious, gaugeTopEvicted                        *prometheus.Desc
+	gaugeTopCountries, gaugeTopASNs                            *prometheus.Desc
 
 	gaugeDomainsAll, gaugeRequesters                  *prometheus.Desc
 	gaugeDomainsValid, gaugeDomainsNx, gaugeDomainsSf *prometheus.Desc
@@ -298,6 +301,12 @@ func (w *PrometheusCountersSet) Describe(ch chan<- *prometheus.Desc) {
 		ch <- w.prom.gaugeTopEvicted
 		ch <- w.prom.gaugeEvicted
 	}
+	if cfg.TopCountriesMetricsEnabled {
+		ch <- w.prom.gaugeTopCountries
+	}
+	if cfg.TopASNsMetricsEnabled {
+		ch <- w.prom.gaugeTopASNs
+	}
 
 	ch <- w.prom.gaugeEps
 	ch <- w.prom.gaugeEpsMax
@@ -337,7 +346,7 @@ func (w *PrometheusCountersSet) RecordBatch(messages []*dnsutils.DNSMessage) {
 
 	// 1. Update LRU caches and TopMaps under a single lock (lazy initialization)
 	cfg := w.prom.GetConfig().Loggers.Prometheus
-	if cfg.RequestersMetricsEnabled || cfg.DomainsMetricsEnabled || cfg.NoErrorMetricsEnabled || cfg.NonExistentMetricsEnabled || cfg.ServfailMetricsEnabled || cfg.TLDsMetricsEnabled || cfg.SuspiciousMetricsEnabled || cfg.TimeoutMetricsEnabled {
+	if cfg.RequestersMetricsEnabled || cfg.DomainsMetricsEnabled || cfg.NoErrorMetricsEnabled || cfg.NonExistentMetricsEnabled || cfg.ServfailMetricsEnabled || cfg.TLDsMetricsEnabled || cfg.SuspiciousMetricsEnabled || cfg.TimeoutMetricsEnabled || cfg.TopCountriesMetricsEnabled || cfg.TopASNsMetricsEnabled {
 		w.Lock()
 		if cfg.RequestersMetricsEnabled && w.requesters == nil {
 			w.requesters = expirable.NewLRU[string, int](cfg.RequestersCacheSize, nil, time.Second*time.Duration(cfg.RequestersCacheTTL))
@@ -372,6 +381,14 @@ func (w *PrometheusCountersSet) RecordBatch(messages []*dnsutils.DNSMessage) {
 		if cfg.TimeoutMetricsEnabled && w.evicted == nil {
 			w.evicted = expirable.NewLRU[string, int](cfg.DefaultDomainsCacheSize, nil, time.Second*time.Duration(cfg.DefaultDomainsCacheTTL))
 			w.topEvicted = topmap.NewTopMap(cfg.TopN)
+		}
+		if cfg.TopCountriesMetricsEnabled && w.countries == nil {
+			w.countries = expirable.NewLRU[string, int](cfg.DefaultDomainsCacheSize, nil, time.Second*time.Duration(cfg.DefaultDomainsCacheTTL))
+			w.topCountries = topmap.NewTopMap(cfg.TopN)
+		}
+		if cfg.TopASNsMetricsEnabled && w.asns == nil {
+			w.asns = expirable.NewLRU[string, int](cfg.DefaultDomainsCacheSize, nil, time.Second*time.Duration(cfg.DefaultDomainsCacheTTL))
+			w.topASNs = topmap.NewTopMap(cfg.TopN)
 		}
 
 		for _, dm := range messages {
@@ -426,6 +443,19 @@ func (w *PrometheusCountersSet) RecordBatch(messages []*dnsutils.DNSMessage) {
 				count, _ := w.suspicious.Peek(dm.DNS.Qname)
 				w.suspicious.Add(dm.DNS.Qname, count+1)
 				w.topSuspicious.Record(dm.DNS.Qname, count+1)
+			}
+
+			if w.topCountries != nil && dm.Geo != nil && len(dm.Geo.CountryIsoCode) > 0 && dm.Geo.CountryIsoCode != "-" {
+				count, _ := w.countries.Peek(dm.Geo.CountryIsoCode)
+				w.countries.Add(dm.Geo.CountryIsoCode, count+1)
+				w.topCountries.Record(dm.Geo.CountryIsoCode, count+1)
+			}
+
+			if w.topASNs != nil && dm.Geo != nil && len(dm.Geo.AutonomousSystemNumber) > 0 && dm.Geo.AutonomousSystemNumber != "-" {
+				asnKey := dm.Geo.AutonomousSystemNumber + "|" + dm.Geo.AutonomousSystemOrg
+				count, _ := w.asns.Peek(asnKey)
+				w.asns.Add(asnKey, count+1)
+				w.topASNs.Record(asnKey, count+1)
 			}
 		}
 		w.Unlock()
@@ -678,6 +708,21 @@ func (w *PrometheusCountersSet) Collect(ch chan<- prometheus.Metric) {
 		for _, r := range w.topEvicted.Get() {
 			ch <- prometheus.MustNewConstMetric(w.prom.gaugeTopEvicted, prometheus.GaugeValue,
 				float64(r.Hit), strings.ToValidUTF8(r.Name, "\ufffd"))
+		}
+	}
+
+	if w.topCountries != nil {
+		for _, r := range w.topCountries.Get() {
+			ch <- prometheus.MustNewConstMetric(w.prom.gaugeTopCountries, prometheus.GaugeValue,
+				float64(r.Hit), strings.ToValidUTF8(r.Name, "\ufffd"))
+		}
+	}
+
+	if w.topASNs != nil {
+		for _, r := range w.topASNs.Get() {
+			asNum, asOrg, _ := strings.Cut(r.Name, "|")
+			ch <- prometheus.MustNewConstMetric(w.prom.gaugeTopASNs, prometheus.GaugeValue,
+				float64(r.Hit), strings.ToValidUTF8(asNum, "\ufffd"), strings.ToValidUTF8(asOrg, "\ufffd"))
 		}
 	}
 
@@ -998,6 +1043,18 @@ func (w *Prometheus) InitProm() {
 		fmt.Sprintf("%s_top_unanswered", promPrefix),
 		"Number of hit per unanswered domain - topN",
 		[]string{"domain"}, nil,
+	)
+
+	w.gaugeTopCountries = prometheus.NewDesc(
+		fmt.Sprintf("%s_top_countries", promPrefix),
+		"Number of hit per country - topN",
+		[]string{"country"}, nil,
+	)
+
+	w.gaugeTopASNs = prometheus.NewDesc(
+		fmt.Sprintf("%s_top_asns", promPrefix),
+		"Number of hit per ASN - topN",
+		[]string{"as_number", "as_org"}, nil,
 	)
 
 	w.gaugeEps = prometheus.NewDesc(

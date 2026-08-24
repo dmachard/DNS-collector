@@ -69,6 +69,12 @@ Options:
 * `timeout-metrics-enabled` (boolean)
   > enable or disable timeout/unanswered domains metrics and Top N (default: false). Requires the `latency` transformer (`transforms.latency`) with timeout support.
 
+* `top-countries-metrics-enabled` (boolean)
+  > enable or disable Top N countries metrics (default: false). Requires the `geoip` transformer (`transforms.geoip`) to be enabled.
+
+* `top-asns-metrics-enabled` (boolean)
+  > enable or disable Top N Autonomous Systems (ASNs) metrics (default: false). Requires the `geoip` transformer (`transforms.geoip`) with ASN database to be enabled.
+
 * `prometheus-labels` (list of strings)
   > labels to add to metrics. Currently supported labels: `stream_id` (default), `stream_global`, `resolver`
   
@@ -133,6 +139,8 @@ prometheus:
   tlds-metrics-enabled: true
   suspicious-metrics-enabled: false
   timeout-metrics-enabled: false
+  top-countries-metrics-enabled: false
+  top-asns-metrics-enabled: false
   prometheus-labels: ["stream_id"]
   requesters-cache-size: 250000
   requesters-cache-ttl: 3600
@@ -190,6 +198,8 @@ See the [full list of metrics](./../metrics.txt).
 | dnscollector_top_nxdomains                      | Number of hit per nx domain topN, partitioned by stream and qname
 | dnscollector_top_sfdomains                      | Number of hit per servfail domain topN, partitioned by stream and qname
 | dnscollector_top_requesters                     | Number of hit per requester topN, partitioned by client IP
+| dnscollector_top_countries                      | Number of hit per country ISO code - topN (requires geoip transform)
+| dnscollector_top_asns                           | Number of hit per ASN and AS organization - topN (requires geoip transform)
 | dnscollector_top_unanswered                     | Number of hit per unanswered domain - topN
 | dnscollector_total_unanswered_lru               | Total number of unanswered domains most recently observed per stream identity
 | dnscollector_total_suspicious_lru               | Total number of suspicious domains most recently observed per stream identity

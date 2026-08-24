@@ -485,3 +485,33 @@ func TestPrometheus_ConcurrentRecord(t *testing.T) {
 	ensureMetricValue(t, mf, "dnscollector_queries_total", labels, expectedTotal)
 	ensureMetricValue(t, mf, "dnscollector_throughput_ops", labels, float64(numGoroutines*messagesPerGoroutine))
 }
+
+func TestPrometheus_GeoIPMetrics(t *testing.T) {
+	config := pkgconfig.GetDefaultConfig()
+	config.Loggers.Prometheus.TopCountriesMetricsEnabled = true
+	config.Loggers.Prometheus.TopASNsMetricsEnabled = true
+	g := NewPrometheus(config, logger.New(false), "test_geoip")
+
+	dm1 := dnsutils.GetFakeDNSMessage()
+	dm1.Geo = &dnsutils.TransformDNSGeo{
+		CountryIsoCode:         "FR",
+		AutonomousSystemNumber: "12322",
+		AutonomousSystemOrg:    "Free SAS",
+	}
+	g.Record(&dm1)
+
+	dm2 := dnsutils.GetFakeDNSMessage()
+	dm2.Geo = &dnsutils.TransformDNSGeo{
+		CountryIsoCode:         "US",
+		AutonomousSystemNumber: "15169",
+		AutonomousSystemOrg:    "Google LLC",
+	}
+	g.Record(&dm2)
+
+	mf := getMetrics(g, t)
+
+	ensureMetricValue(t, mf, "dnscollector_top_countries", map[string]string{"stream_id": "collector", "country": "FR"}, 1)
+	ensureMetricValue(t, mf, "dnscollector_top_countries", map[string]string{"stream_id": "collector", "country": "US"}, 1)
+	ensureMetricValue(t, mf, "dnscollector_top_asns", map[string]string{"stream_id": "collector", "as_number": "12322", "as_org": "Free SAS"}, 1)
+	ensureMetricValue(t, mf, "dnscollector_top_asns", map[string]string{"stream_id": "collector", "as_number": "15169", "as_org": "Google LLC"}, 1)
+}
