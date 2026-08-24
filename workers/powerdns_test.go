@@ -322,3 +322,59 @@ func Test_PowerDNSProcessor_BufferLoggerIsFull(t *testing.T) {
 		t.Errorf("invalid identity in second dns message: %v", batch2.Messages)
 	}
 }
+
+func Test_PowerDNSProcessor_NewFields_AuthRequest_Ede_TraceID(t *testing.T) {
+	fl := GetWorkerForTest(pkgconfig.DefaultBufferSize)
+
+	consumer := NewPdnsProcessor(0, "peername", pkgconfig.GetDefaultConfig(), logger.New(false), "test", 512)
+	consumer.AddDefaultRoute(fl)
+
+	dnsQname := pkgconfig.ValidDomain
+	dnsQuestion := powerdns_protobuf.PBDNSMessage_DNSQuestion{QName: &dnsQname}
+
+	authReqType := powerdns_protobuf.PBDNSMessage_AuthRequest
+	edeCode := uint32(15)
+	edeText := "Blocked by RPZ"
+	traceID := []byte{0x4b, 0xf9, 0x2f, 0x35, 0x77, 0xb3, 0x4d, 0xa6, 0xa3, 0xce, 0x92, 0x9d, 0x0e, 0x0e, 0x47, 0x36}
+
+	dm := &powerdns_protobuf.PBDNSMessage{
+		ServerIdentity:       []byte(pkgconfig.ExpectedIdentity),
+		Type:                 (*powerdns_protobuf.PBDNSMessage_Type)(&authReqType),
+		SocketProtocol:       powerdns_protobuf.PBDNSMessage_DNSCryptUDP.Enum(),
+		SocketFamily:         powerdns_protobuf.PBDNSMessage_INET.Enum(),
+		Question:             &dnsQuestion,
+		Ede:                  &edeCode,
+		EdeText:              &edeText,
+		OpenTelemetryTraceID: traceID,
+	}
+
+	data, err := proto.Marshal(dm)
+	if err != nil {
+		t.Fatalf("could not marshal powerdns proto: %v", err)
+	}
+
+	go consumer.StartCollect()
+	consumer.GetDataChannel() <- data
+
+	batch := <-fl.GetInputChannel()
+	if len(batch.Messages) == 0 {
+		t.Fatal("no message received")
+	}
+
+	msg := batch.Messages[0]
+	if msg.DNSTap.Operation != "AUTH_QUERY" {
+		t.Errorf("expected operation AUTH_QUERY, got %s", msg.DNSTap.Operation)
+	}
+	if msg.PowerDNS == nil {
+		t.Fatal("expected PowerDNS struct to be non-nil")
+	}
+	if msg.PowerDNS.Ede == nil || *msg.PowerDNS.Ede != 15 {
+		t.Errorf("expected Ede 15, got %v", msg.PowerDNS.Ede)
+	}
+	if msg.PowerDNS.EdeText != "Blocked by RPZ" {
+		t.Errorf("expected EdeText 'Blocked by RPZ', got %s", msg.PowerDNS.EdeText)
+	}
+	if msg.PowerDNS.OpenTelemetryTraceID != "4bf92f3577b34da6a3ce929d0e0e4736" {
+		t.Errorf("expected OpenTelemetryTraceID '4bf92f3577b34da6a3ce929d0e0e4736', got %s", msg.PowerDNS.OpenTelemetryTraceID)
+	}
+}

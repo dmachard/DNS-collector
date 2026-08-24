@@ -72,6 +72,9 @@ If you logs your DNS traffic in basic text format, you can use the specific dire
 * `powerdns-device-name`: device name
 * `powerdns-edns-version`: EDNS version
 * `powerdns-opentelemetry-data`: Open Telemetry data
+* `powerdns-ede`: Extended DNS Error code
+* `powerdns-ede-text`: Extended DNS Error text
+* `powerdns-opentelemetry-trace-id`: Open Telemetry trace ID
 
 Configuration example:
 
@@ -103,8 +106,13 @@ If you logs your DNS traffic in JSON output, the following part will be added in
     "message-id": "27c3e94ad6284eec9a50cfc5bd7384d6",
     "initial-requestor-id": "5e006236c8a74f7eafc6af126e6d0689",
     "requestor-id": "f7c3e94ad6284eec9a50cfc5bd7384d6",
-		"device-id": "ffffffffffffffffeaaeaeae",
-		"device-name": "foobar"
+    "device-id": "ffffffffffffffffeaaeaeae",
+    "device-name": "foobar",
+    "edns-version": "0",
+    "opentelemetry-data": "5e006236c8a74f7eafc6af126e6d0689",
+    "ede": 15,
+    "ede-text": "Blocked by RPZ",
+    "opentelemetry-trace-id": "4bf92f3577b34da6a3ce929d0e0e4736"
   }
 ```
 

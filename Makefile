@@ -3,7 +3,7 @@ BINARY_NAME := dnscollector
 GO_VERSION := $(shell go env GOVERSION | sed -n 's/go\([0-9]\+\.[0-9]\+\).*/\1/p')
 
 GO_LOGGER := 1.2.0
-GO_POWERDNS_PROTOBUF := 1.6.1
+GO_POWERDNS_PROTOBUF := 1.7.0
 GO_DNSTAP_PROTOBUF := 1.4.1
 GO_FRAMESTREAM := 1.7.0
 GO_CLIENTSYSLOG := 1.0.4

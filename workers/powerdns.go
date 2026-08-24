@@ -191,6 +191,9 @@ var (
 		"DNSResponseType":         "CLIENT_RESPONSE",
 		"DNSOutgoingQueryType":    "RESOLVER_QUERY",
 		"DNSIncomingResponseType": "RESOLVER_RESPONSE",
+		"AuthRequest":             "AUTH_QUERY",
+		"AuthResponse":            "AUTH_RESPONSE",
+		"120":                     "AUTH_QUERY",
 	}
 )
 
@@ -277,7 +280,17 @@ func (w *PdnsProcessor) StartCollect() {
 			}
 
 			dm.DNSTap.Identity = string(pbdm.GetServerIdentity())
-			dm.DNSTap.Operation = ProtobufPowerDNSToDNSTap[pbdm.GetType().String()]
+			if op, ok := ProtobufPowerDNSToDNSTap[pbdm.GetType().String()]; ok {
+				dm.DNSTap.Operation = op
+			} else {
+				dm.DNSTap.Operation = pbdm.GetType().String()
+			}
+			for _, event := range pbdm.GetTrace() {
+				if op, ok := ProtobufPowerDNSToDNSTap[event.GetEvent().String()]; ok {
+					dm.DNSTap.Operation = op
+					break
+				}
+			}
 
 			if ipVersion, valid := netutils.IPVersion[pbdm.GetSocketFamily().String()]; valid {
 				dm.NetworkInfo.Family = ipVersion
@@ -333,44 +346,57 @@ func (w *PdnsProcessor) StartCollect() {
 			// get PowerDNS OriginalRequestSubnet
 			ip := pbdm.GetOriginalRequestorSubnet()
 			if len(ip) == 4 {
-				addr := make(net.IP, net.IPv4len)
-				copy(addr, ip)
-				pdns.OriginalRequestSubnet = addr.String()
-			}
-			if len(ip) == 16 {
-				addr := make(net.IP, net.IPv6len)
-				copy(addr, ip)
-				pdns.OriginalRequestSubnet = addr.String()
+				pdns.OriginalRequestSubnet = dnsutils.FastIPv4ToString(ip)
+			} else if len(ip) == 16 {
+				pdns.OriginalRequestSubnet = net.IP(ip).String()
 			}
 
 			// get PowerDNS tags
-			tags := pbdm.GetResponse().GetTags()
-			if tags == nil {
-				tags = []string{}
+			if tags := pbdm.GetResponse().GetTags(); len(tags) > 0 {
+				pdns.Tags = tags
 			}
-			pdns.Tags = tags
 
-			// get powerdns oepn telemetry data
-			opendata := pbdm.GetOpenTelemetryData()
-			pdns.OpenTelemetryData = hex.EncodeToString(opendata)
+			// get powerdns open telemetry data
+			if opendata := pbdm.GetOpenTelemetryData(); len(opendata) > 0 {
+				pdns.OpenTelemetryData = hex.EncodeToString(opendata)
+			}
 
 			// get powerdns edns version
-			ednsVersion := pbdm.GetEdnsVersion()
-			pdns.EdnsVersion = strconv.Itoa(int(ednsVersion))
+			if ednsVersion := pbdm.GetEdnsVersion(); ednsVersion > 0 {
+				pdns.EdnsVersion = strconv.Itoa(int(ednsVersion))
+			}
+
+			// get powerdns ede
+			if pbdm.Ede != nil {
+				ede := int(pbdm.GetEde())
+				pdns.Ede = &ede
+			}
+			if len(pbdm.GetEdeText()) > 0 {
+				pdns.EdeText = pbdm.GetEdeText()
+			}
+
+			// get powerdns opentelemetry trace id
+			if traceID := pbdm.GetOpenTelemetryTraceID(); len(traceID) > 0 {
+				pdns.OpenTelemetryTraceID = hex.EncodeToString(traceID)
+			}
 
 			// get PowerDNS policy applied
-			pdns.AppliedPolicy = pbdm.GetResponse().GetAppliedPolicy()
-			pdns.AppliedPolicyHit = pbdm.GetResponse().GetAppliedPolicyHit()
-			pdns.AppliedPolicyKind = pbdm.GetResponse().GetAppliedPolicyKind().String()
-			pdns.AppliedPolicyTrigger = pbdm.GetResponse().GetAppliedPolicyTrigger()
-			pdns.AppliedPolicyType = pbdm.GetResponse().GetAppliedPolicyType().String()
+			if resp := pbdm.GetResponse(); resp != nil {
+				pdns.AppliedPolicy = resp.GetAppliedPolicy()
+				pdns.AppliedPolicyHit = resp.GetAppliedPolicyHit()
+				pdns.AppliedPolicyKind = resp.GetAppliedPolicyKind().String()
+				pdns.AppliedPolicyTrigger = resp.GetAppliedPolicyTrigger()
+				pdns.AppliedPolicyType = resp.GetAppliedPolicyType().String()
+			}
 
 			// get PowerDNS metadata
-			metas := make(map[string]string)
-			for _, e := range pbdm.GetMeta() {
-				metas[e.GetKey()] = strings.Join(e.Value.StringVal, " ")
+			if meta := pbdm.GetMeta(); len(meta) > 0 {
+				metas := make(map[string]string, len(meta))
+				for _, e := range meta {
+					metas[e.GetKey()] = strings.Join(e.Value.StringVal, " ")
+				}
+				pdns.Metadata = metas
 			}
-			pdns.Metadata = metas
 
 			// get http protocol version
 			if pbdm.GetSocketProtocol().String() == "DOH" {
@@ -378,41 +404,47 @@ func (w *PdnsProcessor) StartCollect() {
 			}
 
 			// get some string
-			pdns.MessageID = hex.EncodeToString(pbdm.MessageId)
-			pdns.InitialRequestorID = hex.EncodeToString(pbdm.InitialRequestId)
+			if len(pbdm.MessageId) > 0 {
+				pdns.MessageID = hex.EncodeToString(pbdm.MessageId)
+			}
+			if len(pbdm.InitialRequestId) > 0 {
+				pdns.InitialRequestorID = hex.EncodeToString(pbdm.InitialRequestId)
+			}
 			pdns.RequestorID = pbdm.GetRequestorId()
 			pdns.DeviceName = pbdm.GetDeviceName()
-			pdns.DeviceID = hex.EncodeToString(pbdm.DeviceId)
+			if len(pbdm.DeviceId) > 0 {
+				pdns.DeviceID = hex.EncodeToString(pbdm.DeviceId)
+			}
 
 			// finally set pdns to dns message
 			dm.PowerDNS = &pdns
 
 			// decode answers
-			answers := []dnsutils.DNSAnswer{}
 			RRs := pbdm.GetResponse().GetRrs()
-			for j := range RRs {
-				rdata := string(RRs[j].GetRdata())
-				if RRs[j].GetType() == 1 {
-					addr := make(net.IP, net.IPv4len)
-					copy(addr, rdata[:net.IPv4len])
-					rdata = addr.String()
-				}
-				if RRs[j].GetType() == 28 {
-					addr := make(net.IP, net.IPv6len)
-					copy(addr, rdata[:net.IPv6len])
-					rdata = addr.String()
-				}
+			if len(RRs) > 0 {
+				answers := make([]dnsutils.DNSAnswer, 0, len(RRs))
+				for j := range RRs {
+					var rdata string
+					switch RRs[j].GetType() {
+					case 1:
+						rdata = dnsutils.FastIPv4ToString(RRs[j].GetRdata())
+					case 28:
+						rdata = net.IP(RRs[j].GetRdata()).String()
+					default:
+						rdata = string(RRs[j].GetRdata())
+					}
 
-				rr := dnsutils.DNSAnswer{
-					Name:      RRs[j].GetName(),
-					Rdatatype: dnsutils.RdatatypeToString(int(RRs[j].GetType())),
-					Class:     dnsutils.ClassToString(int(RRs[j].GetClass())),
-					TTL:       int(RRs[j].GetTtl()),
-					Rdata:     rdata,
+					rr := dnsutils.DNSAnswer{
+						Name:      RRs[j].GetName(),
+						Rdatatype: dnsutils.RdatatypeToString(int(RRs[j].GetType())),
+						Class:     dnsutils.ClassToString(int(RRs[j].GetClass())),
+						TTL:       int(RRs[j].GetTtl()),
+						Rdata:     rdata,
+					}
+					answers = append(answers, rr)
 				}
-				answers = append(answers, rr)
+				dm.DNS.DNSRRs.Answers = answers
 			}
-			dm.DNS.DNSRRs.Answers = answers
 
 			if w.GetConfig().Collectors.PowerDNS.AddDNSPayload {
 

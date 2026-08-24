@@ -223,6 +223,36 @@ func compileCollectorDirective(directive string, fieldDelimiter string, fieldBou
 				return nil
 			}, nil
 
+		case "powerdns-ede":
+			return func(dm *DNSMessage, s *bytes.Buffer) error {
+				if dm.PowerDNS != nil && dm.PowerDNS.Ede != nil {
+					s.WriteString(strconv.Itoa(*dm.PowerDNS.Ede))
+				} else {
+					s.WriteByte('-')
+				}
+				return nil
+			}, nil
+
+		case "powerdns-ede-text":
+			return func(dm *DNSMessage, s *bytes.Buffer) error {
+				if dm.PowerDNS != nil && len(dm.PowerDNS.EdeText) > 0 {
+					s.WriteString(dm.PowerDNS.EdeText)
+				} else {
+					s.WriteByte('-')
+				}
+				return nil
+			}, nil
+
+		case "powerdns-opentelemetry-trace-id":
+			return func(dm *DNSMessage, s *bytes.Buffer) error {
+				if dm.PowerDNS != nil && len(dm.PowerDNS.OpenTelemetryTraceID) > 0 {
+					s.WriteString(dm.PowerDNS.OpenTelemetryTraceID)
+				} else {
+					s.WriteByte('-')
+				}
+				return nil
+			}, nil
+
 		default:
 			return nil, errors.New(ErrorUnexpectedDirective + directive)
 		}

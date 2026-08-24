@@ -204,6 +204,9 @@ type CollectorPowerDNS struct {
 	DeviceID              string            `json:"device-id"`
 	OpenTelemetryData     string            `json:"opentelemetry-data"`
 	EdnsVersion           string            `json:"edns-version"`
+	Ede                   *int              `json:"ede"`
+	EdeText               string            `json:"ede-text"`
+	OpenTelemetryTraceID  string            `json:"opentelemetry-trace-id"`
 }
 
 type LoggerOpenTelemetry struct {

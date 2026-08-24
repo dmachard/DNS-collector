@@ -37,6 +37,16 @@ func (c *CollectorPowerDNS) EncodeJSON(buf *bytes.Buffer) {
 	WriteJSONString(buf, c.OpenTelemetryData)
 	buf.WriteString(`,"edns-version":`)
 	WriteJSONString(buf, c.EdnsVersion)
+	buf.WriteString(`,"ede":`)
+	if c.Ede != nil {
+		writeJSONInt(buf, *c.Ede)
+	} else {
+		buf.WriteString("null")
+	}
+	buf.WriteString(`,"ede-text":`)
+	WriteJSONString(buf, c.EdeText)
+	buf.WriteString(`,"opentelemetry-trace-id":`)
+	WriteJSONString(buf, c.OpenTelemetryTraceID)
 	buf.WriteByte('}')
 }
 
