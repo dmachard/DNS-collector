@@ -1,7 +1,8 @@
 package transformers
 
 import (
-	"sort"
+	"cmp"
+	"slices"
 	"sync"
 	"time"
 
@@ -112,27 +113,25 @@ func (t *ReorderingTransform) flushBuffer() {
 	t.buffer = t.buffer[:0]
 	t.mutex.Unlock()
 
-	// Sort the buffer by timestamp.
-	sort.SliceStable(t.backBuffer, func(i, j int) bool {
-		return t.backBuffer[i].DNSTap.Timestamp < t.backBuffer[j].DNSTap.Timestamp
+	// Sort the buffer by timestamp using pdqsort without reflection or allocation.
+	slices.SortFunc(t.backBuffer, func(a, b *dnsutils.DNSMessage) int {
+		return cmp.Compare(a.DNSTap.Timestamp, b.DNSTap.Timestamp)
 	})
 
-	// Send sorted logs to the next workers (one batch per message).
-	for _, sortedMsg := range t.backBuffer {
-		b := dnsutils.AcquireDNSMessageBatch(1)
-		b.Messages = append(b.Messages, sortedMsg)
-		if len(t.nextWorkers) > 1 {
-			b.Retain(int32(len(t.nextWorkers) - 1))
-		}
-		for _, worker := range t.nextWorkers {
-			// Non-blocking send to avoid worker congestion.
-			select {
-			case worker <- b:
-			default:
-				b.Release()
-				// Log or handle if the worker channel is full.
-				t.logger.Info("Worker channel is full, dropping message")
-			}
+	// Send sorted logs to the next workers in a single batch.
+	b := dnsutils.AcquireDNSMessageBatch(len(t.backBuffer))
+	b.Messages = append(b.Messages, t.backBuffer...)
+	if len(t.nextWorkers) > 1 {
+		b.Retain(int32(len(t.nextWorkers) - 1))
+	}
+	for _, worker := range t.nextWorkers {
+		// Non-blocking send to avoid worker congestion.
+		select {
+		case worker <- b:
+		default:
+			b.Release()
+			// Log or handle if the worker channel is full.
+			t.logger.Info("Worker channel is full, dropping message")
 		}
 	}
 }

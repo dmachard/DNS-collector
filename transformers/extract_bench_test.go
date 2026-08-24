@@ -29,3 +29,21 @@ func BenchmarkExtract_AddBase64AndHexFields(b *testing.B) {
 		_, _ = extract.addHexFields(&dm)
 	}
 }
+
+func BenchmarkExtract_AddBase64Payload(b *testing.B) {
+	config := pkgconfig.GetFakeConfigTransformers()
+	config.Extract.Enable = true
+	config.Extract.AddPayload = true
+
+	outChans := []chan *dnsutils.DNSMessageBatch{}
+	extract := NewExtractTransform(config, logger.New(false), "test", 0, outChans)
+	extract.GetTransforms()
+
+	dm := dnsutils.GetFakeDNSMessageWithPayload()
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = extract.addBase64Payload(&dm)
+	}
+}

@@ -158,32 +158,32 @@ func (mp *MapTraffic) ProcessExpiredKeys() {
 	}
 }
 
+type fieldID int
+
 const (
-	fieldIdentity = iota + 1
+	fieldIdentity fieldID = iota
 	fieldOperation
 	fieldQueryIP
 	fieldResponseIP
 	fieldQname
 	fieldQtype
 	fieldLength
-	fieldID
+	fieldID_
 	fieldOpcode
 	fieldRcode
 	fieldQclass
 	fieldFamily
 	fieldProtocol
-	fieldQueryPort
-	fieldResponsePort
 	fieldCustom
 )
 
 type fieldSpec struct {
-	id  int
+	id  fieldID
 	tag string
 }
 
-func getFieldSpec(tag string) fieldSpec {
-	switch tag {
+func getFieldSpec(field string) fieldSpec {
+	switch field {
 	case "dnstap.identity":
 		return fieldSpec{id: fieldIdentity}
 	case "dnstap.operation":
@@ -199,7 +199,7 @@ func getFieldSpec(tag string) fieldSpec {
 	case "dns.length":
 		return fieldSpec{id: fieldLength}
 	case "dns.id":
-		return fieldSpec{id: fieldID}
+		return fieldSpec{id: fieldID_}
 	case "dns.opcode":
 		return fieldSpec{id: fieldOpcode}
 	case "dns.rcode":
@@ -210,12 +210,8 @@ func getFieldSpec(tag string) fieldSpec {
 		return fieldSpec{id: fieldFamily}
 	case "network.protocol":
 		return fieldSpec{id: fieldProtocol}
-	case "network.query-port":
-		return fieldSpec{id: fieldQueryPort}
-	case "network.response-port":
-		return fieldSpec{id: fieldResponsePort}
 	default:
-		return fieldSpec{id: fieldCustom, tag: tag}
+		return fieldSpec{id: fieldCustom, tag: field}
 	}
 }
 
@@ -241,7 +237,7 @@ func appendField(f fieldSpec, dm *dnsutils.DNSMessage, buf []byte) []byte {
 		return append(buf, dm.DNS.Qtype...)
 	case fieldLength:
 		return strconv.AppendInt(buf, int64(dm.DNS.Length), 10)
-	case fieldID:
+	case fieldID_:
 		return strconv.AppendInt(buf, int64(dm.DNS.ID), 10)
 	case fieldOpcode:
 		return strconv.AppendInt(buf, int64(dm.DNS.Opcode), 10)
@@ -253,10 +249,6 @@ func appendField(f fieldSpec, dm *dnsutils.DNSMessage, buf []byte) []byte {
 		return append(buf, dm.NetworkInfo.Family...)
 	case fieldProtocol:
 		return append(buf, dm.NetworkInfo.Protocol...)
-	case fieldQueryPort:
-		return append(buf, dm.NetworkInfo.QueryPort...)
-	case fieldResponsePort:
-		return append(buf, dm.NetworkInfo.ResponsePort...)
 	case fieldCustom:
 		dmValue := reflect.ValueOf(dm).Elem()
 		if value, found := dnsutils.GetFieldByJSONTag(dmValue, f.tag); found {

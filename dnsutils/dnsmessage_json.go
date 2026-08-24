@@ -688,6 +688,20 @@ func encodeStringMap(buf *bytes.Buffer, m map[string]string) {
 	buf.WriteByte('}')
 }
 
+func writeBase64(buf *bytes.Buffer, src []byte) {
+	if len(src) == 0 {
+		return
+	}
+	encLen := base64.StdEncoding.EncodedLen(len(src))
+	dst := buf.AvailableBuffer()
+	if cap(dst) < encLen {
+		buf.Grow(encLen)
+		dst = buf.AvailableBuffer()
+	}
+	base64.StdEncoding.Encode(dst[:encLen], src)
+	buf.Write(dst[:encLen])
+}
+
 func encodeInterfaceMap(buf *bytes.Buffer, m map[string]interface{}) {
 	if m == nil {
 		buf.WriteString("null")
@@ -707,7 +721,7 @@ func encodeInterfaceMap(buf *bytes.Buffer, m map[string]interface{}) {
 			WriteJSONString(buf, val)
 		case []byte:
 			buf.WriteByte('"')
-			buf.WriteString(base64.StdEncoding.EncodeToString(val))
+			writeBase64(buf, val)
 			buf.WriteByte('"')
 		case []string:
 			encodeStringSlice(buf, val)
@@ -718,7 +732,7 @@ func encodeInterfaceMap(buf *bytes.Buffer, m map[string]interface{}) {
 					buf.WriteByte(',')
 				}
 				buf.WriteByte('"')
-				buf.WriteString(base64.StdEncoding.EncodeToString(b))
+				writeBase64(buf, b)
 				buf.WriteByte('"')
 			}
 			buf.WriteByte(']')
