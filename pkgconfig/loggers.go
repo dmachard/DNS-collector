@@ -317,6 +317,7 @@ type ConfigLoggers struct {
 		ConnectTimeout int    `yaml:"connect-timeout" default:"5"`
 		Topic          string `yaml:"topic" default:"dnscollector"`
 		Partition      *int   `yaml:"partition" default:"nil"`
+		Balancer       string `yaml:"balancer" default:"round-robin"`
 		Compression    string `yaml:"compression" default:"none"`
 	} `yaml:"kafkaproducer"`
 	FalcoClient struct {

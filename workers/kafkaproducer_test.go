@@ -229,3 +229,30 @@ func Test_KafkaProducer_Modes(t *testing.T) {
 		})
 	}
 }
+
+func Test_KafkaProducer_Balancers(t *testing.T) {
+	balancers := []string{"round-robin", "least-bytes", "hash", "reference-hash", "crc32"}
+
+	for _, balancer := range balancers {
+		t.Run("balancer_"+balancer, func(t *testing.T) {
+			listener, broker := createMockBroker(t, 1, testAddress+":"+testPort, testTopic)
+			defer listener.Close()
+			defer broker.Close()
+
+			cfg := setupKafkaProducerConfig(testAddress, testPort, testTopic, "none")
+			cfg.Loggers.KafkaProducer.Balancer = balancer
+			producer := NewKafkaProducer(cfg, logger.New(false), "test")
+			go producer.StartCollect()
+			defer producer.StopLogger()
+
+			time.Sleep(1 * time.Second)
+			dm := dnsutils.GetFakeDNSMessage()
+			producer.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
+			time.Sleep(1 * time.Second)
+
+			if count := countProduceRequests(broker); count == 0 {
+				t.Fatalf("No ProduceRequest received by broker for balancer %s", balancer)
+			}
+		})
+	}
+}

@@ -28,6 +28,14 @@ var supportedWriterCompressions = map[string]kafka.Compression{
 	pkgconfig.CompressNone:   0,
 }
 
+var supportedBalancers = map[string]kafka.Balancer{
+	"round-robin":    &kafka.RoundRobin{},
+	"least-bytes":    &kafka.LeastBytes{},
+	"hash":           &kafka.Hash{},
+	"reference-hash": &kafka.ReferenceHash{},
+	"crc32":          &kafka.CRC32Balancer{},
+}
+
 type fixedPartitionBalancer int
 
 func (b fixedPartitionBalancer) Balance(msg kafka.Message, partitions ...int) int {
@@ -77,6 +85,12 @@ func (w *KafkaProducer) ReadConfig() {
 
 	if _, ok := supportedWriterCompressions[kafkaConfig.Compression]; !ok {
 		w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] kafka - invalid compress mode: ", kafkaConfig.Compression)
+	}
+
+	if kafkaConfig.Partition == nil && len(kafkaConfig.Balancer) > 0 {
+		if _, ok := supportedBalancers[kafkaConfig.Balancer]; !ok {
+			w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] kafka - invalid balancer: ", kafkaConfig.Balancer)
+		}
 	}
 }
 
@@ -142,6 +156,8 @@ func (w *KafkaProducer) createWriter() *kafka.Writer {
 	var balancer kafka.Balancer = &kafka.RoundRobin{}
 	if kafkaConfig.Partition != nil {
 		balancer = fixedPartitionBalancer(*kafkaConfig.Partition)
+	} else if b, ok := supportedBalancers[kafkaConfig.Balancer]; ok {
+		balancer = b
 	}
 
 	compression := kafka.Compression(0)
