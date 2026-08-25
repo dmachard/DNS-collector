@@ -259,6 +259,7 @@ func Test_PowerDNSProcessor_BufferLoggerIsFull(t *testing.T) {
 	// init the dnstap consumer
 	cfg := pkgconfig.GetDefaultConfig()
 	cfg.Global.Worker.BatchSize = 1
+	cfg.Global.Worker.InternalMonitor = 1
 	consumer := NewPdnsProcessor(0, "peername", cfg, lg, "test", 512)
 	consumer.AddDefaultRoute(fl)
 	consumer.AddDroppedRoute(fl)
@@ -278,6 +279,7 @@ func Test_PowerDNSProcessor_BufferLoggerIsFull(t *testing.T) {
 
 	// run the consumer with a fake logger
 	go consumer.StartCollect()
+	defer consumer.Stop()
 
 	// add packets to consumer
 	for i := 0; i < 512; i++ {
@@ -285,7 +287,7 @@ func Test_PowerDNSProcessor_BufferLoggerIsFull(t *testing.T) {
 	}
 
 	// waiting monitor to run in consumer
-	time.Sleep(12 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	for entry := range logsChan {
 		fmt.Println(entry)
@@ -307,7 +309,7 @@ func Test_PowerDNSProcessor_BufferLoggerIsFull(t *testing.T) {
 	}
 
 	// waiting monitor to run in consumer
-	time.Sleep(12 * time.Second)
+	time.Sleep(2 * time.Second)
 	for entry := range logsChan {
 		fmt.Println(entry)
 		pattern := regexp.MustCompile(pkgconfig.ExpectedBufferMsg1023)

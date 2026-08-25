@@ -219,6 +219,7 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 	// init logger and redirect stdout output to bytes buffer
 	var stdout bytes.Buffer
 	cfg := pkgconfig.GetDefaultConfig()
+	cfg.Global.Worker.InternalMonitor = 1
 	g := NewStdOut(cfg, lg, "test")
 	g.SetTextWriter(&stdout)
 
@@ -228,6 +229,7 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 
 	// run collector
 	go g.StartCollect()
+	defer g.Stop()
 
 	// add a shot of dnsmessages to collector
 	for range 512 {
@@ -236,7 +238,7 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 	}
 
 	// waiting monitor to run in consumer
-	time.Sleep(12 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	for entry := range logsChan {
 		fmt.Println(entry)
@@ -259,7 +261,7 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 	}
 
 	// waiting monitor to run in consumer
-	time.Sleep(12 * time.Second)
+	time.Sleep(2 * time.Second)
 	for entry := range logsChan {
 		fmt.Println(entry)
 		pattern := regexp.MustCompile(pkgconfig.ExpectedBufferMsg1023)
@@ -273,9 +275,6 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 	if len(batchOut2.Messages) == 0 || batchOut2.Messages[0].DNS.Qname != pkgconfig.ExpectedQname2 {
 		t.Errorf("invalid qname in second dns message: %v", batchOut2.Messages)
 	}
-
-	// stop loggers
-	g.Stop()
 }
 
 func Test_StdoutTextMode_Batching(t *testing.T) {

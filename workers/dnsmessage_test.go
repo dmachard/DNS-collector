@@ -81,6 +81,7 @@ func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 
 	// init the collector and run-it
 	config := pkgconfig.GetDefaultConfig()
+	config.Global.Worker.InternalMonitor = 1
 	c := NewDNSMessage(nil, config, lg, "test")
 
 	// init next logger with a buffer of one element
@@ -97,9 +98,9 @@ func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 	}
 
 	// waiting monitor to run in consumer
-	time.Sleep(12 * time.Second)
+	time.Sleep(2 * time.Second)
 
-	if !waitForLogMatch(logsChan, regexp.MustCompile(pkgconfig.ExpectedBufferMsg511), 10*time.Second) {
+	if !waitForLogMatch(logsChan, regexp.MustCompile(pkgconfig.ExpectedBufferMsg511), 3*time.Second) {
 		t.Fatal("did not receive 511 dropped message log")
 	}
 
@@ -116,9 +117,9 @@ func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 	}
 
 	// waiting monitor to run in consumer
-	time.Sleep(12 * time.Second)
+	time.Sleep(2 * time.Second)
 
-	if !waitForLogMatch(logsChan, regexp.MustCompile(pkgconfig.ExpectedBufferMsg1023), 10*time.Second) {
+	if !waitForLogMatch(logsChan, regexp.MustCompile(pkgconfig.ExpectedBufferMsg1023), 3*time.Second) {
 		t.Fatal("did not receive 1023 dropped message log")
 	}
 	// read dnsmessage from next logger

@@ -575,6 +575,7 @@ func Test_DnstapProcessor_BufferLoggerIsFull(t *testing.T) {
 	// init the dnstap consumer
 	cfg := pkgconfig.GetDefaultConfig()
 	cfg.Global.Worker.BatchSize = 1
+	cfg.Global.Worker.InternalMonitor = 1
 	consumer := NewDNSTapProcessor(0, "peertest", cfg, lg, "test", 512)
 	consumer.AddDefaultRoute(fl)
 	consumer.AddDroppedRoute(fl)
@@ -604,7 +605,7 @@ func Test_DnstapProcessor_BufferLoggerIsFull(t *testing.T) {
 	}
 
 	// waiting monitor to run in consumer
-	time.Sleep(12 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	for entry := range logsChan {
 		fmt.Println(entry)
@@ -626,7 +627,7 @@ func Test_DnstapProcessor_BufferLoggerIsFull(t *testing.T) {
 	}
 
 	// waiting monitor to run in consumer
-	time.Sleep(12 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	for entry := range logsChan {
 		fmt.Println(entry)

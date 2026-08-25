@@ -74,7 +74,7 @@ jobs:
         go version
 
     - name: Test ${{ matrix.package }}
-      run: go test -timeout 240s -exec sudo ./${{ matrix.package }}/ -race -cover -v
+      run: go test -timeout 360s -exec sudo ./${{ matrix.package }}/ -race -cover -v
       
   fuzzing:
     runs-on: ubuntu-26.04
