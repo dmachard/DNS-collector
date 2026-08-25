@@ -129,6 +129,49 @@ func TestFilteringByKeepQueryIp(t *testing.T) {
 	}
 }
 
+func TestFilteringByBothDropAndKeepQueryIp(t *testing.T) {
+	// config
+	config := pkgconfig.GetFakeConfigTransformers()
+	config.Filtering.Enable = true
+	config.Filtering.DropQueryIPFile = "../tests/testsdata/filtering_queryip.txt"
+	config.Filtering.KeepQueryIPFile = "../tests/testsdata/filtering_queryip_keep.txt"
+
+	outChans := []chan *dnsutils.DNSMessageBatch{}
+
+	// init subprocessor
+	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
+
+	// get transforms
+	subtransforms, err := filtering.GetTransforms()
+	if err != nil {
+		t.Fatalf("failed to get transforms: %v", err)
+	}
+	if len(subtransforms) != 2 {
+		t.Fatalf("expected 2 subtransforms, got %d", len(subtransforms))
+	}
+
+	// 1. IP in drop list -> dropQueryIPFilter must drop
+	dmDrop := dnsutils.GetFakeDNSMessage()
+	dmDrop.NetworkInfo.QueryIP = "192.168.1.15"
+	if result, _ := filtering.dropQueryIPFilter(&dmDrop); result != ReturnDrop {
+		t.Errorf("expected dropQueryIPFilter to drop 192.168.1.15, got %d", result)
+	}
+
+	// 2. IP in keep list -> keepQueryIPFilter must keep
+	dmKeep := dnsutils.GetFakeDNSMessage()
+	dmKeep.NetworkInfo.QueryIP = "192.0.2.1"
+	if result, _ := filtering.keepQueryIPFilter(&dmKeep); result != ReturnKeep {
+		t.Errorf("expected keepQueryIPFilter to keep 192.0.2.1, got %d", result)
+	}
+
+	// 3. IP not in keep list -> keepQueryIPFilter must drop
+	dmNotKeep := dnsutils.GetFakeDNSMessage()
+	dmNotKeep.NetworkInfo.QueryIP = "10.0.0.1"
+	if result, _ := filtering.keepQueryIPFilter(&dmNotKeep); result != ReturnDrop {
+		t.Errorf("expected keepQueryIPFilter to drop 10.0.0.1, got %d", result)
+	}
+}
+
 func TestFilteringByDropQueryIp(t *testing.T) {
 	// config
 	config := pkgconfig.GetFakeConfigTransformers()
