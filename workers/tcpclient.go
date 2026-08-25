@@ -20,7 +20,6 @@ import (
 
 type TCPClient struct {
 	*GenericWorker
-	stopRead, doneRead                 chan bool
 	textFormat                         []string
 	textFormatter                      *dnsutils.TextFormatter
 	transport                          string
@@ -35,8 +34,6 @@ func NewTCPClient(config *pkgconfig.Config, logger *logger.Logger, name string) 
 	w := &TCPClient{GenericWorker: NewGenericWorker(config, logger, name, "tcpclient", bufSize, pkgconfig.DefaultMonitor)}
 	w.transportReady = make(chan bool)
 	w.transportReconnect = make(chan bool)
-	w.stopRead = make(chan bool)
-	w.doneRead = make(chan bool)
 	w.ReadConfig()
 	return w
 }
@@ -65,25 +62,18 @@ func (w *TCPClient) Disconnect() {
 
 func (w *TCPClient) ReadFromConnection() {
 	buffer := make([]byte, 4096)
-
-	go func() {
-		for {
-			_, err := w.transportConn.Read(buffer)
-			if err != nil {
-				if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) {
-					w.LogInfo("read from connection terminated")
-					break
-				}
-				w.LogError("Error on reading: %s", err.Error())
+	for {
+		_, err := w.transportConn.Read(buffer)
+		if err != nil {
+			if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) {
+				w.LogInfo("read from connection terminated")
+				break
 			}
-			// We just discard the data
+			w.LogError("Error on reading: %s", err.Error())
+			break
 		}
-	}()
-
-	// block goroutine until receive true event in stopRead channel
-	<-w.stopRead
-	w.doneRead <- true
-
+		// We just discard the data
+	}
 	w.LogInfo("read goroutine terminated")
 }
 
@@ -241,9 +231,6 @@ func (w *TCPClient) StartCollect() {
 		case <-w.OnStop():
 			w.StopLogger()
 			subprocessors.Reset()
-
-			w.stopRead <- true
-			<-w.doneRead
 
 			return
 
