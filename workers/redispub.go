@@ -21,7 +21,6 @@ import (
 
 type RedisPub struct {
 	*GenericWorker
-	stopRead, doneRead                 chan bool
 	textFormat                         []string
 	textFormatter                      *dnsutils.TextFormatter
 	transport                          string
@@ -34,8 +33,6 @@ type RedisPub struct {
 func NewRedisPub(config *pkgconfig.Config, logger *logger.Logger, name string) *RedisPub {
 	bufSize := config.Global.Worker.ChannelBufferSize
 	w := &RedisPub{GenericWorker: NewGenericWorker(config, logger, name, "redispub", bufSize, pkgconfig.DefaultMonitor)}
-	w.stopRead = make(chan bool)
-	w.doneRead = make(chan bool)
 	w.transportReady = make(chan bool)
 	w.transportReconnect = make(chan bool)
 	w.ReadConfig()
@@ -67,25 +64,18 @@ func (w *RedisPub) Disconnect() {
 
 func (w *RedisPub) ReadFromConnection() {
 	buffer := make([]byte, 4096)
-
-	go func() {
-		for {
-			_, err := w.transportConn.Read(buffer)
-			if err != nil {
-				if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) {
-					w.LogInfo("read from connection terminated")
-					break
-				}
-				w.LogError("Error on reading: %s", err.Error())
+	for {
+		_, err := w.transportConn.Read(buffer)
+		if err != nil {
+			if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) {
+				w.LogInfo("read from connection terminated")
+				break
 			}
-			// We just discard the data
+			w.LogError("Error on reading: %s", err.Error())
+			break
 		}
-	}()
-
-	// block goroutine until receive true event in stopRead channel
-	<-w.stopRead
-	w.doneRead <- true
-
+		// We just discard the data
+	}
 	w.LogInfo("read goroutine terminated")
 }
 
