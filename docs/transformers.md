@@ -37,17 +37,18 @@ The default logical processing order is:
 2. **normalize** - [Normalize](transformers/transform_normalize.md): Standardizes DNS message format.
 3. **filtering** - [Traffic Filtering](transformers/transform_trafficfiltering.md): Applies sampling and filtering rules.
 4. **geoip** - [GeoIP Metadata](transformers/transform_geoip.md): Geographic traffic analysis.
-5. **atags** - [Additional Tags](transformers/transform_atags.md): Custom metadata.
-6. **suspicious** - [Suspicious Traffic Detector](transformers/transform_suspiciousdetector.md): Malformed packets, tunneling attempts, etc.
-7. **user-privacy** - [User Privacy](transformers/transform_userprivacy.md): Masking or hashing components.
-8. **machine-learning** - [Traffic Prediction](transformers/transform_trafficprediction.md): ML-ready data preparation.
-9. **rest** - [REST Lookup](transformers/transform_rest.md): Custom data addition.
-10. **relabeling** - [JSON Relabeling](transformers/transform_relabeling.md): Standardize JSON keys.
-11. **latency** - [Latency Computing](transformers/transform_latency.md): Measure DNS resolution speed.
-12. **rewrite** - [DNS Message Rewrite](transformers/transform_rewrite.md): Change DNS record data.
-13. **new-domain-tracker** - [Newly Observed Domains](transformers/transform_newdomaintracker.md): Track first-time domain appearances.
-14. **reducer** - [Traffic Reducer](transformers/transform_trafficreducer.md): Deduplicates repetitive queries.
-15. **reordering** - [Reordering](transformers/transform_reordering.md): Sorts DNS messages by timestamp.
+5. **bgp** - [BGP Metadata](transformers/transform_bgp.md): BGP routing analysis (Origin ASN, AS-Path, Prefix).
+6. **atags** - [Additional Tags](transformers/transform_atags.md): Custom metadata.
+7. **suspicious** - [Suspicious Traffic Detector](transformers/transform_suspiciousdetector.md): Malformed packets, tunneling attempts, etc.
+8. **user-privacy** - [User Privacy](transformers/transform_userprivacy.md): Masking or hashing components.
+9. **machine-learning** - [Traffic Prediction](transformers/transform_trafficprediction.md): ML-ready data preparation.
+10. **rest** - [REST Lookup](transformers/transform_rest.md): Custom data addition.
+11. **relabeling** - [JSON Relabeling](transformers/transform_relabeling.md): Standardize JSON keys.
+12. **latency** - [Latency Computing](transformers/transform_latency.md): Measure DNS resolution speed.
+13. **rewrite** - [DNS Message Rewrite](transformers/transform_rewrite.md): Change DNS record data.
+14. **new-domain-tracker** - [Newly Observed Domains](transformers/transform_newdomaintracker.md): Track first-time domain appearances.
+15. **reducer** - [Traffic Reducer](transformers/transform_trafficreducer.md): Deduplicates repetitive queries.
+16. **reordering** - [Reordering](transformers/transform_reordering.md): Sorts DNS messages by timestamp.
 
 
 
@@ -92,6 +93,7 @@ The default logical processing order is:
 | Transformer | Enrichment Capabilities | Enhanced Insights |
 |-------------|------------------------|------------------|
 | [GeoIP Metadata](transformers/transform_geoip.md) | • **Country Identification**: Client geolocation<br/>• **City-Level Data**: Detailed location information<br/>• **ASN Mapping**: Internet service provider data<br/>• **IP Intelligence**: Threat reputation scoring | • Geographic traffic analysis<br/>• Compliance monitoring<br/>• Threat intelligence correlation<br/>• Content delivery optimization |
+| [BGP Metadata](transformers/transform_bgp.md) | • **Origin ASN**: Real-time BGP Origin AS<br/>• **AS-Path**: Full BGP routing path<br/>• **BGP Prefix**: Longest matching route prefix | • Anycast routing troubleshooting<br/>• BGP hijack detection<br/>• Traffic engineering |
 | [Data Extractor](transformers/transform_dataextractor.md) | • **Base64 Encoding**: Full DNS payload preservation<br/>• **Binary Data Handling**: Raw packet analysis<br/>• **Metadata Extraction**: Protocol-level details<br/>• **Custom Field Addition**: Flexible data enhancement | • Deep packet inspection<br/>• Forensic analysis<br/>• Custom analytics<br/>• Advanced research |
 | [REST Lookup](transformers/transform_rest.md) | • **Custom Data Addition**: Flexible data enhancement | • Business intelligence integration |
 

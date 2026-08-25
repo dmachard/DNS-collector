@@ -219,6 +219,12 @@ func (dm *DNSMessage) EncodeFlatJSON(buffer *bytes.Buffer) {
 		writeFloat("geoip.lon", dm.Geo.Longitude)
 	}
 
+	if dm.BGP != nil {
+		writeString("bgp.origin-asn", dm.BGP.OriginASN)
+		writeString("bgp.as-path", dm.BGP.ASPath)
+		writeString("bgp.prefix", dm.BGP.Prefix)
+	}
+
 	if dm.Suspicious != nil {
 		writeString("suspicious.domain", dm.Suspicious.Domain)
 		writeBool("suspicious.excessive-number-labels", dm.Suspicious.ExcessiveNumberLabels)
@@ -443,6 +449,13 @@ func (dm *DNSMessage) Flatten() (map[string]interface{}, error) {
 		dnsFields["geoip.as-owner"] = dm.Geo.AutonomousSystemOrg
 		dnsFields["geoip.lat"] = dm.Geo.Latitude
 		dnsFields["geoip.lon"] = dm.Geo.Longitude
+	}
+
+	// Add TransformBGP fields
+	if dm.BGP != nil {
+		dnsFields["bgp.origin-asn"] = dm.BGP.OriginASN
+		dnsFields["bgp.as-path"] = dm.BGP.ASPath
+		dnsFields["bgp.prefix"] = dm.BGP.Prefix
 	}
 
 	// Add TransformSuspicious fields
@@ -925,6 +938,10 @@ func (dm *DNSMessage) EncodeJSON(buf *bytes.Buffer) {
 	if dm.Geo != nil {
 		buf.WriteString(`,"geoip":`)
 		dm.Geo.EncodeJSON(buf)
+	}
+	if dm.BGP != nil {
+		buf.WriteString(`,"bgp":`)
+		dm.BGP.EncodeJSON(buf)
 	}
 	if dm.Suspicious != nil {
 		buf.WriteString(`,"suspicious":`)

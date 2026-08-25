@@ -514,6 +514,7 @@ func compileDirective(directive string, fieldDelimiter string, fieldBoundary str
 
 	// Transformer directives
 	if strings.HasPrefix(directive, "geoip-") ||
+		strings.HasPrefix(directive, "bgp-") ||
 		strings.HasPrefix(directive, "suspicious-") ||
 		strings.HasPrefix(directive, "publicsuffix-") ||
 		strings.HasPrefix(directive, "extracted-") ||

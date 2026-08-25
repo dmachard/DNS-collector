@@ -22,6 +22,16 @@ func (t *TransformDNSGeo) EncodeJSON(buf *bytes.Buffer) {
 	buf.WriteByte('}')
 }
 
+func (t *TransformBGP) EncodeJSON(buf *bytes.Buffer) {
+	buf.WriteString(`{"origin-asn":`)
+	WriteJSONString(buf, t.OriginASN)
+	buf.WriteString(`,"as-path":`)
+	WriteJSONString(buf, t.ASPath)
+	buf.WriteString(`,"prefix":`)
+	WriteJSONString(buf, t.Prefix)
+	buf.WriteByte('}')
+}
+
 func (t *TransformSuspicious) EncodeJSON(buf *bytes.Buffer) {
 	buf.WriteString(`{"score":`)
 	writeJSONFloat(buf, t.Score)

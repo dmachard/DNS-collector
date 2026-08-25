@@ -12,6 +12,7 @@ var (
 		"normalize",
 		"filtering",
 		"geoip",
+		"bgp",
 		"atags",
 		"suspicious",
 		"user-privacy",
@@ -87,6 +88,15 @@ type ConfigTransformers struct {
 		DBASNFile        string `yaml:"mmdb-asn-file" default:""`
 		DBCoordinateFile string `yaml:"mmdb-coordinate-file" default:""`
 	} `yaml:"geoip"`
+	BGP struct {
+		Enable                 bool   `yaml:"enable" default:"false"`
+		LookupECS              bool   `yaml:"lookup-ecs" default:"false"`
+		MrtFile                string `yaml:"mrt-file" default:""`
+		MrtCheckUpdateInterval int    `yaml:"mrt-checkupdate-interval" default:"300"`
+		OriginASN              bool   `yaml:"origin-asn" default:"true"`
+		ASPath                 bool   `yaml:"as-path" default:"true"`
+		Prefix                 bool   `yaml:"prefix" default:"true"`
+	} `yaml:"bgp"`
 	Suspicious struct {
 		Enable             bool     `yaml:"enable" default:"false"`
 		ThresholdQnameLen  int      `yaml:"threshold-qname-len" default:"100"`

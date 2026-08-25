@@ -81,6 +81,39 @@ func compileTransformDirective(directive string, fieldDelimiter string, fieldBou
 			return nil, errors.New(ErrorUnexpectedDirective + directive)
 		}
 
+	case strings.HasPrefix(directive, "bgp-"):
+		switch directive {
+		case "bgp-origin-asn":
+			return func(dm *DNSMessage, s *bytes.Buffer) error {
+				if dm.BGP != nil {
+					s.WriteString(dm.BGP.OriginASN)
+				} else {
+					s.WriteByte('-')
+				}
+				return nil
+			}, nil
+		case "bgp-as-path":
+			return func(dm *DNSMessage, s *bytes.Buffer) error {
+				if dm.BGP != nil {
+					s.WriteString(dm.BGP.ASPath)
+				} else {
+					s.WriteByte('-')
+				}
+				return nil
+			}, nil
+		case "bgp-prefix":
+			return func(dm *DNSMessage, s *bytes.Buffer) error {
+				if dm.BGP != nil {
+					s.WriteString(dm.BGP.Prefix)
+				} else {
+					s.WriteByte('-')
+				}
+				return nil
+			}, nil
+		default:
+			return nil, errors.New(ErrorUnexpectedDirective + directive)
+		}
+
 	case strings.HasPrefix(directive, "suspicious-"):
 		switch directive {
 		case "suspicious-score":
