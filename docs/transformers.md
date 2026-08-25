@@ -47,8 +47,9 @@ The default logical processing order is:
 12. **latency** - [Latency Computing](transformers/transform_latency.md): Measure DNS resolution speed.
 13. **rewrite** - [DNS Message Rewrite](transformers/transform_rewrite.md): Change DNS record data.
 14. **new-domain-tracker** - [Newly Observed Domains](transformers/transform_newdomaintracker.md): Track first-time domain appearances.
-15. **reducer** - [Traffic Reducer](transformers/transform_trafficreducer.md): Deduplicates repetitive queries.
-16. **reordering** - [Reordering](transformers/transform_reordering.md): Sorts DNS messages by timestamp.
+15. **unique-response-tracker** - [Unique Domain Responses](transformers/transform_uniqueresponsetracker.md): Track newly observed response associations (QNAME, RRType, RDATA).
+16. **reducer** - [Traffic Reducer](transformers/transform_trafficreducer.md): Deduplicates repetitive queries.
+17. **reordering** - [Reordering](transformers/transform_reordering.md): Sorts DNS messages by timestamp.
 
 
 
@@ -74,6 +75,7 @@ The default logical processing order is:
 |-------------|----------------------|-------------------|
 | [Suspicious Traffic Detector](transformers/transform_suspiciousdetector.md) | • **Malformed Packets**: Invalid DNS structure<br/>• **Oversized Queries**: Potential DDoS indicators<br/>• **Uncommon Query Types**: Rare or suspicious Qtypes<br/>• **Invalid Characters**: Malicious domain encoding<br/>• **Excessive Labels**: DNS tunneling attempts<br/>• **Long Domain Names**: Covert channel detection | • Early threat detection<br/>• DNS tunneling prevention<br/>• Malware C&C identification<br/>• DDoS attack mitigation |
 | [Newly Observed Domains](transformers/transform_newdomaintracker.md) | • Track first-time domain appearances<br/>• Identify domain generation algorithms (DGA)<br/>• Monitor new subdomain creation<br/>• Alert on suspicious registration patterns | • Zero-day domain detection<br/>• Brand protection monitoring<br/>• Typosquatting identification<br/>• Advanced persistent threat tracking |
+| [Unique Domain Responses](transformers/transform_uniqueresponsetracker.md) | • Track newly observed (QNAME, RRType, RDATA) tuples<br/>• Detect unprecedented DNS answer associations<br/>• LRU-bounded memory with disk persistence | • DNS hijacking & cache poisoning detection<br/>• Fast-Flux C2 tracking<br/>• Unauthorized zone record changes |
 
 ### Privacy & Compliance
 

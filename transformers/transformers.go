@@ -109,6 +109,8 @@ func NewTransforms(config *pkgconfig.ConfigTransformers, logger *logger.Logger, 
 			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewRewriteTransform(config, logger, name, instance, nextWorkers)})
 		case "new-domain-tracker":
 			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewNewDomainTrackerTransform(config, logger, name, instance, nextWorkers)})
+		case "unique-response-tracker":
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewUniqueResponseTrackerTransform(config, logger, name, instance, nextWorkers)})
 		case "reducer":
 			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewReducerTransform(config, logger, name, instance, nextWorkers)})
 		case "reordering":

@@ -54,6 +54,7 @@ global:
     - "latency"
     - "rewrite"
     - "new-domain-tracker"
+    - "unique-response-tracker"
     - "reducer"
     - "reordering"
 
