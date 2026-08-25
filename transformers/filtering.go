@@ -104,6 +104,9 @@ func (t *FilteringTransform) LoadRcodes() error {
 }
 
 func (t *FilteringTransform) LoadQueryIPList() error {
+	t.ipsetDrop = nil
+	t.ipsetKeep = nil
+
 	if len(t.config.Filtering.DropQueryIPFile) > 0 {
 		read, err := t.loadQueryIPList(t.config.Filtering.DropQueryIPFile, true)
 		if err != nil {
@@ -123,6 +126,8 @@ func (t *FilteringTransform) LoadQueryIPList() error {
 }
 
 func (t *FilteringTransform) LoadrDataIPList() error {
+	t.rDataIpsetKeep = nil
+
 	if len(t.config.Filtering.KeepRdataFile) > 0 {
 		read, err := t.loadKeepRdataIPList(t.config.Filtering.KeepRdataFile)
 		if err != nil {
@@ -237,10 +242,6 @@ func (t *FilteringTransform) LoadDomainsList() error {
 }
 
 func (t *FilteringTransform) loadQueryIPList(fname string, drop bool) (uint64, error) {
-	var emptyIPSet *netaddr.IPSet
-	t.ipsetDrop = emptyIPSet
-	t.ipsetKeep = emptyIPSet
-
 	file, err := os.Open(fname)
 	if err != nil {
 		return 0, err
@@ -277,9 +278,6 @@ func (t *FilteringTransform) loadQueryIPList(fname string, drop bool) (uint64, e
 }
 
 func (t *FilteringTransform) loadKeepRdataIPList(fname string) (uint64, error) {
-	var emptyIPSet *netaddr.IPSet
-	t.rDataIpsetKeep = emptyIPSet
-
 	file, err := os.Open(fname)
 	if err != nil {
 		return 0, err
@@ -334,6 +332,9 @@ func (t *FilteringTransform) dropRCodeFilter(dm *dnsutils.DNSMessage) (int, erro
 }
 
 func (t *FilteringTransform) keepQueryIPFilter(dm *dnsutils.DNSMessage) (int, error) {
+	if t.ipsetKeep == nil {
+		return ReturnDrop, nil
+	}
 	ip, _ := netaddr.ParseIP(dm.NetworkInfo.GetQueryIP())
 	if t.ipsetKeep.Contains(ip) {
 		return ReturnKeep, nil
@@ -342,6 +343,9 @@ func (t *FilteringTransform) keepQueryIPFilter(dm *dnsutils.DNSMessage) (int, er
 }
 
 func (t *FilteringTransform) dropQueryIPFilter(dm *dnsutils.DNSMessage) (int, error) {
+	if t.ipsetDrop == nil {
+		return ReturnKeep, nil
+	}
 	ip, _ := netaddr.ParseIP(dm.NetworkInfo.GetQueryIP())
 	if t.ipsetDrop.Contains(ip) {
 		return ReturnDrop, nil
@@ -350,6 +354,9 @@ func (t *FilteringTransform) dropQueryIPFilter(dm *dnsutils.DNSMessage) (int, er
 }
 
 func (t *FilteringTransform) keepRdataFilter(dm *dnsutils.DNSMessage) (int, error) {
+	if t.rDataIpsetKeep == nil {
+		return ReturnDrop, nil
+	}
 	if len(dm.DNS.DNSRRs.Answers) > 0 {
 		// If even one exists in filter list then pass through filter
 		for _, answer := range dm.DNS.DNSRRs.Answers {
