@@ -22,6 +22,7 @@ var (
 		"latency",
 		"rewrite",
 		"new-domain-tracker",
+		"unique-response-tracker",
 		"reducer",
 		"reordering",
 	}
@@ -145,6 +146,13 @@ type ConfigTransformers struct {
 		WhiteDomainsFile string `yaml:"white-domains-file" default:""`
 		PersistenceFile  string `yaml:"persistence-file" default:""`
 	} `yaml:"new-domain-tracker"`
+	UniqueResponseTracker struct {
+		Enable           bool   `yaml:"enable" default:"false"`
+		TTL              int    `yaml:"ttl" default:"86400"`
+		CacheSize        int    `yaml:"cache-size" default:"100000"`
+		WhiteDomainsFile string `yaml:"white-domains-file" default:""`
+		PersistenceFile  string `yaml:"persistence-file" default:""`
+	} `yaml:"unique-response-tracker"`
 	Reordering struct {
 		Enable        bool `yaml:"enable" default:"false"`
 		FlushInterval int  `yaml:"flush-interval" default:"30"`
