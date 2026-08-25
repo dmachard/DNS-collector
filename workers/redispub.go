@@ -10,7 +10,6 @@ import (
 	"net"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
@@ -30,7 +29,6 @@ type RedisPub struct {
 	transportConn                      net.Conn
 	transportReady, transportReconnect chan bool
 	writerReady                        bool
-	mu                                 sync.Mutex
 }
 
 func NewRedisPub(config *pkgconfig.Config, logger *logger.Logger, name string) *RedisPub {
@@ -60,55 +58,25 @@ func (w *RedisPub) ReadConfig() {
 	}
 }
 
-func (w *RedisPub) getTransportConn() net.Conn {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	return w.transportConn
-}
-
-func (w *RedisPub) setTransportConn(conn net.Conn) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.transportConn = conn
-}
-
 func (w *RedisPub) Disconnect() {
-	w.mu.Lock()
-	defer w.mu.Unlock()
 	if w.transportConn != nil {
 		w.LogInfo("closing redispub connection")
-		conn := w.transportConn
-		w.transportConn = nil
-		conn.Close()
-	}
-}
-
-func (w *RedisPub) triggerReconnect() {
-	select {
-	case w.transportReconnect <- true:
-	default:
+		w.transportConn.Close()
 	}
 }
 
 func (w *RedisPub) ReadFromConnection() {
 	buffer := make([]byte, 4096)
 
-	conn := w.getTransportConn()
-	if conn == nil {
-		return
-	}
-
 	go func() {
 		for {
-			_, err := conn.Read(buffer)
+			_, err := w.transportConn.Read(buffer)
 			if err != nil {
 				if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) {
 					w.LogInfo("read from connection terminated")
-					w.triggerReconnect()
 					break
 				}
 				w.LogError("Error on reading: %s", err.Error())
-				w.triggerReconnect()
 			}
 			// We just discard the data
 		}
@@ -123,14 +91,9 @@ func (w *RedisPub) ReadFromConnection() {
 
 func (w *RedisPub) ConnectToRemote() {
 	for {
-		w.mu.Lock()
 		if w.transportConn != nil {
-			conn := w.transportConn
+			w.transportConn.Close()
 			w.transportConn = nil
-			w.mu.Unlock()
-			conn.Close()
-		} else {
-			w.mu.Unlock()
 		}
 
 		address := w.GetConfig().Loggers.RedisPub.RemoteAddress + ":" + strconv.Itoa(w.GetConfig().Loggers.RedisPub.RemotePort)
@@ -180,12 +143,13 @@ func (w *RedisPub) ConnectToRemote() {
 			continue
 		}
 
-		w.setTransportConn(conn)
+		w.transportConn = conn
 
-		// signal that the transport is ready. reconnects are triggered by the
-		// main worker loop when the remote socket is closed or a write fails.
+		// block until framestream is ready
 		w.transportReady <- true
-		<-w.transportReconnect
+
+		// block until an error occurred, need to reconnect
+		w.transportReconnect <- true
 	}
 }
 
@@ -259,11 +223,7 @@ func (w *RedisPub) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 		}
 	}
 
-	if err := w.transportWriter.Flush(); err != nil {
-		w.LogError("redis flush error: %s", err.Error())
-		w.writerReady = false
-		w.triggerReconnect()
-	}
+	w.transportWriter.Flush()
 }
 
 func (w *RedisPub) StartCollect() {
@@ -347,17 +307,12 @@ func (w *RedisPub) StartLogging() {
 
 		case <-w.transportReady:
 			w.LogInfo("transport connected with success")
-			w.transportWriter = bufio.NewWriter(w.getTransportConn())
+			w.transportWriter = bufio.NewWriter(w.transportConn)
 			w.writerReady = true
 			// read from the connection until we stop
 			go w.ReadFromConnection()
 
 			// incoming dns message to process
-		case <-w.transportReconnect:
-			w.writerReady = false
-			w.Disconnect()
-			go w.ConnectToRemote()
-
 		case batch, opened := <-w.GetOutputChannel():
 			if !opened {
 				w.LogInfo("output channel closed!")

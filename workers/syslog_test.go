@@ -85,6 +85,7 @@ func Test_SyslogRunUdp(t *testing.T) {
 
 			// start the logger
 			go g.StartCollect()
+			defer g.Stop()
 
 			// send fake dns message to logger
 			time.Sleep(time.Second)
@@ -93,6 +94,7 @@ func Test_SyslogRunUdp(t *testing.T) {
 
 			// read data on fake server side
 			buf := make([]byte, 4096)
+			_ = fakeRcvr.SetReadDeadline(time.Now().Add(5 * time.Second))
 			n, _, err := fakeRcvr.ReadFrom(buf)
 			if err != nil {
 				t.Errorf("error to read data: %s", err)
@@ -234,6 +236,7 @@ func Test_SyslogRun_RemoveNullCharacter(t *testing.T) {
 
 	// start the logger
 	go g.StartCollect()
+	defer g.Stop()
 
 	// send fake dns message to logger
 	time.Sleep(time.Second)
@@ -243,6 +246,7 @@ func Test_SyslogRun_RemoveNullCharacter(t *testing.T) {
 
 	// read data on fake server side
 	buf := make([]byte, (500))
+	_ = fakeRcvr.SetReadDeadline(time.Now().Add(5 * time.Second))
 
 	n, _, err := fakeRcvr.ReadFrom(buf)
 	if err != nil {
@@ -335,6 +339,7 @@ func Test_SyslogRun_DynamicHostname(t *testing.T) {
 			defer fakeRcvr.Close()
 
 			go g.StartCollect()
+			defer g.Stop()
 
 			time.Sleep(500 * time.Millisecond)
 			dm := dnsutils.GetFakeDNSMessage()
