@@ -4,9 +4,9 @@ Kafka producer, based on [kafka-go](https://github.com/segmentio/kafka-go) libra
 It receives DNS messages and sends them to one or more Kafka topics, with support for TLS, SASL, compression, and partitioning.
 
 Behavior
-- Connection and Reconnection: The producer tries to connect to all brokers or a specific partition. If it fails, it retries using exponential backoff (1s, 2s, 4s, 8s, 16s, 30s max).
-- Buffering and Flush: DNS messages are buffered in memory and flushed to Kafka either when the buffer reaches batch-size or after flush-interval seconds.
-- Partitioning: If partition is set, all messages are sent to that partition. Otherwise, messages are distributed round-robin across all available partitions.
+- Connection and Reconnection: The producer connects to the Kafka cluster via the high-level `kafka.Writer`. It automatically discovers partition leaders and handles reconnections and retries in the background.
+- Buffering and Flush: DNS messages are buffered in memory and flushed to Kafka in batches either when the buffer reaches batch-size or after flush-interval seconds.
+- Partitioning: If partition is set, all messages are sent to that partition. Otherwise, messages are distributed across partitions using the configured `balancer` (default: `round-robin`).
 
 Options:
 
@@ -68,13 +68,17 @@ Options:
 * `batch-size` (integer)
   > Specifies the size of the batch for DNS messages before they are sent to Kafka.
 
-* `topic` (integer)
+* `topic` (string)
   > Specifies the Kafka topic to which messages will be forwarded.
 
 * `partition` (integer)
   > Specifies the Kafka partition to which messages will be sent.
-  > If partition parameter is null, then use `round-robin` partitioner for kafka (default behavior)
+  > If partition parameter is null, then use the configured `balancer` (default behavior).
 
+* `balancer` (string)
+  > Specifies the balancing algorithm used to distribute messages across partitions when `partition` is null.
+  > Supported balancers: `round-robin` (default), `least-bytes`, `hash`, `reference-hash`, `crc32`.
+  > Note: `hash` and `reference-hash` use the DNS collector/resolver identity key to preserve message ordering per source.
 
 * `compression` (string)
   > Specifies the compression algorithm to use for Kafka messages.
@@ -99,5 +103,6 @@ kafkaproducer:
   batch-size: 100
   topic: "dnscollector"
   partition: null
+  balancer: "round-robin"
   compression: none
 ```

@@ -66,6 +66,7 @@ func Test_DnstapClient(t *testing.T) {
 
 			// start the logger
 			go g.StartCollect()
+			defer g.Stop()
 
 			// accept conn from logger
 			conn, err := fakeRcvr.Accept()

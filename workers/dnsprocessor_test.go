@@ -24,6 +24,7 @@ func Test_DnsProcessor(t *testing.T) {
 	consumer.AddDefaultRoute(fl)
 	consumer.AddDroppedRoute(fl)
 	go consumer.StartCollect()
+	defer consumer.Stop()
 
 	dm := dnsutils.GetFakeDNSMessageWithPayload()
 	consumer.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
@@ -47,6 +48,7 @@ func Test_DnsProcessor_DecodeCounters(t *testing.T) {
 	consumer.AddDefaultRoute(fl)
 	consumer.AddDroppedRoute(fl)
 	go consumer.StartCollect()
+	defer consumer.Stop()
 
 	// get dns packet
 	responsePacket, _ := dnsutils.GetDNSResponsePacket()
@@ -87,10 +89,13 @@ func Test_DnsProcessor_BufferLoggerIsFull(t *testing.T) {
 
 	// init and run the dns processor
 	fl := GetWorkerForTest(pkgconfig.DefaultBufferOne)
-	consumer := NewDNSProcessor(pkgconfig.GetDefaultConfig(), lg, "test", 512)
+	cfg := pkgconfig.GetDefaultConfig()
+	cfg.Global.Worker.InternalMonitor = 1
+	consumer := NewDNSProcessor(cfg, lg, "test", 512)
 	consumer.AddDefaultRoute(fl)
 	consumer.AddDroppedRoute(fl)
 	go consumer.StartCollect()
+	defer consumer.Stop()
 
 	// add packets to consumer
 	for i := 0; i < 512; i++ {
@@ -99,7 +104,7 @@ func Test_DnsProcessor_BufferLoggerIsFull(t *testing.T) {
 	}
 
 	// waiting monitor to run in consumer
-	time.Sleep(12 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	for entry := range logsChan {
 		fmt.Println(entry)
@@ -122,7 +127,7 @@ func Test_DnsProcessor_BufferLoggerIsFull(t *testing.T) {
 	}
 
 	// waiting monitor to run in consumer
-	time.Sleep(12 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	for entry := range logsChan {
 		fmt.Println(entry)
@@ -135,6 +140,6 @@ func Test_DnsProcessor_BufferLoggerIsFull(t *testing.T) {
 	// read dnsmessage from dnstap consumer
 	batch2 := <-fl.GetInputChannel()
 	if len(batch2.Messages) == 0 || batch2.Messages[0].DNS.Qname != pkgconfig.ExpectedQname {
-		t.Errorf("invalid qname in second dns message: %v", batch2.Messages)
+		t.Errorf("invalid qname in dns message: %v", batch2.Messages)
 	}
 }

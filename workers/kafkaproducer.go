@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
+	"net"
 	"strconv"
 	"strings"
 	"sync"
@@ -16,43 +16,56 @@ import (
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/kafka-go/compress"
 	"github.com/segmentio/kafka-go/sasl/plain"
 	"github.com/segmentio/kafka-go/sasl/scram"
 )
 
-var supportedCompressions = map[string]compress.Codec{
-	pkgconfig.CompressGzip:   &compress.GzipCodec,
-	pkgconfig.CompressLz4:    &compress.Lz4Codec,
-	pkgconfig.CompressSnappy: &compress.SnappyCodec,
-	pkgconfig.CompressZstd:   &compress.ZstdCodec,
-	pkgconfig.CompressNone:   nil,
+var supportedWriterCompressions = map[string]kafka.Compression{
+	pkgconfig.CompressGzip:   kafka.Gzip,
+	pkgconfig.CompressLz4:    kafka.Lz4,
+	pkgconfig.CompressSnappy: kafka.Snappy,
+	pkgconfig.CompressZstd:   kafka.Zstd,
+	pkgconfig.CompressNone:   0,
+}
+
+var supportedBalancers = map[string]kafka.Balancer{
+	"round-robin":    &kafka.RoundRobin{},
+	"least-bytes":    &kafka.LeastBytes{},
+	"hash":           &kafka.Hash{},
+	"reference-hash": &kafka.ReferenceHash{},
+	"crc32":          &kafka.CRC32Balancer{},
+}
+
+type fixedPartitionBalancer int
+
+func (b fixedPartitionBalancer) Balance(msg kafka.Message, partitions ...int) int {
+	target := int(b)
+	for _, p := range partitions {
+		if p == target {
+			return target
+		}
+	}
+	if len(partitions) > 0 {
+		return partitions[0]
+	}
+	return target
 }
 
 type KafkaProducer struct {
 	*GenericWorker
-	textFormat         []string
-	textFormatter      *dnsutils.TextFormatter
-	kafkaConnected     bool
-	compressCodec      compress.Codec
-	kafkaConns         map[int]*kafka.Conn // Map to store connections by partition
-	lastPartitionIndex *int
-	triggerReconnect   chan bool
-	connMutex          sync.RWMutex
-	reconnecting       bool
-	reconnectMutex     sync.Mutex
+	textFormat    []string
+	textFormatter *dnsutils.TextFormatter
+	writer        *kafka.Writer
+	writerMutex   sync.RWMutex
 }
 
 func NewKafkaProducer(config *pkgconfig.Config, logger *logger.Logger, name string) *KafkaProducer {
 	bufSize := config.Global.Worker.ChannelBufferSize
 	w := &KafkaProducer{
 		GenericWorker: NewGenericWorker(config, logger, name, "kafka", bufSize, pkgconfig.DefaultMonitor),
-		// kafkaReady:     make(chan bool),
-		// kafkaReconnect: make(chan bool),
-		kafkaConns:       make(map[int]*kafka.Conn),
-		triggerReconnect: make(chan bool, 1),
 	}
 	w.ReadConfig()
+	w.writer = w.createWriter()
 	return w
 }
 
@@ -70,32 +83,37 @@ func (w *KafkaProducer) ReadConfig() {
 		w.LogFatal(pkgconfig.PrefixLogWorker + "invalid text format: " + errFormatter.Error())
 	}
 
-	if codec, ok := supportedCompressions[kafkaConfig.Compression]; ok {
-		w.compressCodec = codec
-	} else {
+	if _, ok := supportedWriterCompressions[kafkaConfig.Compression]; !ok {
 		w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] kafka - invalid compress mode: ", kafkaConfig.Compression)
 	}
-}
 
-func (w *KafkaProducer) Disconnect() {
-	w.connMutex.Lock()
-	defer w.connMutex.Unlock()
-
-	for _, conn := range w.kafkaConns {
-		if conn != nil {
-			w.LogInfo("closing connection per partition")
-			conn.Close()
+	if kafkaConfig.Partition == nil && len(kafkaConfig.Balancer) > 0 {
+		if _, ok := supportedBalancers[kafkaConfig.Balancer]; !ok {
+			w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] kafka - invalid balancer: ", kafkaConfig.Balancer)
 		}
 	}
-	w.kafkaConns = make(map[int]*kafka.Conn) // Clear the map
 }
 
-func (w *KafkaProducer) createDialer() *kafka.Dialer {
+func (w *KafkaProducer) createWriter() *kafka.Writer {
 	kafkaConfig := w.GetConfig().Loggers.KafkaProducer
-	dialer := &kafka.Dialer{
-		Timeout:   time.Duration(kafkaConfig.ConnectTimeout) * time.Second,
-		DualStack: true,
-		ClientID:  kafkaConfig.ClientID,
+
+	rawAddresses := strings.Split(kafkaConfig.RemoteAddress, ",")
+	addresses := make([]string, 0, len(rawAddresses))
+	for _, addr := range rawAddresses {
+		addr = strings.TrimSpace(addr)
+		if addr == "" {
+			continue
+		}
+		if !strings.Contains(addr, ":") {
+			addr = net.JoinHostPort(addr, strconv.Itoa(kafkaConfig.RemotePort))
+		}
+		addresses = append(addresses, addr)
+	}
+
+	transport := &kafka.Transport{
+		DialTimeout: time.Duration(kafkaConfig.ConnectTimeout) * time.Second,
+		IdleTimeout: 30 * time.Second,
+		ClientID:    kafkaConfig.ClientID,
 	}
 
 	// TLS Support
@@ -112,7 +130,7 @@ func (w *KafkaProducer) createDialer() *kafka.Dialer {
 		if err != nil {
 			w.LogFatal("logger=kafka - tls config failed:", err)
 		}
-		dialer.TLS = tlsConfig
+		transport.TLS = tlsConfig
 	}
 
 	// SASL Support
@@ -121,7 +139,7 @@ func (w *KafkaProducer) createDialer() *kafka.Dialer {
 
 		switch kafkaConfig.SaslMechanism {
 		case pkgconfig.SASLMechanismPlain:
-			dialer.SASLMechanism = plain.Mechanism{Username: username, Password: password}
+			transport.SASL = plain.Mechanism{Username: username, Password: password}
 		case pkgconfig.SASLMechanismSha512, pkgconfig.SASLMechanismSha256:
 			algo := scram.SHA512
 			if kafkaConfig.SaslMechanism == pkgconfig.SASLMechanismSha256 {
@@ -129,157 +147,51 @@ func (w *KafkaProducer) createDialer() *kafka.Dialer {
 			}
 			mechanism, err := scram.Mechanism(algo, username, password)
 			if err != nil {
-				panic(err)
+				w.LogFatal("logger=kafka - sasl scram failed:", err)
 			}
-			dialer.SASLMechanism = mechanism
+			transport.SASL = mechanism
 		}
 	}
 
-	return dialer
+	var balancer kafka.Balancer = &kafka.RoundRobin{}
+	if kafkaConfig.Partition != nil {
+		balancer = fixedPartitionBalancer(*kafkaConfig.Partition)
+	} else if b, ok := supportedBalancers[kafkaConfig.Balancer]; ok {
+		balancer = b
+	}
+
+	compression := kafka.Compression(0)
+	if comp, ok := supportedWriterCompressions[kafkaConfig.Compression]; ok {
+		compression = comp
+	}
+
+	writer := &kafka.Writer{
+		Addr:                   kafka.TCP(addresses...),
+		Topic:                  kafkaConfig.Topic,
+		Balancer:               balancer,
+		Compression:            compression,
+		Transport:              transport,
+		RequiredAcks:           kafka.RequireOne,
+		WriteTimeout:           time.Duration(kafkaConfig.ConnectTimeout) * time.Second,
+		MaxAttempts:            3,
+		AllowAutoTopicCreation: true,
+		BatchSize:              1,
+		BatchTimeout:           10 * time.Millisecond,
+	}
+
+	return writer
 }
 
-func (w *KafkaProducer) ConnectToKafka(ctx context.Context) {
-	kafkaConfig := w.GetConfig().Loggers.KafkaProducer
-	topic := kafkaConfig.Topic
-	partition := kafkaConfig.Partition
+func (w *KafkaProducer) Disconnect() {
+	w.writerMutex.Lock()
+	defer w.writerMutex.Unlock()
 
-	// Backoff exponentiel : 1s, 2s, 4s, 8s, 16s, 30s (max)
-	backoff := 1 * time.Second
-	maxBackoff := 30 * time.Second
-
-	// list of brokers to dial to
-	brokers := strings.Split(kafkaConfig.RemoteAddress, ",")
-	port := kafkaConfig.RemotePort
-
-	for {
-		select {
-		case <-ctx.Done():
-			w.LogInfo("kafka connection goroutine stopped")
-			return
-		default:
-		}
-
-		w.Disconnect()
-
-		if partition == nil {
-			w.LogInfo("connecting to kafka brokers=%v port=%d topic=%s (all partitions)", brokers, port, topic)
-		} else {
-			w.LogInfo("connecting to kafka brokers=%v port=%d topic=%s partition=%d", brokers, port, topic, *partition)
-		}
-
-		// prepare dialer
-		dialer := w.createDialer()
-
-		// connections established ?
-		connected := false
-		if partition == nil {
-			connected = w.connectAllPartitions(ctx, dialer, brokers, port, topic)
-		} else {
-			connected = w.connectSinglePartition(ctx, dialer, brokers, port, topic, *partition)
-		}
-
-		if connected {
-			w.LogInfo("successfully connected to kafka")
-			w.connMutex.Lock()
-			w.kafkaConnected = true
-			w.connMutex.Unlock()
-
-			w.reconnectMutex.Lock()
-			w.reconnecting = false
-			w.reconnectMutex.Unlock()
-			return
-		}
-
-		// Retry
-		w.LogInfo("failed to connect, retrying in %v", backoff)
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(backoff):
-			// double backoff time
-			backoff *= 2
-			if backoff > maxBackoff {
-				backoff = maxBackoff
-			}
+	if w.writer != nil {
+		w.LogInfo("closing kafka writer")
+		if err := w.writer.Close(); err != nil {
+			w.LogError("error closing kafka writer: %v", err)
 		}
 	}
-}
-
-func (w *KafkaProducer) connectAllPartitions(ctx context.Context, dialer *kafka.Dialer, brokers []string, port int, topic string) bool {
-	// find partitions from brokers
-	var partitions []kafka.Partition
-	var bootstrapAddr string
-
-	for _, broker := range brokers {
-		addr := broker + ":" + strconv.Itoa(port)
-		w.LogInfo("[bootstrap] looking up partitions on %s", addr)
-
-		var err error
-		partitions, err = dialer.LookupPartitions(ctx, "tcp", addr, topic)
-		if err != nil {
-			w.LogError("[bootstrap] failed to lookup partitions on %s: %s", addr, err)
-			continue
-		}
-
-		bootstrapAddr = addr
-		break
-	}
-
-	if bootstrapAddr == "" {
-		w.LogError("failed to lookup partitions from any broker")
-		return false
-	}
-
-	w.LogInfo("[bootstrap] found %d partitions from %s", len(partitions), bootstrapAddr)
-
-	// connect to all partitions
-	w.connMutex.Lock()
-	defer w.connMutex.Unlock()
-
-	failedPartitions := []int{}
-	for _, p := range partitions {
-		conn, err := dialer.DialLeader(ctx, "tcp", bootstrapAddr, p.Topic, p.ID)
-		if err != nil {
-			w.LogError("[partition=%d] failed to connect: %s", p.ID, err)
-			failedPartitions = append(failedPartitions, p.ID)
-			continue
-		}
-		w.kafkaConns[p.ID] = conn
-		w.LogInfo("[partition=%d] connected successfully", p.ID)
-	}
-
-	// check if any partition failed
-	if len(failedPartitions) > 0 {
-		w.LogError("failed to connect to partitions: %v", failedPartitions)
-		// cleanup
-		for _, conn := range w.kafkaConns {
-			conn.Close()
-		}
-		w.kafkaConns = make(map[int]*kafka.Conn)
-		return false
-	}
-
-	return true
-}
-
-func (w *KafkaProducer) connectSinglePartition(ctx context.Context, dialer *kafka.Dialer, brokers []string, port int, topic string, partition int) bool {
-	w.connMutex.Lock()
-	defer w.connMutex.Unlock()
-
-	for _, broker := range brokers {
-		addr := broker + ":" + strconv.Itoa(port)
-		conn, err := dialer.DialLeader(ctx, "tcp", addr, topic, partition)
-		if err != nil {
-			w.LogError("failed to connect to partition %d on %s: %s", partition, addr, err)
-			continue
-		}
-
-		w.kafkaConns[partition] = conn
-		w.LogInfo("[partition=%d] connected successfully to %s", partition, addr)
-		return true
-	}
-
-	return false
 }
 
 func (w *KafkaProducer) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
@@ -294,16 +206,17 @@ func (w *KafkaProducer) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 		return
 	}
 
-	msgs := []kafka.Message{}
-	buffer := new(bytes.Buffer)
-
 	kafkaConfig := w.GetConfig().Loggers.KafkaProducer
 	globalConfig := w.GetConfig().Global
+
+	msgs := make([]kafka.Message, 0, len(*buf))
+	buffer := new(bytes.Buffer)
+
 	for _, dm := range *buf {
 		var strDm string
 		switch kafkaConfig.Mode {
 		case pkgconfig.ModeText:
-			textBuf := w.GetTextBuffer() // get buffer from pool
+			textBuf := w.GetTextBuffer()
 			var err error
 			if w.textFormatter != nil {
 				err = w.textFormatter.Format(dm, textBuf)
@@ -322,8 +235,8 @@ func (w *KafkaProducer) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 				continue
 			}
 
-			strDm = textBuf.String() // assign buffer content
-			w.PutTextBuffer(textBuf) // return buffer to pool
+			strDm = textBuf.String()
+			w.PutTextBuffer(textBuf)
 		case pkgconfig.ModeJSON:
 			json.NewEncoder(buffer).Encode(dm)
 			strDm = buffer.String()
@@ -346,78 +259,41 @@ func (w *KafkaProducer) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 			}
 		}
 
-		msgs = append(msgs, kafka.Message{
+		msg := kafka.Message{
 			Key:   []byte(dm.DNSTap.Identity),
 			Value: []byte(strDm),
-		})
+		}
+		if kafkaConfig.Partition != nil {
+			msg.Partition = *kafkaConfig.Partition
+		}
+
+		msgs = append(msgs, msg)
 	}
 
-	w.connMutex.RLock()
-	defer w.connMutex.RUnlock()
+	if len(msgs) == 0 {
+		return
+	}
 
-	partition := kafkaConfig.Partition
-	var err error
+	w.writerMutex.RLock()
+	writer := w.writer
+	w.writerMutex.RUnlock()
 
-	handleError := func(partitionID int, err error) {
-		w.LogError("[partition=%d] write failed: %v", partitionID, err.Error())
+	if writer == nil {
+		w.LogError("kafka writer is not initialized")
 		for range msgs {
 			w.CountEgressDiscarded()
 		}
-		w.connMutex.RUnlock()
-		w.connMutex.Lock()
-		w.kafkaConnected = false
-		w.connMutex.Unlock()
-		w.connMutex.RLock()
-
-		select {
-		case w.triggerReconnect <- true:
-		default:
-		}
+		return
 	}
 
-	if partition == nil {
-		// Round-robin between partitions
-		if w.lastPartitionIndex == nil {
-			w.lastPartitionIndex = new(int)
-		}
-		numPartitions := len(w.kafkaConns)
-		if numPartitions == 0 {
-			w.LogError("no kafka connections available")
-			handleError(0, errors.New("no connections available"))
-			return
-		}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(kafkaConfig.ConnectTimeout)*time.Second)
+	defer cancel()
 
-		conn := w.kafkaConns[*w.lastPartitionIndex]
-		if kafkaConfig.Compression == pkgconfig.CompressNone {
-			_, err = conn.WriteMessages(msgs...)
-		} else {
-			_, err = conn.WriteCompressedMessages(w.compressCodec, msgs...)
-		}
-
-		if err != nil {
-			handleError(*w.lastPartitionIndex, err)
-			return
-		}
-
-		*w.lastPartitionIndex = (*w.lastPartitionIndex + 1) % numPartitions
-	} else {
-		// specific partition
-		conn, exists := w.kafkaConns[*partition]
-		if !exists {
-			w.LogError("[partition=%d] connection not available", *partition)
-			handleError(*partition, errors.New("connection not available"))
-			return
-		}
-
-		if kafkaConfig.Compression == pkgconfig.CompressNone {
-			_, err = conn.WriteMessages(msgs...)
-		} else {
-			_, err = conn.WriteCompressedMessages(w.compressCodec, msgs...)
-		}
-
-		if err != nil {
-			handleError(*partition, err)
-			return
+	err := writer.WriteMessages(ctx, msgs...)
+	if err != nil {
+		w.LogError("kafka write failed: %v", err)
+		for range msgs {
+			w.CountEgressDiscarded()
 		}
 	}
 }
@@ -426,17 +302,13 @@ func (w *KafkaProducer) StartCollect() {
 	w.LogInfo("starting data collection")
 	defer w.CollectDone()
 
-	// prepare next channels
 	defaultRoutes, defaultNames := GetRoutes(w.GetDefaultRoutes())
 	droppedRoutes, droppedNames := GetRoutes(w.GetDroppedRoutes())
 
-	// prepare transforms
 	subprocessors := transformers.NewTransforms(&w.GetConfig().OutgoingTransformers, w.GetLogger(), w.GetName(), w.GetOutputChannelAsList(), 0)
 
-	// goroutine to process transformed dns messages
 	go w.StartLogging()
 
-	// loop to process incoming messages
 	for {
 		select {
 		case <-w.OnStop():
@@ -444,11 +316,17 @@ func (w *KafkaProducer) StartCollect() {
 			subprocessors.Reset()
 			return
 
-			// new config provided?
 		case cfg := <-w.NewConfig():
 			w.SetConfig(cfg)
 			w.ReadConfig()
 			subprocessors.ReloadConfig(&cfg.OutgoingTransformers)
+
+			w.writerMutex.Lock()
+			if w.writer != nil {
+				w.writer.Close()
+			}
+			w.writer = w.createWriter()
+			w.writerMutex.Unlock()
 
 		case batch, opened := <-w.GetInputChannel():
 			if !opened {
@@ -457,10 +335,8 @@ func (w *KafkaProducer) StartCollect() {
 			}
 			outBatch := dnsutils.AcquireDNSMessageBatch(len(batch.Messages))
 			for _, dm := range batch.Messages {
-				// count global messages
 				w.CountIngressTraffic()
 
-				// apply transforms, init dns message with additional parts if necessary
 				transformResult, err := subprocessors.ProcessMessage(dm)
 				if err != nil {
 					w.LogError(err.Error())
@@ -483,91 +359,36 @@ func (w *KafkaProducer) StartLogging() {
 	w.LogInfo("logging has started")
 	defer w.LoggingDone()
 
-	ctx, cancelKafka := context.WithCancel(context.Background())
-	defer cancelKafka()
-
-	// init buffer
 	bufferDm := []*dnsutils.DNSMessage{}
-
-	// init flush timer for buffer
 	flushInterval := time.Duration(w.GetConfig().Loggers.KafkaProducer.FlushInterval) * time.Second
 	flushTimer := time.NewTimer(flushInterval)
-
-	// initiate connection to kafka
-	go w.ConnectToKafka(ctx)
 
 	for {
 		select {
 		case <-w.OnLoggerStopped():
-			// closing kafka connection if exist
 			w.Disconnect()
 			return
 
-		case <-w.triggerReconnect:
-			// check if we are still connected
-			w.reconnectMutex.Lock()
-			alreadyReconnecting := w.reconnecting
-			if !alreadyReconnecting {
-				w.reconnecting = true
-			}
-			w.reconnectMutex.Unlock()
-
-			// if not, start reconnection routine
-			if alreadyReconnecting {
-				continue
-			}
-
-			w.connMutex.RLock()
-			connected := w.kafkaConnected
-			w.connMutex.RUnlock()
-
-			if !connected {
-				w.LogWarning("write error detected, attempting reconnection")
-				go w.ConnectToKafka(ctx)
-			} else {
-				// reset reconnecting flag
-				w.reconnectMutex.Lock()
-				w.reconnecting = false
-				w.reconnectMutex.Unlock()
-			}
-
-		// incoming dns message to process
 		case batch, opened := <-w.GetOutputChannel():
 			if !opened {
 				w.LogInfo("output channel closed!")
 				return
 			}
 
-			w.connMutex.RLock()
-			connected := w.kafkaConnected
-			w.connMutex.RUnlock()
-
 			for _, dm := range batch.Messages {
-				// drop dns message if the connection is not ready to avoid memory leak or
-				// to block the channel
-				if !connected {
-					w.CountEgressDiscarded()
-					continue
-				}
-
 				dm.Retain(1)
-				// append dns message to buffer
 				bufferDm = append(bufferDm, dm)
 
-				// buffer is full ?
 				if len(bufferDm) >= w.GetConfig().Loggers.KafkaProducer.BatchSize {
 					w.FlushBuffer(&bufferDm)
 				}
 			}
 			batch.Release()
 
-		// flush the buffer
 		case <-flushTimer.C:
 			if len(bufferDm) > 0 {
 				w.FlushBuffer(&bufferDm)
 			}
-
-			// restart timer
 			flushTimer.Reset(flushInterval)
 		}
 	}

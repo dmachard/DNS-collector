@@ -52,6 +52,7 @@ func Test_TcpClientRun(t *testing.T) {
 
 			// start the logger
 			go g.StartCollect()
+			defer g.Stop()
 
 			// accept conn from logger
 			conn, err := fakeRcvr.Accept()
@@ -59,6 +60,8 @@ func Test_TcpClientRun(t *testing.T) {
 				return
 			}
 			defer conn.Close()
+
+			_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 
 			// wait connection on logger
 			time.Sleep(time.Second)
@@ -79,10 +82,6 @@ func Test_TcpClientRun(t *testing.T) {
 			if !pattern.MatchString(line) {
 				t.Errorf("tcp error want %s, got: %s", tc.pattern, line)
 			}
-
-			// stop all
-			fakeRcvr.Close()
-			g.Stop()
 		})
 	}
 }
@@ -91,6 +90,7 @@ func Test_TcpClient_ConnectionAttempt(t *testing.T) {
 	// init logger
 	cfg := pkgconfig.GetDefaultConfig()
 	cfg.Loggers.TCPClient.FlushInterval = 1
+	cfg.Loggers.TCPClient.BufferSize = 0
 	cfg.Loggers.TCPClient.Mode = pkgconfig.ModeText
 	cfg.Loggers.TCPClient.RemoteAddress = "127.0.0.1"
 	cfg.Loggers.TCPClient.RemotePort = 9999
@@ -101,6 +101,7 @@ func Test_TcpClient_ConnectionAttempt(t *testing.T) {
 
 	// start the logger
 	go g.StartCollect()
+	defer g.Stop()
 
 	// just way to get connect attempt
 	time.Sleep(time.Second * 3)
@@ -118,6 +119,8 @@ func Test_TcpClient_ConnectionAttempt(t *testing.T) {
 		return
 	}
 	defer conn.Close()
+
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 
 	// wait connection on logger
 	time.Sleep(time.Second)
@@ -138,9 +141,4 @@ func Test_TcpClient_ConnectionAttempt(t *testing.T) {
 	if !pattern.MatchString(line) {
 		t.Errorf("tcp error want dns.collector, got: %s", line)
 	}
-
-	// stop all
-	fakeRcvr.Close()
-	g.Stop()
-
 }

@@ -1,10 +1,10 @@
 <p align="center">
   <img src="https://img.shields.io/badge/go%20version-min%201.26-green" alt="Go version"/>
-  <img src="https://img.shields.io/badge/go%20tests-608-green" alt="Go tests"/>
+  <img src="https://img.shields.io/badge/go%20tests-331-green" alt="Go tests"/>
   <img src="https://img.shields.io/badge/go%20coverage-67%25-green" alt="Go coverage"/>
-  <img src="https://img.shields.io/badge/go%20bench-95-green" alt="Go bench"/>
+  <img src="https://img.shields.io/badge/go%20microbench-113-green" alt="Go bench"/>
   <img src="https://img.shields.io/badge/go%20fuzz-1-green" alt="Go Fuzz"/>
-  <img src="https://img.shields.io/badge/go%20lines-18836-green" alt="Go lines"/>
+  <img src="https://img.shields.io/badge/go%20lines-19839-green" alt="Go lines"/>
 </p>
 
 <p align="center">
@@ -18,17 +18,17 @@
 
 ## What is DNS-collector?
 
-**DNS-collector** is a lightweight tool that captures DNS queries and responses from your DNS servers, processes them intelligently, and sends clean data to your monitoring or analytics systems.
+**DNS-collector** is a lightweight tool that captures DNS queries and responses from your DNS servers, processes them intelligently, and sends clean data to your monitoring, analytics and security systems.
 
 What it does:
-- **Captures DNS data** from your DNS servers (BIND, PowerDNS, Unbound, etc.) via [DNStap](https://dnstap.info/) protocol or live network capture
-- **Filters out noise** like health checks, internal queries, or spam before storage
-- **Enriches data** with GeoIP, threat intelligence, or custom metadata  
-- **Outputs clean data** to files, databases, SIEM tools, or monitoring dashboards
+- **Captures at scale**: Ingests streams from BIND, PowerDNS, Unbound, etc., via high-speed [DNStap](https://dnstap.info/) protocol or live wire packet capture.
+- **Filters & normalizes**: Discards noise (health checks, internal probes, spam) at wire speed before reaching storage.
+- **Enriches on-the-fly**: Decorates records with GeoIP, ASN, threat intelligence, metadata, and custom tags.
+- **Streams everywhere**: Dispatches batched events to ClickHouse, Kafka, Loki, Elasticsearch, Syslog, Prometheus, and more.
 
 ## Why DNS-collector?
 
-The missing piece between DNS servers and your data stack.
+The missing high-performance data collector between DNS servers and your SIEM/observability/analytics stack.
 
 - **DNS-native processing**: Understands DNS protocol, EDNS, query types natively
 - **Process at the edge**: Clean, filter and enrich DNS data before storage - not after
@@ -40,9 +40,27 @@ The missing piece between DNS servers and your data stack.
 
 ## 🚀 Quick Start
 
-Download the [latest release](https://github.com/dmachard/DNS-collector/releases) and run with default config:
+Download the [latest release](https://github.com/dmachard/DNS-collector/releases) and create a simple [`config.yml`](config.yml) pipeline:
+
+```yaml
+pipelines:
+  - name: tap
+    dnstap:
+      listen-ip: 0.0.0.0
+      listen-port: 6000
+    transforms:
+      normalize:
+        qname-lowercase: true
+    routing-policy:
+      forward: [ console ]
+  - name: console
+    stdout:
+      mode: text
+```
+
 Default setup listens on tcp/6000 for DNStap streams and outputs to stdout.
-To get started quickly, you can use this default [`config.yml`](config.yml).
+
+Run the collector:
 
 ```bash
 ./dnscollector -config config.yml

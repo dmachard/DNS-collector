@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
@@ -53,6 +54,7 @@ func Test_LokiClientRun(t *testing.T) {
 
 			// start the logger
 			go g.StartCollect()
+			defer g.Stop()
 
 			// send fake dns message to logger
 			dm := dnsutils.GetFakeDNSMessage()
@@ -65,6 +67,8 @@ func Test_LokiClientRun(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer conn.Close()
+
+			_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 
 			// read and parse http request on server side
 			request, err := http.ReadRequest(bufio.NewReader(conn))
@@ -160,6 +164,7 @@ func Test_LokiClientRelabel(t *testing.T) {
 
 				// start the logger
 				go g.StartCollect()
+				defer g.Stop()
 
 				// send fake dns message to logger
 				dm := dnsutils.GetFakeDNSMessage()
@@ -172,6 +177,8 @@ func Test_LokiClientRelabel(t *testing.T) {
 					t.Fatal(err)
 				}
 				defer conn.Close()
+
+				_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 
 				// read and parse http request on server side
 				request, err := http.ReadRequest(bufio.NewReader(conn))

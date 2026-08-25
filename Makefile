@@ -28,10 +28,21 @@ ifndef $(GOPATH)
 	export GOPATH
 endif
 
-.PHONY: all check-go dep lint build clean goversion stats docs-serve
+.PHONY: all check-go dep lint build clean goversion stats docs-serve count-tests
 
 # This target depends on dep and build.
 all: check-go dep build
+
+count-tests: check-go
+	@echo "Counting Go tests, benchmarks and fuzzers..."
+	@TESTS_COUNT=$$(go test -list '.*' ./... | grep -E '^(Test|Benchmark|Fuzz)' | sort -u | wc -l); \
+	TEST_UNIT_COUNT=$$(go test -list '.*' ./... | grep -E '^Test' | sort -u | wc -l); \
+	BENCH_COUNT=$$(go test -list '.*' ./... | grep -E '^Benchmark' | sort -u | wc -l); \
+	FUZZ_COUNT=$$(go test -list '.*' ./... | grep -E '^Fuzz' | sort -u | wc -l); \
+	echo "Total tests & benchmarks : $$TESTS_COUNT"; \
+	echo "Unit tests               : $$TEST_UNIT_COUNT"; \
+	echo "Benchmarks               : $$BENCH_COUNT"; \
+	echo "Fuzzers                  : $$FUZZ_COUNT";
 
 check-go:
 	@command -v go > /dev/null 2>&1 || { echo >&2 "Go is not installed. Please install it before proceeding."; exit 1; }

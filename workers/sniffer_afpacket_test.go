@@ -3,7 +3,6 @@
 package workers
 
 import (
-	"log"
 	"net"
 	"testing"
 
@@ -16,7 +15,7 @@ func TestAfpacketSnifferRun(t *testing.T) {
 	g := GetWorkerForTest(pkgconfig.DefaultBufferSize)
 	c := NewAfpacketSniffer([]Worker{g}, pkgconfig.GetDefaultConfig(), logger.New(false), "test")
 	if err := c.Listen(); err != nil {
-		log.Fatal("collector sniffer listening error: ", err)
+		t.Skip("skipping afpacket test (requires root/CAP_NET_RAW): ", err)
 	}
 	go c.StartCollect()
 

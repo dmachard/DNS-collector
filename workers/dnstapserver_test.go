@@ -230,6 +230,7 @@ func Test_DnstapProcessor_toDNSMessage(t *testing.T) {
 
 	// start the consumer
 	go consumer.StartCollect()
+	defer consumer.Stop()
 
 	// add packet to consumer
 	consumer.GetDataChannel() <- data
@@ -268,6 +269,7 @@ func Test_DnstapProcessor_DecodeDNSCounters(t *testing.T) {
 
 	// start the consumer
 	go consumer.StartCollect()
+	defer consumer.Stop()
 
 	// add packet to consumer
 	consumer.GetDataChannel() <- data
@@ -319,6 +321,7 @@ func Test_DnstapProcessor_MalformedDnsHeader(t *testing.T) {
 
 	// start the consumer
 	go consumer.StartCollect()
+	defer consumer.Stop()
 
 	// add packet to consumer
 	consumer.GetDataChannel() <- data
@@ -356,6 +359,7 @@ func Test_DnstapProcessor_MalformedDnsQuestion(t *testing.T) {
 
 	// start the consumer
 	go consumer.StartCollect()
+	defer consumer.Stop()
 
 	// add packet to consumer
 	consumer.GetDataChannel() <- data
@@ -394,6 +398,7 @@ func Test_DnstapProcessor_MalformedDnsAnswer(t *testing.T) {
 
 	// start the consumer
 	go consumer.StartCollect()
+	defer consumer.Stop()
 
 	// add packet to consumer
 	consumer.GetDataChannel() <- data
@@ -426,6 +431,7 @@ func Test_DnstapProcessor_EmptyDnsPayload(t *testing.T) {
 
 	// start the consumer
 	go consumer.StartCollect()
+	defer consumer.Stop()
 
 	// add packet to consumer
 	consumer.GetDataChannel() <- data
@@ -467,6 +473,7 @@ func Test_DnstapProcessor_DisableDNSParser(t *testing.T) {
 
 	// start the consumer
 	go consumer.StartCollect()
+	defer consumer.Stop()
 
 	// add packet to consumer
 	consumer.GetDataChannel() <- data
@@ -527,6 +534,7 @@ func Test_DnstapProcessor_Extended(t *testing.T) {
 
 	// start the consumer
 	go consumer.StartCollect()
+	defer consumer.Stop()
 
 	// add packet to consumer
 	consumer.GetDataChannel() <- data
@@ -567,6 +575,7 @@ func Test_DnstapProcessor_BufferLoggerIsFull(t *testing.T) {
 	// init the dnstap consumer
 	cfg := pkgconfig.GetDefaultConfig()
 	cfg.Global.Worker.BatchSize = 1
+	cfg.Global.Worker.InternalMonitor = 1
 	consumer := NewDNSTapProcessor(0, "peertest", cfg, lg, "test", 512)
 	consumer.AddDefaultRoute(fl)
 	consumer.AddDroppedRoute(fl)
@@ -588,6 +597,7 @@ func Test_DnstapProcessor_BufferLoggerIsFull(t *testing.T) {
 
 	// start the consumer
 	go consumer.StartCollect()
+	defer consumer.Stop()
 
 	// add packets to consumer
 	for i := 0; i < 512; i++ {
@@ -595,7 +605,7 @@ func Test_DnstapProcessor_BufferLoggerIsFull(t *testing.T) {
 	}
 
 	// waiting monitor to run in consumer
-	time.Sleep(12 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	for entry := range logsChan {
 		fmt.Println(entry)
@@ -617,7 +627,7 @@ func Test_DnstapProcessor_BufferLoggerIsFull(t *testing.T) {
 	}
 
 	// waiting monitor to run in consumer
-	time.Sleep(12 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	for entry := range logsChan {
 		fmt.Println(entry)
@@ -670,6 +680,7 @@ func Test_DnstapProcessor_TelemetryCounters(t *testing.T) {
 
 	// start the consumer
 	go consumer.StartCollect()
+	defer consumer.Stop()
 
 	// add packet to consumer and read output
 	consumer.GetDataChannel() <- data

@@ -32,6 +32,7 @@ func TestTailRun(t *testing.T) {
 		t.Errorf("collector tail following error: %e", err)
 	}
 	go c.StartCollect()
+	defer c.Stop()
 
 	// write fake log
 	time.Sleep(5 * time.Second)

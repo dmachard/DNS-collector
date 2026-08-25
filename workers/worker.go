@@ -39,6 +39,7 @@ type GenericWorker struct {
 	logger                                                               *logger.Logger
 	name, descr                                                          string
 	droppedRoutes, defaultRoutes                                         []Worker
+	stopOnce, stopLoggerOnce                                             sync.Once
 	// droppedWorkerCounts maps route-name -> atomic dropped message count.
 	// Using a sync.Map of *atomic.Int64 avoids starvation that a channel-based
 	// accumulator can cause when the monitor ticker competes with a high-volume
@@ -180,8 +181,10 @@ func (w *GenericWorker) OnLoggerStopped() chan bool {
 }
 
 func (w *GenericWorker) StopLogger() {
-	w.stopProcess <- true
-	<-w.doneProcess
+	w.stopLoggerOnce.Do(func() {
+		w.stopProcess <- true
+		<-w.doneProcess
+	})
 }
 
 func (w *GenericWorker) CollectDone() {
@@ -195,14 +198,14 @@ func (w *GenericWorker) LoggingDone() {
 }
 
 func (w *GenericWorker) Stop() {
-
-	w.LogInfo("stopping collect...")
-	w.stopRun <- true
-	<-w.doneRun
-	w.LogInfo("stopping monitor...")
-	w.stopMonitor <- true
-	<-w.doneMonitor
-
+	w.stopOnce.Do(func() {
+		w.LogInfo("stopping collect...")
+		w.stopRun <- true
+		<-w.doneRun
+		w.LogInfo("stopping monitor...")
+		w.stopMonitor <- true
+		<-w.doneMonitor
+	})
 }
 
 func (w *GenericWorker) Monitor() {

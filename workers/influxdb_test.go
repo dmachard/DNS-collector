@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
@@ -26,6 +27,7 @@ func Test_InfluxDB(t *testing.T) {
 
 	// start the logger
 	go g.StartCollect()
+	defer g.Stop()
 
 	// send fake dns message to logger
 	dm := dnsutils.GetFakeDNSMessage()
@@ -37,6 +39,8 @@ func Test_InfluxDB(t *testing.T) {
 		return
 	}
 	defer conn.Close()
+
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 
 	// read data on fake server side
 
