@@ -4,8 +4,8 @@ This collector enable to ingest multiple  files by watching a directory.
 This collector can be configured to search for PCAP files or DNSTAP files.
 Make sure the PCAP is complete before moving the file to the directory so that file data is not truncated. 
 
-If you are in PCAP mode, the collector search for files with the `.pcap` extension.
-If you are in DNSTap mode, the collector search for files with the `.fstrm` extension.
+If you are in PCAP mode, the collector searches for files with the `.pcap` or `.pcap.gz` extension. Supported PCAP link-layer encapsulation types include **Ethernet**, **Linux Cooked Capture (SLL / `tcpdump -i any`)**, **Loopback / Null**, and **Raw IP**.
+If you are in DNSTap mode, the collector searches for files with the `.fstrm` or `.fstrm.gz` extension.
 
 For config examples, take a look to the following links:
 

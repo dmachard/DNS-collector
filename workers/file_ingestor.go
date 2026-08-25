@@ -97,8 +97,17 @@ func (w *FileIngestor) ProcessPcap(filePath string) {
 	fileName := filepath.Base(filePath)
 	w.LogInfo("processing pcap file [%s]...", fileName)
 
-	if pcapHandler.LinkType() != layers.LinkTypeEthernet {
-		w.LogError("pcap file [%s] ignored: %s", filePath, pcapHandler.LinkType())
+	switch pcapHandler.LinkType() {
+	case layers.LinkTypeEthernet,
+		layers.LinkTypeLinuxSLL,
+		layers.LinkTypeNull,
+		layers.LinkTypeRaw,
+		layers.LinkTypeIPv4,
+		layers.LinkTypeIPv6,
+		layers.LinkTypeLoop:
+		// Supported link types
+	default:
+		w.LogError("pcap file [%s] ignored: unsupported link type %s", filePath, pcapHandler.LinkType())
 		return
 	}
 
