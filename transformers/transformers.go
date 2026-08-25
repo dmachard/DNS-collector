@@ -89,6 +89,8 @@ func NewTransforms(config *pkgconfig.ConfigTransformers, logger *logger.Logger, 
 			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewFilteringTransform(config, logger, name, instance, nextWorkers)})
 		case "geoip":
 			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewDNSGeoIPTransform(config, logger, name, instance, nextWorkers)})
+		case "bgp":
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewDNSBGPTransform(config, logger, name, instance, nextWorkers)})
 		case "atags":
 			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewATagsTransform(config, logger, name, instance, nextWorkers)})
 		case "suspicious":

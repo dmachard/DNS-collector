@@ -72,6 +72,23 @@ func TestDnsMessage_Json_Transforms_Reference(t *testing.T) {
 					}`,
 		},
 		{
+			transform: "bgp",
+			dmRef: DNSMessage{
+				BGP: &TransformBGP{
+					OriginASN: "19281",
+					ASPath:    "174 2914 19281",
+					Prefix:    "149.112.112.0/24",
+				},
+			},
+			jsonRef: `{
+						"bgp": {
+							"origin-asn": "19281",
+							"as-path": "174 2914 19281",
+							"prefix": "149.112.112.0/24"
+						}
+					}`,
+		},
+		{
 			transform: "atags",
 			dmRef:     DNSMessage{ATags: &TransformATags{Tags: []string{"test0", "test1"}}},
 			jsonRef: `{
@@ -158,6 +175,21 @@ func TestDnsMessage_JsonFlatten_Transforms_Reference(t *testing.T) {
 						"geoip.as-owner": "Internet",
 						"geoip.lat": 0,
 						"geoip.lon": 0
+					}`,
+		},
+		{
+			transform: "bgp",
+			dm: DNSMessage{
+				BGP: &TransformBGP{
+					OriginASN: "19281",
+					ASPath:    "174 2914 19281",
+					Prefix:    "149.112.112.0/24",
+				},
+			},
+			jsonRef: `{
+						"bgp.origin-asn": "19281",
+						"bgp.as-path": "174 2914 19281",
+						"bgp.prefix": "149.112.112.0/24"
 					}`,
 		},
 		{

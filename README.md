@@ -30,10 +30,9 @@ What it does:
 
 The missing high-performance data collector between DNS servers and your SIEM/observability/analytics stack.
 
-- **DNS-native processing**: Understands DNS protocol, EDNS, query types natively
-- **Process at the edge**: Clean, filter and enrich DNS data before storage - not after
-- **Multiple input sources**: DNStap streams, live network capture, log files
-- **DNS-aware transformations**: Filtering noise upstream, user privacy
+- **For Operators & Enterprises**: High-performance DNS telemetry pipeline for large scale DNS infrastructure (BIND, PowerDNS, Unbound, etc.)
+- **For Homelabs & Self-Hosters**: Single lightweight binary with minimal RAM footprint
+- **DNS-Native & Edge Processing**: Understands EDNS, query types, latency tracking, and anonymizes user IPs before storage.
 - **Flexible outputs**: Files, syslog, databases, monitoring tools and more...
 - **Production ready**: Used in real networks, tested with major DNS servers
 - **Enhanced DNStap**: TLS encryption, compression, and more metadata capabilities

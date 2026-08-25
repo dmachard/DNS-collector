@@ -297,6 +297,12 @@ type TransformRelabeling struct {
 	Rules []RelabelingRule
 }
 
+type TransformBGP struct {
+	OriginASN string `json:"origin-asn"`
+	ASPath    string `json:"as-path"`
+	Prefix    string `json:"prefix"`
+}
+
 type DNSMessage struct {
 	NetworkInfo     DNSNetInfo             `json:"network"`
 	DNS             DNS                    `json:"dns"`
@@ -305,6 +311,7 @@ type DNSMessage struct {
 	PowerDNS        *CollectorPowerDNS     `json:"powerdns,omitempty"`
 	OpenTelemetry   *LoggerOpenTelemetry   `json:"opentelemetry,omitempty"`
 	Geo             *TransformDNSGeo       `json:"geoip,omitempty"`
+	BGP             *TransformBGP          `json:"bgp,omitempty"`
 	Suspicious      *TransformSuspicious   `json:"suspicious,omitempty"`
 	PublicSuffix    *TransformPublicSuffix `json:"publicsuffix,omitempty"`
 	Extracted       *TransformExtracted    `json:"extracted,omitempty"`
@@ -362,6 +369,7 @@ func (dm *DNSMessage) Reset() {
 	dm.PowerDNS = nil
 	dm.OpenTelemetry = nil
 	dm.Geo = nil
+	dm.BGP = nil
 	dm.Suspicious = nil
 	dm.PublicSuffix = nil
 	dm.Extracted = nil
@@ -493,6 +501,11 @@ func (dm *DNSMessage) InitTransforms() {
 		dm.Geo = &TransformDNSGeo{}
 	} else {
 		*dm.Geo = TransformDNSGeo{}
+	}
+	if dm.BGP == nil {
+		dm.BGP = &TransformBGP{}
+	} else {
+		*dm.BGP = TransformBGP{}
 	}
 	if dm.Relabeling == nil {
 		dm.Relabeling = &TransformRelabeling{}

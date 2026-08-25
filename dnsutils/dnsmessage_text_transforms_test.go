@@ -315,3 +315,46 @@ func TestDnsMessage_TextFormat_Directives_Filtering(t *testing.T) {
 		})
 	}
 }
+
+func Test_TransformTextBGP(t *testing.T) {
+	config := pkgconfig.GetDefaultConfig()
+
+	testcases := []struct {
+		name     string
+		format   string
+		dm       DNSMessage
+		expected string
+	}{
+		{
+			name:     "undefined",
+			format:   "bgp-origin-asn bgp-as-path bgp-prefix",
+			dm:       DNSMessage{},
+			expected: "- - -",
+		},
+		{
+			name:   "default",
+			format: "bgp-origin-asn bgp-as-path bgp-prefix",
+			dm: DNSMessage{BGP: &TransformBGP{
+				OriginASN: "19281",
+				ASPath:    "174 2914 19281",
+				Prefix:    "149.112.112.0/24",
+			}},
+			expected: "19281 174 2914 19281 149.112.112.0/24",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			err := tc.dm.ToTextLine(strings.Fields(tc.format), config.Global.TextFormatDelimiter, config.Global.TextFormatBoundary, &buf)
+			if err != nil {
+				t.Fatalf("failed to generate text line: %v", err)
+			}
+
+			line := buf.String()
+			if line != tc.expected {
+				t.Errorf("Want: %s, got: %s", tc.expected, line)
+			}
+		})
+	}
+}
