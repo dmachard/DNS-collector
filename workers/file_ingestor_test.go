@@ -70,13 +70,13 @@ func createTestPcapLinuxSLL(t *testing.T, dir string, qname string) string {
 	copy(sllHdr[6:12], []byte{0x00, 0x11, 0x22, 0x33, 0x44, 0x55})
 	binary.BigEndian.PutUint16(sllHdr[14:16], uint16(layers.EthernetTypeIPv4))
 
-	packetData := append(sllHdr, buf.Bytes()...)
+	sllHdr = append(sllHdr, buf.Bytes()...)
 	ci := gopacket.CaptureInfo{
 		Timestamp:     time.Now(),
-		CaptureLength: len(packetData),
-		Length:        len(packetData),
+		CaptureLength: len(sllHdr),
+		Length:        len(sllHdr),
 	}
-	if err := pcapWriter.WritePacket(ci, packetData); err != nil {
+	if err := pcapWriter.WritePacket(ci, sllHdr); err != nil {
 		t.Fatal(err)
 	}
 
@@ -240,15 +240,15 @@ func Benchmark_FileIngestor_LinuxSLL(b *testing.B) {
 	binary.BigEndian.PutUint16(sllHdr[4:6], 6)
 	copy(sllHdr[6:12], []byte{0x00, 0x11, 0x22, 0x33, 0x44, 0x55})
 	binary.BigEndian.PutUint16(sllHdr[14:16], uint16(layers.EthernetTypeIPv4))
-	packetData := append(sllHdr, buf.Bytes()...)
+	sllHdr = append(sllHdr, buf.Bytes()...)
 
 	ci := gopacket.CaptureInfo{
 		Timestamp:     time.Now(),
-		CaptureLength: len(packetData),
-		Length:        len(packetData),
+		CaptureLength: len(sllHdr),
+		Length:        len(sllHdr),
 	}
 	for i := 0; i < 100; i++ {
-		_ = pcapWriter.WritePacket(ci, packetData)
+		_ = pcapWriter.WritePacket(ci, sllHdr)
 	}
 	f.Close()
 
