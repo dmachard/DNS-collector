@@ -33,7 +33,7 @@ func NewUniqueResponseTracker(ttl time.Duration, maxSize int, engine string, whi
 	}
 
 	if engine == "" {
-		engine = "cuckoo"
+		engine = "lru"
 	}
 
 	tracker := &UniqueResponseTracker{
