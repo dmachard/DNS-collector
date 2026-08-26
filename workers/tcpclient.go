@@ -343,3 +343,9 @@ func (w *TCPClient) StartLogging() {
 		}
 	}
 }
+
+func init() {
+	RegisterLogger("tcpclient", func(c *pkgconfig.Config) bool { return c.Loggers.TCPClient.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewTCPClient(c, l, s)
+	})
+}

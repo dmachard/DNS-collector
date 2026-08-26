@@ -254,3 +254,9 @@ func (w *DNSMessage) StartCollect() {
 		}
 	}
 }
+
+func init() {
+	RegisterCollector("dnsmessage", func(c *pkgconfig.Config) bool { return c.Collectors.DNSMessage.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewDNSMessage(nil, c, l, s)
+	})
+}

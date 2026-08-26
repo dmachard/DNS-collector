@@ -709,3 +709,9 @@ func (w *RestAPI) StartLogging() {
 		}
 	}
 }
+
+func init() {
+	RegisterLogger("restapi", func(c *pkgconfig.Config) bool { return c.Loggers.RestAPI.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewRestAPI(c, l, s)
+	})
+}

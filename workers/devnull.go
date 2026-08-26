@@ -28,3 +28,9 @@ func (w *DevNull) StartCollect() {
 		batch.Release()
 	})
 }
+
+func init() {
+	RegisterLogger("devnull", func(c *pkgconfig.Config) bool { return c.Loggers.DevNull.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewDevNull(c, l, s)
+	})
+}

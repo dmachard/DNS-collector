@@ -9,8 +9,8 @@ If you are in DNSTap mode, the collector searches for files with the `.fstrm` or
 
 For config examples, take a look to the following links:
 
-- [dnstap](../examples/config-dnstap-to-dnstap_file.yml)
-- [pcap](../examples/config-pcap-to-console.yml)
+- [dnstap](https://github.com/dmachard/DNS-collector/blob/main/docs/examples/config-dnstap-to-dnstap_file.yml)
+- [pcap](https://github.com/dmachard/DNS-collector/blob/main/docs/examples/config-pcap-to-console.yml)
 
 Options:
 

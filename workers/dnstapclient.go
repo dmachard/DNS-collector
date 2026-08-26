@@ -326,3 +326,9 @@ func (w *DnstapSender) StartLogging() {
 		}
 	}
 }
+
+func init() {
+	RegisterLogger("dnstap", func(c *pkgconfig.Config) bool { return c.Loggers.DNSTap.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewDnstapSender(c, l, s)
+	})
+}

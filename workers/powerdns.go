@@ -529,3 +529,9 @@ func (w *PdnsProcessor) StartCollect() {
 		}
 	}
 }
+
+func init() {
+	RegisterCollector("powerdns", func(c *pkgconfig.Config) bool { return c.Collectors.PowerDNS.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewPdnsServer(nil, c, l, s)
+	})
+}

@@ -1,130 +1,25 @@
 # Extending DNS-collector
 
-This guide explains how to extend DNS-collector by adding new transformers or workers (collectors and loggers).
+DNS-collector is designed to be easily extensible. You can extend its capabilities in two main ways:
 
-## How to userguides
+- **[Adding a Worker (Collector or Logger)](extending_workers.md)**: Add new input sources (collectors like Dnstap, PCAP, sockets) or output sinks (loggers like Kafka, Elasticsearch, Syslog).
+- **[Adding a Transformer](extending_transformers.md)**: Add custom packet manipulation, enrichment, GeoIP lookups, or filtering logic.
 
-### Add transformer
+---
 
-Add Configuration `dnsutils/config.go` and `config.yml`
+## Architecture Overview
 
-```golang
-type ConfigTransformers struct {
- MyTransform struct {
-  Enable         bool `yaml:"enable"`
-    }
-}
+```mermaid
+flowchart TD
+    Engine["<b>Core Engine</b><br/>(Pipeline & Routing)"]
+    Engine --> C["<b>Collector</b><br/>(e.g. Dnstap, PCAP)"]
+    Engine --> T["<b>Transformer</b><br/>(e.g. GeoIP, Normalize)"]
+    Engine --> S["<b>Sink / Logger</b><br/>(e.g. Kafka, ClickHouse)"]
+    C ==>|DNS Batch| T
+    T ==>|DNS Batch| S
 ```
 
-```golang
-func (c *ConfigTransformers) SetDefault() {
-    c.MyTransform.Enable = false
-}
-```
+Explore the detailed step-by-step guides below:
 
-Create the following file `transformers/mytransform.go` and `transformers/mytransform_test.go`
-
-```golang
-type MyTransform struct {
-	GenericTransformer
-}
-
-func MyTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan dnsutils.DNSMessage) *MyTransform {
-	t := &MyTransform{GenericTransformer: NewTransformer(config, logger, "mytransform", name, instance, nextWorkers)}
-	return t
-}
-```
-
-Declare the transformer in the following file `transformers.go`
-Finally update the docs `doc/transformers.md` and `README.md`
-
-### Add a worker (collector or logger)
-
-1. Add Configuration in `pkgconfig/logger.go`  or `pkgconfig/collectors.go`
-
-```golang
-Loggers struct {
-    MyLogger struct {
-        Enable   bool   `yaml:"enable"`
-    }
-}
-```
-
-```golang
-func (c *Config) SetDefault() {
-    c.Loggers.MyLogger.Enable = false
-}
-```
-
-2. Create the following file `workers/mylogger.go` and `loggers/mylogger_test.go`
-
-```golang
-package workers
-
-import (
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
-	"github.com/dmachard/go-dnscollector/v2/pkgutils"
-	"github.com/dmachard/go-logger"
-)
-
-type MyWorker struct {
-	*GenericWorker
-}
-
-func NewMyWorker(config *pkgconfig.Config, console *logger.Logger, name string) *MyWorker {
-	s := &MyWorker{GenericWorker: NewGenericWorker(config, console, name, "worker", DefaultBufferSize)}
-	s.ReadConfig()
-	return s
-}
-
-func (w *DevNull) StartCollect() {
-	w.LogInfo("starting data collection")
-	defer w.CollectDone()
-
-	// goroutine to process transformed dns messages
-	go w.StartLogging()
-
-	// loop to process incoming messages
-	for {
-		select {
-		case <-w.OnStop():
-			w.StopLogger()
-
-		case _, opened := <-w.GetInputChannel():
-			if !opened {
-				w.LogInfo("run: input channel closed!")
-				return
-			}
-		}
-	}
-}
-
-func (w *DevNull) StartLogging() {
-	w.LogInfo("logging has started")
-	defer w.LoggingDone()
-
-	for {
-		select {
-		case <-w.OnLoggerStopped():
-			return
-
-		case _, opened := <-w.GetOutputChannel():
-			if !opened {
-				w.LogInfo("process: output channel closed!")
-				return
-			}
-
-		}
-	}
-}
-```
-
-3. Update the main file `pkglinker` in `pipelines.go`
-
-```golang
-if subcfg.Loggers.MyLogger.Enable && IsLoggerRouted(config, output.Name) {
-    mapLoggers[output.Name] = loggers.NewMyLogger(subcfg, logger, output.Name)
-}
-```
-
-4. Finally update the docs in the `docs` folder and `README.md`
+- 📖 **[How-to: Add a Worker (Collector / Logger)](extending_workers.md)**
+- 📖 **[How-to: Add a Transformer](extending_transformers.md)**

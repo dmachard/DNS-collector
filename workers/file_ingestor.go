@@ -419,3 +419,9 @@ func (w *FileIngestor) StartCollect() {
 		}
 	}
 }
+
+func init() {
+	RegisterCollector("file-ingestor", func(c *pkgconfig.Config) bool { return c.Collectors.FileIngestor.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewFileIngestor(nil, c, l, s)
+	})
+}

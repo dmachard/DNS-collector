@@ -116,3 +116,9 @@ func (w *FalcoClient) StartLogging() {
 		}
 	}
 }
+
+func init() {
+	RegisterLogger("falco", func(c *pkgconfig.Config) bool { return c.Loggers.FalcoClient.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewFalcoClient(c, l, s)
+	})
+}

@@ -320,3 +320,9 @@ func (w *StatsdClient) StartLogging() {
 		}
 	}
 }
+
+func init() {
+	RegisterLogger("statsd", func(c *pkgconfig.Config) bool { return c.Loggers.Statsd.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewStatsdClient(c, l, s)
+	})
+}

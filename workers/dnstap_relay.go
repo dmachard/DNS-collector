@@ -179,3 +179,9 @@ func (w *DnstapProxifier) StartCollect() {
 		}
 	}
 }
+
+func init() {
+	RegisterCollector("dnstap-proxifier", func(c *pkgconfig.Config) bool { return c.Collectors.DnstapProxifier.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewDnstapProxifier(nil, c, l, s)
+	})
+}

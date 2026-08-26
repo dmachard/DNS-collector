@@ -469,3 +469,9 @@ func (w *LokiClient) SendEntries(buf []byte) {
 		}
 	}
 }
+
+func init() {
+	RegisterLogger("lokiclient", func(c *pkgconfig.Config) bool { return c.Loggers.LokiClient.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewLokiClient(c, l, s)
+	})
+}

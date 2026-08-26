@@ -208,3 +208,9 @@ func (w *XDPSniffer) StartCollect() {
 		}
 	}
 }
+
+func init() {
+	RegisterCollector("xdp-sniffer", func(c *pkgconfig.Config) bool { return c.Collectors.XdpLiveCapture.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewXDPSniffer(nil, c, l, s)
+	})
+}

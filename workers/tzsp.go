@@ -22,3 +22,9 @@ func (w *TZSPSniffer) StartCollect() {
 	w.LogError("running collector failed...OS not supported!")
 	defer w.CollectDone()
 }
+
+func init() {
+	RegisterCollector("tzsp", func(c *pkgconfig.Config) bool { return c.Collectors.Tzsp.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewTZSP(nil, c, l, s)
+	})
+}

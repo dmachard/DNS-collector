@@ -348,3 +348,9 @@ func (w *RedisPub) StartLogging() {
 		}
 	}
 }
+
+func init() {
+	RegisterLogger("redispub", func(c *pkgconfig.Config) bool { return c.Loggers.RedisPub.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewRedisPub(c, l, s)
+	})
+}

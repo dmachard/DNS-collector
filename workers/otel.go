@@ -314,3 +314,9 @@ func (w *OpenTelemetryClient) cleanupSpans(requestorSpans, messageSpans, resolve
 		})
 	}
 }
+
+func init() {
+	RegisterLogger("opentelemetry", func(c *pkgconfig.Config) bool { return c.Loggers.OpenTelemetryClient.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewOpenTelemetryClient(c, l, s)
+	})
+}

@@ -139,117 +139,16 @@ func CreateRouting(stanza pkgconfig.ConfigPipelines, mapCollectors map[string]wo
 }
 
 func CreateStanza(stanzaName string, config *pkgconfig.Config, mapCollectors map[string]workers.Worker, mapLoggers map[string]workers.Worker, logger *logger.Logger, metrics *telemetry.PrometheusCollector) {
-	loggers := []struct {
-		enabled bool
-		create  func() workers.Worker
-	}{
-		{config.Loggers.RestAPI.Enable, func() workers.Worker {
-			return workers.NewRestAPI(config, logger, stanzaName)
-		}},
-		{config.Loggers.Prometheus.Enable, func() workers.Worker {
-			return workers.NewPrometheus(config, logger, stanzaName)
-		}},
-		{config.Loggers.Stdout.Enable, func() workers.Worker {
-			return workers.NewStdOut(config, logger, stanzaName)
-		}},
-		{config.Loggers.LogFile.Enable, func() workers.Worker {
-			return workers.NewLogFile(config, logger, stanzaName)
-		}},
-		{config.Loggers.DNSTap.Enable, func() workers.Worker {
-			return workers.NewDnstapSender(config, logger, stanzaName)
-		}},
-		{config.Loggers.TCPClient.Enable, func() workers.Worker {
-			return workers.NewTCPClient(config, logger, stanzaName)
-		}},
-		{config.Loggers.Syslog.Enable, func() workers.Worker {
-			return workers.NewSyslog(config, logger, stanzaName)
-		}},
-		{config.Loggers.Fluentd.Enable, func() workers.Worker {
-			return workers.NewFluentdClient(config, logger, stanzaName)
-		}},
-		{config.Loggers.InfluxDB.Enable, func() workers.Worker {
-			return workers.NewInfluxDBClient(config, logger, stanzaName)
-		}},
-		{config.Loggers.LokiClient.Enable, func() workers.Worker {
-			return workers.NewLokiClient(config, logger, stanzaName)
-		}},
-		{config.Loggers.Statsd.Enable, func() workers.Worker {
-			return workers.NewStatsdClient(config, logger, stanzaName)
-		}},
-		{config.Loggers.Nsq.Enable, func() workers.Worker {
-			return workers.NewNsqClient(config, logger, stanzaName)
-		}},
-		{config.Loggers.ElasticSearchClient.Enable, func() workers.Worker {
-			return workers.NewElasticSearchClient(config, logger, stanzaName)
-		}},
-		{config.Loggers.ScalyrClient.Enable, func() workers.Worker {
-			return workers.NewScalyrClient(config, logger, stanzaName)
-		}},
-		{config.Loggers.RedisPub.Enable, func() workers.Worker {
-			return workers.NewRedisPub(config, logger, stanzaName)
-		}},
-		{config.Loggers.KafkaProducer.Enable, func() workers.Worker {
-			return workers.NewKafkaProducer(config, logger, stanzaName)
-		}},
-		{config.Loggers.FalcoClient.Enable, func() workers.Worker {
-			return workers.NewFalcoClient(config, logger, stanzaName)
-		}},
-		{config.Loggers.ClickhouseClient.Enable, func() workers.Worker {
-			return workers.NewClickhouseClient(config, logger, stanzaName)
-		}},
-		{config.Loggers.DevNull.Enable, func() workers.Worker {
-			return workers.NewDevNull(config, logger, stanzaName)
-		}},
-		{config.Loggers.OpenTelemetryClient.Enable, func() workers.Worker {
-			return workers.NewOpenTelemetryClient(config, logger, stanzaName)
-		}},
-		{config.Loggers.MQTT.Enable, func() workers.Worker {
-			return workers.NewMQTT(config, logger, stanzaName)
-		}},
+	for _, reg := range workers.GetRegisteredLoggers() {
+		registerWorker(mapLoggers, stanzaName, reg.IsEnabled(config), func() workers.Worker {
+			return reg.Factory(config, logger, stanzaName)
+		}, metrics)
 	}
 
-	for _, l := range loggers {
-		registerWorker(mapLoggers, stanzaName, l.enabled, l.create, metrics)
-	}
-
-	collectors := []struct {
-		enabled bool
-		create  func() workers.Worker
-	}{
-		{config.Collectors.DNSMessage.Enable, func() workers.Worker {
-			return workers.NewDNSMessage(nil, config, logger, stanzaName)
-		}},
-		{config.Collectors.Dnstap.Enable, func() workers.Worker {
-			return workers.NewDnstapServer(nil, config, logger, stanzaName)
-		}},
-		{config.Collectors.DnstapProxifier.Enable, func() workers.Worker {
-			return workers.NewDnstapProxifier(nil, config, logger, stanzaName)
-		}},
-		{config.Collectors.AfpacketLiveCapture.Enable, func() workers.Worker {
-			return workers.NewAfpacketSniffer(nil, config, logger, stanzaName)
-		}},
-		{config.Collectors.XdpLiveCapture.Enable, func() workers.Worker {
-			return workers.NewXDPSniffer(nil, config, logger, stanzaName)
-		}},
-		{config.Collectors.Tail.Enable, func() workers.Worker {
-			return workers.NewTail(nil, config, logger, stanzaName)
-		}},
-		{config.Collectors.PowerDNS.Enable, func() workers.Worker {
-			return workers.NewPdnsServer(nil, config, logger, stanzaName)
-		}},
-		{config.Collectors.FileIngestor.Enable, func() workers.Worker {
-			return workers.NewFileIngestor(nil, config, logger, stanzaName)
-		}},
-		{config.Collectors.Tzsp.Enable, func() workers.Worker {
-			return workers.NewTZSP(nil, config, logger, stanzaName)
-		}},
-		{config.Collectors.Webhook.Enable, func() workers.Worker {
-			return workers.NewWebhook(nil, config, logger, stanzaName)
-		}},
-	}
-
-	for _, c := range collectors {
-		registerWorker(mapCollectors, stanzaName, c.enabled, c.create, metrics)
+	for _, reg := range workers.GetRegisteredCollectors() {
+		registerWorker(mapCollectors, stanzaName, reg.IsEnabled(config), func() workers.Worker {
+			return reg.Factory(config, logger, stanzaName)
+		}, metrics)
 	}
 }
 

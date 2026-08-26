@@ -92,7 +92,7 @@ This collector must be used with the DNStap logger.
 
 Dnstap stream collector can be a tcp or unix socket listener. TLS is also supported.
 
-For config examples, take a look to the following [one](../examples/config_dnstap_to_multidnstap.yml)
+For config examples, take a look to the following [one](https://github.com/dmachard/DNS-collector/blob/main/docs/examples/config_dnstap_to_multidnstap.yml)
 
 Options:
 

@@ -30,8 +30,7 @@ What it does:
 
 The missing high-performance data collector between DNS servers and your SIEM/observability/analytics stack.
 
-- **For Operators & Enterprises**: High-performance DNS telemetry pipeline for large scale DNS infrastructure (BIND, PowerDNS, Unbound, etc.)
-- **For Homelabs & Self-Hosters**: Single lightweight binary with minimal RAM footprint
+- **From Homelabs to Enterprises**: High-performance DNS telemetry pipeline with a lightweight footprint for any scale of DNS infrastructure (BIND, PowerDNS, Unbound, etc.)
 - **DNS-Native & Edge Processing**: Understands EDNS, query types, latency tracking, and anonymizes user IPs before storage.
 - **Flexible outputs**: Files, syslog, databases, monitoring tools and more...
 - **Production ready**: Used in real networks, tested with major DNS servers

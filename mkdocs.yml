@@ -109,6 +109,7 @@ nav:
       - Transformers:
           - Overview: transformers.md
           - Atags: transformers/transform_atags.md
+          - BGP: transformers/transform_bgp.md
           - Data Extractor: transformers/transform_dataextractor.md
           - GeoIP: transformers/transform_geoip.md
           - Latency: transformers/transform_latency.md
@@ -122,6 +123,7 @@ nav:
           - Traffic Filtering: transformers/transform_trafficfiltering.md
           - Traffic Prediction: transformers/transform_trafficprediction.md
           - Traffic Reducer: transformers/transform_trafficreducer.md
+          - Unique Response Tracker: transformers/transform_uniqueresponsetracker.md
           - User Privacy: transformers/transform_userprivacy.md
   - Sources & Sinks:
       - DNS Servers:
@@ -140,8 +142,16 @@ nav:
       - Edge Deployment: deployment/edge.md
       - Centralized Deployment: deployment/centralized.md
   - Performance:
-      - Tuning Guide: performance/tuning.md
+      - Tuning Guide:
+          - Overview: performance/tuning.md
+          - Pipeline Buffers & Batching: performance/buffers.md
+          - Memory & GC (GOMEMLIMIT): performance/memory.md
+          - Collector Optimization: performance/collectors.md
       - Telemetry & Metrics: performance/metrics.md
   - For Developers:
       - Development Setup: development.md
-      - How-to Guides: extending.md
+      - How-to Guides:
+          - Overview: extending.md
+          - Add a Worker: extending_workers.md
+          - Add a Transformer: extending_transformers.md
+

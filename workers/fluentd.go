@@ -286,3 +286,9 @@ func (w *FluentdClient) StartLogging() {
 		}
 	}
 }
+
+func init() {
+	RegisterLogger("fluentd", func(c *pkgconfig.Config) bool { return c.Loggers.Fluentd.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewFluentdClient(c, l, s)
+	})
+}
