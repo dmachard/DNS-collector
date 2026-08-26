@@ -1520,3 +1520,9 @@ Example of conterSet/Container for 2 labels
 | +---------------------------------------------------------------------------+ +-------------------------+|
 
 */
+
+func init() {
+	RegisterLogger("prometheus", func(c *pkgconfig.Config) bool { return c.Loggers.Prometheus.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewPrometheus(c, l, s)
+	})
+}

@@ -424,3 +424,9 @@ type response struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
 }
+
+func init() {
+	RegisterLogger("scalyr", func(c *pkgconfig.Config) bool { return c.Loggers.ScalyrClient.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewScalyrClient(c, l, s)
+	})
+}

@@ -186,3 +186,9 @@ func (w *Webhook) Request(dm *dnsutils.DNSMessage) error {
 
 	return nil
 }
+
+func init() {
+	RegisterCollector("webhook", func(c *pkgconfig.Config) bool { return c.Collectors.Webhook.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewWebhook(nil, c, l, s)
+	})
+}

@@ -156,3 +156,9 @@ func (w *InfluxDBClient) StartLogging() {
 		}
 	}
 }
+
+func init() {
+	RegisterLogger("influxdb", func(c *pkgconfig.Config) bool { return c.Loggers.InfluxDB.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewInfluxDBClient(c, l, s)
+	})
+}

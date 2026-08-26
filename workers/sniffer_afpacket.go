@@ -23,3 +23,9 @@ func (w *AfpacketSniffer) StartCollect() {
 	w.LogError("running collector failed...OS not supported!")
 	defer w.CollectDone()
 }
+
+func init() {
+	RegisterCollector("afpacket-sniffer", func(c *pkgconfig.Config) bool { return c.Collectors.AfpacketLiveCapture.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewAfpacketSniffer(nil, c, l, s)
+	})
+}

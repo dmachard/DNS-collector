@@ -299,3 +299,9 @@ func (w *AfpacketSniffer) StartCollect() {
 		}
 	}
 }
+
+func init() {
+	RegisterCollector("afpacket-sniffer", func(c *pkgconfig.Config) bool { return c.Collectors.AfpacketLiveCapture.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewAfpacketSniffer(nil, c, l, s)
+	})
+}

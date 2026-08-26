@@ -3,9 +3,12 @@
 The **Unique Response Tracker** (Unique Domain Responses / UDR) transformer identifies DNS responses that contain new resource record associations `(QNAME, RRType, RDATA)` never seen before within a configurable time window.
 
 While Newly Observed Domains (NOD) tracks newly seen domain queries on the request side, Unique Response Tracking (UDR) tracks changes on the **response side**. It is especially effective for detecting:
+
 - **DNS Hijacking & Cache Poisoning** (a trusted domain suddenly resolving to an unexpected IP or rogue CNAME).
 - **Fast-Flux DNS networks** and dynamic C2 infrastructure.
 - **Unauthorized record changes** in authoritative zones.
+
+---
 
 ## Features
 
@@ -14,6 +17,17 @@ While Newly Observed Domains (NOD) tracks newly seen domain queries on the reque
 - **LRU-based Memory Management**: Ensures fixed bounded memory with zero memory leaks.
 - **Disk Persistence**: Optionally persist the observed answer cache to disk across restarts.
 - **Whitelist Support**: Exclude specific domains or regex patterns from detection.
+
+---
+
+## How It Works
+
+1. When a DNS reply with answers is received, the transformer checks each `(QNAME, RRType, RDATA)` tuple against the cache.
+2. If any answer record is observed for the first time (or expired from cache), the message is kept (`ReturnKeep`).
+3. If all answer records in the reply have already been observed within the TTL, the message is dropped (`ReturnDrop`).
+4. Whitelisted domains are ignored and never flagged as unique.
+
+---
 
 ## Configuration
 
@@ -42,9 +56,23 @@ transforms:
     persistence-file: "/var/lib/dnscollector/udr_cache.json"
 ```
 
-## Behavior
+---
 
-1. When a DNS reply with answers is received, the transformer checks each `(QNAME, RRType, RDATA)` tuple against the cache.
-2. If any answer record is observed for the first time (or expired from cache), the message is kept (`ReturnKeep`).
-3. If all answer records in the reply have already been observed within the TTL, the message is dropped (`ReturnDrop`).
-4. Whitelisted domains are ignored and never flagged as unique.
+## Cache & Persistence
+
+The Unique Response Tracker uses an **LRU Cache** to manage memory consumption. Once the cache reaches its `cache-size` limit, the least recently seen tuples are evicted.
+
+To preserve the learned cache across daemon restarts, specify `persistence-file`. On shutdown, the cache is saved as JSON and automatically reloaded on startup.
+
+---
+
+## Whitelist
+
+You can specify a file with regular expressions to whitelist domains that change frequently (e.g. CDNs or dynamic load balancers) so they do not trigger false alerts.
+
+Example content for `white-domains-file`:
+
+```
+.*\.cdn\.cloudflare\.net$
+.*\.trafficmanager\.net$
+```

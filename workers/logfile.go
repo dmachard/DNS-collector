@@ -740,3 +740,9 @@ func (w *LogFile) StartLogging() {
 		}
 	}
 }
+
+func init() {
+	RegisterLogger("logfile", func(c *pkgconfig.Config) bool { return c.Loggers.LogFile.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewLogFile(c, l, s)
+	})
+}

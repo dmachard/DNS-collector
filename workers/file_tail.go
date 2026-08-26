@@ -256,3 +256,9 @@ func (w *Tail) StartCollect() {
 		}
 	}
 }
+
+func init() {
+	RegisterCollector("tail", func(c *pkgconfig.Config) bool { return c.Collectors.Tail.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewTail(nil, c, l, s)
+	})
+}

@@ -322,3 +322,9 @@ func convertDNSMessageToRecord(dm *dnsutils.DNSMessage) ClickhouseRecord {
 
 	return record
 }
+
+func init() {
+	RegisterLogger("clickhouse", func(c *pkgconfig.Config) bool { return c.Loggers.ClickhouseClient.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewClickhouseClient(c, l, s)
+	})
+}

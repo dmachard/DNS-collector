@@ -38,9 +38,9 @@ logfile:
 
 ## Full configuration examples
 
-* [`Text format`](../examples/config-dnstap-to-text.yml)
-* [`Dnstap format`](../examples/config-dnstap-to-dnstap.yml)
-* [`PCAP format`](../examples/config-dnstap-to-pcap.yml)
+* [`Text format`](https://github.com/dmachard/DNS-collector/blob/main/docs/examples/config-dnstap-to-text.yml)
+* [`Dnstap format`](https://github.com/dmachard/DNS-collector/blob/main/docs/examples/config-dnstap-to-dnstap.yml)
+* [`PCAP format`](https://github.com/dmachard/DNS-collector/blob/main/docs/examples/config-dnstap-to-pcap.yml)
 
 
 ## Log Compression

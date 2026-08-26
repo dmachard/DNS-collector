@@ -23,3 +23,9 @@ func (w *XDPSniffer) StartCollect() {
 	w.LogError("running collector failed...OS not supported!")
 	defer w.CollectDone()
 }
+
+func init() {
+	RegisterCollector("xdp-sniffer", func(c *pkgconfig.Config) bool { return c.Collectors.XdpLiveCapture.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewXDPSniffer(nil, c, l, s)
+	})
+}

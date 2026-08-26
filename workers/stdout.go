@@ -286,3 +286,9 @@ func (w *StdOut) StartLogging() {
 		}
 	}
 }
+
+func init() {
+	RegisterLogger("stdout", func(c *pkgconfig.Config) bool { return c.Loggers.Stdout.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewStdOut(c, l, s)
+	})
+}

@@ -115,3 +115,9 @@ func (w *NsqClient) Disconnect() {
 		w.nsqProducer.Stop()
 	}
 }
+
+func init() {
+	RegisterLogger("nsq", func(c *pkgconfig.Config) bool { return c.Loggers.Nsq.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewNsqClient(c, l, s)
+	})
+}

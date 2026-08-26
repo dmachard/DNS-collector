@@ -393,3 +393,9 @@ func (w *KafkaProducer) StartLogging() {
 		}
 	}
 }
+
+func init() {
+	RegisterLogger("kafkaproducer", func(c *pkgconfig.Config) bool { return c.Loggers.KafkaProducer.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewKafkaProducer(c, l, s)
+	})
+}

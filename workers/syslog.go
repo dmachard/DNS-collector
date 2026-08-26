@@ -440,3 +440,9 @@ func (w *Syslog) StartLogging() {
 		}
 	}
 }
+
+func init() {
+	RegisterLogger("syslog", func(c *pkgconfig.Config) bool { return c.Loggers.Syslog.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewSyslog(c, l, s)
+	})
+}

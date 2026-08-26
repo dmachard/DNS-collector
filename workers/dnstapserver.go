@@ -728,3 +728,9 @@ func (w *DNSTapProcessor) processFrame(
 
 	return dm, false
 }
+
+func init() {
+	RegisterCollector("dnstap", func(c *pkgconfig.Config) bool { return c.Collectors.Dnstap.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewDnstapServer(nil, c, l, s)
+	})
+}

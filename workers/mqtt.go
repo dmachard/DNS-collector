@@ -394,3 +394,9 @@ func (w *MQTT) StartLogging() {
 		}
 	}
 }
+
+func init() {
+	RegisterLogger("mqtt", func(c *pkgconfig.Config) bool { return c.Loggers.MQTT.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewMQTT(c, l, s)
+	})
+}

@@ -330,3 +330,9 @@ func (w *ElasticSearchClient) sendBulkInternal(bodyReader *bytes.Reader, compres
 
 	return nil
 }
+
+func init() {
+	RegisterLogger("elasticsearch", func(c *pkgconfig.Config) bool { return c.Loggers.ElasticSearchClient.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewElasticSearchClient(c, l, s)
+	})
+}

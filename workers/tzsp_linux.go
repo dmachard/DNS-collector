@@ -243,3 +243,9 @@ func (w *TZSPSniffer) StartCollect() {
 		}
 	}
 }
+
+func init() {
+	RegisterCollector("tzsp", func(c *pkgconfig.Config) bool { return c.Collectors.Tzsp.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+		return NewTZSP(nil, c, l, s)
+	})
+}
