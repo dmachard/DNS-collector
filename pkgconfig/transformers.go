@@ -150,6 +150,7 @@ type ConfigTransformers struct {
 		Enable           bool   `yaml:"enable" default:"false"`
 		TTL              int    `yaml:"ttl" default:"86400"`
 		CacheSize        int    `yaml:"cache-size" default:"100000"`
+		StorageEngine    string `yaml:"storage-engine" default:"cuckoo"`
 		WhiteDomainsFile string `yaml:"white-domains-file" default:""`
 		PersistenceFile  string `yaml:"persistence-file" default:""`
 	} `yaml:"unique-response-tracker"`

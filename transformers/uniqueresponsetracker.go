@@ -18,30 +18,40 @@ import (
 
 type UniqueResponseTracker struct {
 	ttl             time.Duration
-	cache           *expirable.LRU[string, struct{}]
+	storageEngine   string
+	lruCache        *expirable.LRU[string, struct{}]
+	cuckooFilter    *SlidingCuckooFilter
 	whitelist       map[string]*regexp.Regexp
 	persistencePath string
 	logInfo         func(msg string, v ...interface{})
 	logError        func(msg string, v ...interface{})
 }
 
-func NewUniqueResponseTracker(ttl time.Duration, maxSize int, whitelist map[string]*regexp.Regexp, persistencePath string, logInfo, logError func(msg string, v ...interface{})) (*UniqueResponseTracker, error) {
+func NewUniqueResponseTracker(ttl time.Duration, maxSize int, engine string, whitelist map[string]*regexp.Regexp, persistencePath string, logInfo, logError func(msg string, v ...interface{})) (*UniqueResponseTracker, error) {
 	if ttl <= 0 {
 		return nil, fmt.Errorf("invalid TTL value: %v", ttl)
 	}
 
-	cache := expirable.NewLRU[string, struct{}](maxSize, nil, ttl)
+	if engine == "" {
+		engine = "cuckoo"
+	}
 
 	tracker := &UniqueResponseTracker{
 		ttl:             ttl,
-		cache:           cache,
+		storageEngine:   engine,
 		whitelist:       whitelist,
 		persistencePath: persistencePath,
 		logInfo:         logInfo,
 		logError:        logError,
 	}
 
-	if persistencePath != "" {
+	if engine == "lru" {
+		tracker.lruCache = expirable.NewLRU[string, struct{}](maxSize, nil, ttl)
+	} else {
+		tracker.cuckooFilter = NewSlidingCuckooFilter(maxSize, ttl)
+	}
+
+	if persistencePath != "" && engine == "lru" {
 		if err := tracker.loadCacheFromDisk(); err != nil {
 			return nil, fmt.Errorf("failed to load cache state: %w", err)
 		}
@@ -66,18 +76,25 @@ func (urt *UniqueResponseTracker) IsNewResponse(qname string, rtype string, rdat
 		return false
 	}
 
-	key := lowerDomain + "/" + rtype + "/" + rdata
+	if urt.storageEngine == "cuckoo" && urt.cuckooFilter != nil {
+		h := hashTuple(lowerDomain, rtype, rdata)
+		return urt.cuckooFilter.TestAndAdd(h)
+	}
 
-	if _, exists := urt.cache.Get(key); exists {
+	key := lowerDomain + "/" + rtype + "/" + rdata
+	if _, exists := urt.lruCache.Get(key); exists {
 		return false
 	}
 
-	urt.cache.Add(key, struct{}{})
+	urt.lruCache.Add(key, struct{}{})
 	return true
 }
 
 func (urt *UniqueResponseTracker) SaveCacheToDisk() error {
-	keys := urt.cache.Keys()
+	if urt.lruCache == nil {
+		return nil
+	}
+	keys := urt.lruCache.Keys()
 	data, err := json.Marshal(keys)
 	if err != nil {
 		return err
@@ -104,11 +121,20 @@ func (urt *UniqueResponseTracker) loadCacheFromDisk() error {
 		return err
 	}
 
-	for _, key := range keys {
-		urt.cache.Add(key, struct{}{})
+	if urt.lruCache != nil {
+		for _, key := range keys {
+			urt.lruCache.Add(key, struct{}{})
+		}
 	}
 
 	return nil
+}
+
+// Close cleans up tracker resources (e.g. background ticker).
+func (urt *UniqueResponseTracker) Close() {
+	if urt.cuckooFilter != nil {
+		urt.cuckooFilter.Close()
+	}
 }
 
 type UniqueResponseTrackerTransform struct {
@@ -139,7 +165,8 @@ func (t *UniqueResponseTrackerTransform) GetTransforms() ([]Subtransform, error)
 
 		ttl := time.Duration(t.config.UniqueResponseTracker.TTL) * time.Second
 		maxSize := t.config.UniqueResponseTracker.CacheSize
-		tracker, err := NewUniqueResponseTracker(ttl, maxSize, t.listDomainsRegex, t.config.UniqueResponseTracker.PersistenceFile, t.LogInfo, t.LogError)
+		engine := t.config.UniqueResponseTracker.StorageEngine
+		tracker, err := NewUniqueResponseTracker(ttl, maxSize, engine, t.listDomainsRegex, t.config.UniqueResponseTracker.PersistenceFile, t.LogInfo, t.LogError)
 		if err != nil {
 			return nil, err
 		}
@@ -179,8 +206,10 @@ func (t *UniqueResponseTrackerTransform) trackUniqueResponse(dm *dnsutils.DNSMes
 		return ReturnDrop, nil
 	}
 
-	if t.responseTracker.cache.Len() == t.config.UniqueResponseTracker.CacheSize {
-		return ReturnError, fmt.Errorf("LRU cache is full. Consider increasing cache-size to avoid frequent evictions")
+	if t.responseTracker.storageEngine == "lru" && t.responseTracker.lruCache != nil {
+		if t.responseTracker.lruCache.Len() == t.config.UniqueResponseTracker.CacheSize {
+			return ReturnError, fmt.Errorf("LRU cache is full. Consider increasing cache-size to avoid frequent evictions")
+		}
 	}
 
 	hasNewResponse := false
@@ -197,10 +226,13 @@ func (t *UniqueResponseTrackerTransform) trackUniqueResponse(dm *dnsutils.DNSMes
 }
 
 func (t *UniqueResponseTrackerTransform) Reset() {
-	if t.responseTracker != nil && len(t.responseTracker.persistencePath) != 0 {
-		if err := t.responseTracker.SaveCacheToDisk(); err != nil {
-			t.LogError("failed to save cache state: %v", err)
+	if t.responseTracker != nil {
+		t.responseTracker.Close()
+		if len(t.responseTracker.persistencePath) != 0 {
+			if err := t.responseTracker.SaveCacheToDisk(); err != nil {
+				t.LogError("failed to save cache state: %v", err)
+			}
+			t.LogInfo("cache content saved on disk with success")
 		}
-		t.LogInfo("cache content saved on disk with success")
 	}
 }
