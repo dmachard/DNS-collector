@@ -6,95 +6,117 @@ import (
 	"github.com/creasty/defaults"
 )
 
+type CollectorDNSMessageMatching struct {
+	Include map[string]interface{} `yaml:"include"`
+	Exclude map[string]interface{} `yaml:"exclude"`
+}
+
+type CollectorDNSMessage struct {
+	Enable   bool                        `yaml:"enable" default:"false"`
+	Matching CollectorDNSMessageMatching `yaml:"matching"`
+}
+
+type CollectorTail struct {
+	Enable       bool   `yaml:"enable" default:"false"`
+	TimeLayout   string `yaml:"time-layout" default:""`
+	PatternQuery string `yaml:"pattern-query" default:""`
+	PatternReply string `yaml:"pattern-reply" default:""`
+	FilePath     string `yaml:"file-path" default:""`
+}
+
+type CollectorDnstap struct {
+	Enable           bool   `yaml:"enable" default:"false"`
+	ListenIP         string `yaml:"listen-ip" default:"0.0.0.0"`
+	ListenPort       int    `yaml:"listen-port" default:"6000"`
+	SockPath         string `yaml:"sock-path" default:""`
+	TLSSupport       bool   `yaml:"tls-support" default:"false"`
+	TLSMinVersion    string `yaml:"tls-min-version" default:"1.2"`
+	CertFile         string `yaml:"cert-file" default:""`
+	KeyFile          string `yaml:"key-file" default:""`
+	RcvBufSize       int    `yaml:"sock-rcvbuf" default:"0"`
+	ReadBufferSize   int    `yaml:"sock-read-buffer-size" default:"65536"`
+	ResetConn        bool   `yaml:"reset-conn" default:"true"`
+	NumWorkers       int    `yaml:"num-workers" default:"0"`
+	DisableDNSParser bool   `yaml:"disable-dnsparser" default:"false"`
+	ExtendedSupport  bool   `yaml:"extended-support" default:"false"`
+	FastDecoder      bool   `yaml:"fast-decoder" default:"true"`
+	Compression      string `yaml:"compression" default:"none"`
+}
+
+type CollectorDnstapProxifier struct {
+	Enable        bool   `yaml:"enable" default:"false"`
+	ListenIP      string `yaml:"listen-ip" default:"0.0.0.0"`
+	ListenPort    int    `yaml:"listen-port" default:"6000"`
+	SockPath      string `yaml:"sock-path" default:""`
+	TLSSupport    bool   `yaml:"tls-support" default:"false"`
+	TLSMinVersion string `yaml:"tls-min-version" default:"1.2"`
+	CertFile      string `yaml:"cert-file" default:""`
+	KeyFile       string `yaml:"key-file" default:""`
+}
+
+type CollectorAfpacketLiveCapture struct {
+	Enable          bool   `yaml:"enable" default:"false"`
+	Port            int    `yaml:"port" default:"53"`
+	Device          string `yaml:"device" default:""`
+	FragmentSupport bool   `yaml:"enable-defrag-ip" default:"true"`
+	GreSupport      bool   `yaml:"enable-gre" default:"false"`
+	RawIPSupport    bool   `yaml:"enable-rawip" default:"false"`
+}
+
+type CollectorXdpLiveCapture struct {
+	Enable bool   `yaml:"enable" default:"false"`
+	Port   int    `yaml:"port" default:"53"`
+	Device string `yaml:"device" default:""`
+}
+
+type CollectorPowerDNS struct {
+	Enable        bool   `yaml:"enable" default:"false"`
+	ListenIP      string `yaml:"listen-ip" default:"0.0.0.0"`
+	ListenPort    int    `yaml:"listen-port" default:"6001"`
+	TLSSupport    bool   `yaml:"tls-support" default:"false"`
+	TLSMinVersion string `yaml:"tls-min-version" default:"1.2"`
+	CertFile      string `yaml:"cert-file" default:""`
+	KeyFile       string `yaml:"key-file" default:""`
+	AddDNSPayload bool   `yaml:"add-dns-payload" default:"false"`
+	RcvBufSize    int    `yaml:"sock-rcvbuf" default:"0"`
+	ResetConn     bool   `yaml:"reset-conn" default:"true"`
+}
+
+type CollectorFileIngestor struct {
+	Enable      bool   `yaml:"enable" default:"false"`
+	WatchDir    string `yaml:"watch-dir" default:""`
+	WatchMode   string `yaml:"watch-mode" default:"pcap"`
+	PcapDNSPort int    `yaml:"pcap-dns-port" default:"53"`
+	DeleteAfter bool   `yaml:"delete-after" default:"false"`
+}
+
+type CollectorTzsp struct {
+	Enable     bool   `yaml:"enable" default:"false"`
+	ListenIP   string `yaml:"listen-ip" default:"0.0.0.0"`
+	ListenPort int    `yaml:"listen-port" default:"10000"`
+}
+
+type CollectorWebhook struct {
+	Enable           bool   `yaml:"enable" default:"false"`
+	URL              string `yaml:"url" default:"http://127.0.0.1:8088"`
+	Timeout          int    `yaml:"timeout" default:"1"`
+	BasicAuthEnabled bool   `yaml:"basic-auth-enable" default:"false"`
+	BasicAuthLogin   string `yaml:"basic-auth-login" default:""`
+	BasicAuthPwd     string `yaml:"basic-auth-pwd" default:""`
+	NumThreads       int    `yaml:"num-threads" default:"1"`
+}
+
 type ConfigCollectors struct {
-	DNSMessage struct {
-		Enable   bool `yaml:"enable" default:"false"`
-		Matching struct {
-			Include map[string]interface{} `yaml:"include"`
-			Exclude map[string]interface{} `yaml:"exclude"`
-		} `yaml:"matching"`
-	} `yaml:"dnsmessage"`
-	Tail struct {
-		Enable       bool   `yaml:"enable" default:"false"`
-		TimeLayout   string `yaml:"time-layout" default:""`
-		PatternQuery string `yaml:"pattern-query" default:""`
-		PatternReply string `yaml:"pattern-reply" default:""`
-		FilePath     string `yaml:"file-path" default:""`
-	} `yaml:"tail"`
-	Dnstap struct {
-		Enable           bool   `yaml:"enable" default:"false"`
-		ListenIP         string `yaml:"listen-ip" default:"0.0.0.0"`
-		ListenPort       int    `yaml:"listen-port" default:"6000"`
-		SockPath         string `yaml:"sock-path" default:""`
-		TLSSupport       bool   `yaml:"tls-support" default:"false"`
-		TLSMinVersion    string `yaml:"tls-min-version" default:"1.2"`
-		CertFile         string `yaml:"cert-file" default:""`
-		KeyFile          string `yaml:"key-file" default:""`
-		RcvBufSize       int    `yaml:"sock-rcvbuf" default:"0"`
-		ReadBufferSize   int    `yaml:"sock-read-buffer-size" default:"65536"`
-		ResetConn        bool   `yaml:"reset-conn" default:"true"`
-		NumWorkers       int    `yaml:"num-workers" default:"0"`
-		DisableDNSParser bool   `yaml:"disable-dnsparser" default:"false"`
-		ExtendedSupport  bool   `yaml:"extended-support" default:"false"`
-		FastDecoder      bool   `yaml:"fast-decoder" default:"true"`
-		Compression      string `yaml:"compression" default:"none"`
-	} `yaml:"dnstap"`
-	DnstapProxifier struct {
-		Enable        bool   `yaml:"enable" default:"false"`
-		ListenIP      string `yaml:"listen-ip" default:"0.0.0.0"`
-		ListenPort    int    `yaml:"listen-port" default:"6000"`
-		SockPath      string `yaml:"sock-path" default:""`
-		TLSSupport    bool   `yaml:"tls-support" default:"false"`
-		TLSMinVersion string `yaml:"tls-min-version" default:"1.2"`
-		CertFile      string `yaml:"cert-file" default:""`
-		KeyFile       string `yaml:"key-file" default:""`
-	} `yaml:"dnstap-relay"`
-	AfpacketLiveCapture struct {
-		Enable          bool   `yaml:"enable" default:"false"`
-		Port            int    `yaml:"port" default:"53"`
-		Device          string `yaml:"device" default:""`
-		FragmentSupport bool   `yaml:"enable-defrag-ip" default:"true"`
-		GreSupport      bool   `yaml:"enable-gre" default:"false"`
-		RawIPSupport    bool   `yaml:"enable-rawip" default:"false"`
-	} `yaml:"afpacket-sniffer"`
-	XdpLiveCapture struct {
-		Enable bool   `yaml:"enable" default:"false"`
-		Port   int    `yaml:"port" default:"53"`
-		Device string `yaml:"device" default:""`
-	} `yaml:"xdp-sniffer"`
-	PowerDNS struct {
-		Enable        bool   `yaml:"enable" default:"false"`
-		ListenIP      string `yaml:"listen-ip" default:"0.0.0.0"`
-		ListenPort    int    `yaml:"listen-port" default:"6001"`
-		TLSSupport    bool   `yaml:"tls-support" default:"false"`
-		TLSMinVersion string `yaml:"tls-min-version" default:"1.2"`
-		CertFile      string `yaml:"cert-file" default:""`
-		KeyFile       string `yaml:"key-file" default:""`
-		AddDNSPayload bool   `yaml:"add-dns-payload" default:"false"`
-		RcvBufSize    int    `yaml:"sock-rcvbuf" default:"0"`
-		ResetConn     bool   `yaml:"reset-conn" default:"true"`
-	} `yaml:"powerdns"`
-	FileIngestor struct {
-		Enable      bool   `yaml:"enable" default:"false"`
-		WatchDir    string `yaml:"watch-dir" default:""`
-		WatchMode   string `yaml:"watch-mode" default:"pcap"`
-		PcapDNSPort int    `yaml:"pcap-dns-port" default:"53"`
-		DeleteAfter bool   `yaml:"delete-after" default:"false"`
-	} `yaml:"file-ingestor"`
-	Tzsp struct {
-		Enable     bool   `yaml:"enable" default:"false"`
-		ListenIP   string `yaml:"listen-ip" default:"0.0.0.0"`
-		ListenPort int    `yaml:"listen-port" default:"10000"`
-	} `yaml:"tzsp"`
-	Webhook struct {
-		Enable           bool   `yaml:"enable" default:"false"`
-		URL              string `yaml:"url" default:"http://127.0.0.1:8088"`
-		Timeout          int    `yaml:"timeout" default:"1"`
-		BasicAuthEnabled bool   `yaml:"basic-auth-enable" default:"false"`
-		BasicAuthLogin   string `yaml:"basic-auth-login" default:""`
-		BasicAuthPwd     string `yaml:"basic-auth-pwd" default:""`
-		NumThreads       int    `yaml:"num-threads" default:"1"`
-	} `yaml:"webhook"`
+	DNSMessage          CollectorDNSMessage          `yaml:"dnsmessage"`
+	Tail                CollectorTail                `yaml:"tail"`
+	Dnstap              CollectorDnstap              `yaml:"dnstap"`
+	DnstapProxifier     CollectorDnstapProxifier     `yaml:"dnstap-relay"`
+	AfpacketLiveCapture CollectorAfpacketLiveCapture `yaml:"afpacket-sniffer"`
+	XdpLiveCapture      CollectorXdpLiveCapture      `yaml:"xdp-sniffer"`
+	PowerDNS            CollectorPowerDNS            `yaml:"powerdns"`
+	FileIngestor        CollectorFileIngestor        `yaml:"file-ingestor"`
+	Tzsp                CollectorTzsp                `yaml:"tzsp"`
+	Webhook             CollectorWebhook             `yaml:"webhook"`
 }
 
 func (c *ConfigCollectors) SetDefault() {
