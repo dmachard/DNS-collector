@@ -147,12 +147,13 @@ type ConfigTransformers struct {
 		PersistenceFile  string `yaml:"persistence-file" default:""`
 	} `yaml:"new-domain-tracker"`
 	UniqueResponseTracker struct {
-		Enable           bool   `yaml:"enable" default:"false"`
-		TTL              int    `yaml:"ttl" default:"86400"`
-		CacheSize        int    `yaml:"cache-size" default:"100000"`
-		StorageEngine    string `yaml:"storage-engine" default:"lru"`
-		WhiteDomainsFile string `yaml:"white-domains-file" default:""`
-		PersistenceFile  string `yaml:"persistence-file" default:""`
+		Enable                bool   `yaml:"enable" default:"false"`
+		TTL                   int    `yaml:"ttl" default:"86400"`
+		CacheSize             int    `yaml:"cache-size" default:"100000"`
+		StorageEngine         string `yaml:"storage-engine" default:"lru"`
+		CuckooFingerprintBits int    `yaml:"cuckoo-fingerprint-bits" default:"16"`
+		WhiteDomainsFile      string `yaml:"white-domains-file" default:""`
+		PersistenceFile       string `yaml:"persistence-file" default:""`
 	} `yaml:"unique-response-tracker"`
 	Reordering struct {
 		Enable        bool `yaml:"enable" default:"false"`

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
+	"github.com/dmachard/go-dnscollector/v2/pkg/cuckoo"
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
 	"github.com/dmachard/go-logger"
 	"github.com/hashicorp/golang-lru/v2/expirable"
@@ -20,14 +21,14 @@ type UniqueResponseTracker struct {
 	ttl             time.Duration
 	storageEngine   string
 	lruCache        *expirable.LRU[string, struct{}]
-	cuckooFilter    *SlidingCuckooFilter
+	cuckooFilter    *cuckoo.SlidingCuckooFilter
 	whitelist       map[string]*regexp.Regexp
 	persistencePath string
 	logInfo         func(msg string, v ...interface{})
 	logError        func(msg string, v ...interface{})
 }
 
-func NewUniqueResponseTracker(ttl time.Duration, maxSize int, engine string, whitelist map[string]*regexp.Regexp, persistencePath string, logInfo, logError func(msg string, v ...interface{})) (*UniqueResponseTracker, error) {
+func NewUniqueResponseTracker(ttl time.Duration, maxSize int, engine string, cuckooFPBits int, whitelist map[string]*regexp.Regexp, persistencePath string, logInfo, logError func(msg string, v ...interface{})) (*UniqueResponseTracker, error) {
 	if ttl <= 0 {
 		return nil, fmt.Errorf("invalid TTL value: %v", ttl)
 	}
@@ -48,7 +49,7 @@ func NewUniqueResponseTracker(ttl time.Duration, maxSize int, engine string, whi
 	if engine == "lru" {
 		tracker.lruCache = expirable.NewLRU[string, struct{}](maxSize, nil, ttl)
 	} else {
-		tracker.cuckooFilter = NewSlidingCuckooFilter(maxSize, ttl)
+		tracker.cuckooFilter = cuckoo.NewSlidingCuckooFilter(maxSize, ttl, cuckooFPBits)
 	}
 
 	if persistencePath != "" && engine == "lru" {
@@ -77,7 +78,7 @@ func (urt *UniqueResponseTracker) IsNewResponse(qname string, rtype string, rdat
 	}
 
 	if urt.storageEngine == "cuckoo" && urt.cuckooFilter != nil {
-		h := hashTuple(lowerDomain, rtype, rdata)
+		h := cuckoo.HashTuple(lowerDomain, rtype, rdata)
 		return urt.cuckooFilter.TestAndAdd(h)
 	}
 
@@ -166,7 +167,8 @@ func (t *UniqueResponseTrackerTransform) GetTransforms() ([]Subtransform, error)
 		ttl := time.Duration(t.config.UniqueResponseTracker.TTL) * time.Second
 		maxSize := t.config.UniqueResponseTracker.CacheSize
 		engine := t.config.UniqueResponseTracker.StorageEngine
-		tracker, err := NewUniqueResponseTracker(ttl, maxSize, engine, t.listDomainsRegex, t.config.UniqueResponseTracker.PersistenceFile, t.LogInfo, t.LogError)
+		fpBits := t.config.UniqueResponseTracker.CuckooFingerprintBits
+		tracker, err := NewUniqueResponseTracker(ttl, maxSize, engine, fpBits, t.listDomainsRegex, t.config.UniqueResponseTracker.PersistenceFile, t.LogInfo, t.LogError)
 		if err != nil {
 			return nil, err
 		}

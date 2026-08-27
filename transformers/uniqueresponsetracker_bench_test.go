@@ -46,7 +46,7 @@ func Benchmark_UniqueResponseTracker_LRU_100kUnique(b *testing.B) {
 	var m1, m2 runtime.MemStats
 	runtime.ReadMemStats(&m1)
 
-	tracker, err := NewUniqueResponseTracker(1*time.Hour, 100000, "lru", nil, "", nil, nil)
+	tracker, err := NewUniqueResponseTracker(1*time.Hour, 100000, "lru", 16, nil, "", nil, nil)
 	if err != nil {
 		b.Fatalf("failed to create tracker: %v", err)
 	}
@@ -72,7 +72,7 @@ func Benchmark_UniqueResponseTracker_Cuckoo_100kUnique(b *testing.B) {
 	var m1, m2 runtime.MemStats
 	runtime.ReadMemStats(&m1)
 
-	tracker, err := NewUniqueResponseTracker(1*time.Hour, 100000, "cuckoo", nil, "", nil, nil)
+	tracker, err := NewUniqueResponseTracker(1*time.Hour, 100000, "cuckoo", 16, nil, "", nil, nil)
 	if err != nil {
 		b.Fatalf("failed to create tracker: %v", err)
 	}
@@ -94,37 +94,27 @@ func Benchmark_UniqueResponseTracker_Cuckoo_100kUnique(b *testing.B) {
 
 // Benchmark_UniqueResponseTracker_LRU_LookupOnly measures pure lookup performance on 10k pre-populated items (LRU).
 func Benchmark_UniqueResponseTracker_LRU_LookupOnly(b *testing.B) {
-	tracker, err := NewUniqueResponseTracker(1*time.Hour, 100000, "lru", nil, "", nil, nil)
+	tracker, err := NewUniqueResponseTracker(1*time.Hour, 100000, "lru", 16, nil, "", nil, nil)
 	if err != nil {
 		b.Fatalf("failed to create tracker: %v", err)
 	}
 
-	// Pre-populate with 10k items
+	// Pre-populate 10,000 records
 	for i := 0; i < 10000; i++ {
-		qname := fmt.Sprintf("domain%d.com", i)
-		rdata := fmt.Sprintf("10.0.%d.%d", (i>>8)&0xFF, i&0xFF)
-		tracker.IsNewResponse(qname, "A", rdata)
-	}
-
-	testQNames := make([]string, b.N)
-	testRData := make([]string, b.N)
-	for i := 0; i < b.N; i++ {
-		idx := i % 10000
-		testQNames[i] = fmt.Sprintf("domain%d.com", idx)
-		testRData[i] = fmt.Sprintf("10.0.%d.%d", (idx>>8)&0xFF, idx&0xFF)
+		tracker.IsNewResponse(fmt.Sprintf("bench-domain-%d.com", i), "A", "1.2.3.4")
 	}
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		_ = tracker.IsNewResponse(testQNames[i], "A", testRData[i])
+		tracker.IsNewResponse(fmt.Sprintf("bench-domain-%d.com", i%10000), "A", "1.2.3.4")
 	}
 }
 
 // Benchmark_UniqueResponseTracker_Cuckoo_LookupOnly measures pure lookup performance on 10k pre-populated items (Cuckoo).
 func Benchmark_UniqueResponseTracker_Cuckoo_LookupOnly(b *testing.B) {
-	tracker, err := NewUniqueResponseTracker(1*time.Hour, 100000, "cuckoo", nil, "", nil, nil)
+	tracker, err := NewUniqueResponseTracker(1*time.Hour, 100000, "cuckoo", 16, nil, "", nil, nil)
 	if err != nil {
 		b.Fatalf("failed to create tracker: %v", err)
 	}
@@ -155,7 +145,7 @@ func Benchmark_UniqueResponseTracker_Cuckoo_LookupOnly(b *testing.B) {
 // Benchmark_UniqueResponseTracker_LRU_MixedWorkload_PreAllocated measures real DNS pattern without string allocation overhead.
 // 80% existing lookups, 20% new inserts.
 func Benchmark_UniqueResponseTracker_LRU_MixedWorkload_PreAllocated(b *testing.B) {
-	tracker, err := NewUniqueResponseTracker(1*time.Hour, 100000, "lru", nil, "", nil, nil)
+	tracker, err := NewUniqueResponseTracker(1*time.Hour, 100000, "lru", 16, nil, "", nil, nil)
 	if err != nil {
 		b.Fatalf("failed to create tracker: %v", err)
 	}
@@ -199,7 +189,7 @@ func Benchmark_UniqueResponseTracker_LRU_MixedWorkload_PreAllocated(b *testing.B
 // Benchmark_UniqueResponseTracker_Cuckoo_MixedWorkload_PreAllocated measures real DNS pattern without string allocation overhead.
 // 80% existing lookups, 20% new inserts.
 func Benchmark_UniqueResponseTracker_Cuckoo_MixedWorkload_PreAllocated(b *testing.B) {
-	tracker, err := NewUniqueResponseTracker(1*time.Hour, 100000, "cuckoo", nil, "", nil, nil)
+	tracker, err := NewUniqueResponseTracker(1*time.Hour, 100000, "cuckoo", 16, nil, "", nil, nil)
 	if err != nil {
 		b.Fatalf("failed to create tracker: %v", err)
 	}
@@ -242,7 +232,7 @@ func Benchmark_UniqueResponseTracker_Cuckoo_MixedWorkload_PreAllocated(b *testin
 
 // Benchmark_UniqueResponseTracker_LRU_MixedWorkload simulates real DNS traffic: 80% lookup, 20% new items.
 func Benchmark_UniqueResponseTracker_LRU_MixedWorkload(b *testing.B) {
-	tracker, err := NewUniqueResponseTracker(1*time.Hour, 100000, "lru", nil, "", nil, nil)
+	tracker, err := NewUniqueResponseTracker(1*time.Hour, 100000, "lru", 16, nil, "", nil, nil)
 	if err != nil {
 		b.Fatalf("failed to create tracker: %v", err)
 	}
@@ -275,7 +265,7 @@ func Benchmark_UniqueResponseTracker_LRU_MixedWorkload(b *testing.B) {
 
 // Benchmark_UniqueResponseTracker_Cuckoo_MixedWorkload simulates real DNS traffic: 80% lookup, 20% new items.
 func Benchmark_UniqueResponseTracker_Cuckoo_MixedWorkload(b *testing.B) {
-	tracker, err := NewUniqueResponseTracker(1*time.Hour, 100000, "cuckoo", nil, "", nil, nil)
+	tracker, err := NewUniqueResponseTracker(1*time.Hour, 100000, "cuckoo", 16, nil, "", nil, nil)
 	if err != nil {
 		b.Fatalf("failed to create tracker: %v", err)
 	}

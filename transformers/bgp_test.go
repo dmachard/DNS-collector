@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
+	"github.com/dmachard/go-dnscollector/v2/pkg/bgpmrt"
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
 	"github.com/dmachard/go-logger"
 )
@@ -21,7 +22,7 @@ func createSampleMRTFile(t *testing.T, dir string) string {
 	}
 	defer f.Close()
 
-	routes := []BGPRecord{
+	routes := []bgpmrt.BGPRecord{
 		{Prefix: "192.0.2.0/24", OriginASN: "65001", ASPath: "100 200 65001"},
 		{Prefix: "192.0.2.128/25", OriginASN: "65002", ASPath: "100 300 65002"},
 		{Prefix: "198.51.100.0/24", OriginASN: "65003", ASPath: "400 65003"},
@@ -29,7 +30,7 @@ func createSampleMRTFile(t *testing.T, dir string) string {
 		{Prefix: "2001:db8:1::/48", OriginASN: "65011", ASPath: "1000 2000 65011"},
 	}
 
-	if err := WriteSampleMRT(f, routes); err != nil {
+	if err := bgpmrt.WriteSampleMRT(f, routes); err != nil {
 		t.Fatal(err)
 	}
 	return mrtPath
@@ -39,7 +40,7 @@ func Test_BGP_MRT_ParseAndLookup(t *testing.T) {
 	tempDir := t.TempDir()
 	mrtPath := createSampleMRTFile(t, tempDir)
 
-	parser := NewMRTParser()
+	parser := bgpmrt.NewMRTParser()
 	tree, err := parser.ParseFile(mrtPath)
 	if err != nil {
 		t.Fatalf("failed to parse sample MRT: %v", err)
@@ -154,10 +155,10 @@ func Test_BGP_AutoReload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	initialRoutes := []BGPRecord{
+	initialRoutes := []bgpmrt.BGPRecord{
 		{Prefix: "10.0.0.0/8", OriginASN: "65100", ASPath: "65100"},
 	}
-	_ = WriteSampleMRT(f, initialRoutes)
+	_ = bgpmrt.WriteSampleMRT(f, initialRoutes)
 	f.Close()
 
 	config := pkgconfig.GetFakeConfigTransformers()
@@ -182,10 +183,10 @@ func Test_BGP_AutoReload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	updatedRoutes := []BGPRecord{
+	updatedRoutes := []bgpmrt.BGPRecord{
 		{Prefix: "10.0.0.0/8", OriginASN: "65200", ASPath: "65200"},
 	}
-	_ = WriteSampleMRT(f2, updatedRoutes)
+	_ = bgpmrt.WriteSampleMRT(f2, updatedRoutes)
 	f2.Close()
 
 	// Wait for reload loop to detect modification
