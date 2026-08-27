@@ -3,8 +3,8 @@ package transformers
 import (
 	"fmt"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -21,20 +21,20 @@ type Subtransform struct {
 
 type Transformation interface {
 	GetTransforms() ([]Subtransform, error)
-	ReloadConfig(config *pkgconfig.ConfigTransformers)
+	ReloadConfig(cfg *config.ConfigTransformers)
 	Reset()
 }
 
 type GenericTransformer struct {
-	config            *pkgconfig.ConfigTransformers
+	config            *config.ConfigTransformers
 	logger            *logger.Logger
 	name              string
 	nextWorkers       []chan *dnsutils.DNSMessageBatch
 	LogInfo, LogError func(msg string, v ...interface{})
 }
 
-func NewTransformer(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, workerName string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) GenericTransformer {
-	t := GenericTransformer{config: config, logger: logger, nextWorkers: nextWorkers, name: name}
+func NewTransformer(cfg *config.ConfigTransformers, logger *logger.Logger, name string, workerName string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) GenericTransformer {
+	t := GenericTransformer{config: cfg, logger: logger, nextWorkers: nextWorkers, name: name}
 
 	t.LogInfo = func(msg string, v ...interface{}) {
 		log := fmt.Sprintf("worker - [%s] (conn #%d) [transform=%s] - ", workerName, instance, name)
@@ -48,8 +48,8 @@ func NewTransformer(config *pkgconfig.ConfigTransformers, logger *logger.Logger,
 	return t
 }
 
-func (t *GenericTransformer) ReloadConfig(config *pkgconfig.ConfigTransformers) {
-	t.config = config
+func (t *GenericTransformer) ReloadConfig(cfg *config.ConfigTransformers) {
+	t.config = cfg
 }
 
 func (t *GenericTransformer) Reset() {}
@@ -59,7 +59,7 @@ type TransformEntry struct {
 }
 
 type Transforms struct {
-	config   *pkgconfig.ConfigTransformers
+	config   *config.ConfigTransformers
 	logger   *logger.Logger
 	name     string
 	instance int
@@ -69,52 +69,52 @@ type Transforms struct {
 	activeProcessTransforms []func(dm *dnsutils.DNSMessage) (int, error)
 }
 
-func NewTransforms(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, nextWorkers []chan *dnsutils.DNSMessageBatch, instance int) Transforms {
+func NewTransforms(cfg *config.ConfigTransformers, logger *logger.Logger, name string, nextWorkers []chan *dnsutils.DNSMessageBatch, instance int) Transforms {
 
-	d := Transforms{config: config, logger: logger, name: name, instance: instance}
+	d := Transforms{config: cfg, logger: logger, name: name, instance: instance}
 
 	// order definition
-	pipelineOrder := config.Order
+	pipelineOrder := cfg.Order
 	if len(pipelineOrder) == 0 {
-		pipelineOrder = pkgconfig.DefaultTransformersOrder
+		pipelineOrder = config.DefaultTransformersOrder
 	}
 
 	for _, nameTransform := range pipelineOrder {
 		switch nameTransform {
 		case "extract":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewExtractTransform(config, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewExtractTransform(cfg, logger, name, instance, nextWorkers)})
 		case "normalize":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewNormalizeTransform(config, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewNormalizeTransform(cfg, logger, name, instance, nextWorkers)})
 		case "filtering":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewFilteringTransform(config, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewFilteringTransform(cfg, logger, name, instance, nextWorkers)})
 		case "geoip":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewDNSGeoIPTransform(config, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewDNSGeoIPTransform(cfg, logger, name, instance, nextWorkers)})
 		case "bgp":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewDNSBGPTransform(config, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewDNSBGPTransform(cfg, logger, name, instance, nextWorkers)})
 		case "atags":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewATagsTransform(config, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewATagsTransform(cfg, logger, name, instance, nextWorkers)})
 		case "suspicious":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewSuspiciousTransform(config, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewSuspiciousTransform(cfg, logger, name, instance, nextWorkers)})
 		case "user-privacy":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewUserPrivacyTransform(config, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewUserPrivacyTransform(cfg, logger, name, instance, nextWorkers)})
 		case "machine-learning":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewMachineLearningTransform(config, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewMachineLearningTransform(cfg, logger, name, instance, nextWorkers)})
 		case "rest":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewRestTransform(config, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewRestTransform(cfg, logger, name, instance, nextWorkers)})
 		case "relabeling":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewRelabelTransform(config, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewRelabelTransform(cfg, logger, name, instance, nextWorkers)})
 		case "latency":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewLatencyTransform(config, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewLatencyTransform(cfg, logger, name, instance, nextWorkers)})
 		case "rewrite":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewRewriteTransform(config, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewRewriteTransform(cfg, logger, name, instance, nextWorkers)})
 		case "new-domain-tracker":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewNewDomainTrackerTransform(config, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewNewDomainTrackerTransform(cfg, logger, name, instance, nextWorkers)})
 		case "unique-response-tracker":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewUniqueResponseTrackerTransform(config, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewUniqueResponseTrackerTransform(cfg, logger, name, instance, nextWorkers)})
 		case "reducer":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewReducerTransform(config, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewReducerTransform(cfg, logger, name, instance, nextWorkers)})
 		case "reordering":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewReorderingTransform(config, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewReorderingTransform(cfg, logger, name, instance, nextWorkers)})
 		default:
 			d.LogError("unknown transformer name in order list: %s", nameTransform)
 		}
@@ -124,11 +124,11 @@ func NewTransforms(config *pkgconfig.ConfigTransformers, logger *logger.Logger, 
 	return d
 }
 
-func (p *Transforms) ReloadConfig(config *pkgconfig.ConfigTransformers) {
-	p.config = config
+func (p *Transforms) ReloadConfig(cfg *config.ConfigTransformers) {
+	p.config = cfg
 
 	for _, transform := range p.availableTransforms {
-		transform.ReloadConfig(config)
+		transform.ReloadConfig(cfg)
 	}
 
 	p.Prepare()
@@ -170,11 +170,11 @@ func (p *Transforms) Reset() {
 
 func (p *Transforms) LogInfo(msg string, v ...interface{}) {
 	connlog := fmt.Sprintf("(conn #%d) ", p.instance)
-	p.logger.Info(pkgconfig.PrefixLogWorker+"["+p.name+"] "+connlog+msg, v...)
+	p.logger.Info(config.PrefixLogWorker+"["+p.name+"] "+connlog+msg, v...)
 }
 
 func (p *Transforms) LogError(msg string, v ...interface{}) {
-	p.logger.Error(pkgconfig.PrefixLogWorker+"["+p.name+"] "+msg, v...)
+	p.logger.Error(config.PrefixLogWorker+"["+p.name+"] "+msg, v...)
 }
 
 func (p *Transforms) ProcessMessage(dm *dnsutils.DNSMessage) (int, error) {

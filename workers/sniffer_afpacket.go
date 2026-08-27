@@ -3,7 +3,7 @@
 package workers
 
 import (
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -11,9 +11,9 @@ type AfpacketSniffer struct {
 	*GenericWorker
 }
 
-func NewAfpacketSniffer(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *AfpacketSniffer {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &AfpacketSniffer{GenericWorker: NewGenericWorker(config, logger, name, "AFPACKET sniffer", bufSize, pkgconfig.DefaultMonitor)}
+func NewAfpacketSniffer(next []Worker, cfg *config.Config, logger *logger.Logger, name string) *AfpacketSniffer {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &AfpacketSniffer{GenericWorker: NewGenericWorker(cfg, logger, name, "AFPACKET sniffer", bufSize, config.DefaultMonitor)}
 	w.SetDefaultRoutes(next)
 	w.ReadConfig()
 	return w
@@ -25,7 +25,7 @@ func (w *AfpacketSniffer) StartCollect() {
 }
 
 func init() {
-	RegisterCollector("afpacket-sniffer", func(c *pkgconfig.Config) bool { return c.Collectors.AfpacketLiveCapture.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterCollector("afpacket-sniffer", func(c *config.Config) bool { return c.Collectors.AfpacketLiveCapture.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewAfpacketSniffer(nil, c, l, s)
 	})
 }

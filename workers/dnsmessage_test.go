@@ -6,25 +6,25 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func TestDnsMessage_RoutingPolicy(t *testing.T) {
 	// simulate next workers
-	kept := GetWorkerForTest(pkgconfig.DefaultBufferSize)
-	dropped := GetWorkerForTest(pkgconfig.DefaultBufferSize)
+	kept := GetWorkerForTest(config.DefaultBufferSize)
+	dropped := GetWorkerForTest(config.DefaultBufferSize)
 
 	// config for the collector
-	config := pkgconfig.GetDefaultConfig()
-	config.Collectors.DNSMessage.Enable = true
-	config.Collectors.DNSMessage.Matching.Include = map[string]interface{}{
+	cfg := config.GetDefaultConfig()
+	cfg.Collectors.DNSMessage.Enable = true
+	cfg.Collectors.DNSMessage.Matching.Include = map[string]interface{}{
 		"dns.qname": "dns.collector",
 	}
 
 	// init the collector
-	c := NewDNSMessage(nil, config, logger.New(false), "test")
+	c := NewDNSMessage(nil, cfg, logger.New(false), "test")
 	c.SetDefaultRoutes([]Worker{kept})
 	c.SetDefaultDropped([]Worker{dropped})
 
@@ -80,9 +80,9 @@ func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 	lg.SetOutputChannel((logsChan))
 
 	// init the collector and run-it
-	config := pkgconfig.GetDefaultConfig()
-	config.Global.Worker.InternalMonitor = 1
-	c := NewDNSMessage(nil, config, lg, "test")
+	cfg := config.GetDefaultConfig()
+	cfg.Global.Worker.InternalMonitor = 1
+	c := NewDNSMessage(nil, cfg, lg, "test")
 
 	// init next logger with a buffer of one element
 	nxt := GetWorkerForTest(1)
@@ -100,13 +100,13 @@ func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 	// waiting monitor to run in consumer
 	time.Sleep(2 * time.Second)
 
-	if !waitForLogMatch(logsChan, regexp.MustCompile(pkgconfig.ExpectedBufferMsg511), 3*time.Second) {
+	if !waitForLogMatch(logsChan, regexp.MustCompile(config.ExpectedBufferMsg511), 3*time.Second) {
 		t.Fatal("did not receive 511 dropped message log")
 	}
 
 	// read dnsmessage from next logger
 	batchOut := <-nxt.GetInputChannel()
-	if len(batchOut.Messages) == 0 || batchOut.Messages[0].DNS.Qname != pkgconfig.ExpectedQname2 {
+	if len(batchOut.Messages) == 0 || batchOut.Messages[0].DNS.Qname != config.ExpectedQname2 {
 		t.Errorf("invalid qname in dns message: %v", batchOut.Messages)
 	}
 
@@ -119,12 +119,12 @@ func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 	// waiting monitor to run in consumer
 	time.Sleep(2 * time.Second)
 
-	if !waitForLogMatch(logsChan, regexp.MustCompile(pkgconfig.ExpectedBufferMsg1023), 3*time.Second) {
+	if !waitForLogMatch(logsChan, regexp.MustCompile(config.ExpectedBufferMsg1023), 3*time.Second) {
 		t.Fatal("did not receive 1023 dropped message log")
 	}
 	// read dnsmessage from next logger
 	batch2 := <-nxt.GetInputChannel()
-	if len(batch2.Messages) == 0 || batch2.Messages[0].DNS.Qname != pkgconfig.ExpectedQname2 {
+	if len(batch2.Messages) == 0 || batch2.Messages[0].DNS.Qname != config.ExpectedQname2 {
 		t.Errorf("invalid qname in dns message: %v", batch2.Messages)
 	}
 

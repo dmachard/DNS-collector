@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
-	"github.com/dmachard/go-dnscollector/v2/transformers"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -30,10 +30,10 @@ type MQTT struct {
 	stopReconnect            chan bool
 }
 
-func NewMQTT(config *pkgconfig.Config, logger *logger.Logger, name string) *MQTT {
-	bufSize := config.Global.Worker.ChannelBufferSize
+func NewMQTT(cfg *config.Config, logger *logger.Logger, name string) *MQTT {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
 	w := &MQTT{
-		GenericWorker: NewGenericWorker(config, logger, name, "mqtt", bufSize, pkgconfig.DefaultMonitor),
+		GenericWorker: NewGenericWorker(cfg, logger, name, "mqtt", bufSize, config.DefaultMonitor),
 		mqttReady:     make(chan bool),
 		mqttReconnect: make(chan bool),
 		stopReconnect: make(chan bool),
@@ -52,20 +52,20 @@ func (w *MQTT) ReadConfig() {
 	var errFormatter error
 	w.textFormatter, errFormatter = dnsutils.NewTextFormatter(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary)
 	if errFormatter != nil {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "invalid text format: " + errFormatter.Error())
+		w.LogFatal(config.PrefixLogWorker + "invalid text format: " + errFormatter.Error())
 	}
 
 	if !netutils.IsValidTLS(w.GetConfig().Loggers.MQTT.TLSMinVersion) {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "]mqtt - invalid tls min version")
+		w.LogFatal(config.PrefixLogWorker + "[" + w.GetName() + "]mqtt - invalid tls min version")
 	}
 
 	if w.GetConfig().Loggers.MQTT.QOS > 2 {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "]mqtt - invalid qos value, must be 0, 1, or 2")
+		w.LogFatal(config.PrefixLogWorker + "[" + w.GetName() + "]mqtt - invalid qos value, must be 0, 1, or 2")
 	}
 
 	protocolVersion := strings.ToLower(w.GetConfig().Loggers.MQTT.ProtocolVersion)
 	if protocolVersion != "v3" && protocolVersion != "v5" && protocolVersion != mqttProtocolAuto {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "]mqtt - invalid protocol version, must be v3, v5, or auto")
+		w.LogFatal(config.PrefixLogWorker + "[" + w.GetName() + "]mqtt - invalid protocol version, must be v3, v5, or auto")
 	}
 }
 
@@ -213,7 +213,7 @@ func (w *MQTT) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 
 		var payload string
 		switch w.GetConfig().Loggers.MQTT.Mode {
-		case pkgconfig.ModeText:
+		case config.ModeText:
 			// get buffer from pool
 			buf := w.GetTextBuffer()
 
@@ -240,10 +240,10 @@ func (w *MQTT) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 			payload = buf.String()
 			// return buffer after use
 			w.PutTextBuffer(buf)
-		case pkgconfig.ModeJSON:
+		case config.ModeJSON:
 			json.NewEncoder(buffer).Encode(dm)
 			payload = buffer.String()
-		case pkgconfig.ModeFlatJSON:
+		case config.ModeFlatJSON:
 			if dm.Relabeling != nil {
 				flat, err := dm.Flatten()
 				if err != nil {
@@ -396,7 +396,7 @@ func (w *MQTT) StartLogging() {
 }
 
 func init() {
-	RegisterLogger("mqtt", func(c *pkgconfig.Config) bool { return c.Loggers.MQTT.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("mqtt", func(c *config.Config) bool { return c.Loggers.MQTT.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewMQTT(c, l, s)
 	})
 }

@@ -12,9 +12,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
-	"github.com/dmachard/go-dnscollector/v2/transformers"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/transformers"
 	"github.com/dmachard/go-dnstap-protobuf"
 	"github.com/dmachard/go-framestream"
 	"github.com/dmachard/go-logger"
@@ -28,9 +28,9 @@ type DnstapServer struct {
 	connCounter uint64
 }
 
-func NewDnstapServer(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *DnstapServer {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &DnstapServer{GenericWorker: NewGenericWorker(config, logger, name, "dnstap", bufSize, pkgconfig.DefaultMonitor)}
+func NewDnstapServer(next []Worker, cfg *config.Config, logger *logger.Logger, name string) *DnstapServer {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &DnstapServer{GenericWorker: NewGenericWorker(cfg, logger, name, "dnstap", bufSize, config.DefaultMonitor)}
 	w.SetDefaultRoutes(next)
 	w.CheckConfig()
 	return w
@@ -38,7 +38,7 @@ func NewDnstapServer(next []Worker, config *pkgconfig.Config, logger *logger.Log
 
 func (w *DnstapServer) CheckConfig() {
 	if !netutils.IsValidTLS(w.GetConfig().Collectors.Dnstap.TLSMinVersion) {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "] dnstap - invalid tls min version")
+		w.LogFatal(config.PrefixLogWorker + "[" + w.GetName() + "] dnstap - invalid tls min version")
 	}
 }
 
@@ -109,7 +109,7 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 
 	// handle incoming frame
 	for {
-		if w.GetConfig().Collectors.Dnstap.Compression == pkgconfig.CompressNone {
+		if w.GetConfig().Collectors.Dnstap.Compression == config.CompressNone {
 			frame, err = fs.RecvFrame(false)
 		} else {
 			frame, err = fs.RecvCompressedFrame(&compress.GzipCodec, false)
@@ -152,7 +152,7 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 			break
 		}
 
-		if w.GetConfig().Collectors.Dnstap.Compression == pkgconfig.CompressNone {
+		if w.GetConfig().Collectors.Dnstap.Compression == config.CompressNone {
 			// send payload to the channel
 			select {
 			case dnstapProcessor.GetDataChannel() <- frame.Data(): // Successful send to channel
@@ -205,7 +205,7 @@ func (w *DnstapServer) StartCollect() {
 		cfg.TLSSupport, netutils.TLSVersion[cfg.TLSMinVersion],
 		cfg.CertFile, cfg.KeyFile)
 	if err != nil {
-		w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] listen error: ", err)
+		w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"] listen error: ", err)
 	}
 	w.LogInfo("listening on %s", listener.Addr())
 
@@ -239,7 +239,7 @@ func (w *DnstapServer) StartCollect() {
 			if len(cfg.SockPath) == 0 && cfg.RcvBufSize > 0 {
 				before, actual, err := netutils.SetSockRCVBUF(conn, cfg.RcvBufSize, cfg.TLSSupport)
 				if err != nil {
-					w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] unable to set SO_RCVBUF: ", err)
+					w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"] unable to set SO_RCVBUF: ", err)
 				}
 				w.LogInfo("set SO_RCVBUF option, value before: %d, desired: %d, actual: %d", before, cfg.RcvBufSize, actual)
 			}
@@ -295,8 +295,8 @@ type DNSTapProcessor struct {
 	dataChannel chan []byte
 }
 
-func NewDNSTapProcessor(connID int, peerName string, config *pkgconfig.Config, logger *logger.Logger, name string, size int) DNSTapProcessor {
-	w := DNSTapProcessor{GenericWorker: NewGenericWorker(config, logger, name, "(conn #"+strconv.Itoa(connID)+") dnstap processor", size, pkgconfig.DefaultMonitor)}
+func NewDNSTapProcessor(connID int, peerName string, cfg *config.Config, logger *logger.Logger, name string, size int) DNSTapProcessor {
+	w := DNSTapProcessor{GenericWorker: NewGenericWorker(cfg, logger, name, "(conn #"+strconv.Itoa(connID)+") dnstap processor", size, config.DefaultMonitor)}
 	w.ConnID = connID
 	w.PeerName = peerName
 	w.dataChannel = make(chan []byte, size)
@@ -318,14 +318,14 @@ func (w *DNSTapProcessor) StartCollect() {
 	numWorkers := w.GetConfig().Collectors.Dnstap.NumWorkers
 	if numWorkers > 0 {
 		var wg sync.WaitGroup
-		workerCfgChans := make([]chan *pkgconfig.Config, numWorkers)
+		workerCfgChans := make([]chan *config.Config, numWorkers)
 
 		for i := 0; i < numWorkers; i++ {
-			cfgChan := make(chan *pkgconfig.Config, 10)
+			cfgChan := make(chan *config.Config, 10)
 			workerCfgChans[i] = cfgChan
 			wg.Add(1)
 
-			go func(cChan chan *pkgconfig.Config) {
+			go func(cChan chan *config.Config) {
 				defer wg.Done()
 
 				dt := &dnstap.Dnstap{}
@@ -569,7 +569,7 @@ func (w *DNSTapProcessor) processFrame(
 		case dnstap.SocketFamily_INET6:
 			dm.NetworkInfo.Family = "INET6"
 		default:
-			dm.NetworkInfo.Family = pkgconfig.StrUnknown
+			dm.NetworkInfo.Family = config.StrUnknown
 		}
 
 		switch dt.GetMessage().GetSocketProtocol() {
@@ -588,7 +588,7 @@ func (w *DNSTapProcessor) processFrame(
 		case dnstap.SocketProtocol_DOQ:
 			dm.NetworkInfo.Protocol = "DOQ"
 		default:
-			dm.NetworkInfo.Protocol = pkgconfig.StrUnknown
+			dm.NetworkInfo.Protocol = config.StrUnknown
 		}
 
 		// decode query address and port
@@ -730,7 +730,7 @@ func (w *DNSTapProcessor) processFrame(
 }
 
 func init() {
-	RegisterCollector("dnstap", func(c *pkgconfig.Config) bool { return c.Collectors.Dnstap.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterCollector("dnstap", func(c *config.Config) bool { return c.Collectors.Dnstap.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewDnstapServer(nil, c, l, s)
 	})
 }

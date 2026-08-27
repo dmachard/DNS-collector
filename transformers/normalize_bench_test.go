@@ -3,16 +3,16 @@ package transformers
 import (
 	"testing"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func BenchmarkNormalize_GetEffectiveTld(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
+	cfg := config.GetFakeConfigTransformers()
 	channels := []chan *dnsutils.DNSMessageBatch{}
 
-	subprocessor := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
+	subprocessor := NewNormalizeTransform(cfg, logger.New(false), "test", 0, channels)
 	dm := dnsutils.GetFakeDNSMessage()
 	dm.DNS.Qname = "en.wikipedia.org"
 
@@ -24,10 +24,10 @@ func BenchmarkNormalize_GetEffectiveTld(b *testing.B) {
 }
 
 func BenchmarkNormalize_GetEffectiveTldPlusOne(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
+	cfg := config.GetFakeConfigTransformers()
 	channels := []chan *dnsutils.DNSMessageBatch{}
 
-	subprocessor := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
+	subprocessor := NewNormalizeTransform(cfg, logger.New(false), "test", 0, channels)
 	dm := dnsutils.GetFakeDNSMessage()
 	dm.DNS.Qname = "en.wikipedia.org"
 
@@ -39,10 +39,10 @@ func BenchmarkNormalize_GetEffectiveTldPlusOne(b *testing.B) {
 }
 
 func BenchmarkNormalize_QnameLowercase_MixedCase(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
+	cfg := config.GetFakeConfigTransformers()
 	channels := []chan *dnsutils.DNSMessageBatch{}
 
-	subprocessor := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
+	subprocessor := NewNormalizeTransform(cfg, logger.New(false), "test", 0, channels)
 	dm := dnsutils.GetFakeDNSMessage()
 
 	b.ReportAllocs()
@@ -54,10 +54,10 @@ func BenchmarkNormalize_QnameLowercase_MixedCase(b *testing.B) {
 }
 
 func BenchmarkNormalize_QnameLowercase_AlreadyLower(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
+	cfg := config.GetFakeConfigTransformers()
 	channels := []chan *dnsutils.DNSMessageBatch{}
 
-	subprocessor := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
+	subprocessor := NewNormalizeTransform(cfg, logger.New(false), "test", 0, channels)
 	dm := dnsutils.GetFakeDNSMessage()
 
 	b.ReportAllocs()
@@ -69,10 +69,10 @@ func BenchmarkNormalize_QnameLowercase_AlreadyLower(b *testing.B) {
 }
 
 func BenchmarkNormalize_RRLowercase_MixedCase(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
+	cfg := config.GetFakeConfigTransformers()
 	channels := []chan *dnsutils.DNSMessageBatch{}
 
-	transform := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
+	transform := NewNormalizeTransform(cfg, logger.New(false), "test", 0, channels)
 	dm := dnsutils.GetFakeDNSMessage()
 	dm.DNS.DNSRRs.Answers = []dnsutils.DNSAnswer{{Name: "En.Wikipedia.Org", Rdatatype: "CNAME", Rdata: "Target.Domain.Com"}}
 	dm.DNS.DNSRRs.Nameservers = []dnsutils.DNSAnswer{{Name: "Ns1.Domain.Org", Rdatatype: "NS", Rdata: "Ns1.Other.Com"}}
@@ -91,10 +91,10 @@ func BenchmarkNormalize_RRLowercase_MixedCase(b *testing.B) {
 }
 
 func BenchmarkNormalize_RRLowercase_AlreadyLower(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
+	cfg := config.GetFakeConfigTransformers()
 	channels := []chan *dnsutils.DNSMessageBatch{}
 
-	transform := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
+	transform := NewNormalizeTransform(cfg, logger.New(false), "test", 0, channels)
 	dm := dnsutils.GetFakeDNSMessage()
 	dm.DNS.DNSRRs.Answers = []dnsutils.DNSAnswer{{Name: "en.wikipedia.org", Rdatatype: "CNAME", Rdata: "target.domain.com"}}
 	dm.DNS.DNSRRs.Nameservers = []dnsutils.DNSAnswer{{Name: "ns1.domain.org", Rdatatype: "NS", Rdata: "ns1.other.com"}}
@@ -108,10 +108,10 @@ func BenchmarkNormalize_RRLowercase_AlreadyLower(b *testing.B) {
 }
 
 func BenchmarkNormalize_QuietText(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
+	cfg := config.GetFakeConfigTransformers()
 	channels := []chan *dnsutils.DNSMessageBatch{}
 
-	subprocessor := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
+	subprocessor := NewNormalizeTransform(cfg, logger.New(false), "test", 0, channels)
 	dm := dnsutils.GetFakeDNSMessage()
 	dm.DNS.Qname = "EN.Wikipedia.Org"
 
@@ -123,10 +123,10 @@ func BenchmarkNormalize_QuietText(b *testing.B) {
 }
 
 func BenchmarkNormalize_ReplaceNonprintable_Printable(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
+	cfg := config.GetFakeConfigTransformers()
 	channels := []chan *dnsutils.DNSMessageBatch{}
 
-	subprocessor := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
+	subprocessor := NewNormalizeTransform(cfg, logger.New(false), "test", 0, channels)
 	dm := dnsutils.GetFakeDNSMessage()
 
 	b.ReportAllocs()
@@ -138,10 +138,10 @@ func BenchmarkNormalize_ReplaceNonprintable_Printable(b *testing.B) {
 }
 
 func BenchmarkNormalize_ReplaceNonprintable_WithSpecial(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
+	cfg := config.GetFakeConfigTransformers()
 	channels := []chan *dnsutils.DNSMessageBatch{}
 
-	subprocessor := NewNormalizeTransform(config, logger.New(false), "test", 0, channels)
+	subprocessor := NewNormalizeTransform(cfg, logger.New(false), "test", 0, channels)
 	dm := dnsutils.GetFakeDNSMessage()
 
 	b.ReportAllocs()

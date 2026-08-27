@@ -3,9 +3,9 @@ package workers
 import (
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
-	"github.com/dmachard/go-dnscollector/v2/transformers"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/transformers"
 	"github.com/dmachard/go-logger"
 )
 
@@ -13,8 +13,8 @@ type DNSProcessor struct {
 	*GenericWorker
 }
 
-func NewDNSProcessor(config *pkgconfig.Config, logger *logger.Logger, name string, size int) DNSProcessor {
-	w := DNSProcessor{GenericWorker: NewGenericWorker(config, logger, name, "dns processor", size, pkgconfig.DefaultMonitor)}
+func NewDNSProcessor(cfg *config.Config, logger *logger.Logger, name string, size int) DNSProcessor {
+	w := DNSProcessor{GenericWorker: NewGenericWorker(cfg, logger, name, "dns processor", size, config.DefaultMonitor)}
 	return w
 }
 

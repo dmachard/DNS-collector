@@ -3,13 +3,13 @@ package workers
 import (
 	"testing"
 
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestOpenTelemetry_InitTracerProvider(t *testing.T) {
-	cfg := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	cfg.Loggers.OpenTelemetryClient.Enable = true
 	cfg.Loggers.OpenTelemetryClient.OtelEndpoint = "localhost:4317"
 

@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/google/gopacket/pcapgo"
 )
@@ -22,15 +22,15 @@ func Test_LogFileText(t *testing.T) {
 		pattern string
 	}{
 		{
-			mode:    pkgconfig.ModeText,
+			mode:    config.ModeText,
 			pattern: "0b dns.collector A",
 		},
 		{
-			mode:    pkgconfig.ModeJSON,
+			mode:    config.ModeJSON,
 			pattern: "\"qname\":\"dns.collector\"",
 		},
 		{
-			mode:    pkgconfig.ModeFlatJSON,
+			mode:    config.ModeFlatJSON,
 			pattern: "\"dns.qname\":\"dns.collector\"",
 		},
 	}
@@ -46,13 +46,13 @@ func Test_LogFileText(t *testing.T) {
 			defer os.Remove(f.Name()) // clean up
 
 			// config
-			config := pkgconfig.GetDefaultConfig()
-			config.Loggers.LogFile.FilePath = f.Name()
-			config.Loggers.LogFile.Mode = tc.mode
-			config.Loggers.LogFile.FlushInterval = 0
+			cfg := config.GetDefaultConfig()
+			cfg.Loggers.LogFile.FilePath = f.Name()
+			cfg.Loggers.LogFile.Mode = tc.mode
+			cfg.Loggers.LogFile.FlushInterval = 0
 
 			// init generator in testing mode
-			g := NewLogFile(config, logger.New(false), "test")
+			g := NewLogFile(cfg, logger.New(false), "test")
 
 			// start the logger
 			go g.StartCollect()
@@ -87,13 +87,13 @@ func Test_LogFilePcap_ContentVerification(t *testing.T) {
 	defer os.Remove(f.Name())
 
 	// Config
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.LogFile.FilePath = f.Name()
-	config.Loggers.LogFile.Mode = pkgconfig.ModePCAP
-	config.Loggers.LogFile.FlushInterval = 0
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.LogFile.FilePath = f.Name()
+	cfg.Loggers.LogFile.Mode = config.ModePCAP
+	cfg.Loggers.LogFile.FlushInterval = 0
 
 	// init Worker
-	g := NewLogFile(config, logger.New(true), "test-pcap")
+	g := NewLogFile(cfg, logger.New(true), "test-pcap")
 	go g.StartCollect()
 
 	// send fake dns message to logger
@@ -202,26 +202,26 @@ func Test_LogFileRotation(t *testing.T) {
 			go func() {
 				testPrefix := filePattern + "." + tc.test
 
-				config := pkgconfig.GetDefaultConfig()
-				config.Loggers.LogFile.FilePath = filepath.Join(tempDir, testPrefix)
-				config.Loggers.LogFile.Mode = pkgconfig.ModeJSON
-				config.Loggers.LogFile.MaxSize = tc.maxSize
-				config.Loggers.LogFile.MaxFiles = tc.maxFiles
-				config.Loggers.LogFile.RotationInterval = tc.rotationInterval
-				config.Global.Worker.ChannelBufferSize = 1
+				cfg := config.GetDefaultConfig()
+				cfg.Loggers.LogFile.FilePath = filepath.Join(tempDir, testPrefix)
+				cfg.Loggers.LogFile.Mode = config.ModeJSON
+				cfg.Loggers.LogFile.MaxSize = tc.maxSize
+				cfg.Loggers.LogFile.MaxFiles = tc.maxFiles
+				cfg.Loggers.LogFile.RotationInterval = tc.rotationInterval
+				cfg.Global.Worker.ChannelBufferSize = 1
 
 				t.Logf("\n[Rotation Config - %s]\n"+
 					" ├─ Interval (s): %d\n"+
 					" ├─ Max Size:     %d MB\n"+
 					" └─ Max Files:    %d",
 					tc.test,
-					config.Loggers.LogFile.RotationInterval,
-					config.Loggers.LogFile.MaxSize,
-					config.Loggers.LogFile.MaxFiles,
+					cfg.Loggers.LogFile.RotationInterval,
+					cfg.Loggers.LogFile.MaxSize,
+					cfg.Loggers.LogFile.MaxFiles,
 				)
 
 				// init worker
-				w := NewLogFile(config, logger.New(false), "testrotation")
+				w := NewLogFile(cfg, logger.New(false), "testrotation")
 				go w.StartCollect()
 
 				// send dns queries
@@ -266,12 +266,12 @@ func Test_LogFileBatchProcessing(t *testing.T) {
 	defer os.Remove(f.Name())
 
 	// Configuration: 1 second flush interval
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.LogFile.FilePath = f.Name()
-	config.Loggers.LogFile.Mode = pkgconfig.ModeText
-	config.Loggers.LogFile.FlushInterval = 1
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.LogFile.FilePath = f.Name()
+	cfg.Loggers.LogFile.Mode = config.ModeText
+	cfg.Loggers.LogFile.FlushInterval = 1
 
-	g := NewLogFile(config, logger.New(false), "test-batch")
+	g := NewLogFile(cfg, logger.New(false), "test-batch")
 	go g.StartCollect()
 
 	// send multiple DNS messages (e.g., 50 messages)

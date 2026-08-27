@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
-	"github.com/dmachard/go-dnscollector/v2/transformers"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/transformers"
 	"github.com/dmachard/go-logger"
 )
 
@@ -23,9 +23,9 @@ type Webhook struct {
 	BasicAuthPwd     string
 }
 
-func NewWebhook(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *Webhook {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &Webhook{GenericWorker: NewGenericWorker(config, logger, name, "webhook", bufSize, pkgconfig.DefaultMonitor)}
+func NewWebhook(next []Worker, cfg *config.Config, logger *logger.Logger, name string) *Webhook {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &Webhook{GenericWorker: NewGenericWorker(cfg, logger, name, "webhook", bufSize, config.DefaultMonitor)}
 	w.SetDefaultRoutes(next)
 	w.ReadConfig()
 	return w
@@ -188,7 +188,7 @@ func (w *Webhook) Request(dm *dnsutils.DNSMessage) error {
 }
 
 func init() {
-	RegisterCollector("webhook", func(c *pkgconfig.Config) bool { return c.Collectors.Webhook.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterCollector("webhook", func(c *config.Config) bool { return c.Collectors.Webhook.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewWebhook(nil, c, l, s)
 	})
 }

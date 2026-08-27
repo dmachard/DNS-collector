@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -23,9 +23,9 @@ type ReorderingTransform struct {
 }
 
 // NewLogReorderTransform creates an instance of the transformer.
-func NewReorderingTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *ReorderingTransform {
+func NewReorderingTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *ReorderingTransform {
 	t := &ReorderingTransform{
-		GenericTransformer: NewTransformer(config, logger, "reordering", name, instance, nextWorkers),
+		GenericTransformer: NewTransformer(cfg, logger, "reordering", name, instance, nextWorkers),
 		stopChan:           make(chan struct{}),
 		flushSignal:        make(chan struct{}),
 		nextWorkers:        nextWorkers,

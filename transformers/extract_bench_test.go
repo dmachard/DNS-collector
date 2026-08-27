@@ -3,19 +3,19 @@ package transformers
 import (
 	"testing"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func BenchmarkExtract_AddBase64AndHexFields(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Extract.Enable = true
-	config.Extract.Base64Fields = []string{"dns.qname", "network.query-ip"}
-	config.Extract.HexFields = []string{"dns.qname", "network.query-ip"}
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Extract.Enable = true
+	cfg.Extract.Base64Fields = []string{"dns.qname", "network.query-ip"}
+	cfg.Extract.HexFields = []string{"dns.qname", "network.query-ip"}
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	extract := NewExtractTransform(config, logger.New(false), "test", 0, outChans)
+	extract := NewExtractTransform(cfg, logger.New(false), "test", 0, outChans)
 	extract.GetTransforms()
 
 	dm := dnsutils.GetFakeDNSMessage()
@@ -31,12 +31,12 @@ func BenchmarkExtract_AddBase64AndHexFields(b *testing.B) {
 }
 
 func BenchmarkExtract_AddBase64Payload(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Extract.Enable = true
-	config.Extract.AddPayload = true
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Extract.Enable = true
+	cfg.Extract.AddPayload = true
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	extract := NewExtractTransform(config, logger.New(false), "test", 0, outChans)
+	extract := NewExtractTransform(cfg, logger.New(false), "test", 0, outChans)
 	extract.GetTransforms()
 
 	dm := dnsutils.GetFakeDNSMessageWithPayload()

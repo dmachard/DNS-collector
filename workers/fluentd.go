@@ -7,9 +7,9 @@ import (
 
 	"github.com/IBM/fluent-forward-go/fluent/client"
 	"github.com/IBM/fluent-forward-go/fluent/protocol"
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
-	"github.com/dmachard/go-dnscollector/v2/transformers"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 )
@@ -22,9 +22,9 @@ type FluentdClient struct {
 	writerReady                        bool
 }
 
-func NewFluentdClient(config *pkgconfig.Config, logger *logger.Logger, name string) *FluentdClient {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &FluentdClient{GenericWorker: NewGenericWorker(config, logger, name, "fluentd", bufSize, pkgconfig.DefaultMonitor)}
+func NewFluentdClient(cfg *config.Config, logger *logger.Logger, name string) *FluentdClient {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &FluentdClient{GenericWorker: NewGenericWorker(cfg, logger, name, "fluentd", bufSize, config.DefaultMonitor)}
 	w.transportReady = make(chan bool)
 	w.transportReconnect = make(chan bool)
 	w.ReadConfig()
@@ -288,7 +288,7 @@ func (w *FluentdClient) StartLogging() {
 }
 
 func init() {
-	RegisterLogger("fluentd", func(c *pkgconfig.Config) bool { return c.Loggers.Fluentd.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("fluentd", func(c *config.Config) bool { return c.Loggers.Fluentd.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewFluentdClient(c, l, s)
 	})
 }

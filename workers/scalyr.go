@@ -16,9 +16,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/grafana/dskit/backoff"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
-	"github.com/dmachard/go-dnscollector/v2/transformers"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 )
@@ -44,10 +44,10 @@ type ScalyrClient struct {
 	submitterDone chan bool   // Will be written to when the HTTP submitter is done
 }
 
-func NewScalyrClient(config *pkgconfig.Config, console *logger.Logger, name string) *ScalyrClient {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &ScalyrClient{GenericWorker: NewGenericWorker(config, console, name, "scalyr", bufSize, pkgconfig.DefaultMonitor)}
-	w.mode = pkgconfig.ModeText
+func NewScalyrClient(cfg *config.Config, console *logger.Logger, name string) *ScalyrClient {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &ScalyrClient{GenericWorker: NewGenericWorker(cfg, console, name, "scalyr", bufSize, config.DefaultMonitor)}
+	w.mode = config.ModeText
 	w.endpoint = makeEndpoint("app.scalyr.com")
 	w.flush = time.NewTicker(30 * time.Second)
 	w.session = uuid.NewString()
@@ -71,7 +71,7 @@ func (w *ScalyrClient) ReadConfig() {
 		w.mode = w.GetConfig().Loggers.ScalyrClient.Mode
 	}
 
-	if len(w.GetConfig().Loggers.ScalyrClient.Parser) == 0 && (w.mode == pkgconfig.ModeText || w.mode == pkgconfig.ModeJSON) {
+	if len(w.GetConfig().Loggers.ScalyrClient.Parser) == 0 && (w.mode == config.ModeText || w.mode == config.ModeJSON) {
 		w.LogFatal(fmt.Sprintf("No Scalyr parser configured for Scalyr Client in %s mode", w.mode))
 	}
 	w.parser = w.GetConfig().Loggers.ScalyrClient.Parser
@@ -237,7 +237,7 @@ func (w *ScalyrClient) StartLogging() {
 
 			for _, dm := range batch.Messages {
 				switch w.mode {
-				case pkgconfig.ModeText:
+				case config.ModeText:
 					buf := w.GetTextBuffer() // get buffer from pool
 					var err error
 					if w.textFormatter != nil {
@@ -259,9 +259,9 @@ func (w *ScalyrClient) StartLogging() {
 
 					attrs["message"] = buf.String() // assign buffer content
 					w.PutTextBuffer(buf)            // return buffer to pool
-				case pkgconfig.ModeJSON:
+				case config.ModeJSON:
 					attrs["message"] = dm
-				case pkgconfig.ModeFlatJSON:
+				case config.ModeFlatJSON:
 					var err error
 					if attrs, err = dm.Flatten(); err != nil {
 						w.LogError("unable to flatten: %e", err)
@@ -426,7 +426,7 @@ type response struct {
 }
 
 func init() {
-	RegisterLogger("scalyr", func(c *pkgconfig.Config) bool { return c.Loggers.ScalyrClient.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("scalyr", func(c *config.Config) bool { return c.Loggers.ScalyrClient.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewScalyrClient(c, l, s)
 	})
 }

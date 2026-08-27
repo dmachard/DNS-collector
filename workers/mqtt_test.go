@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -16,14 +16,14 @@ const (
 )
 
 func TestMQTT_GetName(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.MQTT.Enable = true
-	config.Loggers.MQTT.RemoteAddress = testAddress
-	config.Loggers.MQTT.RemotePort = 1883
-	config.Loggers.MQTT.Topic = mqttTestTopic
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.MQTT.Enable = true
+	cfg.Loggers.MQTT.RemoteAddress = testAddress
+	cfg.Loggers.MQTT.RemotePort = 1883
+	cfg.Loggers.MQTT.Topic = mqttTestTopic
 
 	logger := logger.New(false)
-	mqtt := NewMQTT(config, logger, "test-mqtt")
+	mqtt := NewMQTT(cfg, logger, "test-mqtt")
 
 	if mqtt.GetName() != "test-mqtt" {
 		t.Errorf("Expected name 'test-mqtt', got '%s'", mqtt.GetName())
@@ -31,52 +31,52 @@ func TestMQTT_GetName(t *testing.T) {
 }
 
 func TestMQTT_SetLoggers(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.MQTT.Enable = true
-	config.Loggers.MQTT.RemoteAddress = testAddress
-	config.Loggers.MQTT.RemotePort = 1883
-	config.Loggers.MQTT.Topic = mqttTestTopic
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.MQTT.Enable = true
+	cfg.Loggers.MQTT.RemoteAddress = testAddress
+	cfg.Loggers.MQTT.RemotePort = 1883
+	cfg.Loggers.MQTT.Topic = mqttTestTopic
 
 	logger := logger.New(false)
-	mqtt := NewMQTT(config, logger, "test-mqtt")
+	mqtt := NewMQTT(cfg, logger, "test-mqtt")
 
 	mqtt.SetLoggers([]Worker{})
 }
 
 func TestMQTT_ConfigDefaults(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 
-	if config.Loggers.MQTT.QOS != 0 {
-		t.Errorf("Expected default QOS 0, got %d", config.Loggers.MQTT.QOS)
+	if cfg.Loggers.MQTT.QOS != 0 {
+		t.Errorf("Expected default QOS 0, got %d", cfg.Loggers.MQTT.QOS)
 	}
 
-	if config.Loggers.MQTT.ProtocolVersion != mqttProtocolAuto {
-		t.Errorf("Expected default protocol 'auto', got %s", config.Loggers.MQTT.ProtocolVersion)
+	if cfg.Loggers.MQTT.ProtocolVersion != mqttProtocolAuto {
+		t.Errorf("Expected default protocol 'auto', got %s", cfg.Loggers.MQTT.ProtocolVersion)
 	}
 
-	if config.Loggers.MQTT.BufferSize != 100 {
-		t.Errorf("Expected default buffer size 100, got %d", config.Loggers.MQTT.BufferSize)
+	if cfg.Loggers.MQTT.BufferSize != 100 {
+		t.Errorf("Expected default buffer size 100, got %d", cfg.Loggers.MQTT.BufferSize)
 	}
 
-	if config.Loggers.MQTT.FlushInterval != 30 {
-		t.Errorf("Expected default flush interval 30, got %d", config.Loggers.MQTT.FlushInterval)
+	if cfg.Loggers.MQTT.FlushInterval != 30 {
+		t.Errorf("Expected default flush interval 30, got %d", cfg.Loggers.MQTT.FlushInterval)
 	}
 
-	if config.Loggers.MQTT.ConnectTimeout != 5 {
-		t.Errorf("Expected default connect timeout 5, got %d", config.Loggers.MQTT.ConnectTimeout)
+	if cfg.Loggers.MQTT.ConnectTimeout != 5 {
+		t.Errorf("Expected default connect timeout 5, got %d", cfg.Loggers.MQTT.ConnectTimeout)
 	}
 }
 
 func TestMQTT_FormatMessage(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.MQTT.Enable = true
-	config.Loggers.MQTT.RemoteAddress = testAddress
-	config.Loggers.MQTT.RemotePort = 1883
-	config.Loggers.MQTT.Topic = mqttTestTopic
-	config.Loggers.MQTT.Mode = pkgconfig.ModeJSON
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.MQTT.Enable = true
+	cfg.Loggers.MQTT.RemoteAddress = testAddress
+	cfg.Loggers.MQTT.RemotePort = 1883
+	cfg.Loggers.MQTT.Topic = mqttTestTopic
+	cfg.Loggers.MQTT.Mode = config.ModeJSON
 
 	logger := logger.New(false)
-	_ = NewMQTT(config, logger, "test-mqtt")
+	_ = NewMQTT(cfg, logger, "test-mqtt")
 
 	dm := dnsutils.GetFakeDNSMessage()
 	dm.Init()
@@ -94,14 +94,14 @@ func TestMQTT_ReloadConfig(t *testing.T) {
 	// Test config functionality by verifying config values
 	// Note: This test avoids the race condition by not modifying config
 	// while Monitor goroutine is running
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.MQTT.Enable = true
-	config.Loggers.MQTT.RemoteAddress = testAddress
-	config.Loggers.MQTT.RemotePort = 1883
-	config.Loggers.MQTT.Topic = mqttTestTopic
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.MQTT.Enable = true
+	cfg.Loggers.MQTT.RemoteAddress = testAddress
+	cfg.Loggers.MQTT.RemotePort = 1883
+	cfg.Loggers.MQTT.Topic = mqttTestTopic
 
 	logger := logger.New(false)
-	mqtt := NewMQTT(config, logger, "test-mqtt")
+	mqtt := NewMQTT(cfg, logger, "test-mqtt")
 
 	// Test that initial config is set correctly
 	if mqtt.GetConfig().Loggers.MQTT.Topic != mqttTestTopic {
@@ -123,70 +123,70 @@ func TestMQTT_ReloadConfig(t *testing.T) {
 }
 
 func TestMQTT_ProtocolVersion_V3(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.MQTT.Enable = true
-	config.Loggers.MQTT.RemoteAddress = testAddress
-	config.Loggers.MQTT.RemotePort = 1883
-	config.Loggers.MQTT.Topic = mqttTestTopic
-	config.Loggers.MQTT.ProtocolVersion = "v3"
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.MQTT.Enable = true
+	cfg.Loggers.MQTT.RemoteAddress = testAddress
+	cfg.Loggers.MQTT.RemotePort = 1883
+	cfg.Loggers.MQTT.Topic = mqttTestTopic
+	cfg.Loggers.MQTT.ProtocolVersion = "v3"
 
 	logger := logger.New(false)
-	mqtt := NewMQTT(config, logger, "test-mqtt")
+	mqtt := NewMQTT(cfg, logger, "test-mqtt")
 
 	// Test that v3 protocol version is accepted
 	mqtt.ReadConfig() // This should not panic
-	if config.Loggers.MQTT.ProtocolVersion != "v3" {
-		t.Errorf("Expected protocol version 'v3', got '%s'", config.Loggers.MQTT.ProtocolVersion)
+	if cfg.Loggers.MQTT.ProtocolVersion != "v3" {
+		t.Errorf("Expected protocol version 'v3', got '%s'", cfg.Loggers.MQTT.ProtocolVersion)
 	}
 }
 
 func TestMQTT_ProtocolVersion_V5(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.MQTT.Enable = true
-	config.Loggers.MQTT.RemoteAddress = testAddress
-	config.Loggers.MQTT.RemotePort = 1883
-	config.Loggers.MQTT.Topic = mqttTestTopic
-	config.Loggers.MQTT.ProtocolVersion = "v5"
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.MQTT.Enable = true
+	cfg.Loggers.MQTT.RemoteAddress = testAddress
+	cfg.Loggers.MQTT.RemotePort = 1883
+	cfg.Loggers.MQTT.Topic = mqttTestTopic
+	cfg.Loggers.MQTT.ProtocolVersion = "v5"
 
 	logger := logger.New(false)
-	mqtt := NewMQTT(config, logger, "test-mqtt")
+	mqtt := NewMQTT(cfg, logger, "test-mqtt")
 
 	// Test that v5 protocol version is accepted
 	mqtt.ReadConfig() // This should not panic
-	if config.Loggers.MQTT.ProtocolVersion != "v5" {
-		t.Errorf("Expected protocol version 'v5', got '%s'", config.Loggers.MQTT.ProtocolVersion)
+	if cfg.Loggers.MQTT.ProtocolVersion != "v5" {
+		t.Errorf("Expected protocol version 'v5', got '%s'", cfg.Loggers.MQTT.ProtocolVersion)
 	}
 }
 
 func TestMQTT_ProtocolVersion_Auto(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.MQTT.Enable = true
-	config.Loggers.MQTT.RemoteAddress = testAddress
-	config.Loggers.MQTT.RemotePort = 1883
-	config.Loggers.MQTT.Topic = mqttTestTopic
-	config.Loggers.MQTT.ProtocolVersion = mqttProtocolAuto
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.MQTT.Enable = true
+	cfg.Loggers.MQTT.RemoteAddress = testAddress
+	cfg.Loggers.MQTT.RemotePort = 1883
+	cfg.Loggers.MQTT.Topic = mqttTestTopic
+	cfg.Loggers.MQTT.ProtocolVersion = mqttProtocolAuto
 
 	logger := logger.New(false)
-	mqtt := NewMQTT(config, logger, "test-mqtt")
+	mqtt := NewMQTT(cfg, logger, "test-mqtt")
 
 	// Test that auto protocol version is accepted
 	mqtt.ReadConfig() // This should not panic
-	if config.Loggers.MQTT.ProtocolVersion != mqttProtocolAuto {
-		t.Errorf("Expected protocol version 'auto', got '%s'", config.Loggers.MQTT.ProtocolVersion)
+	if cfg.Loggers.MQTT.ProtocolVersion != mqttProtocolAuto {
+		t.Errorf("Expected protocol version 'auto', got '%s'", cfg.Loggers.MQTT.ProtocolVersion)
 	}
 }
 
 func TestMQTT_ProtocolVersion_Invalid(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.MQTT.Enable = true
-	config.Loggers.MQTT.RemoteAddress = testAddress
-	config.Loggers.MQTT.RemotePort = 1883
-	config.Loggers.MQTT.Topic = mqttTestTopic
-	config.Loggers.MQTT.ProtocolVersion = "invalid"
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.MQTT.Enable = true
+	cfg.Loggers.MQTT.RemoteAddress = testAddress
+	cfg.Loggers.MQTT.RemotePort = 1883
+	cfg.Loggers.MQTT.Topic = mqttTestTopic
+	cfg.Loggers.MQTT.ProtocolVersion = "invalid"
 
 	// Test the validation logic directly without creating the MQTT worker
 	// to avoid the fatal error that terminates the test
-	protocolVersion := strings.ToLower(config.Loggers.MQTT.ProtocolVersion)
+	protocolVersion := strings.ToLower(cfg.Loggers.MQTT.ProtocolVersion)
 	if protocolVersion != "v3" && protocolVersion != "v5" && protocolVersion != mqttProtocolAuto {
 		// This is the expected behavior - invalid protocol should be rejected
 	} else {

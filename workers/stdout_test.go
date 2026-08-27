@@ -8,15 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/google/gopacket/pcapgo"
 )
 
 func Test_StdoutTextMode(t *testing.T) {
 
-	cfg := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 
 	testcases := []struct {
 		name      string
@@ -29,14 +29,14 @@ func Test_StdoutTextMode(t *testing.T) {
 			name:      "default_delimiter",
 			delimiter: cfg.Global.TextFormatDelimiter,
 			boundary:  cfg.Global.TextFormatBoundary,
-			qname:     pkgconfig.ProgQname,
+			qname:     config.ProgQname,
 			expected:  "- collector CLIENT_QUERY NOERROR 1.2.3.4 1234 IPv4 UDP 0b dns.collector A -\n",
 		},
 		{
 			name:      "custom_delimiter",
 			delimiter: ";",
 			boundary:  cfg.Global.TextFormatBoundary,
-			qname:     pkgconfig.ProgQname,
+			qname:     config.ProgQname,
 			expected:  "-;collector;CLIENT_QUERY;NOERROR;1.2.3.4;1234;IPv4;UDP;0b;dns.collector;A;-\n",
 		},
 		{
@@ -67,7 +67,7 @@ func Test_StdoutTextMode(t *testing.T) {
 			// init logger and redirect stdout output to bytes buffer
 			var stdout bytes.Buffer
 
-			cfg := pkgconfig.GetDefaultConfig()
+			cfg := config.GetDefaultConfig()
 			cfg.Global.TextFormatDelimiter = tc.delimiter
 			cfg.Global.TextFormatBoundary = tc.boundary
 
@@ -99,11 +99,11 @@ func Test_StdoutJsonMode(t *testing.T) {
 		pattern string
 	}{
 		{
-			mode:    pkgconfig.ModeJSON,
+			mode:    config.ModeJSON,
 			pattern: "\"qname\":\"dns.collector\"",
 		},
 		{
-			mode:    pkgconfig.ModeFlatJSON,
+			mode:    config.ModeFlatJSON,
 			pattern: "\"dns.qname\":\"dns.collector\"",
 		},
 	}
@@ -113,7 +113,7 @@ func Test_StdoutJsonMode(t *testing.T) {
 			// init logger and redirect stdout output to bytes buffer
 			var stdout bytes.Buffer
 
-			cfg := pkgconfig.GetDefaultConfig()
+			cfg := config.GetDefaultConfig()
 			cfg.Loggers.Stdout.Mode = tc.mode
 			g := NewStdOut(cfg, logger.New(false), "test")
 			g.SetTextWriter(&stdout)
@@ -143,7 +143,7 @@ func Test_StdoutPcapMode(t *testing.T) {
 	var pcap bytes.Buffer
 
 	// init logger and run
-	cfg := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	cfg.Loggers.Stdout.Mode = "pcap"
 
 	g := NewStdOut(cfg, logger.New(false), "test")
@@ -184,7 +184,7 @@ func Test_StdoutPcapMode_NoDNSPayload(t *testing.T) {
 	var pcap bytes.Buffer
 
 	// init logger and run
-	cfg := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	cfg.Loggers.Stdout.Mode = "pcap"
 
 	g := NewStdOut(cfg, logger, "test")
@@ -209,7 +209,7 @@ func Test_StdoutPcapMode_NoDNSPayload(t *testing.T) {
 	}
 }
 
-// test for issue https://github.com/dmachard/go-dnscollector/v2/issues/568
+// test for issue https://github.com/dmachard/go-dnscollector/v3/issues/568
 func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 	// redirect stdout output to bytes buffer
 	logsChan := make(chan logger.LogEntry, 512)
@@ -218,13 +218,13 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 
 	// init logger and redirect stdout output to bytes buffer
 	var stdout bytes.Buffer
-	cfg := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	cfg.Global.Worker.InternalMonitor = 1
 	g := NewStdOut(cfg, lg, "test")
 	g.SetTextWriter(&stdout)
 
 	// init next logger with a buffer of one element
-	nxt := GetWorkerForTest(pkgconfig.DefaultBufferOne)
+	nxt := GetWorkerForTest(config.DefaultBufferOne)
 	g.AddDefaultRoute(nxt)
 
 	// run collector
@@ -242,7 +242,7 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 
 	for entry := range logsChan {
 		fmt.Println(entry)
-		pattern := regexp.MustCompile(pkgconfig.ExpectedBufferMsg511)
+		pattern := regexp.MustCompile(config.ExpectedBufferMsg511)
 		if pattern.MatchString(entry.Message) {
 			break
 		}
@@ -250,7 +250,7 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 
 	// read dns message from dnstap consumer
 	batchOut := <-nxt.GetInputChannel()
-	if len(batchOut.Messages) == 0 || batchOut.Messages[0].DNS.Qname != pkgconfig.ExpectedQname2 {
+	if len(batchOut.Messages) == 0 || batchOut.Messages[0].DNS.Qname != config.ExpectedQname2 {
 		t.Errorf("invalid qname in dns message: %v", batchOut.Messages)
 	}
 
@@ -264,7 +264,7 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 	time.Sleep(2 * time.Second)
 	for entry := range logsChan {
 		fmt.Println(entry)
-		pattern := regexp.MustCompile(pkgconfig.ExpectedBufferMsg1023)
+		pattern := regexp.MustCompile(config.ExpectedBufferMsg1023)
 		if pattern.MatchString(entry.Message) {
 			break
 		}
@@ -272,7 +272,7 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 
 	// read dns message from dnstap consumer
 	batchOut2 := <-nxt.GetInputChannel()
-	if len(batchOut2.Messages) == 0 || batchOut2.Messages[0].DNS.Qname != pkgconfig.ExpectedQname2 {
+	if len(batchOut2.Messages) == 0 || batchOut2.Messages[0].DNS.Qname != config.ExpectedQname2 {
 		t.Errorf("invalid qname in second dns message: %v", batchOut2.Messages)
 	}
 }
@@ -280,8 +280,8 @@ func Test_StdoutBufferLoggerIsFull(t *testing.T) {
 func Test_StdoutTextMode_Batching(t *testing.T) {
 	var stdout bytes.Buffer
 
-	cfg := pkgconfig.GetDefaultConfig()
-	cfg.Loggers.Stdout.Mode = pkgconfig.ModeText
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.Stdout.Mode = config.ModeText
 	cfg.Loggers.Stdout.FlushInterval = 1
 
 	g := NewStdOut(cfg, logger.New(false), "test")

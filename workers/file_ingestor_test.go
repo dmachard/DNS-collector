@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -103,15 +103,15 @@ func Test_FileIngestor(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := GetWorkerForTest(pkgconfig.DefaultBufferSize)
-			config := pkgconfig.GetDefaultConfig()
+			g := GetWorkerForTest(config.DefaultBufferSize)
+			cfg := config.GetDefaultConfig()
 
 			// watch tests data folder
-			config.Collectors.FileIngestor.WatchMode = tt.watchMode
-			config.Collectors.FileIngestor.WatchDir = tt.watchDir
+			cfg.Collectors.FileIngestor.WatchMode = tt.watchMode
+			cfg.Collectors.FileIngestor.WatchDir = tt.watchDir
 
 			// init collector
-			c := NewFileIngestor([]Worker{g}, config, logger.New(false), "test")
+			c := NewFileIngestor([]Worker{g}, cfg, logger.New(false), "test")
 			go c.StartCollect()
 			defer c.Stop()
 
@@ -134,12 +134,12 @@ func Test_FileIngestor_LinuxSLL(t *testing.T) {
 	expectedQname := "sll.example.com"
 	createTestPcapLinuxSLL(t, tempDir, expectedQname)
 
-	g := GetWorkerForTest(pkgconfig.DefaultBufferSize)
-	config := pkgconfig.GetDefaultConfig()
-	config.Collectors.FileIngestor.WatchMode = "pcap"
-	config.Collectors.FileIngestor.WatchDir = tempDir
+	g := GetWorkerForTest(config.DefaultBufferSize)
+	cfg := config.GetDefaultConfig()
+	cfg.Collectors.FileIngestor.WatchMode = "pcap"
+	cfg.Collectors.FileIngestor.WatchDir = tempDir
 
-	c := NewFileIngestor([]Worker{g}, config, logger.New(false), "test-sll")
+	c := NewFileIngestor([]Worker{g}, cfg, logger.New(false), "test-sll")
 	go c.StartCollect()
 	defer c.Stop()
 
@@ -182,12 +182,12 @@ func Test_FileIngestor_UnsupportedLinkType(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	g := GetWorkerForTest(pkgconfig.DefaultBufferSize)
-	config := pkgconfig.GetDefaultConfig()
-	config.Collectors.FileIngestor.WatchMode = "pcap"
-	config.Collectors.FileIngestor.WatchDir = tempDir
+	g := GetWorkerForTest(config.DefaultBufferSize)
+	cfg := config.GetDefaultConfig()
+	cfg.Collectors.FileIngestor.WatchMode = "pcap"
+	cfg.Collectors.FileIngestor.WatchDir = tempDir
 
-	c := NewFileIngestor([]Worker{g}, config, logger.New(false), "test-unsupported")
+	c := NewFileIngestor([]Worker{g}, cfg, logger.New(false), "test-unsupported")
 	go c.StartCollect()
 	defer c.Stop()
 
@@ -256,12 +256,12 @@ func Benchmark_FileIngestor_LinuxSLL(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		g := GetWorkerForTest(pkgconfig.DefaultBufferSize)
-		config := pkgconfig.GetDefaultConfig()
-		config.Collectors.FileIngestor.WatchMode = "pcap"
-		config.Collectors.FileIngestor.WatchDir = tempDir
+		g := GetWorkerForTest(config.DefaultBufferSize)
+		cfg := config.GetDefaultConfig()
+		cfg.Collectors.FileIngestor.WatchMode = "pcap"
+		cfg.Collectors.FileIngestor.WatchDir = tempDir
 
-		c := NewFileIngestor([]Worker{g}, config, logger.New(false), "bench-sll")
+		c := NewFileIngestor([]Worker{g}, cfg, logger.New(false), "bench-sll")
 		go c.StartCollect()
 
 		received := 0

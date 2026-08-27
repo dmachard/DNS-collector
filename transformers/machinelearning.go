@@ -5,8 +5,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -25,8 +25,8 @@ type MlTransform struct {
 	GenericTransformer
 }
 
-func NewMachineLearningTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *MlTransform {
-	t := &MlTransform{GenericTransformer: NewTransformer(config, logger, "machinelearning", name, instance, nextWorkers)}
+func NewMachineLearningTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *MlTransform {
+	t := &MlTransform{GenericTransformer: NewTransformer(cfg, logger, "machinelearning", name, instance, nextWorkers)}
 	return t
 }
 

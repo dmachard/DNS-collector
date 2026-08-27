@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/nsqio/go-nsq"
 )
@@ -20,11 +20,11 @@ type NsqClient struct {
 	newProducer func() (NSQProducer, error)
 }
 
-func NewNsqClient(config *pkgconfig.Config, console *logger.Logger, name string) *NsqClient {
-	bufferSize := config.Global.Worker.ChannelBufferSize
+func NewNsqClient(cfg *config.Config, console *logger.Logger, name string) *NsqClient {
+	bufferSize := cfg.Global.Worker.ChannelBufferSize
 
 	s := &NsqClient{
-		GenericWorker: NewGenericWorker(config, console, name, "nsq", bufferSize, pkgconfig.DefaultMonitor),
+		GenericWorker: NewGenericWorker(cfg, console, name, "nsq", bufferSize, config.DefaultMonitor),
 	}
 
 	s.newProducer = s.defaultNewProducer
@@ -35,8 +35,8 @@ func NewNsqClient(config *pkgconfig.Config, console *logger.Logger, name string)
 func (w *NsqClient) defaultNewProducer() (NSQProducer, error) {
 	nsqconf := w.GetConfig().Loggers.Nsq
 	addr := nsqconf.Host + ":" + strconv.Itoa(nsqconf.Port)
-	config := nsq.NewConfig()
-	return nsq.NewProducer(addr, config)
+	cfg := nsq.NewConfig()
+	return nsq.NewProducer(addr, cfg)
 }
 
 func (w *NsqClient) StartCollect() {
@@ -117,7 +117,7 @@ func (w *NsqClient) Disconnect() {
 }
 
 func init() {
-	RegisterLogger("nsq", func(c *pkgconfig.Config) bool { return c.Loggers.Nsq.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("nsq", func(c *config.Config) bool { return c.Loggers.Nsq.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewNsqClient(c, l, s)
 	})
 }

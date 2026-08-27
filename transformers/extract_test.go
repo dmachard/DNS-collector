@@ -8,14 +8,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func TestExtract_Json(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
+	cfg := config.GetFakeConfigTransformers()
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 	outChans = append(outChans, make(chan *dnsutils.DNSMessageBatch, 1))
 
@@ -23,7 +23,7 @@ func TestExtract_Json(t *testing.T) {
 	dm := dnsutils.GetFakeDNSMessageWithPayload()
 
 	// init subprocessor
-	extract := NewExtractTransform(config, logger.New(false), "test", 0, outChans)
+	extract := NewExtractTransform(cfg, logger.New(false), "test", 0, outChans)
 	extract.GetTransforms()
 	extract.addBase64Payload(&dm)
 
@@ -66,10 +66,10 @@ func TestExtract_Base64AndHexFields(t *testing.T) {
 	// the Data Extractor can still provide the original raw bytes via Base64 or Hex encoding.
 
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Extract.Enable = true
-	config.Extract.Base64Fields = []string{"dns.qname"}
-	config.Extract.HexFields = []string{"dns.qname"}
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Extract.Enable = true
+	cfg.Extract.Base64Fields = []string{"dns.qname"}
+	cfg.Extract.HexFields = []string{"dns.qname"}
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 	outChans = append(outChans, make(chan *dnsutils.DNSMessageBatch, 1))
@@ -79,7 +79,7 @@ func TestExtract_Base64AndHexFields(t *testing.T) {
 	dm.DNS.Qname = "test-request-\xe4bcd.com"
 
 	// init transform
-	extract := NewExtractTransform(config, logger.New(false), "test", 0, outChans)
+	extract := NewExtractTransform(cfg, logger.New(false), "test", 0, outChans)
 	extract.GetTransforms()
 
 	// process
@@ -122,10 +122,10 @@ func TestExtract_Base64AndHexFields(t *testing.T) {
 
 func TestExtract_WildcardSliceFields(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Extract.Enable = true
-	config.Extract.Base64Fields = []string{"dns.resource-records.an.*.rdata"}
-	config.Extract.HexFields = []string{"dns.resource-records.an.*.rdata"}
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Extract.Enable = true
+	cfg.Extract.Base64Fields = []string{"dns.resource-records.an.*.rdata"}
+	cfg.Extract.HexFields = []string{"dns.resource-records.an.*.rdata"}
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 	outChans = append(outChans, make(chan *dnsutils.DNSMessageBatch, 1))
@@ -147,7 +147,7 @@ func TestExtract_WildcardSliceFields(t *testing.T) {
 	}
 
 	// init transform
-	extract := NewExtractTransform(config, logger.New(false), "test", 0, outChans)
+	extract := NewExtractTransform(cfg, logger.New(false), "test", 0, outChans)
 	extract.GetTransforms()
 
 	// process

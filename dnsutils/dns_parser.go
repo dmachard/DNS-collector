@@ -8,7 +8,7 @@ import (
 	"net"
 	"strings"
 
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 )
 
 const DNSLen = 12
@@ -269,7 +269,7 @@ func DecodeDNS(payload []byte) (DNSHeader, error) {
 // error, but does not process the packet.
 // Error is returned if packet cannot be parsed. Returned error wraps the
 // original error returned by relevant decoding operation.
-func DecodePayload(dm *DNSMessage, header *DNSHeader, config *pkgconfig.Config) error {
+func DecodePayload(dm *DNSMessage, header *DNSHeader, cfg *config.Config) error {
 	if dm.DNS.MalformedPacket {
 		// do not continue if packet is malformed, the header cannot be
 		// trusted.

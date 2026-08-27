@@ -3,19 +3,19 @@ package transformers
 import (
 	"testing"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func BenchmarkGeoIP_Lookup(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.GeoIP.Enable = true
-	config.GeoIP.DBCountryFile = "../tests/testsdata/GeoLite2-Country.mmdb"
-	config.GeoIP.DBASNFile = "../tests/testsdata/GeoLite2-ASN.mmdb"
+	cfg := config.GetFakeConfigTransformers()
+	cfg.GeoIP.Enable = true
+	cfg.GeoIP.DBCountryFile = "../tests/testsdata/GeoLite2-Country.mmdb"
+	cfg.GeoIP.DBASNFile = "../tests/testsdata/GeoLite2-ASN.mmdb"
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	geoip := NewDNSGeoIPTransform(config, logger.New(false), "test", 0, outChans)
+	geoip := NewDNSGeoIPTransform(cfg, logger.New(false), "test", 0, outChans)
 	if err := geoip.Open(); err != nil {
 		b.Fatalf("geoip init failed: %v", err)
 	}
@@ -31,13 +31,13 @@ func BenchmarkGeoIP_Lookup(b *testing.B) {
 }
 
 func BenchmarkGeoIP_Lookup_ECS(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.GeoIP.Enable = true
-	config.GeoIP.DBCountryFile = "../tests/testsdata/GeoLite2-Country.mmdb"
-	config.GeoIP.LookupECS = true
+	cfg := config.GetFakeConfigTransformers()
+	cfg.GeoIP.Enable = true
+	cfg.GeoIP.DBCountryFile = "../tests/testsdata/GeoLite2-Country.mmdb"
+	cfg.GeoIP.LookupECS = true
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	geoip := NewDNSGeoIPTransform(config, logger.New(false), "test", 0, outChans)
+	geoip := NewDNSGeoIPTransform(cfg, logger.New(false), "test", 0, outChans)
 	if err := geoip.Open(); err != nil {
 		b.Fatalf("geoip init failed: %v", err)
 	}

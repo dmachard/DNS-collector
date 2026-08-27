@@ -6,14 +6,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func TestReducer_Json(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
+	cfg := config.GetFakeConfigTransformers()
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
@@ -23,7 +23,7 @@ func TestReducer_Json(t *testing.T) {
 
 	// init subprocessor
 
-	reducer := NewReducerTransform(config, logger.New(false), "test", 0, outChans)
+	reducer := NewReducerTransform(cfg, logger.New(false), "test", 0, outChans)
 	reducer.repetitiveTrafficDetector(&dm)
 
 	// expected json
@@ -58,17 +58,17 @@ func TestReducer_Json(t *testing.T) {
 
 func TestReducer_RepetitiveTrafficDetector(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Reducer.Enable = true
-	config.Reducer.RepetitiveTrafficDetector = true
-	config.Reducer.WatchInterval = 1
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Reducer.Enable = true
+	cfg.Reducer.RepetitiveTrafficDetector = true
+	cfg.Reducer.WatchInterval = 1
 
 	outChan := make(chan *dnsutils.DNSMessageBatch, 100)
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 	outChans = append(outChans, outChan)
 
 	// init subprocessor
-	reducer := NewReducerTransform(config, logger.New(false), "test", 0, outChans)
+	reducer := NewReducerTransform(cfg, logger.New(false), "test", 0, outChans)
 	subtransforms, _ := reducer.GetTransforms()
 	if len(subtransforms) != 1 {
 		t.Errorf("invalid number of subtransforms enabled")
@@ -201,18 +201,18 @@ func TestReducer_RepetitiveTrafficDetector(t *testing.T) {
 
 func TestReducer_QnamePlusOne(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Reducer.Enable = true
-	config.Reducer.RepetitiveTrafficDetector = true
-	config.Reducer.QnamePlusOne = true
-	config.Reducer.WatchInterval = 1
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Reducer.Enable = true
+	cfg.Reducer.RepetitiveTrafficDetector = true
+	cfg.Reducer.QnamePlusOne = true
+	cfg.Reducer.WatchInterval = 1
 
 	outChan := make(chan *dnsutils.DNSMessageBatch, 100)
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 	outChans = append(outChans, outChan)
 
 	// init subprocessor
-	reducer := NewReducerTransform(config, logger.New(false), "test", 0, outChans)
+	reducer := NewReducerTransform(cfg, logger.New(false), "test", 0, outChans)
 	subtransforms, _ := reducer.GetTransforms()
 	if len(subtransforms) != 1 {
 		t.Errorf("invalid number of subtransforms enabled")

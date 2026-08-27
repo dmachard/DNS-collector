@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/golang/snappy"
 	"github.com/prometheus/common/model"
@@ -24,15 +24,15 @@ func Test_LokiClientRun(t *testing.T) {
 		pattern string
 	}{
 		{
-			mode:    pkgconfig.ModeText,
+			mode:    config.ModeText,
 			pattern: "0b dns.collector A",
 		},
 		{
-			mode:    pkgconfig.ModeJSON,
+			mode:    config.ModeJSON,
 			pattern: "\"qname\":\"dns.collector\"",
 		},
 		{
-			mode:    pkgconfig.ModeFlatJSON,
+			mode:    config.ModeFlatJSON,
 			pattern: "\"dns.qname\":\"dns.collector\"",
 		},
 	}
@@ -47,7 +47,7 @@ func Test_LokiClientRun(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.mode, func(t *testing.T) {
 			// init logger
-			cfg := pkgconfig.GetDefaultConfig()
+			cfg := config.GetDefaultConfig()
 			cfg.Loggers.LokiClient.Mode = tc.mode
 			cfg.Loggers.LokiClient.BatchSize = 0
 			g := NewLokiClient(cfg, logger.New(false), "test")
@@ -75,7 +75,7 @@ func Test_LokiClientRun(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			conn.Write([]byte(pkgconfig.HTTPOK))
+			conn.Write([]byte(config.HTTPOK))
 
 			// read payload from request body
 			protobuf, err := io.ReadAll(request.Body)
@@ -153,10 +153,10 @@ func Test_LokiClientRelabel(t *testing.T) {
 	defer fakeRcvr.Close()
 
 	for _, tc := range testcases {
-		for _, m := range []string{pkgconfig.ModeText, pkgconfig.ModeJSON, pkgconfig.ModeFlatJSON} {
+		for _, m := range []string{config.ModeText, config.ModeJSON, config.ModeFlatJSON} {
 			t.Run(fmt.Sprintf("%s/%s", m, tc.name), func(t *testing.T) {
 				// init logger
-				cfg := pkgconfig.GetDefaultConfig()
+				cfg := config.GetDefaultConfig()
 				cfg.Loggers.LokiClient.Mode = m
 				cfg.Loggers.LokiClient.BatchSize = 0
 				cfg.Loggers.LokiClient.RelabelConfigs = tc.relabelConfig
@@ -185,7 +185,7 @@ func Test_LokiClientRelabel(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				conn.Write([]byte(pkgconfig.HTTPOK))
+				conn.Write([]byte(config.HTTPOK))
 
 				// read payload from request body
 				protobuf, err := io.ReadAll(request.Body)

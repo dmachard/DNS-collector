@@ -12,8 +12,8 @@ import (
 
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/perf"
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 	"golang.org/x/sys/unix"
@@ -23,9 +23,9 @@ type XDPSniffer struct {
 	*GenericWorker
 }
 
-func NewXDPSniffer(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *XDPSniffer {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &XDPSniffer{GenericWorker: NewGenericWorker(config, logger, name, "xdp sniffer", bufSize, pkgconfig.DefaultMonitor)}
+func NewXDPSniffer(next []Worker, cfg *config.Config, logger *logger.Logger, name string) *XDPSniffer {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &XDPSniffer{GenericWorker: NewGenericWorker(cfg, logger, name, "xdp sniffer", bufSize, config.DefaultMonitor)}
 	w.SetDefaultRoutes(next)
 	return w
 }
@@ -44,13 +44,13 @@ func (w *XDPSniffer) StartCollect() {
 	// get network interface by name
 	iface, err := net.InterfaceByName(w.GetConfig().Collectors.XdpLiveCapture.Device)
 	if err != nil {
-		w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] lookup network iface: ", err)
+		w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"] lookup network iface: ", err)
 	}
 
 	// Load pre-compiled programs into the kernel.
 	objs := netutils.BpfObjects{}
 	if err := netutils.LoadBpfObjects(&objs, nil); err != nil {
-		w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] loading BPF objects: ", err)
+		w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"] loading BPF objects: ", err)
 	}
 	defer objs.Close()
 
@@ -60,7 +60,7 @@ func (w *XDPSniffer) StartCollect() {
 		Interface: iface.Index,
 	})
 	if err != nil {
-		w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] could not attach XDP program: ", err)
+		w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"] could not attach XDP program: ", err)
 	}
 	defer l.Close()
 
@@ -68,7 +68,7 @@ func (w *XDPSniffer) StartCollect() {
 
 	perfEvent, err := perf.NewReader(objs.Pkts, 1<<24)
 	if err != nil {
-		w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] read event: ", err)
+		w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"] read event: ", err)
 	}
 
 	dnsChan := make(chan *dnsutils.DNSMessage)
@@ -210,7 +210,7 @@ func (w *XDPSniffer) StartCollect() {
 }
 
 func init() {
-	RegisterCollector("xdp-sniffer", func(c *pkgconfig.Config) bool { return c.Collectors.XdpLiveCapture.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterCollector("xdp-sniffer", func(c *config.Config) bool { return c.Collectors.XdpLiveCapture.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewXDPSniffer(nil, c, l, s)
 	})
 }

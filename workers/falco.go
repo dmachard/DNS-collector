@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
-	"github.com/dmachard/go-dnscollector/v2/transformers"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/transformers"
 	"github.com/dmachard/go-logger"
 )
 
@@ -16,9 +16,9 @@ type FalcoClient struct {
 	*GenericWorker
 }
 
-func NewFalcoClient(config *pkgconfig.Config, console *logger.Logger, name string) *FalcoClient {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &FalcoClient{GenericWorker: NewGenericWorker(config, console, name, "falco", bufSize, pkgconfig.DefaultMonitor)}
+func NewFalcoClient(cfg *config.Config, console *logger.Logger, name string) *FalcoClient {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &FalcoClient{GenericWorker: NewGenericWorker(cfg, console, name, "falco", bufSize, config.DefaultMonitor)}
 	w.ReadConfig()
 	return w
 }
@@ -118,7 +118,7 @@ func (w *FalcoClient) StartLogging() {
 }
 
 func init() {
-	RegisterLogger("falco", func(c *pkgconfig.Config) bool { return c.Loggers.FalcoClient.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("falco", func(c *config.Config) bool { return c.Loggers.FalcoClient.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewFalcoClient(c, l, s)
 	})
 }

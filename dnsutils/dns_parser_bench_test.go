@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	dnstap "github.com/dmachard/go-dnstap-protobuf"
 	"github.com/miekg/dns"
 )
@@ -99,7 +99,7 @@ func BenchmarkCustomDecodeDNS(b *testing.B) {
 	if err != nil {
 		b.Fatalf("failed to pack DNS response: %v", err)
 	}
-	config := &pkgconfig.Config{}
+	cfg := &config.Config{}
 	dm := &DNSMessage{}
 	dm.DNS.Payload = pkt
 
@@ -107,7 +107,7 @@ func BenchmarkCustomDecodeDNS(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		header, _ := DecodeDNS(pkt)
-		_ = DecodePayload(dm, &header, config)
+		_ = DecodePayload(dm, &header, cfg)
 		resultMsg = dm
 	}
 }
@@ -224,7 +224,7 @@ func BenchmarkCustomDecodeDNS_Query(b *testing.B) {
 		0x00, 0x01,
 		0x00, 0x01,
 	}
-	config := &pkgconfig.Config{}
+	cfg := &config.Config{}
 	dm := &DNSMessage{}
 	dm.DNS.Payload = payload
 
@@ -232,7 +232,7 @@ func BenchmarkCustomDecodeDNS_Query(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		header, _ := DecodeDNS(payload)
-		_ = DecodePayload(dm, &header, config)
+		_ = DecodePayload(dm, &header, cfg)
 		resultMsg = dm
 	}
 }

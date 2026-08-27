@@ -13,10 +13,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
-	"github.com/dmachard/go-dnscollector/v2/telemetry"
-	"github.com/dmachard/go-dnscollector/v2/transformers"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/pkg/telemetry"
+	"github.com/dmachard/go-dnscollector/v3/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 	"github.com/dmachard/go-topmap"
@@ -937,9 +937,9 @@ func CreateSystemCatalogue(w *Prometheus) ([]string, *PromCounterCatalogueContai
 	return lbls, NewPromCounterCatalogueContainer(w, lbls, make(map[string]string))
 }
 
-func NewPrometheus(config *pkgconfig.Config, logger *logger.Logger, name string) *Prometheus {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &Prometheus{GenericWorker: NewGenericWorker(config, logger, name, "prometheus", bufSize, pkgconfig.DefaultMonitor)}
+func NewPrometheus(cfg *config.Config, logger *logger.Logger, name string) *Prometheus {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &Prometheus{GenericWorker: NewGenericWorker(cfg, logger, name, "prometheus", bufSize, config.DefaultMonitor)}
 	w.doneAPI = make(chan bool)
 	w.promRegistry = prometheus.NewPedanticRegistry()
 
@@ -1280,7 +1280,7 @@ func (w *Prometheus) InitProm() {
 
 func (w *Prometheus) ReadConfig() {
 	if !netutils.IsValidTLS(w.GetConfig().Loggers.Prometheus.TLSMinVersion) {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "] prometheus - invalid tls min version")
+		w.LogFatal(config.PrefixLogWorker + "[" + w.GetName() + "] prometheus - invalid tls min version")
 	}
 }
 
@@ -1527,7 +1527,7 @@ Example of conterSet/Container for 2 labels
 */
 
 func init() {
-	RegisterLogger("prometheus", func(c *pkgconfig.Config) bool { return c.Loggers.Prometheus.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("prometheus", func(c *config.Config) bool { return c.Loggers.Prometheus.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewPrometheus(c, l, s)
 	})
 }

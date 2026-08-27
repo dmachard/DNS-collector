@@ -1,8 +1,8 @@
 package workers
 
 import (
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -10,9 +10,9 @@ type DevNull struct {
 	*GenericWorker
 }
 
-func NewDevNull(config *pkgconfig.Config, console *logger.Logger, name string) *DevNull {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	s := &DevNull{GenericWorker: NewGenericWorker(config, console, name, "devnull", bufSize, pkgconfig.DefaultMonitor)}
+func NewDevNull(cfg *config.Config, console *logger.Logger, name string) *DevNull {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	s := &DevNull{GenericWorker: NewGenericWorker(cfg, console, name, "devnull", bufSize, config.DefaultMonitor)}
 	s.ReadConfig()
 	return s
 }
@@ -30,7 +30,7 @@ func (w *DevNull) StartCollect() {
 }
 
 func init() {
-	RegisterLogger("devnull", func(c *pkgconfig.Config) bool { return c.Loggers.DevNull.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("devnull", func(c *config.Config) bool { return c.Loggers.DevNull.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewDevNull(c, l, s)
 	})
 }

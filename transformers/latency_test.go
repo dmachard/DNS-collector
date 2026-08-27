@@ -4,18 +4,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func TestLatency_MeasureLatencyAndMs(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
+	cfg := config.GetFakeConfigTransformers()
 	outChannels := []chan *dnsutils.DNSMessageBatch{}
 
 	// init transformer
-	latency := NewLatencyTransform(config, logger.New(true), "test", 0, outChannels)
+	latency := NewLatencyTransform(cfg, logger.New(true), "test", 0, outChannels)
 	latency.GetTransforms()
 
 	testcases := []struct {
@@ -67,15 +67,15 @@ func TestLatency_MeasureLatencyAndMs(t *testing.T) {
 
 func TestLatency_DetectEvictedTimeout(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Latency.Enable = true
-	config.Latency.QueriesTimeout = 1
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Latency.Enable = true
+	cfg.Latency.QueriesTimeout = 1
 
 	outChannels := []chan *dnsutils.DNSMessageBatch{}
 	outChannels = append(outChannels, make(chan *dnsutils.DNSMessageBatch, 1))
 
 	// init transformer
-	latency := NewLatencyTransform(config, logger.New(true), "test", 0, outChannels)
+	latency := NewLatencyTransform(cfg, logger.New(true), "test", 0, outChannels)
 	latency.GetTransforms()
 
 	testcases := []struct {

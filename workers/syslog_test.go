@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 )
@@ -27,7 +27,7 @@ func Test_SyslogRunUdp(t *testing.T) {
 		{
 			name:       "unix_format",
 			transport:  netutils.SocketUDP,
-			mode:       pkgconfig.ModeText,
+			mode:       config.ModeText,
 			formatter:  netutils.SocketUnix,
 			framer:     "",
 			pattern:    `<30>\D+ \d+ \d+:\d+:\d+.*`,
@@ -36,7 +36,7 @@ func Test_SyslogRunUdp(t *testing.T) {
 		{
 			name:       "rfc3164_format",
 			transport:  netutils.SocketUDP,
-			mode:       pkgconfig.ModeText,
+			mode:       config.ModeText,
 			formatter:  "rfc3164",
 			framer:     "",
 			pattern:    `<30>\D+ \d+ \d+:\d+:\d+.*`,
@@ -45,7 +45,7 @@ func Test_SyslogRunUdp(t *testing.T) {
 		{
 			name:       "rfc5424_format",
 			transport:  netutils.SocketUDP,
-			mode:       pkgconfig.ModeText,
+			mode:       config.ModeText,
 			formatter:  "rfc5424",
 			framer:     "",
 			pattern:    `<30>1 \d+-\d+-\d+.*`,
@@ -54,7 +54,7 @@ func Test_SyslogRunUdp(t *testing.T) {
 		{
 			name:       "rfc5424_format_rfc5425_framer",
 			transport:  netutils.SocketUDP,
-			mode:       pkgconfig.ModeText,
+			mode:       config.ModeText,
 			formatter:  "rfc5424",
 			framer:     "rfc5425",
 			pattern:    `\d+ \<30\>1 \d+-\d+-\d+.*`,
@@ -65,16 +65,16 @@ func Test_SyslogRunUdp(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			// init logger
-			config := pkgconfig.GetDefaultConfig()
-			config.Loggers.Syslog.Transport = tc.transport
-			config.Loggers.Syslog.RemoteAddress = tc.listenAddr
-			config.Loggers.Syslog.Mode = tc.mode
-			config.Loggers.Syslog.Formatter = tc.formatter
-			config.Loggers.Syslog.Framer = tc.framer
-			config.Loggers.Syslog.FlushInterval = 1
-			config.Loggers.Syslog.BufferSize = 0
+			cfg := config.GetDefaultConfig()
+			cfg.Loggers.Syslog.Transport = tc.transport
+			cfg.Loggers.Syslog.RemoteAddress = tc.listenAddr
+			cfg.Loggers.Syslog.Mode = tc.mode
+			cfg.Loggers.Syslog.Formatter = tc.formatter
+			cfg.Loggers.Syslog.Framer = tc.framer
+			cfg.Loggers.Syslog.FlushInterval = 1
+			cfg.Loggers.Syslog.BufferSize = 0
 
-			g := NewSyslog(config, logger.New(false), "test")
+			g := NewSyslog(cfg, logger.New(false), "test")
 
 			// fake json receiver
 			fakeRcvr, err := net.ListenPacket(tc.transport, tc.listenAddr)
@@ -125,7 +125,7 @@ func Test_SyslogRunTcp(t *testing.T) {
 		{
 			name:       "unix_format",
 			transport:  netutils.SocketTCP,
-			mode:       pkgconfig.ModeText,
+			mode:       config.ModeText,
 			formatter:  netutils.SocketUnix,
 			framer:     "",
 			pattern:    `<30>\D+ \d+ \d+:\d+:\d+.*`,
@@ -134,7 +134,7 @@ func Test_SyslogRunTcp(t *testing.T) {
 		{
 			name:       "rfc3164_format",
 			transport:  netutils.SocketTCP,
-			mode:       pkgconfig.ModeText,
+			mode:       config.ModeText,
 			formatter:  "rfc3164",
 			framer:     "",
 			pattern:    `<30>\D+ \d+ \d+:\d+:\d+.*`,
@@ -143,7 +143,7 @@ func Test_SyslogRunTcp(t *testing.T) {
 		{
 			name:       "rfc5424_format",
 			transport:  netutils.SocketTCP,
-			mode:       pkgconfig.ModeText,
+			mode:       config.ModeText,
 			formatter:  "rfc5424",
 			framer:     "",
 			pattern:    `<30>1 \d+-\d+-\d+.*`,
@@ -152,7 +152,7 @@ func Test_SyslogRunTcp(t *testing.T) {
 		{
 			name:       "rfc5425_format_rfc5425_framer",
 			transport:  netutils.SocketTCP,
-			mode:       pkgconfig.ModeText,
+			mode:       config.ModeText,
 			formatter:  "rfc5424",
 			framer:     "rfc5425",
 			pattern:    `\d+ \<30\>1 \d+-\d+-\d+.*`,
@@ -163,16 +163,16 @@ func Test_SyslogRunTcp(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			// init logger
-			config := pkgconfig.GetDefaultConfig()
-			config.Loggers.Syslog.Transport = tc.transport
-			config.Loggers.Syslog.RemoteAddress = tc.listenAddr
-			config.Loggers.Syslog.Mode = tc.mode
-			config.Loggers.Syslog.Formatter = tc.formatter
-			config.Loggers.Syslog.Framer = tc.framer
-			config.Loggers.Syslog.FlushInterval = 1
-			config.Loggers.Syslog.BufferSize = 0
+			cfg := config.GetDefaultConfig()
+			cfg.Loggers.Syslog.Transport = tc.transport
+			cfg.Loggers.Syslog.RemoteAddress = tc.listenAddr
+			cfg.Loggers.Syslog.Mode = tc.mode
+			cfg.Loggers.Syslog.Formatter = tc.formatter
+			cfg.Loggers.Syslog.Framer = tc.framer
+			cfg.Loggers.Syslog.FlushInterval = 1
+			cfg.Loggers.Syslog.BufferSize = 0
 
-			g := NewSyslog(config, logger.New(false), "test")
+			g := NewSyslog(cfg, logger.New(false), "test")
 
 			// fake json receiver
 			fakeRcvr, err := net.Listen(tc.transport, tc.listenAddr)
@@ -216,19 +216,19 @@ func Test_SyslogRunTcp(t *testing.T) {
 
 func Test_SyslogRun_RemoveNullCharacter(t *testing.T) {
 	// init logger
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.Syslog.Transport = netutils.SocketUDP
-	config.Loggers.Syslog.RemoteAddress = ":4000"
-	config.Loggers.Syslog.Mode = pkgconfig.ModeText
-	config.Loggers.Syslog.Formatter = netutils.SocketUnix
-	config.Loggers.Syslog.Framer = ""
-	config.Loggers.Syslog.FlushInterval = 1
-	config.Loggers.Syslog.BufferSize = 0
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.Syslog.Transport = netutils.SocketUDP
+	cfg.Loggers.Syslog.RemoteAddress = ":4000"
+	cfg.Loggers.Syslog.Mode = config.ModeText
+	cfg.Loggers.Syslog.Formatter = netutils.SocketUnix
+	cfg.Loggers.Syslog.Framer = ""
+	cfg.Loggers.Syslog.FlushInterval = 1
+	cfg.Loggers.Syslog.BufferSize = 0
 
-	g := NewSyslog(config, logger.New(false), "test")
+	g := NewSyslog(cfg, logger.New(false), "test")
 
 	// fake json receiver
-	fakeRcvr, err := net.ListenPacket(config.Loggers.Syslog.Transport, ":4000")
+	fakeRcvr, err := net.ListenPacket(cfg.Loggers.Syslog.Transport, ":4000")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,7 +265,7 @@ func Test_SyslogRun_RemoveNullCharacter(t *testing.T) {
 	}
 
 	// search qname
-	pattern := `null` + config.Loggers.Syslog.ReplaceNullChar + `char\.com`
+	pattern := `null` + cfg.Loggers.Syslog.ReplaceNullChar + `char\.com`
 	re := regexp.MustCompile(pattern)
 	if !re.MatchString(string(buf[:n])) {
 		t.Errorf("syslog error want %s, got: %s", pattern, string(buf[:n]))
@@ -320,19 +320,19 @@ func Test_SyslogRun_DynamicHostname(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			config := pkgconfig.GetDefaultConfig()
-			config.Loggers.Syslog.Transport = netutils.SocketUDP
-			config.Loggers.Syslog.RemoteAddress = tc.listenAddr
-			config.Loggers.Syslog.Mode = pkgconfig.ModeText
-			config.Loggers.Syslog.Formatter = "rfc5424"
-			config.Loggers.Syslog.Framer = ""
-			config.Loggers.Syslog.FlushInterval = 1
-			config.Loggers.Syslog.BufferSize = 0
-			config.Loggers.Syslog.Hostname = tc.hostnameField
+			cfg := config.GetDefaultConfig()
+			cfg.Loggers.Syslog.Transport = netutils.SocketUDP
+			cfg.Loggers.Syslog.RemoteAddress = tc.listenAddr
+			cfg.Loggers.Syslog.Mode = config.ModeText
+			cfg.Loggers.Syslog.Formatter = "rfc5424"
+			cfg.Loggers.Syslog.Framer = ""
+			cfg.Loggers.Syslog.FlushInterval = 1
+			cfg.Loggers.Syslog.BufferSize = 0
+			cfg.Loggers.Syslog.Hostname = tc.hostnameField
 
-			g := NewSyslog(config, logger.New(false), "test_dynamic_host")
+			g := NewSyslog(cfg, logger.New(false), "test_dynamic_host")
 
-			fakeRcvr, err := net.ListenPacket(config.Loggers.Syslog.Transport, tc.listenAddr)
+			fakeRcvr, err := net.ListenPacket(cfg.Loggers.Syslog.Transport, tc.listenAddr)
 			if err != nil {
 				t.Fatal(err)
 			}

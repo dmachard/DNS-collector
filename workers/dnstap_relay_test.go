@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-framestream"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
@@ -43,18 +43,18 @@ func Test_DnstapRelay(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			g := GetWorkerForTest(pkgconfig.DefaultBufferSize)
+			g := GetWorkerForTest(config.DefaultBufferSize)
 
-			config := pkgconfig.GetDefaultConfig()
+			cfg := config.GetDefaultConfig()
 			if tc.listenPort > 0 {
-				config.Collectors.DnstapProxifier.ListenPort = tc.listenPort
+				cfg.Collectors.DnstapProxifier.ListenPort = tc.listenPort
 			}
 			if tc.mode == netutils.SocketUnix {
-				config.Collectors.DnstapProxifier.SockPath = tc.address
+				cfg.Collectors.DnstapProxifier.SockPath = tc.address
 			}
 
 			// start collector
-			c := NewDnstapProxifier([]Worker{g}, config, logger.New(false), "test")
+			c := NewDnstapProxifier([]Worker{g}, cfg, logger.New(false), "test")
 			go c.StartCollect()
 
 			// start client

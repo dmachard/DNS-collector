@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"unsafe"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -19,14 +19,14 @@ type ExtractTransform struct {
 	hexExtractors    []ExtractorFunc
 }
 
-func NewExtractTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *ExtractTransform {
-	t := &ExtractTransform{GenericTransformer: NewTransformer(config, logger, "extract", name, instance, nextWorkers)}
+func NewExtractTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *ExtractTransform {
+	t := &ExtractTransform{GenericTransformer: NewTransformer(cfg, logger, "extract", name, instance, nextWorkers)}
 	t.initExtractors()
 	return t
 }
 
-func (t *ExtractTransform) ReloadConfig(config *pkgconfig.ConfigTransformers) {
-	t.GenericTransformer.ReloadConfig(config)
+func (t *ExtractTransform) ReloadConfig(cfg *config.ConfigTransformers) {
+	t.GenericTransformer.ReloadConfig(cfg)
 	t.initExtractors()
 }
 

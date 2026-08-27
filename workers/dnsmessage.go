@@ -9,9 +9,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
-	"github.com/dmachard/go-dnscollector/v2/transformers"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/transformers"
 	"github.com/dmachard/go-logger"
 )
 
@@ -32,9 +32,9 @@ type DNSMessage struct {
 	*GenericWorker
 }
 
-func NewDNSMessage(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *DNSMessage {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	s := &DNSMessage{GenericWorker: NewGenericWorker(config, logger, name, "dnsmessage", bufSize, pkgconfig.DefaultMonitor)}
+func NewDNSMessage(next []Worker, cfg *config.Config, logger *logger.Logger, name string) *DNSMessage {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	s := &DNSMessage{GenericWorker: NewGenericWorker(cfg, logger, name, "dnsmessage", bufSize, config.DefaultMonitor)}
 	s.SetDefaultRoutes(next)
 	s.ReadConfig()
 	return s
@@ -256,7 +256,7 @@ func (w *DNSMessage) StartCollect() {
 }
 
 func init() {
-	RegisterCollector("dnsmessage", func(c *pkgconfig.Config) bool { return c.Collectors.DNSMessage.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterCollector("dnsmessage", func(c *config.Config) bool { return c.Collectors.DNSMessage.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewDNSMessage(nil, c, l, s)
 	})
 }

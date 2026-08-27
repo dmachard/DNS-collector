@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -17,14 +17,14 @@ type RewriteTransform struct {
 	mutators []MutatorFunc
 }
 
-func NewRewriteTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *RewriteTransform {
-	t := &RewriteTransform{GenericTransformer: NewTransformer(config, logger, "rewrite", name, instance, nextWorkers)}
+func NewRewriteTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *RewriteTransform {
+	t := &RewriteTransform{GenericTransformer: NewTransformer(cfg, logger, "rewrite", name, instance, nextWorkers)}
 	t.initMutators()
 	return t
 }
 
-func (t *RewriteTransform) ReloadConfig(config *pkgconfig.ConfigTransformers) {
-	t.GenericTransformer.ReloadConfig(config)
+func (t *RewriteTransform) ReloadConfig(cfg *config.ConfigTransformers) {
+	t.GenericTransformer.ReloadConfig(cfg)
 	t.initMutators()
 }
 

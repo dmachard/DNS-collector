@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 	framestream "github.com/farsightsec/golang-framestream"
@@ -26,8 +26,8 @@ var waitFor = 10 * time.Second
 func IsValidMode(mode string) bool {
 	switch mode {
 	case
-		pkgconfig.ModePCAP,
-		pkgconfig.ModeDNSTap:
+		config.ModePCAP,
+		config.ModeDNSTap:
 		return true
 	}
 	return false
@@ -41,10 +41,10 @@ type FileIngestor struct {
 	mu              sync.Mutex
 }
 
-func NewFileIngestor(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *FileIngestor {
-	bufSize := config.Global.Worker.ChannelBufferSize
+func NewFileIngestor(next []Worker, cfg *config.Config, logger *logger.Logger, name string) *FileIngestor {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
 	w := &FileIngestor{
-		GenericWorker: NewGenericWorker(config, logger, name, "fileingestor", bufSize, pkgconfig.DefaultMonitor),
+		GenericWorker: NewGenericWorker(cfg, logger, name, "fileingestor", bufSize, config.DefaultMonitor),
 		watcherTimers: make(map[string]*time.Timer)}
 	w.SetDefaultRoutes(next)
 	w.CheckConfig()
@@ -53,7 +53,7 @@ func NewFileIngestor(next []Worker, config *pkgconfig.Config, logger *logger.Log
 
 func (w *FileIngestor) CheckConfig() {
 	if !IsValidMode(w.GetConfig().Collectors.FileIngestor.WatchMode) {
-		w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] - invalid mode: ", w.GetConfig().Collectors.FileIngestor.WatchMode)
+		w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"] - invalid mode: ", w.GetConfig().Collectors.FileIngestor.WatchMode)
 	}
 
 	w.LogInfo("watching directory [%s] to find [%s] files",
@@ -63,13 +63,13 @@ func (w *FileIngestor) CheckConfig() {
 
 func (w *FileIngestor) ProcessFile(filePath string) {
 	switch w.GetConfig().Collectors.FileIngestor.WatchMode {
-	case pkgconfig.ModePCAP:
+	case config.ModePCAP:
 		// process file with pcap extension only
 		if filepath.Ext(filePath) == ".pcap" || filepath.Ext(filePath) == ".pcap.gz" {
 			w.LogInfo("file ready to process %s", filePath)
 			go w.ProcessPcap(filePath)
 		}
-	case pkgconfig.ModeDNSTap:
+	case config.ModeDNSTap:
 		// process dnstap
 		if filepath.Ext(filePath) == ".fstrm" {
 			w.LogInfo("file ready to process %s", filePath)
@@ -353,12 +353,12 @@ func (w *FileIngestor) StartCollect() {
 		fn := filepath.Join(w.GetConfig().Collectors.FileIngestor.WatchDir, entry.Name())
 
 		switch w.GetConfig().Collectors.FileIngestor.WatchMode {
-		case pkgconfig.ModePCAP:
+		case config.ModePCAP:
 			// process file with pcap extension
 			if filepath.Ext(fn) == ".pcap" || filepath.Ext(fn) == ".pcap.gz" {
 				go w.ProcessPcap(fn)
 			}
-		case pkgconfig.ModeDNSTap:
+		case config.ModeDNSTap:
 			// process dnstap
 			if filepath.Ext(fn) == ".fstrm" {
 				go w.ProcessDnstap(fn)
@@ -369,12 +369,12 @@ func (w *FileIngestor) StartCollect() {
 	// then watch for new one
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] new watcher: ", err)
+		w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"] new watcher: ", err)
 	}
 	// register the folder to watch
 	err = watcher.Add(w.GetConfig().Collectors.FileIngestor.WatchDir)
 	if err != nil {
-		w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] register folder: ", err)
+		w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"] register folder: ", err)
 	}
 
 	for {
@@ -421,7 +421,7 @@ func (w *FileIngestor) StartCollect() {
 }
 
 func init() {
-	RegisterCollector("file-ingestor", func(c *pkgconfig.Config) bool { return c.Collectors.FileIngestor.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterCollector("file-ingestor", func(c *config.Config) bool { return c.Collectors.FileIngestor.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewFileIngestor(nil, c, l, s)
 	})
 }

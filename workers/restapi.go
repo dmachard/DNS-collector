@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
-	"github.com/dmachard/go-dnscollector/v2/transformers"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 	"github.com/dmachard/go-topmap"
@@ -86,25 +86,25 @@ func (w *RestAPI) newSearchBy() SearchBy {
 	}
 }
 
-func NewRestAPI(config *pkgconfig.Config, logger *logger.Logger, name string) *RestAPI {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &RestAPI{GenericWorker: NewGenericWorker(config, logger, name, "restapi", bufSize, pkgconfig.DefaultMonitor)}
+func NewRestAPI(cfg *config.Config, logger *logger.Logger, name string) *RestAPI {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &RestAPI{GenericWorker: NewGenericWorker(cfg, logger, name, "restapi", bufSize, config.DefaultMonitor)}
 	w.HitsStream = HitsStream{
 		Streams: make(map[string]SearchBy),
 	}
 	w.initHitsUniq()
 	w.Streams = make(map[string]int)
-	w.TopQnames = topmap.NewTopMap(config.Loggers.RestAPI.TopN)
-	w.TopClients = topmap.NewTopMap(config.Loggers.RestAPI.TopN)
-	w.TopTLDs = topmap.NewTopMap(config.Loggers.RestAPI.TopN)
-	w.TopNonExistent = topmap.NewTopMap(config.Loggers.RestAPI.TopN)
-	w.TopServFail = topmap.NewTopMap(config.Loggers.RestAPI.TopN)
+	w.TopQnames = topmap.NewTopMap(cfg.Loggers.RestAPI.TopN)
+	w.TopClients = topmap.NewTopMap(cfg.Loggers.RestAPI.TopN)
+	w.TopTLDs = topmap.NewTopMap(cfg.Loggers.RestAPI.TopN)
+	w.TopNonExistent = topmap.NewTopMap(cfg.Loggers.RestAPI.TopN)
+	w.TopServFail = topmap.NewTopMap(cfg.Loggers.RestAPI.TopN)
 	return w
 }
 
 func (w *RestAPI) ReadConfig() {
 	if !netutils.IsValidTLS(w.GetConfig().Loggers.RestAPI.TLSMinVersion) {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "]restapi - invalid tls min version")
+		w.LogFatal(config.PrefixLogWorker + "[" + w.GetName() + "]restapi - invalid tls min version")
 	}
 }
 
@@ -711,7 +711,7 @@ func (w *RestAPI) StartLogging() {
 }
 
 func init() {
-	RegisterLogger("restapi", func(c *pkgconfig.Config) bool { return c.Loggers.RestAPI.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("restapi", func(c *config.Config) bool { return c.Loggers.RestAPI.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewRestAPI(c, l, s)
 	})
 }

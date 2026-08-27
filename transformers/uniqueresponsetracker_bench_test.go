@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -17,13 +17,13 @@ import (
 // PreAllocated benchmarks measure pure tracker performance without string allocation overhead.
 
 func Benchmark_UniqueResponseTracker_ProcessMessage(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.UniqueResponseTracker.Enable = true
-	config.UniqueResponseTracker.TTL = 3600
-	config.UniqueResponseTracker.CacheSize = 1000000
+	cfg := config.GetFakeConfigTransformers()
+	cfg.UniqueResponseTracker.Enable = true
+	cfg.UniqueResponseTracker.TTL = 3600
+	cfg.UniqueResponseTracker.CacheSize = 1000000
 
 	outChans := []chan *dnsutils.DNSMessageBatch{make(chan *dnsutils.DNSMessageBatch, 100)}
-	transforms := NewTransforms(config, logger.New(false), "bench-udr", outChans, 0)
+	transforms := NewTransforms(cfg, logger.New(false), "bench-udr", outChans, 0)
 
 	dm := dnsutils.AcquireDNSMessage()
 	dm.Init()

@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
-	"github.com/dmachard/go-dnscollector/v2/transformers"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 	"github.com/hpcloud/tail"
@@ -22,9 +22,9 @@ type Tail struct {
 	tailf *tail.Tail
 }
 
-func NewTail(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *Tail {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &Tail{GenericWorker: NewGenericWorker(config, logger, name, "tail", bufSize, pkgconfig.DefaultMonitor)}
+func NewTail(next []Worker, cfg *config.Config, logger *logger.Logger, name string) *Tail {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &Tail{GenericWorker: NewGenericWorker(cfg, logger, name, "tail", bufSize, config.DefaultMonitor)}
 	w.SetDefaultRoutes(next)
 	return w
 }
@@ -32,8 +32,8 @@ func NewTail(next []Worker, config *pkgconfig.Config, logger *logger.Logger, nam
 func (w *Tail) Follow() error {
 	var err error
 	location := tail.SeekInfo{Offset: 0, Whence: io.SeekEnd}
-	config := tail.Config{Location: &location, ReOpen: true, Follow: true, Logger: tail.DiscardingLogger, Poll: true, MustExist: true}
-	w.tailf, err = tail.TailFile(w.GetConfig().Collectors.Tail.FilePath, config)
+	cfg := tail.Config{Location: &location, ReOpen: true, Follow: true, Logger: tail.DiscardingLogger, Poll: true, MustExist: true}
+	w.tailf, err = tail.TailFile(w.GetConfig().Collectors.Tail.FilePath, cfg)
 	if err != nil {
 		return err
 	}
@@ -258,7 +258,7 @@ func (w *Tail) StartCollect() {
 }
 
 func init() {
-	RegisterCollector("tail", func(c *pkgconfig.Config) bool { return c.Collectors.Tail.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterCollector("tail", func(c *config.Config) bool { return c.Collectors.Tail.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewTail(nil, c, l, s)
 	})
 }

@@ -6,26 +6,26 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"google.golang.org/protobuf/proto"
 )
 
 func TestGenericWorker(t *testing.T) {
-	NewGenericWorker(pkgconfig.GetDefaultConfig(), logger.New(false), "testonly", "", pkgconfig.DefaultBufferSize, pkgconfig.WorkerMonitorDisabled)
+	NewGenericWorker(config.GetDefaultConfig(), logger.New(false), "testonly", "", config.DefaultBufferSize, config.WorkerMonitorDisabled)
 }
 
 func Test_MultiLogger_ConcurrentRace(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Collectors.Dnstap.DisableDNSParser = false
-	config.Global.Worker.ChannelBufferSize = 1000
+	cfg := config.GetDefaultConfig()
+	cfg.Collectors.Dnstap.DisableDNSParser = false
+	cfg.Global.Worker.ChannelBufferSize = 1000
 
 	// Create 5 consumer workers (multi-logger scenario)
 	numLoggers := 5
 	loggers := make([]Worker, numLoggers)
 	for i := 0; i < numLoggers; i++ {
-		devNull := NewDevNull(config, logger.New(false), "devnull-multi")
+		devNull := NewDevNull(cfg, logger.New(false), "devnull-multi")
 		go devNull.StartCollect()
 		defer devNull.Stop()
 		loggers[i] = devNull
@@ -42,7 +42,7 @@ func Test_MultiLogger_ConcurrentRace(t *testing.T) {
 		t.Fatalf("dnstap proto marshal error: %v", err)
 	}
 
-	proc := NewDNSTapProcessor(1, "test-multi-peer", config, logger.New(false), "test-multi-proc", 1000)
+	proc := NewDNSTapProcessor(1, "test-multi-peer", cfg, logger.New(false), "test-multi-proc", 1000)
 	proc.SetDefaultRoutes(loggers)
 	go proc.StartCollect()
 	defer proc.Stop()
@@ -71,7 +71,7 @@ func Test_MultiLogger_ConcurrentRace(t *testing.T) {
 }
 
 func TestGenericWorker_ContextCancellation(t *testing.T) {
-	gw := NewGenericWorker(pkgconfig.GetDefaultConfig(), logger.New(false), "testctx", "", 10, pkgconfig.WorkerMonitorDisabled)
+	gw := NewGenericWorker(config.GetDefaultConfig(), logger.New(false), "testctx", "", 10, config.WorkerMonitorDisabled)
 	ctx := gw.Context()
 	if ctx == nil {
 		t.Fatalf("expected non-nil context")
@@ -95,12 +95,12 @@ func TestGenericWorker_ContextCancellation(t *testing.T) {
 }
 
 func TestStopWorkersParallel(t *testing.T) {
-	cfg := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	log := logger.New(false)
 
-	w1 := NewGenericWorker(cfg, log, "w1", "", 10, pkgconfig.WorkerMonitorDisabled)
-	w2 := NewGenericWorker(cfg, log, "w2", "", 10, pkgconfig.WorkerMonitorDisabled)
-	w3 := NewGenericWorker(cfg, log, "w3", "", 10, pkgconfig.WorkerMonitorDisabled)
+	w1 := NewGenericWorker(cfg, log, "w1", "", 10, config.WorkerMonitorDisabled)
+	w2 := NewGenericWorker(cfg, log, "w2", "", 10, config.WorkerMonitorDisabled)
+	w3 := NewGenericWorker(cfg, log, "w3", "", 10, config.WorkerMonitorDisabled)
 
 	go w1.StartCollect()
 	go w2.StartCollect()

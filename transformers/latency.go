@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -116,10 +116,10 @@ type LatencyTransform struct {
 	mapQueries  MapQueries
 }
 
-func NewLatencyTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *LatencyTransform {
-	t := &LatencyTransform{GenericTransformer: NewTransformer(config, logger, "latency", name, instance, nextWorkers)}
-	t.hashQueries = NewHashQueries(time.Duration(config.Latency.QueriesTimeout) * time.Second)
-	t.mapQueries = NewMapQueries(time.Duration(config.Latency.QueriesTimeout)*time.Second, nextWorkers)
+func NewLatencyTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *LatencyTransform {
+	t := &LatencyTransform{GenericTransformer: NewTransformer(cfg, logger, "latency", name, instance, nextWorkers)}
+	t.hashQueries = NewHashQueries(time.Duration(cfg.Latency.QueriesTimeout) * time.Second)
+	t.mapQueries = NewMapQueries(time.Duration(cfg.Latency.QueriesTimeout)*time.Second, nextWorkers)
 	return t
 }
 

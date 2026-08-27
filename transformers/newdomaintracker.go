@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 )
@@ -121,16 +121,16 @@ type NewDomainTrackerTransform struct {
 }
 
 // NewNewDomainTransform creates a new instance of the transformer
-func NewNewDomainTrackerTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *NewDomainTrackerTransform {
-	t := &NewDomainTrackerTransform{GenericTransformer: NewTransformer(config, logger, "new-domain-tracker", name, instance, nextWorkers)}
+func NewNewDomainTrackerTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *NewDomainTrackerTransform {
+	t := &NewDomainTrackerTransform{GenericTransformer: NewTransformer(cfg, logger, "new-domain-tracker", name, instance, nextWorkers)}
 	t.listDomainsRegex = make(map[string]*regexp.Regexp)
 	return t
 }
 
 // ReloadConfig reloads the configuration
-func (t *NewDomainTrackerTransform) ReloadConfig(config *pkgconfig.ConfigTransformers) {
-	t.GenericTransformer.ReloadConfig(config)
-	ttl := time.Duration(config.NewDomainTracker.TTL) * time.Second
+func (t *NewDomainTrackerTransform) ReloadConfig(cfg *config.ConfigTransformers) {
+	t.GenericTransformer.ReloadConfig(cfg)
+	ttl := time.Duration(cfg.NewDomainTracker.TTL) * time.Second
 	t.domainTracker.ttl = ttl
 	t.LogInfo("new-domain-transformer configuration reloaded")
 }

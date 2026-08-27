@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkg/bgpmrt"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/bgpmrt"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -79,15 +79,15 @@ func Test_BGP_Transform(t *testing.T) {
 	tempDir := t.TempDir()
 	mrtPath := createSampleMRTFile(t, tempDir)
 
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.BGP.Enable = true
-	config.BGP.MrtFile = mrtPath
-	config.BGP.OriginASN = true
-	config.BGP.ASPath = true
-	config.BGP.Prefix = true
+	cfg := config.GetFakeConfigTransformers()
+	cfg.BGP.Enable = true
+	cfg.BGP.MrtFile = mrtPath
+	cfg.BGP.OriginASN = true
+	cfg.BGP.ASPath = true
+	cfg.BGP.Prefix = true
 
 	outChan := make(chan *dnsutils.DNSMessageBatch, 10)
-	transforms := NewTransforms(config, logger.New(false), "test", []chan *dnsutils.DNSMessageBatch{outChan}, 0)
+	transforms := NewTransforms(cfg, logger.New(false), "test", []chan *dnsutils.DNSMessageBatch{outChan}, 0)
 
 	dm := dnsutils.AcquireDNSMessage()
 	dm.Init()
@@ -119,13 +119,13 @@ func Test_BGP_LookupECS(t *testing.T) {
 	tempDir := t.TempDir()
 	mrtPath := createSampleMRTFile(t, tempDir)
 
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.BGP.Enable = true
-	config.BGP.MrtFile = mrtPath
-	config.BGP.LookupECS = true
+	cfg := config.GetFakeConfigTransformers()
+	cfg.BGP.Enable = true
+	cfg.BGP.MrtFile = mrtPath
+	cfg.BGP.LookupECS = true
 
 	outChan := make(chan *dnsutils.DNSMessageBatch, 10)
-	transforms := NewTransforms(config, logger.New(false), "test-ecs", []chan *dnsutils.DNSMessageBatch{outChan}, 0)
+	transforms := NewTransforms(cfg, logger.New(false), "test-ecs", []chan *dnsutils.DNSMessageBatch{outChan}, 0)
 
 	dm := dnsutils.AcquireDNSMessage()
 	dm.Init()
@@ -161,12 +161,12 @@ func Test_BGP_AutoReload(t *testing.T) {
 	_ = bgpmrt.WriteSampleMRT(f, initialRoutes)
 	f.Close()
 
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.BGP.Enable = true
-	config.BGP.MrtFile = mrtPath
-	config.BGP.MrtCheckUpdateInterval = 1 // Check every 1 second
+	cfg := config.GetFakeConfigTransformers()
+	cfg.BGP.Enable = true
+	cfg.BGP.MrtFile = mrtPath
+	cfg.BGP.MrtCheckUpdateInterval = 1 // Check every 1 second
 
-	bgpTrans := NewDNSBGPTransform(config, logger.New(false), "test-reload", 0, nil)
+	bgpTrans := NewDNSBGPTransform(cfg, logger.New(false), "test-reload", 0, nil)
 	if err := bgpTrans.Open(); err != nil {
 		t.Fatalf("failed to open BGPTransform: %v", err)
 	}

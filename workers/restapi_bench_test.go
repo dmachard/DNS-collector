@@ -3,13 +3,13 @@ package workers
 import (
 	"testing"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func Benchmark_RestAPI_Record(b *testing.B) {
-	cfg := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	g := NewRestAPI(cfg, logger.New(false), "bench_restapi")
 
 	dm := dnsutils.GetFakeDNSMessage()

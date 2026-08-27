@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 	"github.com/google/gopacket"
@@ -25,9 +25,9 @@ type AfpacketSniffer struct {
 	fd int
 }
 
-func NewAfpacketSniffer(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *AfpacketSniffer {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &AfpacketSniffer{GenericWorker: NewGenericWorker(config, logger, name, "afpacket sniffer", bufSize, pkgconfig.DefaultMonitor)}
+func NewAfpacketSniffer(next []Worker, cfg *config.Config, logger *logger.Logger, name string) *AfpacketSniffer {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &AfpacketSniffer{GenericWorker: NewGenericWorker(cfg, logger, name, "afpacket sniffer", bufSize, config.DefaultMonitor)}
 	w.SetDefaultRoutes(next)
 	return w
 }
@@ -154,7 +154,7 @@ func (w *AfpacketSniffer) StartCollect() {
 					if errors.Is(err, syscall.EINTR) {
 						continue
 					}
-					w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"select", err)
+					w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"select", err)
 				}
 				if nReady == 0 {
 					continue
@@ -165,29 +165,29 @@ func (w *AfpacketSniffer) StartCollect() {
 					if errors.Is(err, syscall.EINTR) || errors.Is(err, syscall.EAGAIN) || errors.Is(err, syscall.EWOULDBLOCK) {
 						continue
 					} else {
-						w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"read data", err)
+						w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"read data", err)
 					}
 				}
 				if bufN == 0 {
-					w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "] buf empty")
+					w.LogFatal(config.PrefixLogWorker + "[" + w.GetName() + "] buf empty")
 				}
 				if bufN > len(buf) {
-					w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "] buf overflow")
+					w.LogFatal(config.PrefixLogWorker + "[" + w.GetName() + "] buf overflow")
 				}
 				if oobn == 0 {
-					w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "] oob missing")
+					w.LogFatal(config.PrefixLogWorker + "[" + w.GetName() + "] oob missing")
 				}
 
 				scms, err := syscall.ParseSocketControlMessage(oob[:oobn])
 				if err != nil {
-					w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] control msg", err)
+					w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"] control msg", err)
 				}
 				if len(scms) != 1 {
 					continue
 				}
 				scm := scms[0]
 				if scm.Header.Type != syscall.SCM_TIMESTAMPNS {
-					w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "] scm timestampns missing")
+					w.LogFatal(config.PrefixLogWorker + "[" + w.GetName() + "] scm timestampns missing")
 				}
 				tsec := binary.LittleEndian.Uint32(scm.Data[:4])
 				nsec := binary.LittleEndian.Uint32(scm.Data[8:12])
@@ -301,7 +301,7 @@ func (w *AfpacketSniffer) StartCollect() {
 }
 
 func init() {
-	RegisterCollector("afpacket-sniffer", func(c *pkgconfig.Config) bool { return c.Collectors.AfpacketLiveCapture.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterCollector("afpacket-sniffer", func(c *config.Config) bool { return c.Collectors.AfpacketLiveCapture.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewAfpacketSniffer(nil, c, l, s)
 	})
 }

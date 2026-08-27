@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
-	"github.com/dmachard/go-dnscollector/v2/transformers"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 	"github.com/dmachard/go-topmap"
@@ -34,9 +34,9 @@ type StatsdClient struct {
 	sync.RWMutex
 }
 
-func NewStatsdClient(config *pkgconfig.Config, logger *logger.Logger, name string) *StatsdClient {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &StatsdClient{GenericWorker: NewGenericWorker(config, logger, name, "statsd", bufSize, pkgconfig.DefaultMonitor)}
+func NewStatsdClient(cfg *config.Config, logger *logger.Logger, name string) *StatsdClient {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &StatsdClient{GenericWorker: NewGenericWorker(cfg, logger, name, "statsd", bufSize, config.DefaultMonitor)}
 	w.Stats = StreamStats{Streams: make(map[string]*StatsPerStream)}
 	w.ReadConfig()
 	return w
@@ -44,7 +44,7 @@ func NewStatsdClient(config *pkgconfig.Config, logger *logger.Logger, name strin
 
 func (w *StatsdClient) ReadConfig() {
 	if !netutils.IsValidTLS(w.GetConfig().Loggers.Statsd.TLSMinVersion) {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "]statd - invalid tls min version")
+		w.LogFatal(config.PrefixLogWorker + "[" + w.GetName() + "]statd - invalid tls min version")
 	}
 }
 
@@ -322,7 +322,7 @@ func (w *StatsdClient) StartLogging() {
 }
 
 func init() {
-	RegisterLogger("statsd", func(c *pkgconfig.Config) bool { return c.Loggers.Statsd.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("statsd", func(c *config.Config) bool { return c.Loggers.Statsd.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewStatsdClient(c, l, s)
 	})
 }

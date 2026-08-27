@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/stretchr/testify/assert"
 )
@@ -46,7 +46,7 @@ func Test_ClickhouseClient_BatchInsert(t *testing.T) {
 	}))
 	defer server.Close()
 
-	cfg := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	cfg.Loggers.ClickhouseClient.URL = server.URL
 	cfg.Loggers.ClickhouseClient.User = "myuser"
 	cfg.Loggers.ClickhouseClient.Password = "mypass"
@@ -89,7 +89,7 @@ func Test_ClickhouseClient_FlushInterval(t *testing.T) {
 	}))
 	defer server.Close()
 
-	cfg := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	cfg.Loggers.ClickhouseClient.URL = server.URL
 	cfg.Loggers.ClickhouseClient.BufferSize = 100  // Buffer won't be full
 	cfg.Loggers.ClickhouseClient.FlushInterval = 1 // Flush every 1s
@@ -117,7 +117,7 @@ func Test_ClickhouseClient_ServerError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	cfg := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	cfg.Loggers.ClickhouseClient.URL = server.URL
 	cfg.Loggers.ClickhouseClient.BufferSize = 1
 	cfg.Loggers.ClickhouseClient.FlushInterval = 1

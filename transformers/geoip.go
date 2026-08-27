@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/oschwald/maxminddb-golang"
 )
@@ -57,8 +57,8 @@ type GeoIPTransform struct {
 	dbCountry, dbCity, dbAsn, dbCoordinate *maxminddb.Reader
 }
 
-func NewDNSGeoIPTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *GeoIPTransform {
-	t := &GeoIPTransform{GenericTransformer: NewTransformer(config, logger, "geoip", name, instance, nextWorkers)}
+func NewDNSGeoIPTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *GeoIPTransform {
+	t := &GeoIPTransform{GenericTransformer: NewTransformer(cfg, logger, "geoip", name, instance, nextWorkers)}
 	return t
 }
 

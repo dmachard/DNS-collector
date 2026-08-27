@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -31,16 +31,16 @@ func TestRest_Request(t *testing.T) {
 	defer server.Close()
 
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Rest.Enable = true
-	config.Rest.URL = server.URL
-	config.Rest.BasicAuthEnabled = true
-	config.Rest.BasicAuthLogin = "restuser"
-	config.Rest.BasicAuthPwd = "restpass"
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Rest.Enable = true
+	cfg.Rest.URL = server.URL
+	cfg.Rest.BasicAuthEnabled = true
+	cfg.Rest.BasicAuthLogin = "restuser"
+	cfg.Rest.BasicAuthPwd = "restpass"
 
 	// init the processor
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	rest := NewRestTransform(config, logger.New(false), "test", 0, outChans)
+	rest := NewRestTransform(cfg, logger.New(false), "test", 0, outChans)
 	rest.GetTransforms()
 
 	// send message

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-dnstap-protobuf"
 	"github.com/dmachard/go-framestream"
 	"github.com/dmachard/go-logger"
@@ -47,7 +47,7 @@ func Test_DnstapClient(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			// init logger
-			cfg := pkgconfig.GetDefaultConfig()
+			cfg := config.GetDefaultConfig()
 			cfg.Loggers.DNSTap.FlushInterval = 1
 			cfg.Loggers.DNSTap.BufferSize = 0
 			cfg.Loggers.DNSTap.Compression = tc.compression
@@ -101,7 +101,7 @@ func Test_DnstapClient(t *testing.T) {
 
 			// decode the dnstap message in server side
 			dt := &dnstap.Dnstap{}
-			if cfg.Loggers.DNSTap.Compression == pkgconfig.CompressNone {
+			if cfg.Loggers.DNSTap.Compression == config.CompressNone {
 				if err := proto.Unmarshal(fs.Data(), dt); err != nil {
 					t.Errorf("error to decode dnstap")
 				}

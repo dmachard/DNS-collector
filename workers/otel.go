@@ -13,9 +13,9 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
-	"github.com/dmachard/go-dnscollector/v2/transformers"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/transformers"
 	"github.com/dmachard/go-logger"
 )
 
@@ -29,11 +29,11 @@ type OpenTelemetryClient struct {
 	tracerProviders map[string]*sdktrace.TracerProvider
 }
 
-func NewOpenTelemetryClient(config *pkgconfig.Config, console *logger.Logger, name string) *OpenTelemetryClient {
-	bufSize := config.Global.Worker.ChannelBufferSize
+func NewOpenTelemetryClient(cfg *config.Config, console *logger.Logger, name string) *OpenTelemetryClient {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
 
 	w := &OpenTelemetryClient{
-		GenericWorker:   NewGenericWorker(config, console, name, "opentelemetry", bufSize, pkgconfig.DefaultMonitor),
+		GenericWorker:   NewGenericWorker(cfg, console, name, "opentelemetry", bufSize, config.DefaultMonitor),
 		tracerProviders: make(map[string]*sdktrace.TracerProvider),
 	}
 	return w
@@ -316,7 +316,7 @@ func (w *OpenTelemetryClient) cleanupSpans(requestorSpans, messageSpans, resolve
 }
 
 func init() {
-	RegisterLogger("opentelemetry", func(c *pkgconfig.Config) bool { return c.Loggers.OpenTelemetryClient.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("opentelemetry", func(c *config.Config) bool { return c.Loggers.OpenTelemetryClient.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewOpenTelemetryClient(c, l, s)
 	})
 }

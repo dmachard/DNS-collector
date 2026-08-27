@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
-	"github.com/dmachard/go-dnscollector/v2/transformers"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 	"github.com/gogo/protobuf/proto"
@@ -31,7 +31,7 @@ import (
 
 type LokiStream struct {
 	labels      labels.Labels
-	config      *pkgconfig.Config
+	config      *config.Config
 	logger      *logger.Logger
 	stream      *logproto.Stream
 	pushrequest *logproto.PushRequest
@@ -74,9 +74,9 @@ type LokiClient struct {
 	streams       map[string]*LokiStream
 }
 
-func NewLokiClient(config *pkgconfig.Config, logger *logger.Logger, name string) *LokiClient {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &LokiClient{GenericWorker: NewGenericWorker(config, logger, name, "loki", bufSize, pkgconfig.DefaultMonitor)}
+func NewLokiClient(cfg *config.Config, logger *logger.Logger, name string) *LokiClient {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &LokiClient{GenericWorker: NewGenericWorker(cfg, logger, name, "loki", bufSize, config.DefaultMonitor)}
 	w.streams = make(map[string]*LokiStream)
 	w.ReadConfig()
 	return w
@@ -92,7 +92,7 @@ func (w *LokiClient) ReadConfig() {
 	var errFormatter error
 	w.textFormatter, errFormatter = dnsutils.NewTextFormatter(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary)
 	if errFormatter != nil {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "] loki - invalid text format: " + errFormatter.Error())
+		w.LogFatal(config.PrefixLogWorker + "[" + w.GetName() + "] loki - invalid text format: " + errFormatter.Error())
 	}
 
 	// tls client config
@@ -106,7 +106,7 @@ func (w *LokiClient) ReadConfig() {
 
 	tlsConfig, err := netutils.TLSClientConfig(tlsOptions)
 	if err != nil {
-		w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] loki - tls config failed:", err)
+		w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"] loki - tls config failed:", err)
 	}
 
 	// prepare http client
@@ -282,7 +282,7 @@ func (w *LokiClient) StartLogging() {
 				entry.Timestamp = time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec))
 
 				switch w.GetConfig().Loggers.LokiClient.Mode {
-				case pkgconfig.ModeText:
+				case config.ModeText:
 					// get buffer from pool
 					buf := w.GetTextBuffer()
 					buf.Reset()
@@ -312,11 +312,11 @@ func (w *LokiClient) StartLogging() {
 					// return buffer to pool
 					w.PutTextBuffer(buf)
 
-				case pkgconfig.ModeJSON:
+				case config.ModeJSON:
 					json.NewEncoder(buffer).Encode(dm)
 					entry.Line = buffer.String()
 					buffer.Reset()
-				case pkgconfig.ModeFlatJSON:
+				case config.ModeFlatJSON:
 					switch {
 					case len(flat) > 0:
 						json.NewEncoder(buffer).Encode(flat)
@@ -471,7 +471,7 @@ func (w *LokiClient) SendEntries(buf []byte) {
 }
 
 func init() {
-	RegisterLogger("lokiclient", func(c *pkgconfig.Config) bool { return c.Loggers.LokiClient.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("lokiclient", func(c *config.Config) bool { return c.Loggers.LokiClient.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewLokiClient(c, l, s)
 	})
 }

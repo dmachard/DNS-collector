@@ -1,0 +1,37 @@
+services:
+  dnscollector:
+    image: dnscollector:latest
+    build:
+      context: ../../..
+      dockerfile: Dockerfile
+    container_name: dnscollector-dev
+    volumes:
+      - ./config.yml:/etc/dnscollector/config.yml:ro
+    ports:
+      - "6000:6000/tcp"
+      - "8080:8080/tcp"
+      - "9165:9165/tcp"
+    restart: unless-stopped
+
+  dnsdist:
+    image: powerdns/dnsdist-19:latest
+    container_name: dnsdist-dev
+    volumes:
+      - ./dnsdist.conf:/etc/dnsdist/dnsdist.conf:ro
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    depends_on:
+      - dnscollector
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus-dev
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090/tcp"
+    depends_on:
+      - dnscollector
+    restart: unless-stopped

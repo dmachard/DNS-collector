@@ -9,8 +9,8 @@ import (
 	"net/netip"
 	"strings"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 	"golang.org/x/net/publicsuffix"
@@ -38,8 +38,8 @@ type UserPrivacyTransform struct {
 	v6MaskArr [16]byte
 }
 
-func NewUserPrivacyTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *UserPrivacyTransform {
-	t := &UserPrivacyTransform{GenericTransformer: NewTransformer(config, logger, "userprivacy", name, instance, nextWorkers)}
+func NewUserPrivacyTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *UserPrivacyTransform {
+	t := &UserPrivacyTransform{GenericTransformer: NewTransformer(cfg, logger, "userprivacy", name, instance, nextWorkers)}
 	return t
 }
 

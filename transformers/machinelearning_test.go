@@ -3,19 +3,19 @@ package transformers
 import (
 	"testing"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func TestML_AddFeatures(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.MachineLearning.Enable = true
+	cfg := config.GetFakeConfigTransformers()
+	cfg.MachineLearning.Enable = true
 
 	// init the processor
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	ml := NewMachineLearningTransform(config, logger.New(false), "test", 0, outChans)
+	ml := NewMachineLearningTransform(cfg, logger.New(false), "test", 0, outChans)
 
 	dm := dnsutils.GetFakeDNSMessage()
 

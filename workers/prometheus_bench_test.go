@@ -3,14 +3,14 @@ package workers
 import (
 	"testing"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func Benchmark_Prometheus_Record_Direct(b *testing.B) {
-	config := pkgconfig.GetDefaultConfig()
-	p := NewPrometheus(config, logger.New(false), "bench")
+	cfg := config.GetDefaultConfig()
+	p := NewPrometheus(cfg, logger.New(false), "bench")
 
 	dm := dnsutils.GetFakeDNSMessage()
 	dm.NetworkInfo.SetQueryIPBytes([]byte{192, 168, 1, 100})
@@ -27,8 +27,8 @@ func Benchmark_Prometheus_Record_Direct(b *testing.B) {
 }
 
 func Benchmark_Prometheus_Record_Batch(b *testing.B) {
-	config := pkgconfig.GetDefaultConfig()
-	p := NewPrometheus(config, logger.New(false), "bench")
+	cfg := config.GetDefaultConfig()
+	p := NewPrometheus(cfg, logger.New(false), "bench")
 
 	dm := dnsutils.GetFakeDNSMessage()
 	dm.NetworkInfo.SetQueryIPBytes([]byte{192, 168, 1, 100})
@@ -54,9 +54,9 @@ func Benchmark_Prometheus_Record_Batch(b *testing.B) {
 }
 
 func Benchmark_Prometheus_E2E_Batch64(b *testing.B) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.Prometheus.ListenPort = 0
-	p := NewPrometheus(config, logger.New(false), "bench-e2e")
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.Prometheus.ListenPort = 0
+	p := NewPrometheus(cfg, logger.New(false), "bench-e2e")
 	go p.StartCollect()
 	defer p.Stop()
 

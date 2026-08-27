@@ -3,20 +3,20 @@ package workers
 import (
 	"testing"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func Benchmark_DNSMessageWorker_Passthrough(b *testing.B) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Global.Worker.ChannelBufferSize = 65536
+	cfg := config.GetDefaultConfig()
+	cfg.Global.Worker.ChannelBufferSize = 65536
 
-	devNull := NewDevNull(config, logger.New(false), "devnull")
+	devNull := NewDevNull(cfg, logger.New(false), "devnull")
 	go devNull.StartCollect()
 	defer devNull.Stop()
 
-	c := NewDNSMessage(nil, config, logger.New(false), "bench-dnsmessage")
+	c := NewDNSMessage(nil, cfg, logger.New(false), "bench-dnsmessage")
 	c.SetDefaultRoutes([]Worker{devNull})
 	go c.StartCollect()
 	defer c.Stop()
@@ -34,17 +34,17 @@ func Benchmark_DNSMessageWorker_Passthrough(b *testing.B) {
 }
 
 func Benchmark_DNSMessageWorker_MatchingInclude(b *testing.B) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Global.Worker.ChannelBufferSize = 65536
-	config.Collectors.DNSMessage.Matching.Include = map[string]interface{}{
+	cfg := config.GetDefaultConfig()
+	cfg.Global.Worker.ChannelBufferSize = 65536
+	cfg.Collectors.DNSMessage.Matching.Include = map[string]interface{}{
 		"dns.qname": "dns.collector",
 	}
 
-	devNull := NewDevNull(config, logger.New(false), "devnull")
+	devNull := NewDevNull(cfg, logger.New(false), "devnull")
 	go devNull.StartCollect()
 	defer devNull.Stop()
 
-	c := NewDNSMessage(nil, config, logger.New(false), "bench-dnsmessage")
+	c := NewDNSMessage(nil, cfg, logger.New(false), "bench-dnsmessage")
 	c.SetDefaultRoutes([]Worker{devNull})
 	go c.StartCollect()
 	defer c.Stop()
@@ -63,17 +63,17 @@ func Benchmark_DNSMessageWorker_MatchingInclude(b *testing.B) {
 }
 
 func Benchmark_DNSMessageWorker_MatchingExclude(b *testing.B) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Global.Worker.ChannelBufferSize = 65536
-	config.Collectors.DNSMessage.Matching.Exclude = map[string]interface{}{
+	cfg := config.GetDefaultConfig()
+	cfg.Global.Worker.ChannelBufferSize = 65536
+	cfg.Collectors.DNSMessage.Matching.Exclude = map[string]interface{}{
 		"dns.qname": "drop.me",
 	}
 
-	devNull := NewDevNull(config, logger.New(false), "devnull")
+	devNull := NewDevNull(cfg, logger.New(false), "devnull")
 	go devNull.StartCollect()
 	defer devNull.Stop()
 
-	c := NewDNSMessage(nil, config, logger.New(false), "bench-dnsmessage")
+	c := NewDNSMessage(nil, cfg, logger.New(false), "bench-dnsmessage")
 	c.SetDefaultRoutes([]Worker{devNull})
 	c.SetDefaultDropped([]Worker{devNull})
 	go c.StartCollect()

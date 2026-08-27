@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"inet.af/netaddr"
 )
@@ -23,8 +23,8 @@ type FilteringTransform struct {
 	downsample, downsampleCount            int
 }
 
-func NewFilteringTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *FilteringTransform {
-	t := &FilteringTransform{GenericTransformer: NewTransformer(config, logger, "filtering", name, instance, nextWorkers)}
+func NewFilteringTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *FilteringTransform {
+	t := &FilteringTransform{GenericTransformer: NewTransformer(cfg, logger, "filtering", name, instance, nextWorkers)}
 	t.mapRcodes = make(map[string]bool)
 	t.ipsetDrop = &netaddr.IPSet{}
 	t.ipsetKeep = &netaddr.IPSet{}

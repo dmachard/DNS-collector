@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/stretchr/testify/assert"
 )
@@ -32,9 +32,9 @@ func TestTelemetry_SanitizeMetricName(t *testing.T) {
 }
 
 func TestTelemetry_PrometheusCollectorUpdateStats(t *testing.T) {
-	config := pkgconfig.Config{}
+	cfg := config.Config{}
 
-	collector := NewPrometheusCollector(&config)
+	collector := NewPrometheusCollector(&cfg)
 
 	// Create a sample WorkerStats
 	ws := WorkerStats{
@@ -67,15 +67,15 @@ func TestTelemetry_InitTelemetryServer_UnixSocket(t *testing.T) {
 	// keep the filename to one char: AF_UNIX sun_path is capped at ~108 bytes
 	sockPath := filepath.Join(tmpDir, "a")
 
-	config := pkgconfig.GetDefaultConfig()
-	config.Global.Telemetry.Enabled = true
-	config.Global.Telemetry.SockPath = sockPath
-	config.Global.Telemetry.SockMode = "0660"
-	config.Global.Telemetry.BasicAuthEnable = true
-	config.Global.Telemetry.BasicAuthLogin = "admin"
-	config.Global.Telemetry.BasicAuthPwd = "changeme"
+	cfg := config.GetDefaultConfig()
+	cfg.Global.Telemetry.Enabled = true
+	cfg.Global.Telemetry.SockPath = sockPath
+	cfg.Global.Telemetry.SockMode = "0660"
+	cfg.Global.Telemetry.BasicAuthEnable = true
+	cfg.Global.Telemetry.BasicAuthLogin = "admin"
+	cfg.Global.Telemetry.BasicAuthPwd = "changeme"
 
-	promServer, _, errChan := InitTelemetryServer(config, logger.New(false))
+	promServer, _, errChan := InitTelemetryServer(cfg, logger.New(false))
 
 	go func() {
 		for err := range errChan {

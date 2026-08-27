@@ -5,15 +5,15 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGeoIP_Json(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
+	cfg := config.GetFakeConfigTransformers()
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// get fake
@@ -21,7 +21,7 @@ func TestGeoIP_Json(t *testing.T) {
 	dm.Init()
 
 	// init subprocessor
-	geoip := NewDNSGeoIPTransform(config, logger.New(true), "test", 0, outChans)
+	geoip := NewDNSGeoIPTransform(cfg, logger.New(true), "test", 0, outChans)
 	if err := geoip.Open(); err != nil {
 		t.Fatalf("geoip init failed: %v+", err)
 	}
@@ -68,14 +68,14 @@ func TestGeoIP_Json(t *testing.T) {
 
 func TestGeoIP_LookupCountry(t *testing.T) {
 	// enable geoip
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.GeoIP.Enable = true
-	config.GeoIP.DBCountryFile = "../tests/testsdata/GeoLite2-Country.mmdb"
+	cfg := config.GetFakeConfigTransformers()
+	cfg.GeoIP.Enable = true
+	cfg.GeoIP.DBCountryFile = "../tests/testsdata/GeoLite2-Country.mmdb"
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	geoip := NewDNSGeoIPTransform(config, logger.New(false), "test", 0, outChans)
+	geoip := NewDNSGeoIPTransform(cfg, logger.New(false), "test", 0, outChans)
 	_, err := geoip.GetTransforms()
 	if err != nil {
 		t.Fatalf("geoip init failed: %v+", err)
@@ -103,14 +103,14 @@ func TestGeoIP_LookupCountry(t *testing.T) {
 
 func TestGeoIP_LookupAsn(t *testing.T) {
 	// enable geoip
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.GeoIP.Enable = true
-	config.GeoIP.DBASNFile = "../tests/testsdata/GeoLite2-ASN.mmdb"
+	cfg := config.GetFakeConfigTransformers()
+	cfg.GeoIP.Enable = true
+	cfg.GeoIP.DBASNFile = "../tests/testsdata/GeoLite2-ASN.mmdb"
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	geoip := NewDNSGeoIPTransform(config, logger.New(false), "test", 0, outChans)
+	geoip := NewDNSGeoIPTransform(cfg, logger.New(false), "test", 0, outChans)
 	if err := geoip.Open(); err != nil {
 		t.Fatalf("geoip init failed: %v", err)
 	}
@@ -129,15 +129,15 @@ func TestGeoIP_LookupAsn(t *testing.T) {
 
 func TestGeoIP_Lookup_ECS(t *testing.T) {
 	// enable geoip
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.GeoIP.Enable = true
-	config.GeoIP.DBCountryFile = "../tests/testsdata/GeoLite2-Country.mmdb"
-	config.GeoIP.LookupECS = true
+	cfg := config.GetFakeConfigTransformers()
+	cfg.GeoIP.Enable = true
+	cfg.GeoIP.DBCountryFile = "../tests/testsdata/GeoLite2-Country.mmdb"
+	cfg.GeoIP.LookupECS = true
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	geoip := NewDNSGeoIPTransform(config, logger.New(false), "test", 0, outChans)
+	geoip := NewDNSGeoIPTransform(cfg, logger.New(false), "test", 0, outChans)
 	_, err := geoip.GetTransforms()
 	if err != nil {
 		t.Fatalf("geoip init failed: %v+", err)
@@ -162,14 +162,14 @@ func TestGeoIP_Lookup_ECS(t *testing.T) {
 
 func TestGeoIP_LookupCoordinate(t *testing.T) {
 	// enable geoip
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.GeoIP.Enable = true
-	config.GeoIP.DBASNFile = "../tests/testsdata/GeoLite2-ASN.mmdb"
+	cfg := config.GetFakeConfigTransformers()
+	cfg.GeoIP.Enable = true
+	cfg.GeoIP.DBASNFile = "../tests/testsdata/GeoLite2-ASN.mmdb"
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	geoip := NewDNSGeoIPTransform(config, logger.New(false), "test", 0, outChans)
+	geoip := NewDNSGeoIPTransform(cfg, logger.New(false), "test", 0, outChans)
 	if err := geoip.Open(); err != nil {
 		t.Fatalf("geoip init failed: %v", err)
 	}
