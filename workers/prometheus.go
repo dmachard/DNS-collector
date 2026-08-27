@@ -858,7 +858,9 @@ func (w *PromCounterCatalogueContainer) GetAllCounterSets() []*PrometheusCounter
 		case *PromCounterCatalogueContainer:
 			ret = append(ret, elem.GetAllCounterSets()...)
 		default:
-			panic(fmt.Sprintf("Unexpected element in PromCounterCatalogueContainer of %T: %v", v, v))
+			if w.prom != nil {
+				w.prom.LogError("unexpected element in PromCounterCatalogueContainer: %T (%v)", v, v)
+			}
 		}
 	}
 	w.RUnlock()
@@ -868,7 +870,10 @@ func (w *PromCounterCatalogueContainer) GetAllCounterSets() []*PrometheusCounter
 // Searches for an existing element for a label value, creating one if not found
 func (w *PromCounterCatalogueContainer) GetCountersSet(dm *dnsutils.DNSMessage) PrometheusCountersCatalogue {
 	if w.selector == nil {
-		panic(fmt.Sprintf("%v: nil selector", w))
+		if w.prom != nil {
+			w.prom.LogError("nil selector in PromCounterCatalogueContainer: %v", w)
+		}
+		return nil
 	}
 
 	// w.selector fetches the value for the label *this* Catalogue Element considers.
