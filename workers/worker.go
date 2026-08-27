@@ -444,11 +444,12 @@ func GetRoutes(routes []Worker) ([]chan *dnsutils.DNSMessageBatch, []string) {
 	channels := []chan *dnsutils.DNSMessageBatch{}
 	names := []string{}
 	for _, p := range routes {
+		if p == nil {
+			continue
+		}
 		if c := p.GetInputChannel(); c != nil {
 			channels = append(channels, c)
 			names = append(names, p.GetName())
-		} else {
-			panic("default routing to stanza=[" + p.GetName() + "] not supported")
 		}
 	}
 	return channels, names
