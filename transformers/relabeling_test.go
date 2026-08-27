@@ -4,25 +4,25 @@ import (
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func TestRelabeling_CompileRegex(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Relabeling.Enable = true
-	config.Relabeling.Rename = append(config.Relabeling.Rename, pkgconfig.RelabelingConfig{
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Relabeling.Enable = true
+	cfg.Relabeling.Rename = append(cfg.Relabeling.Rename, config.RelabelingConfig{
 		Regex:       "^dns.qname$",
 		Replacement: "qname_test",
 	})
-	config.Relabeling.Remove = append(config.Relabeling.Remove, pkgconfig.RelabelingConfig{
+	cfg.Relabeling.Remove = append(cfg.Relabeling.Remove, config.RelabelingConfig{
 		Regex: "^dns.qtype$",
 	})
 
 	// init the processor
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	relabeling := NewRelabelTransform(config, logger.New(false), "test", 0, outChans)
+	relabeling := NewRelabelTransform(cfg, logger.New(false), "test", 0, outChans)
 	relabeling.GetTransforms()
 
 	if len(relabeling.RelabelingRules) != 2 {

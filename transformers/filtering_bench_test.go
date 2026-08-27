@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -23,12 +23,12 @@ func BenchmarkFiltering_DropDomainRegex(b *testing.B) {
 	}
 	tmpFile.Close()
 
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Filtering.Enable = true
-	config.Filtering.DropDomainFile = tmpFile.Name()
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Filtering.Enable = true
+	cfg.Filtering.DropDomainFile = tmpFile.Name()
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	filtering := NewFilteringTransform(config, logger.New(false), "test", 0, outChans)
+	filtering := NewFilteringTransform(cfg, logger.New(false), "test", 0, outChans)
 	_, _ = filtering.GetTransforms()
 
 	dm := dnsutils.GetFakeDNSMessage()

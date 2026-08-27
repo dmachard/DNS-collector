@@ -5,21 +5,21 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func TestNewDomainTracker_IsNew(t *testing.T) {
 	// config
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.NewDomainTracker.Enable = true
-	config.NewDomainTracker.TTL = 2
-	config.NewDomainTracker.CacheSize = 10
+	cfg := config.GetFakeConfigTransformers()
+	cfg.NewDomainTracker.Enable = true
+	cfg.NewDomainTracker.TTL = 2
+	cfg.NewDomainTracker.CacheSize = 10
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	tracker := NewNewDomainTrackerTransform(config, logger.New(false), "test", 0, outChans)
+	tracker := NewNewDomainTrackerTransform(cfg, logger.New(false), "test", 0, outChans)
 
 	// init transforms
 	_, err := tracker.GetTransforms()
@@ -47,15 +47,15 @@ func TestNewDomainTracker_IsNew(t *testing.T) {
 
 func TestNewDomainTracker_Whitelist(t *testing.T) {
 	// config
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.NewDomainTracker.Enable = true
-	config.NewDomainTracker.TTL = 2
-	config.NewDomainTracker.CacheSize = 10
-	config.NewDomainTracker.WhiteDomainsFile = "../tests/testsdata/newdomain_whitelist_regex.txt"
+	cfg := config.GetFakeConfigTransformers()
+	cfg.NewDomainTracker.Enable = true
+	cfg.NewDomainTracker.TTL = 2
+	cfg.NewDomainTracker.CacheSize = 10
+	cfg.NewDomainTracker.WhiteDomainsFile = "../tests/testsdata/newdomain_whitelist_regex.txt"
 
 	// init subprocessor
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	tracker := NewNewDomainTrackerTransform(config, logger.New(false), "test", 0, outChans)
+	tracker := NewNewDomainTrackerTransform(cfg, logger.New(false), "test", 0, outChans)
 	_, err := tracker.GetTransforms()
 	if err != nil {
 		t.Error("fail to init transform", err)
@@ -77,15 +77,15 @@ func TestNewDomainTracker_Whitelist(t *testing.T) {
 
 func TestNewDomainTracker_LRUCacheFull(t *testing.T) {
 	// config
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.NewDomainTracker.Enable = true
-	config.NewDomainTracker.TTL = 2
-	config.NewDomainTracker.CacheSize = 1
+	cfg := config.GetFakeConfigTransformers()
+	cfg.NewDomainTracker.Enable = true
+	cfg.NewDomainTracker.TTL = 2
+	cfg.NewDomainTracker.CacheSize = 1
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	tracker := NewNewDomainTrackerTransform(config, logger.New(false), "test", 0, outChans)
+	tracker := NewNewDomainTrackerTransform(cfg, logger.New(false), "test", 0, outChans)
 
 	// init transforms
 	_, err := tracker.GetTransforms()

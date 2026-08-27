@@ -4,20 +4,20 @@ import (
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func TestATags_AddTag(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.ATags.Enable = true
-	config.ATags.AddTags = append(config.ATags.AddTags, "tag1")
-	config.ATags.AddTags = append(config.ATags.AddTags, "tag2")
+	cfg := config.GetFakeConfigTransformers()
+	cfg.ATags.Enable = true
+	cfg.ATags.AddTags = append(cfg.ATags.AddTags, "tag1")
+	cfg.ATags.AddTags = append(cfg.ATags.AddTags, "tag2")
 
 	// init the processor
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	atags := NewATagsTransform(config, logger.New(false), "test", 0, outChans)
+	atags := NewATagsTransform(cfg, logger.New(false), "test", 0, outChans)
 
 	// add tags
 	dm := dnsutils.GetFakeDNSMessage()

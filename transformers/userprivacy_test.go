@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -16,14 +16,14 @@ var (
 
 func TestUserPrivacy_ReduceQname(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.UserPrivacy.Enable = true
-	config.UserPrivacy.MinimizeQname = true
+	cfg := config.GetFakeConfigTransformers()
+	cfg.UserPrivacy.Enable = true
+	cfg.UserPrivacy.MinimizeQname = true
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	userPrivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, outChans)
+	userPrivacy := NewUserPrivacyTransform(cfg, logger.New(false), "test", 0, outChans)
 	userPrivacy.GetTransforms()
 
 	// Define test cases
@@ -77,17 +77,17 @@ func TestUserPrivacy_HashIP(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Enable feature and set specific hash algorithm if provided
-			config := pkgconfig.GetFakeConfigTransformers()
-			config.UserPrivacy.Enable = true
-			config.UserPrivacy.HashQueryIP = true
+			cfg := config.GetFakeConfigTransformers()
+			cfg.UserPrivacy.Enable = true
+			cfg.UserPrivacy.HashQueryIP = true
 			if tc.hashAlgo != "" {
-				config.UserPrivacy.HashIPAlgo = tc.hashAlgo
+				cfg.UserPrivacy.HashIPAlgo = tc.hashAlgo
 			}
 
 			outChans := []chan *dnsutils.DNSMessageBatch{}
 
 			// Init the processor
-			userPrivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, outChans)
+			userPrivacy := NewUserPrivacyTransform(cfg, logger.New(false), "test", 0, outChans)
 			userPrivacy.GetTransforms()
 
 			dm := dnsutils.GetFakeDNSMessage()
@@ -111,14 +111,14 @@ func TestUserPrivacy_HashIP(t *testing.T) {
 
 func TestUserPrivacy_AnonymizeIP(t *testing.T) {
 	// Enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.UserPrivacy.Enable = true
-	config.UserPrivacy.AnonymizeIP = true
+	cfg := config.GetFakeConfigTransformers()
+	cfg.UserPrivacy.Enable = true
+	cfg.UserPrivacy.AnonymizeIP = true
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// Init the processor
-	userPrivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, outChans)
+	userPrivacy := NewUserPrivacyTransform(cfg, logger.New(false), "test", 0, outChans)
 	userPrivacy.GetTransforms()
 
 	// Define test cases
@@ -172,14 +172,14 @@ func TestUserPrivacy_AnonymizeIP(t *testing.T) {
 
 func TestUserPrivacy_AnonymizeIPRemove(t *testing.T) {
 	// Enable feature and set specific IP anonymization mask
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.UserPrivacy.Enable = true
-	config.UserPrivacy.AnonymizeIP = true
-	config.UserPrivacy.AnonymizeIPV4Bits = "/0"
-	config.UserPrivacy.AnonymizeIPV6Bits = "::/0"
+	cfg := config.GetFakeConfigTransformers()
+	cfg.UserPrivacy.Enable = true
+	cfg.UserPrivacy.AnonymizeIP = true
+	cfg.UserPrivacy.AnonymizeIPV4Bits = "/0"
+	cfg.UserPrivacy.AnonymizeIPV6Bits = "::/0"
 
 	// Init the processor
-	userPrivacy := NewUserPrivacyTransform(config, logger.New(false), "test", 0, []chan *dnsutils.DNSMessageBatch{})
+	userPrivacy := NewUserPrivacyTransform(cfg, logger.New(false), "test", 0, []chan *dnsutils.DNSMessageBatch{})
 	userPrivacy.GetTransforms()
 
 	// Define test cases

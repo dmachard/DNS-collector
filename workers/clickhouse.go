@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-dnscollector/v2/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
@@ -65,10 +65,10 @@ type ClickhouseClient struct {
 	bufferCount int
 }
 
-func NewClickhouseClient(config *pkgconfig.Config, console *logger.Logger, name string) *ClickhouseClient {
-	bufSize := config.Global.Worker.ChannelBufferSize
+func NewClickhouseClient(cfg *config.Config, console *logger.Logger, name string) *ClickhouseClient {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
 	w := &ClickhouseClient{
-		GenericWorker: NewGenericWorker(config, console, name, "clickhouse", bufSize, pkgconfig.DefaultMonitor),
+		GenericWorker: NewGenericWorker(cfg, console, name, "clickhouse", bufSize, config.DefaultMonitor),
 		jsonBuffer:    new(bytes.Buffer),
 	}
 	w.jsonEncoder = json.NewEncoder(w.jsonBuffer)
@@ -100,7 +100,7 @@ func (w *ClickhouseClient) ReadConfig() {
 		}
 		tlsConfig, err = netutils.TLSClientConfig(tlsOptions)
 		if err != nil {
-			w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] clickhouse - tls config error: ", err.Error())
+			w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"] clickhouse - tls config error: ", err.Error())
 		}
 	}
 
@@ -324,7 +324,7 @@ func convertDNSMessageToRecord(dm *dnsutils.DNSMessage) ClickhouseRecord {
 }
 
 func init() {
-	RegisterLogger("clickhouse", func(c *pkgconfig.Config) bool { return c.Loggers.ClickhouseClient.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("clickhouse", func(c *config.Config) bool { return c.Loggers.ClickhouseClient.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewClickhouseClient(c, l, s)
 	})
 }

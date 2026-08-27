@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -31,19 +31,19 @@ func Test_Webhook(t *testing.T) {
 	defer server.Close()
 
 	// simulate next workers
-	kept := GetWorkerForTest(pkgconfig.DefaultBufferSize)
-	dropped := GetWorkerForTest(pkgconfig.DefaultBufferSize)
+	kept := GetWorkerForTest(config.DefaultBufferSize)
+	dropped := GetWorkerForTest(config.DefaultBufferSize)
 
 	// config for the collector
-	config := pkgconfig.GetDefaultConfig()
-	config.Collectors.Webhook.Enable = true
-	config.Collectors.Webhook.URL = server.URL
-	config.Collectors.Webhook.BasicAuthEnabled = true
-	config.Collectors.Webhook.BasicAuthLogin = "whuser"
-	config.Collectors.Webhook.BasicAuthPwd = "whpass"
+	cfg := config.GetDefaultConfig()
+	cfg.Collectors.Webhook.Enable = true
+	cfg.Collectors.Webhook.URL = server.URL
+	cfg.Collectors.Webhook.BasicAuthEnabled = true
+	cfg.Collectors.Webhook.BasicAuthLogin = "whuser"
+	cfg.Collectors.Webhook.BasicAuthPwd = "whpass"
 
 	// init collector
-	c := NewWebhook(nil, config, logger.New(false), "test")
+	c := NewWebhook(nil, cfg, logger.New(false), "test")
 	c.SetDefaultRoutes([]Worker{kept})
 	c.SetDefaultDropped([]Worker{dropped})
 

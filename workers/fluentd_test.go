@@ -8,7 +8,7 @@ import (
 
 	"github.com/IBM/fluent-forward-go/fluent/protocol"
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 	"github.com/tinylib/msgp/msgp"
@@ -33,7 +33,7 @@ func Test_FluentdClient(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			// init logger
-			cfg := pkgconfig.GetDefaultConfig()
+			cfg := config.GetDefaultConfig()
 			cfg.Loggers.Fluentd.FlushInterval = tc.flushInterval
 			cfg.Loggers.Fluentd.BufferSize = tc.bufferSize
 			g := NewFluentdClient(cfg, logger.New(false), "test")
@@ -96,7 +96,7 @@ func Test_FluentdClient(t *testing.T) {
 					t.Errorf("Decode tag: %v", err)
 					break
 				}
-				if tag != pkgconfig.ProgQname {
+				if tag != config.ProgQname {
 					t.Errorf("invalid tag: %s", tag)
 					break
 				}

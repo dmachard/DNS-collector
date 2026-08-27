@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -29,7 +29,7 @@ func (m *mockNSQProducer) Stop() {
 	m.stopped = true
 }
 
-func createMockNsqClient(cfg *pkgconfig.Config, console *logger.Logger, name string) (*NsqClient, *mockNSQProducer) {
+func createMockNsqClient(cfg *config.Config, console *logger.Logger, name string) (*NsqClient, *mockNSQProducer) {
 	client := NewNsqClient(cfg, console, name)
 	mockProducer := &mockNSQProducer{}
 
@@ -42,7 +42,7 @@ func createMockNsqClient(cfg *pkgconfig.Config, console *logger.Logger, name str
 
 func Test_NSQ_ClientAndPublishing(t *testing.T) {
 	testTopic := "test-topic"
-	cfg := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	cfg.Loggers.Nsq.Topic = testTopic
 
 	nsqClient, mockProducer := createMockNsqClient(cfg, logger.New(true), "test")

@@ -12,8 +12,8 @@ import (
 
 	_ "net/http/pprof"
 
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
-	"github.com/dmachard/go-dnscollector/v2/pkginit"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
+	"github.com/dmachard/go-dnscollector/v2/pkg/pipeline"
 	"github.com/dmachard/go-dnscollector/v2/telemetry"
 	"github.com/dmachard/go-dnscollector/v2/workers"
 	"github.com/dmachard/go-logger"
@@ -35,18 +35,18 @@ func printUsage() {
 	fmt.Println("        Test config file")
 }
 
-func InitLogger(logger *logger.Logger, config *pkgconfig.Config) {
+func InitLogger(logger *logger.Logger, cfg *config.Config) {
 	// redirect app logs to file ?
-	if len(config.Global.Trace.Filename) > 0 {
+	if len(cfg.Global.Trace.Filename) > 0 {
 		logger.SetOutput(&lumberjack.Logger{
-			Filename:   config.Global.Trace.Filename,
-			MaxSize:    config.Global.Trace.MaxSize,
-			MaxBackups: config.Global.Trace.MaxBackups,
+			Filename:   cfg.Global.Trace.Filename,
+			MaxSize:    cfg.Global.Trace.MaxSize,
+			MaxBackups: cfg.Global.Trace.MaxBackups,
 		})
 	}
 
 	// enable the verbose mode ?
-	logger.SetVerbose(config.Global.Trace.Verbose)
+	logger.SetVerbose(cfg.Global.Trace.Verbose)
 }
 
 func createPIDFile(pidFilePath string) (string, error) {
@@ -77,9 +77,9 @@ func createPIDFile(pidFilePath string) (string, error) {
 	return pidStr, nil
 }
 
-func removePIDFile(config *pkgconfig.Config) {
-	if config.Global.PidFile != "" {
-		os.Remove(config.Global.PidFile)
+func removePIDFile(cfg *config.Config) {
+	if cfg.Global.PidFile != "" {
+		os.Remove(cfg.Global.PidFile)
 	}
 }
 
@@ -133,47 +133,47 @@ func main() {
 	logger := logger.New(true)
 
 	// load config
-	config, err := pkgconfig.LoadConfig(configPath)
+	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
 		fmt.Printf("main - config error: %v\n", err)
 		os.Exit(1)
 	}
 
 	// If PID file is specified in the config, create it
-	if config.Global.PidFile != "" {
-		pid, err := createPIDFile(config.Global.PidFile)
+	if cfg.Global.PidFile != "" {
+		pid, err := createPIDFile(cfg.Global.PidFile)
 		if err != nil {
 			fmt.Printf("main - PID file error: %v\n", err)
 			os.Exit(1)
 		}
-		logger.Info("main - write pid=%s to file=%s", pid, config.Global.PidFile)
+		logger.Info("main - write pid=%s to file=%s", pid, cfg.Global.PidFile)
 	}
 
 	// init logger
-	InitLogger(logger, config)
+	InitLogger(logger, cfg)
 	logger.Info("main - version=%s revision=%s", version.Version, version.Revision)
 
 	// // telemetry
-	if config.Global.Telemetry.Enabled {
-		if config.Global.Telemetry.SockPath != "" {
-			logger.Info("main - telemetry enabled on unix socket: %s", config.Global.Telemetry.SockPath)
+	if cfg.Global.Telemetry.Enabled {
+		if cfg.Global.Telemetry.SockPath != "" {
+			logger.Info("main - telemetry enabled on unix socket: %s", cfg.Global.Telemetry.SockPath)
 		} else {
-			logger.Info("main - telemetry enabled on local address: %s", config.Global.Telemetry.WebListen)
+			logger.Info("main - telemetry enabled on local address: %s", cfg.Global.Telemetry.WebListen)
 		}
 	}
-	promServer, metrics, errTelemetry := telemetry.InitTelemetryServer(config, logger)
+	promServer, metrics, errTelemetry := telemetry.InitTelemetryServer(cfg, logger)
 
 	// init active collectors and loggers
 	mapLoggers := make(map[string]workers.Worker)
 	mapCollectors := make(map[string]workers.Worker)
 
 	// or pipeline ?
-	if pkginit.IsPipelinesEnabled(config) {
+	if pipeline.IsPipelinesEnabled(cfg) {
 		logger.Info("main - running in pipeline mode")
-		err := pkginit.InitPipelines(mapLoggers, mapCollectors, config, logger, metrics)
+		err := pipeline.InitPipelines(mapLoggers, mapCollectors, cfg, logger, metrics)
 		if err != nil {
 			logger.Error("main - %s", err.Error())
-			removePIDFile(config)
+			removePIDFile(cfg)
 			os.Exit(1)
 		}
 	}
@@ -190,24 +190,24 @@ func main() {
 			select {
 			case err := <-errTelemetry:
 				logger.Error("main - unable to start telemetry: %v", err)
-				removePIDFile(config)
+				removePIDFile(cfg)
 				os.Exit(1)
 
 			case <-sigHUP:
 				logger.Warning("main - SIGHUP received")
 
 				// read config
-				err := pkgconfig.ReloadConfig(configPath, config)
+				err := config.ReloadConfig(configPath, cfg)
 				if err != nil {
 					logger.Error("main - reload config error:  %v", err)
-					removePIDFile(config)
+					removePIDFile(cfg)
 					os.Exit(1)
 				}
 
 				// reload
-				InitLogger(logger, config)
-				if pkginit.IsPipelinesEnabled(config) {
-					pkginit.ReloadPipelines(mapLoggers, mapCollectors, config, logger)
+				InitLogger(logger, cfg)
+				if pipeline.IsPipelinesEnabled(cfg) {
+					pipeline.ReloadPipelines(mapLoggers, mapCollectors, cfg, logger)
 				}
 
 			case <-sigTerm:
@@ -217,10 +217,10 @@ func main() {
 				shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 				// Gracefully stop all pipeline workers (collectors first, then loggers)
-				pkginit.StopPipelines(shutdownCtx, mapCollectors, mapLoggers, logger)
+				pipeline.StopPipelines(shutdownCtx, mapCollectors, mapLoggers, logger)
 
 				// gracefully shutdown the HTTP server
-				if config.Global.Telemetry.Enabled {
+				if cfg.Global.Telemetry.Enabled {
 					logger.Info("main - telemetry is stopping")
 					metrics.Stop()
 
@@ -243,7 +243,7 @@ func main() {
 	if testFlag {
 		// We've parsed the config and are ready to start, so the config is good enough
 		logger.Info("main - config OK!")
-		removePIDFile(config)
+		removePIDFile(cfg)
 		os.Exit(0)
 	}
 
@@ -258,6 +258,6 @@ func main() {
 	// block main
 	<-done
 
-	removePIDFile(config)
+	removePIDFile(cfg)
 	logger.Info("main - stopped")
 }

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 )
@@ -19,22 +19,22 @@ func Test_RedisPubRun(t *testing.T) {
 		pattern string
 	}{
 		{
-			mode:    pkgconfig.ModeText,
+			mode:    config.ModeText,
 			pattern: " dns.collector ",
 		},
 		{
-			mode:    pkgconfig.ModeJSON,
+			mode:    config.ModeJSON,
 			pattern: `\\\"qname\\\":\\\"dns.collector\\\"`,
 		},
 		{
-			mode:    pkgconfig.ModeFlatJSON,
+			mode:    config.ModeFlatJSON,
 			pattern: `\\\"dns.qname\\\":\\\"dns.collector\\\"`,
 		},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.mode, func(t *testing.T) {
 			// init logger
-			cfg := pkgconfig.GetDefaultConfig()
+			cfg := config.GetDefaultConfig()
 			cfg.Loggers.RedisPub.FlushInterval = 1
 			cfg.Loggers.RedisPub.BufferSize = 0
 			cfg.Loggers.RedisPub.Mode = tc.mode

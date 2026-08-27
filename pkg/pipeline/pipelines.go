@@ -1,11 +1,11 @@
-package pkginit
+package pipeline
 
 import (
 	"context"
 	"errors"
 	"fmt"
 
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-dnscollector/v2/telemetry"
 	"github.com/dmachard/go-dnscollector/v2/workers"
 	"github.com/dmachard/go-logger"
@@ -21,23 +21,23 @@ func registerWorker(m map[string]workers.Worker, name string, enabled bool, fact
 	m[name] = w
 }
 
-func IsPipelinesEnabled(config *pkgconfig.Config) bool {
-	return len(config.Pipelines) > 0
+func IsPipelinesEnabled(cfg *config.Config) bool {
+	return len(cfg.Pipelines) > 0
 }
 
-func GetStanzaConfig(config *pkgconfig.Config, item pkgconfig.ConfigPipelines) (*pkgconfig.Config, error) {
-	cfg := make(map[string]interface{})
+func GetStanzaConfig(mainConfig *config.Config, item config.ConfigPipelines) (*config.Config, error) {
+	cfgMap := make(map[string]interface{})
 	section := "collectors"
 
 	// Enable the provided collector or loggers
 	for k, p := range item.Params {
 		// is a logger or collector ?
-		if !config.Loggers.IsExists(k) && !config.Collectors.IsExists(k) {
+		if !mainConfig.Loggers.IsExists(k) && !mainConfig.Collectors.IsExists(k) {
 			return nil, &StanzaConfigError{
 				Message: fmt.Sprintf("stanza '%s' references unknown collector or logger '%s'", item.Name, k),
 			}
 		}
-		if config.Loggers.IsExists(k) {
+		if mainConfig.Loggers.IsExists(k) {
 			section = "loggers"
 		}
 		if p == nil {
@@ -50,26 +50,26 @@ func GetStanzaConfig(config *pkgconfig.Config, item pkgconfig.ConfigPipelines) (
 	}
 
 	// prepare a new config
-	subcfg := &pkgconfig.Config{}
+	subcfg := &config.Config{}
 	subcfg.SetDefault()
 
-	cfg[section] = item.Params
-	cfg[section+"-transformers"] = make(map[string]interface{})
+	cfgMap[section] = item.Params
+	cfgMap[section+"-transformers"] = make(map[string]interface{})
 
 	// add transformers
 	for k, v := range item.Transforms {
 		if transformerConfig, ok := v.(map[string]interface{}); ok {
 			transformerConfig["enable"] = true
-			cfg[section+"-transformers"].(map[string]interface{})[k] = transformerConfig
+			cfgMap[section+"-transformers"].(map[string]interface{})[k] = transformerConfig
 		} else {
-			cfg[section+"-transformers"].(map[string]interface{})[k] = v
+			cfgMap[section+"-transformers"].(map[string]interface{})[k] = v
 		}
 	}
 
 	// copy global config
-	subcfg.Global = config.Global
+	subcfg.Global = mainConfig.Global
 
-	yamlcfg, _ := yaml.Marshal(cfg)
+	yamlcfg, _ := yaml.Marshal(cfgMap)
 	if err := yaml.Unmarshal(yamlcfg, subcfg); err != nil {
 		return nil, &YAMLConfigError{
 			Section: section,
@@ -80,9 +80,9 @@ func GetStanzaConfig(config *pkgconfig.Config, item pkgconfig.ConfigPipelines) (
 	return subcfg, nil
 }
 
-func StanzaNameIsUniq(name string, config *pkgconfig.Config) error {
+func StanzaNameIsUniq(name string, cfg *config.Config) error {
 	stanzaCounter := 0
-	for _, stanza := range config.Pipelines {
+	for _, stanza := range cfg.Pipelines {
 		if name == stanza.Name {
 			stanzaCounter += 1
 		}
@@ -94,8 +94,8 @@ func StanzaNameIsUniq(name string, config *pkgconfig.Config) error {
 	return nil
 }
 
-func IsRouteExist(target string, config *pkgconfig.Config) error {
-	for _, stanza := range config.Pipelines {
+func IsRouteExist(target string, cfg *config.Config) error {
+	for _, stanza := range cfg.Pipelines {
 		if target == stanza.Name {
 			return nil
 		}
@@ -103,7 +103,7 @@ func IsRouteExist(target string, config *pkgconfig.Config) error {
 	return &RouteNotFoundError{Name: target}
 }
 
-func CreateRouting(stanza pkgconfig.ConfigPipelines, mapCollectors map[string]workers.Worker, mapLoggers map[string]workers.Worker, logger *logger.Logger) error {
+func CreateRouting(stanza config.ConfigPipelines, mapCollectors map[string]workers.Worker, mapLoggers map[string]workers.Worker, logger *logger.Logger) error {
 	var currentStanza workers.Worker
 	if collector, ok := mapCollectors[stanza.Name]; ok {
 		currentStanza = collector
@@ -170,28 +170,28 @@ func CreateRouting(stanza pkgconfig.ConfigPipelines, mapCollectors map[string]wo
 	return nil
 }
 
-func CreateStanza(stanzaName string, config *pkgconfig.Config, mapCollectors map[string]workers.Worker, mapLoggers map[string]workers.Worker, logger *logger.Logger, metrics *telemetry.PrometheusCollector) {
+func CreateStanza(stanzaName string, cfg *config.Config, mapCollectors map[string]workers.Worker, mapLoggers map[string]workers.Worker, logger *logger.Logger, metrics *telemetry.PrometheusCollector) {
 	for _, reg := range workers.GetRegisteredLoggers() {
-		registerWorker(mapLoggers, stanzaName, reg.IsEnabled(config), func() workers.Worker {
-			return reg.Factory(config, logger, stanzaName)
+		registerWorker(mapLoggers, stanzaName, reg.IsEnabled(cfg), func() workers.Worker {
+			return reg.Factory(cfg, logger, stanzaName)
 		}, metrics)
 	}
 
 	for _, reg := range workers.GetRegisteredCollectors() {
-		registerWorker(mapCollectors, stanzaName, reg.IsEnabled(config), func() workers.Worker {
-			return reg.Factory(config, logger, stanzaName)
+		registerWorker(mapCollectors, stanzaName, reg.IsEnabled(cfg), func() workers.Worker {
+			return reg.Factory(cfg, logger, stanzaName)
 		}, metrics)
 	}
 }
 
-func InitPipelines(mapLoggers map[string]workers.Worker, mapCollectors map[string]workers.Worker, config *pkgconfig.Config, logger *logger.Logger, telemetry *telemetry.PrometheusCollector) error {
+func InitPipelines(mapLoggers map[string]workers.Worker, mapCollectors map[string]workers.Worker, cfg *config.Config, logger *logger.Logger, telemetry *telemetry.PrometheusCollector) error {
 	var errs []error
 	seenStanzas := make(map[string]bool)
 	duplicateReported := make(map[string]bool)
 	routesDefined := false
 
 	// 1. Check duplicate stanzas and route definitions
-	for _, stanza := range config.Pipelines {
+	for _, stanza := range cfg.Pipelines {
 		if seenStanzas[stanza.Name] {
 			if !duplicateReported[stanza.Name] {
 				errs = append(errs, &DuplicateStanzaError{Name: stanza.Name})
@@ -206,14 +206,14 @@ func InitPipelines(mapLoggers map[string]workers.Worker, mapCollectors map[strin
 	}
 
 	// 2. Check if all target routes exist
-	for _, stanza := range config.Pipelines {
+	for _, stanza := range cfg.Pipelines {
 		for _, route := range stanza.RoutingPolicy.Forward {
-			if err := IsRouteExist(route, config); err != nil {
+			if err := IsRouteExist(route, cfg); err != nil {
 				errs = append(errs, &RouteNotFoundError{Name: route, From: stanza.Name})
 			}
 		}
 		for _, route := range stanza.RoutingPolicy.Dropped {
-			if err := IsRouteExist(route, config); err != nil {
+			if err := IsRouteExist(route, cfg); err != nil {
 				errs = append(errs, &RouteNotFoundError{Name: route, From: stanza.Name})
 			}
 		}
@@ -229,8 +229,8 @@ func InitPipelines(mapLoggers map[string]workers.Worker, mapCollectors map[strin
 
 	// 3. Read and instantiate each stanza
 	var stanzaErrs []error
-	for _, stanza := range config.Pipelines {
-		stanzaConfig, err := GetStanzaConfig(config, stanza)
+	for _, stanza := range cfg.Pipelines {
+		stanzaConfig, err := GetStanzaConfig(cfg, stanza)
 		if err != nil {
 			stanzaErrs = append(stanzaErrs, err)
 			continue
@@ -244,7 +244,7 @@ func InitPipelines(mapLoggers map[string]workers.Worker, mapCollectors map[strin
 
 	// 4. Create routing connections between instantiated stanzas
 	var routingErrs []error
-	for _, stanza := range config.Pipelines {
+	for _, stanza := range cfg.Pipelines {
 		if mapCollectors[stanza.Name] != nil || mapLoggers[stanza.Name] != nil {
 			if err := CreateRouting(stanza, mapCollectors, mapLoggers, logger); err != nil {
 				routingErrs = append(routingErrs, err)
@@ -261,9 +261,9 @@ func InitPipelines(mapLoggers map[string]workers.Worker, mapCollectors map[strin
 	return nil
 }
 
-func ReloadPipelines(mapLoggers map[string]workers.Worker, mapCollectors map[string]workers.Worker, config *pkgconfig.Config, logger *logger.Logger) {
-	for _, stanza := range config.Pipelines {
-		newCfg, err := GetStanzaConfig(config, stanza)
+func ReloadPipelines(mapLoggers map[string]workers.Worker, mapCollectors map[string]workers.Worker, cfg *config.Config, logger *logger.Logger) {
+	for _, stanza := range cfg.Pipelines {
+		newCfg, err := GetStanzaConfig(cfg, stanza)
 		if err != nil {
 			logger.Error("main - reload config error for stanza=%s: %v", stanza.Name, err)
 			continue

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -18,9 +18,9 @@ func Test_DnsProcessor(t *testing.T) {
 	logger.SetOutput(&o)
 
 	// init and run the dns processor
-	fl := GetWorkerForTest(pkgconfig.DefaultBufferSize)
+	fl := GetWorkerForTest(config.DefaultBufferSize)
 
-	consumer := NewDNSProcessor(pkgconfig.GetDefaultConfig(), logger, "test", 512)
+	consumer := NewDNSProcessor(config.GetDefaultConfig(), logger, "test", 512)
 	consumer.AddDefaultRoute(fl)
 	consumer.AddDroppedRoute(fl)
 	go consumer.StartCollect()
@@ -31,7 +31,7 @@ func Test_DnsProcessor(t *testing.T) {
 
 	// read dns message from dnstap consumer
 	batchOut := <-fl.GetInputChannel()
-	if len(batchOut.Messages) == 0 || batchOut.Messages[0].DNS.Qname != pkgconfig.ExpectedQname {
+	if len(batchOut.Messages) == 0 || batchOut.Messages[0].DNS.Qname != config.ExpectedQname {
 		t.Errorf("invalid qname in dns message: %v", batchOut.Messages)
 	}
 }
@@ -42,9 +42,9 @@ func Test_DnsProcessor_DecodeCounters(t *testing.T) {
 	logger.SetOutput(&o)
 
 	// init and run the dns processor
-	fl := GetWorkerForTest(pkgconfig.DefaultBufferSize)
+	fl := GetWorkerForTest(config.DefaultBufferSize)
 
-	consumer := NewDNSProcessor(pkgconfig.GetDefaultConfig(), logger, "test", 512)
+	consumer := NewDNSProcessor(config.GetDefaultConfig(), logger, "test", 512)
 	consumer.AddDefaultRoute(fl)
 	consumer.AddDroppedRoute(fl)
 	go consumer.StartCollect()
@@ -88,8 +88,8 @@ func Test_DnsProcessor_BufferLoggerIsFull(t *testing.T) {
 	lg.SetOutputChannel((logsChan))
 
 	// init and run the dns processor
-	fl := GetWorkerForTest(pkgconfig.DefaultBufferOne)
-	cfg := pkgconfig.GetDefaultConfig()
+	fl := GetWorkerForTest(config.DefaultBufferOne)
+	cfg := config.GetDefaultConfig()
 	cfg.Global.Worker.InternalMonitor = 1
 	consumer := NewDNSProcessor(cfg, lg, "test", 512)
 	consumer.AddDefaultRoute(fl)
@@ -108,7 +108,7 @@ func Test_DnsProcessor_BufferLoggerIsFull(t *testing.T) {
 
 	for entry := range logsChan {
 		fmt.Println(entry)
-		pattern := regexp.MustCompile(pkgconfig.ExpectedBufferMsg511)
+		pattern := regexp.MustCompile(config.ExpectedBufferMsg511)
 		if pattern.MatchString(entry.Message) {
 			break
 		}
@@ -116,7 +116,7 @@ func Test_DnsProcessor_BufferLoggerIsFull(t *testing.T) {
 
 	// read dnsmessage from dnstap consumer
 	batchOut := <-fl.GetInputChannel()
-	if len(batchOut.Messages) == 0 || batchOut.Messages[0].DNS.Qname != pkgconfig.ExpectedQname {
+	if len(batchOut.Messages) == 0 || batchOut.Messages[0].DNS.Qname != config.ExpectedQname {
 		t.Errorf("invalid qname in dns message: %v", batchOut.Messages)
 	}
 
@@ -131,7 +131,7 @@ func Test_DnsProcessor_BufferLoggerIsFull(t *testing.T) {
 
 	for entry := range logsChan {
 		fmt.Println(entry)
-		pattern := regexp.MustCompile(pkgconfig.ExpectedBufferMsg1023)
+		pattern := regexp.MustCompile(config.ExpectedBufferMsg1023)
 		if pattern.MatchString(entry.Message) {
 			break
 		}
@@ -139,7 +139,7 @@ func Test_DnsProcessor_BufferLoggerIsFull(t *testing.T) {
 
 	// read dnsmessage from dnstap consumer
 	batch2 := <-fl.GetInputChannel()
-	if len(batch2.Messages) == 0 || batch2.Messages[0].DNS.Qname != pkgconfig.ExpectedQname {
+	if len(batch2.Messages) == 0 || batch2.Messages[0].DNS.Qname != config.ExpectedQname {
 		t.Errorf("invalid qname in dns message: %v", batch2.Messages)
 	}
 }

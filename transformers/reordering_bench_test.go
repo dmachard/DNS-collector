@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -100,12 +100,12 @@ func Benchmark_Sort_SlicesSortFunc_Random_1000(b *testing.B) {
 // -------------------------------------------------------------
 
 func Benchmark_Reordering_FlushBuffer_1000(b *testing.B) {
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Reordering.Enable = true
-	config.Reordering.MaxBufferSize = 1000
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Reordering.Enable = true
+	cfg.Reordering.MaxBufferSize = 1000
 	log := logger.New(false)
 	outChans := []chan *dnsutils.DNSMessageBatch{make(chan *dnsutils.DNSMessageBatch, 2000)}
-	reorder := NewReorderingTransform(config, log, "bench", 0, outChans)
+	reorder := NewReorderingTransform(cfg, log, "bench", 0, outChans)
 
 	template := generateMessages(1000, 50_000_000) // nearly sorted
 

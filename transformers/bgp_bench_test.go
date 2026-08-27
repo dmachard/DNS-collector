@@ -9,7 +9,7 @@ import (
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
 	"github.com/dmachard/go-dnscollector/v2/pkg/bgpmrt"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -72,15 +72,15 @@ func Benchmark_BGPTransform_ProcessMessage(b *testing.B) {
 	_ = bgpmrt.WriteSampleMRT(f, routes)
 	f.Close()
 
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.BGP.Enable = true
-	config.BGP.MrtFile = mrtPath
-	config.BGP.OriginASN = true
-	config.BGP.ASPath = true
-	config.BGP.Prefix = true
+	cfg := config.GetFakeConfigTransformers()
+	cfg.BGP.Enable = true
+	cfg.BGP.MrtFile = mrtPath
+	cfg.BGP.OriginASN = true
+	cfg.BGP.ASPath = true
+	cfg.BGP.Prefix = true
 
 	outChan := make(chan *dnsutils.DNSMessageBatch, 100)
-	transforms := NewTransforms(config, logger.New(false), "bench-bgp", []chan *dnsutils.DNSMessageBatch{outChan}, 0)
+	transforms := NewTransforms(cfg, logger.New(false), "bench-bgp", []chan *dnsutils.DNSMessageBatch{outChan}, 0)
 
 	dm := dnsutils.AcquireDNSMessage()
 	dm.Init()

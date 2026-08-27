@@ -10,7 +10,7 @@ import (
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
 	"github.com/dmachard/go-dnscollector/v2/pkg/bgpmrt"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -22,8 +22,8 @@ type BGPTransform struct {
 	lastFileSize int64
 }
 
-func NewDNSBGPTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *BGPTransform {
-	t := &BGPTransform{GenericTransformer: NewTransformer(config, logger, "bgp", name, instance, nextWorkers)}
+func NewDNSBGPTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *BGPTransform {
+	t := &BGPTransform{GenericTransformer: NewTransformer(cfg, logger, "bgp", name, instance, nextWorkers)}
 	return t
 }
 

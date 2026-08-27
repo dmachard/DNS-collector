@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-dnscollector/v2/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
@@ -19,9 +19,9 @@ type InfluxDBClient struct {
 	writeAPI     api.WriteAPI
 }
 
-func NewInfluxDBClient(config *pkgconfig.Config, logger *logger.Logger, name string) *InfluxDBClient {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &InfluxDBClient{GenericWorker: NewGenericWorker(config, logger, name, "influxdb", bufSize, pkgconfig.DefaultMonitor)}
+func NewInfluxDBClient(cfg *config.Config, logger *logger.Logger, name string) *InfluxDBClient {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &InfluxDBClient{GenericWorker: NewGenericWorker(cfg, logger, name, "influxdb", bufSize, config.DefaultMonitor)}
 	w.ReadConfig()
 	return w
 }
@@ -158,7 +158,7 @@ func (w *InfluxDBClient) StartLogging() {
 }
 
 func init() {
-	RegisterLogger("influxdb", func(c *pkgconfig.Config) bool { return c.Loggers.InfluxDB.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("influxdb", func(c *config.Config) bool { return c.Loggers.InfluxDB.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewInfluxDBClient(c, l, s)
 	})
 }

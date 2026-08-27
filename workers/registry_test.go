@@ -3,7 +3,7 @@ package workers
 import (
 	"testing"
 
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -56,9 +56,9 @@ func TestRegistry_CollectorsCount(t *testing.T) {
 
 func TestRegistry_CustomRegistration(t *testing.T) {
 	dummyCalled := false
-	RegisterLogger("dummy-test-logger", func(c *pkgconfig.Config) bool {
+	RegisterLogger("dummy-test-logger", func(c *config.Config) bool {
 		return true
-	}, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	}, func(c *config.Config, l *logger.Logger, s string) Worker {
 		dummyCalled = true
 		return nil
 	})

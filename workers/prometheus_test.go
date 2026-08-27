@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 
 	dto "github.com/prometheus/client_model/go"
@@ -21,8 +21,8 @@ const (
 
 func TestPrometheus_BadAuth(t *testing.T) {
 	// init the logger
-	config := pkgconfig.GetDefaultConfig()
-	g := NewPrometheus(config, logger.New(false), "test")
+	cfg := config.GetDefaultConfig()
+	g := NewPrometheus(cfg, logger.New(false), "test")
 
 	tt := []struct {
 		name       string
@@ -44,7 +44,7 @@ func TestPrometheus_BadAuth(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// init httptest
 			request := httptest.NewRequest(tc.method, tc.uri, strings.NewReader(""))
-			request.SetBasicAuth(config.Loggers.Prometheus.BasicAuthLogin, "badpassword")
+			request.SetBasicAuth(cfg.Loggers.Prometheus.BasicAuthLogin, "badpassword")
 			responseRecorder := httptest.NewRecorder()
 
 			// call handler
@@ -60,23 +60,23 @@ func TestPrometheus_BadAuth(t *testing.T) {
 
 func TestPrometheus_GetMetrics(t *testing.T) {
 	// init the logger
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.Prometheus.HistogramMetricsEnabled = true
-	config.Loggers.Prometheus.TLDsMetricsEnabled = true
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.Prometheus.HistogramMetricsEnabled = true
+	cfg.Loggers.Prometheus.TLDsMetricsEnabled = true
 
 	// By default, prometheus uses 'stream_id' as the label
-	t.Run("SingleLabelStreamID", getMetricsTestCase(config, map[string]string{"stream_id": "collector"}))
+	t.Run("SingleLabelStreamID", getMetricsTestCase(cfg, map[string]string{"stream_id": "collector"}))
 
-	config.Loggers.Prometheus.LabelsList = []string{"resolver", "stream_id"}
-	t.Run("TwoLabelsStreamIDResolver", getMetricsTestCase(config, map[string]string{"resolver": "4.3.2.1", "stream_id": "collector"}))
+	cfg.Loggers.Prometheus.LabelsList = []string{"resolver", "stream_id"}
+	t.Run("TwoLabelsStreamIDResolver", getMetricsTestCase(cfg, map[string]string{"resolver": "4.3.2.1", "stream_id": "collector"}))
 }
 
 // This helper generates a set of DNS packets for logger to count
 // It then collects Prometheus metrics to verify they exist and have expected labels/values
-// func getMetricsHelper(config *pkgconfig.Config, labels map[string]string, t *testing.T) {
-func getMetricsTestCase(config *pkgconfig.Config, labels map[string]string) func(t *testing.T) {
+// func getMetricsHelper(config *config.Config, labels map[string]string, t *testing.T) {
+func getMetricsTestCase(cfg *config.Config, labels map[string]string) func(t *testing.T) {
 	return func(t *testing.T) {
-		g := NewPrometheus(config, logger.New(false), "test")
+		g := NewPrometheus(cfg, logger.New(false), "test")
 
 		// record one dns message to simulate some incoming data
 		noErrorRecord := dnsutils.GetFakeDNSMessage()
@@ -165,8 +165,8 @@ func getMetricsTestCase(config *pkgconfig.Config, labels map[string]string) func
 
 // Test that EPS (Events Per Second) Counters increment correctly
 func TestPrometheus_EPS_Counters(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
-	g := NewPrometheus(config, logger.New(false), "test")
+	cfg := config.GetDefaultConfig()
+	g := NewPrometheus(cfg, logger.New(false), "test")
 
 	// record one dns message to simulate some incoming data
 	noErrorRecord := dnsutils.GetFakeDNSMessage()
@@ -197,9 +197,9 @@ func TestPrometheus_EPS_Counters(t *testing.T) {
 }
 
 func TestPrometheus_BuildInfo(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 
-	g := NewPrometheus(config, logger.New(false), "test")
+	g := NewPrometheus(cfg, logger.New(false), "test")
 
 	mf := getMetrics(g, t)
 
@@ -211,9 +211,9 @@ func TestPrometheus_BuildInfo(t *testing.T) {
 }
 
 func TestPrometheus_ConfirmDifferentResolvers(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.Prometheus.LabelsList = []string{"resolver"}
-	g := NewPrometheus(config, logger.New(false), "test")
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.Prometheus.LabelsList = []string{"resolver"}
+	g := NewPrometheus(cfg, logger.New(false), "test")
 	noErrorRecord := dnsutils.GetFakeDNSMessage()
 	noErrorRecord.DNS.Length = 123
 	noErrorRecord.NetworkInfo.ResponseIP = "1.2.3.4"
@@ -228,10 +228,10 @@ func TestPrometheus_ConfirmDifferentResolvers(t *testing.T) {
 }
 
 func TestPrometheus_Etldplusone(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.Prometheus.LabelsList = []string{"stream_id"}
-	config.Loggers.Prometheus.TLDsMetricsEnabled = true
-	g := NewPrometheus(config, logger.New(false), "test")
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.Prometheus.LabelsList = []string{"stream_id"}
+	cfg.Loggers.Prometheus.TLDsMetricsEnabled = true
+	g := NewPrometheus(cfg, logger.New(false), "test")
 
 	noErrorRecord := dnsutils.GetFakeDNSMessage()
 	noErrorRecord.DNS.Type = dnsutils.DNSQuery
@@ -256,10 +256,10 @@ func TestPrometheus_Etldplusone(t *testing.T) {
 }
 
 func TestPrometheus_Suspicious(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.Prometheus.LabelsList = []string{"stream_id"}
-	config.Loggers.Prometheus.SuspiciousMetricsEnabled = true
-	g := NewPrometheus(config, logger.New(false), "test")
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.Prometheus.LabelsList = []string{"stream_id"}
+	cfg.Loggers.Prometheus.SuspiciousMetricsEnabled = true
+	g := NewPrometheus(cfg, logger.New(false), "test")
 
 	dm := dnsutils.GetFakeDNSMessage()
 	dm.DNS.Qname = "malicious.com"
@@ -338,9 +338,9 @@ func getMetrics(prom *Prometheus, t *testing.T) map[string]*dto.MetricFamily {
 }
 
 func TestPrometheus_QnameInvalidChars(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	// config.Loggers.Prometheus.HistogramMetricsEnabled = true
-	g := NewPrometheus(config, logger.New(false), "test")
+	g := NewPrometheus(cfg, logger.New(false), "test")
 
 	// prepare qname
 	qnameInvalid := "lb._dns-sd._udp.\xd0\xdfP\x01"
@@ -379,8 +379,8 @@ func TestPrometheus_QnameInvalidChars(t *testing.T) {
 }
 
 func TestPrometheus_AllCounters(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
-	g := NewPrometheus(config, logger.New(false), "test")
+	cfg := config.GetDefaultConfig()
+	g := NewPrometheus(cfg, logger.New(false), "test")
 
 	// Message 1: Query with flags TC, AA, Malformed
 	dm1 := dnsutils.GetFakeDNSMessage()
@@ -442,8 +442,8 @@ func TestPrometheus_AllCounters(t *testing.T) {
 }
 
 func TestPrometheus_ConcurrentRecord(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
-	g := NewPrometheus(config, logger.New(false), "test")
+	cfg := config.GetDefaultConfig()
+	g := NewPrometheus(cfg, logger.New(false), "test")
 
 	// Initialize EPS state with a first message + compute
 	dmInit := dnsutils.GetFakeDNSMessage()
@@ -487,10 +487,10 @@ func TestPrometheus_ConcurrentRecord(t *testing.T) {
 }
 
 func TestPrometheus_GeoIPMetrics(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.Prometheus.TopCountriesMetricsEnabled = true
-	config.Loggers.Prometheus.TopASNsMetricsEnabled = true
-	g := NewPrometheus(config, logger.New(false), "test_geoip")
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.Prometheus.TopCountriesMetricsEnabled = true
+	cfg.Loggers.Prometheus.TopASNsMetricsEnabled = true
+	g := NewPrometheus(cfg, logger.New(false), "test_geoip")
 
 	dm1 := dnsutils.GetFakeDNSMessage()
 	dm1.Geo = &dnsutils.TransformDNSGeo{

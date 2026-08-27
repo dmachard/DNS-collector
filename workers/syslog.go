@@ -11,7 +11,7 @@ import (
 	syslog "github.com/dmachard/go-clientsyslog"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-dnscollector/v2/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
@@ -30,9 +30,9 @@ type Syslog struct {
 	defaultHostname                    string
 }
 
-func NewSyslog(config *pkgconfig.Config, console *logger.Logger, name string) *Syslog {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &Syslog{GenericWorker: NewGenericWorker(config, console, name, "syslog", bufSize, pkgconfig.DefaultMonitor)}
+func NewSyslog(cfg *config.Config, console *logger.Logger, name string) *Syslog {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &Syslog{GenericWorker: NewGenericWorker(cfg, console, name, "syslog", bufSize, config.DefaultMonitor)}
 	w.transportReady = make(chan bool)
 	w.transportReconnect = make(chan bool)
 	w.ReadConfig()
@@ -41,21 +41,21 @@ func NewSyslog(config *pkgconfig.Config, console *logger.Logger, name string) *S
 
 func (w *Syslog) ReadConfig() {
 	if !netutils.IsValidTLS(w.GetConfig().Loggers.Syslog.TLSMinVersion) {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "invalid tls min version")
+		w.LogFatal(config.PrefixLogWorker + "invalid tls min version")
 	}
 
-	if !pkgconfig.IsValidMode(w.GetConfig().Loggers.Syslog.Mode) {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "invalid mode text or json expected")
+	if !config.IsValidMode(w.GetConfig().Loggers.Syslog.Mode) {
+		w.LogFatal(config.PrefixLogWorker + "invalid mode text or json expected")
 	}
 	severity, err := syslog.GetPriority(w.GetConfig().Loggers.Syslog.Severity)
 	if err != nil {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "invalid severity")
+		w.LogFatal(config.PrefixLogWorker + "invalid severity")
 	}
 	w.severity = severity
 
 	facility, err := syslog.GetPriority(w.GetConfig().Loggers.Syslog.Facility)
 	if err != nil {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "invalid facility")
+		w.LogFatal(config.PrefixLogWorker + "invalid facility")
 	}
 	w.facility = facility
 
@@ -68,7 +68,7 @@ func (w *Syslog) ReadConfig() {
 	var errFormatter error
 	w.textFormatter, errFormatter = dnsutils.NewTextFormatter(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary)
 	if errFormatter != nil {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "invalid text format: " + errFormatter.Error())
+		w.LogFatal(config.PrefixLogWorker + "invalid text format: " + errFormatter.Error())
 	}
 
 	hostnameCfg := strings.TrimSpace(w.GetConfig().Loggers.Syslog.Hostname)
@@ -275,7 +275,7 @@ func (w *Syslog) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 	for _, dm := range *buf {
 		w.updateHostname(dm)
 		switch w.GetConfig().Loggers.Syslog.Mode {
-		case pkgconfig.ModeText:
+		case config.ModeText:
 			buf := w.GetTextBuffer()
 			buf.Reset()
 
@@ -327,7 +327,7 @@ func (w *Syslog) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 			// return text buffer to pool
 			w.PutTextBuffer(buf)
 
-		case pkgconfig.ModeJSON:
+		case config.ModeJSON:
 			// encode to json the dns message
 			json.NewEncoder(buffer).Encode(dm)
 
@@ -342,7 +342,7 @@ func (w *Syslog) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 			}
 			buffer.Reset()
 
-		case pkgconfig.ModeFlatJSON:
+		case config.ModeFlatJSON:
 			if dm.Relabeling != nil {
 				flat, errflat := dm.Flatten()
 				if errflat != nil {
@@ -442,7 +442,7 @@ func (w *Syslog) StartLogging() {
 }
 
 func init() {
-	RegisterLogger("syslog", func(c *pkgconfig.Config) bool { return c.Loggers.Syslog.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("syslog", func(c *config.Config) bool { return c.Loggers.Syslog.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewSyslog(c, l, s)
 	})
 }

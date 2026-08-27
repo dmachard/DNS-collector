@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-dnscollector/v2/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
@@ -27,9 +27,9 @@ type PdnsServer struct {
 	connCounter uint64
 }
 
-func NewPdnsServer(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *PdnsServer {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &PdnsServer{GenericWorker: NewGenericWorker(config, logger, name, "powerdns", bufSize, pkgconfig.DefaultMonitor)}
+func NewPdnsServer(next []Worker, cfg *config.Config, logger *logger.Logger, name string) *PdnsServer {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &PdnsServer{GenericWorker: NewGenericWorker(cfg, logger, name, "powerdns", bufSize, config.DefaultMonitor)}
 	w.SetDefaultRoutes(next)
 	w.CheckConfig()
 	return w
@@ -37,7 +37,7 @@ func NewPdnsServer(next []Worker, config *pkgconfig.Config, logger *logger.Logge
 
 func (w *PdnsServer) CheckConfig() {
 	if !netutils.IsValidTLS(w.GetConfig().Collectors.PowerDNS.TLSMinVersion) {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "] invalid tls min version")
+		w.LogFatal(config.PrefixLogWorker + "[" + w.GetName() + "] invalid tls min version")
 	}
 }
 
@@ -138,7 +138,7 @@ func (w *PdnsServer) StartCollect() {
 		cfg.TLSSupport, netutils.TLSVersion[cfg.TLSMinVersion],
 		cfg.CertFile, cfg.KeyFile)
 	if err != nil {
-		w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] listening failed: ", err)
+		w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"] listening failed: ", err)
 	}
 	w.LogInfo("listening on %s", listener.Addr())
 
@@ -171,7 +171,7 @@ func (w *PdnsServer) StartCollect() {
 			if w.GetConfig().Collectors.Dnstap.RcvBufSize > 0 {
 				before, actual, err := netutils.SetSockRCVBUF(conn, cfg.RcvBufSize, cfg.TLSSupport)
 				if err != nil {
-					w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] unable to set SO_RCVBUF: ", err)
+					w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"] unable to set SO_RCVBUF: ", err)
 				}
 				w.LogInfo("set SO_RCVBUF option, value before: %d, desired: %d, actual: %d", before, cfg.RcvBufSize, actual)
 			}
@@ -204,8 +204,8 @@ type PdnsProcessor struct {
 	dataChannel chan []byte
 }
 
-func NewPdnsProcessor(connID int, peerName string, config *pkgconfig.Config, logger *logger.Logger, name string, size int) PdnsProcessor {
-	w := PdnsProcessor{GenericWorker: NewGenericWorker(config, logger, name, "powerdns processor #"+strconv.Itoa(connID), size, pkgconfig.DefaultMonitor)}
+func NewPdnsProcessor(connID int, peerName string, cfg *config.Config, logger *logger.Logger, name string, size int) PdnsProcessor {
+	w := PdnsProcessor{GenericWorker: NewGenericWorker(cfg, logger, name, "powerdns processor #"+strconv.Itoa(connID), size, config.DefaultMonitor)}
 	w.ConnID = connID
 	w.PeerName = peerName
 	w.dataChannel = make(chan []byte, size)
@@ -295,7 +295,7 @@ func (w *PdnsProcessor) StartCollect() {
 			if ipVersion, valid := netutils.IPVersion[pbdm.GetSocketFamily().String()]; valid {
 				dm.NetworkInfo.Family = ipVersion
 			} else {
-				dm.NetworkInfo.Family = pkgconfig.StrUnknown
+				dm.NetworkInfo.Family = config.StrUnknown
 			}
 			dm.NetworkInfo.Protocol = pbdm.GetSocketProtocol().String()
 
@@ -531,7 +531,7 @@ func (w *PdnsProcessor) StartCollect() {
 }
 
 func init() {
-	RegisterCollector("powerdns", func(c *pkgconfig.Config) bool { return c.Collectors.PowerDNS.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterCollector("powerdns", func(c *config.Config) bool { return c.Collectors.PowerDNS.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewPdnsServer(nil, c, l, s)
 	})
 }

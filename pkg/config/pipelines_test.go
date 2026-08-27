@@ -1,4 +1,4 @@
-package pkgconfig
+package config
 
 import (
 	"testing"

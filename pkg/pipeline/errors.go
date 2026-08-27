@@ -1,4 +1,4 @@
-package pkginit
+package pipeline
 
 import (
 	"errors"

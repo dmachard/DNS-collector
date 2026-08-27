@@ -4,7 +4,7 @@ import (
 	"regexp"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -13,8 +13,8 @@ type RelabelTransform struct {
 	RelabelingRules []dnsutils.RelabelingRule
 }
 
-func NewRelabelTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *RelabelTransform {
-	t := &RelabelTransform{GenericTransformer: NewTransformer(config, logger, "relabeling", name, instance, nextWorkers)}
+func NewRelabelTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *RelabelTransform {
+	t := &RelabelTransform{GenericTransformer: NewTransformer(cfg, logger, "relabeling", name, instance, nextWorkers)}
 	return t
 }
 

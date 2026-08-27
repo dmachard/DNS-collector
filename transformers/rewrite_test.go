@@ -5,20 +5,20 @@ import (
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func TestRewrite_UpdateFields(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Rewrite.Enable = true
-	config.Rewrite.Identifiers = make(map[string]interface{})
-	config.Rewrite.Identifiers["dnstap.identity"] = "testidentity"
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Rewrite.Enable = true
+	cfg.Rewrite.Identifiers = make(map[string]interface{})
+	cfg.Rewrite.Identifiers["dnstap.identity"] = "testidentity"
 
 	// init the processor
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	rewrite := NewRewriteTransform(config, logger.New(false), "test", 0, outChans)
+	rewrite := NewRewriteTransform(cfg, logger.New(false), "test", 0, outChans)
 
 	// get fake
 	dm := dnsutils.GetFakeDNSMessage()
@@ -39,14 +39,14 @@ func TestRewrite_UpdateFields(t *testing.T) {
 
 func TestRewrite_UpdateFields_InvalidType(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Rewrite.Enable = true
-	config.Rewrite.Identifiers = make(map[string]interface{})
-	config.Rewrite.Identifiers["dnstap.identity"] = 0
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Rewrite.Enable = true
+	cfg.Rewrite.Identifiers = make(map[string]interface{})
+	cfg.Rewrite.Identifiers["dnstap.identity"] = 0
 
 	// init the processor
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	rewrite := NewRewriteTransform(config, logger.New(false), "test", 0, outChans)
+	rewrite := NewRewriteTransform(cfg, logger.New(false), "test", 0, outChans)
 
 	// get fake
 	dm := dnsutils.GetFakeDNSMessage()

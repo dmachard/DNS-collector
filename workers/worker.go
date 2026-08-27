@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-dnscollector/v2/telemetry"
 	"github.com/dmachard/go-logger"
 )
@@ -27,7 +27,7 @@ type Worker interface {
 	CountEgressTraffic()
 	GetInputChannel() chan *dnsutils.DNSMessageBatch
 	ReadConfig()
-	ReloadConfig(config *pkgconfig.Config)
+	ReloadConfig(cfg *config.Config)
 	GetMetrics() *telemetry.PrometheusCollector
 	GetTextBuffer() *bytes.Buffer
 	PutTextBuffer(buf *bytes.Buffer)
@@ -45,8 +45,8 @@ type GenericWorker struct {
 	doneOnceProcess              sync.Once
 	doneOnceMonitor              sync.Once
 	monitor                      bool
-	config                       *pkgconfig.Config
-	configChan                   chan *pkgconfig.Config
+	config                       *config.Config
+	configChan                   chan *config.Config
 	logger                       *logger.Logger
 	name, descr                  string
 	droppedRoutes, defaultRoutes []Worker
@@ -64,8 +64,8 @@ type GenericWorker struct {
 	TextBufferPool *sync.Pool
 }
 
-func NewGenericWorker(config *pkgconfig.Config, logger *logger.Logger, name string, descr string, bufferSize int, monitor bool) *GenericWorker {
-	logger.Info(pkgconfig.PrefixLogWorker+"[%s] %s - enabled", name, descr)
+func NewGenericWorker(cfg *config.Config, logger *logger.Logger, name string, descr string, bufferSize int, monitor bool) *GenericWorker {
+	logger.Info(config.PrefixLogWorker+"[%s] %s - enabled", name, descr)
 	ctx, cancel := context.WithCancel(context.Background())
 	loggerCtx, loggerCancel := context.WithCancel(context.Background())
 	w := &GenericWorker{
@@ -77,8 +77,8 @@ func NewGenericWorker(config *pkgconfig.Config, logger *logger.Logger, name stri
 		processDone:   make(chan struct{}),
 		monitorDone:   make(chan struct{}),
 		monitor:       monitor,
-		config:        config,
-		configChan:    make(chan *pkgconfig.Config),
+		config:        cfg,
+		configChan:    make(chan *config.Config),
 		logger:        logger,
 		name:          name,
 		descr:         descr,
@@ -104,27 +104,27 @@ func (w *GenericWorker) GetMetrics() *telemetry.PrometheusCollector {
 
 func (w *GenericWorker) GetName() string { return w.name }
 
-func (w *GenericWorker) GetConfig() *pkgconfig.Config { return w.config }
+func (w *GenericWorker) GetConfig() *config.Config { return w.config }
 
-func (w *GenericWorker) SetConfig(config *pkgconfig.Config) { w.config = config }
+func (w *GenericWorker) SetConfig(cfg *config.Config) { w.config = cfg }
 
 func (w *GenericWorker) GetBatchSize() int {
 	if w.config != nil && w.config.Global.Worker.BatchSize > 0 {
 		return w.config.Global.Worker.BatchSize
 	}
-	return pkgconfig.DefaultBatchSize
+	return config.DefaultBatchSize
 }
 
 func (w *GenericWorker) GetFlushInterval() time.Duration {
 	if w.config != nil && w.config.Global.Worker.BatchFlushIntervalMs > 0 {
 		return time.Duration(w.config.Global.Worker.BatchFlushIntervalMs) * time.Millisecond
 	}
-	return time.Duration(pkgconfig.DefaultFlushInterval) * time.Millisecond
+	return time.Duration(config.DefaultFlushInterval) * time.Millisecond
 }
 
 func (w *GenericWorker) ReadConfig() {}
 
-func (w *GenericWorker) NewConfig() chan *pkgconfig.Config { return w.configChan }
+func (w *GenericWorker) NewConfig() chan *config.Config { return w.configChan }
 
 func (w *GenericWorker) GetLogger() *logger.Logger { return w.logger }
 
@@ -166,21 +166,21 @@ func (w *GenericWorker) Loggers() ([]chan *dnsutils.DNSMessageBatch, []string) {
 	return GetRoutes(w.defaultRoutes)
 }
 
-func (w *GenericWorker) ReloadConfig(config *pkgconfig.Config) {
+func (w *GenericWorker) ReloadConfig(cfg *config.Config) {
 	w.LogInfo("reload configuration...")
-	w.configChan <- config
+	w.configChan <- cfg
 }
 
 func (w *GenericWorker) LogInfo(msg string, v ...interface{}) {
-	w.logger.Info(pkgconfig.PrefixLogWorker+"["+w.name+"] "+w.descr+" - "+msg, v...)
+	w.logger.Info(config.PrefixLogWorker+"["+w.name+"] "+w.descr+" - "+msg, v...)
 }
 
 func (w *GenericWorker) LogWarning(msg string, v ...interface{}) {
-	w.logger.Warning(pkgconfig.PrefixLogWorker+"["+w.name+"] "+w.descr+" - "+msg, v...)
+	w.logger.Warning(config.PrefixLogWorker+"["+w.name+"] "+w.descr+" - "+msg, v...)
 }
 
 func (w *GenericWorker) LogError(msg string, v ...interface{}) {
-	w.logger.Error(pkgconfig.PrefixLogWorker+"["+w.name+"] "+w.descr+" - "+msg, v...)
+	w.logger.Error(config.PrefixLogWorker+"["+w.name+"] "+w.descr+" - "+msg, v...)
 }
 
 func (w *GenericWorker) LogFatal(v ...interface{}) {
@@ -515,5 +515,5 @@ func GetName(name string) string {
 }
 
 func GetWorkerForTest(bufferSize int) *GenericWorker {
-	return NewGenericWorker(pkgconfig.GetDefaultConfig(), logger.New(false), "testonly", "", bufferSize, pkgconfig.WorkerMonitorDisabled)
+	return NewGenericWorker(config.GetDefaultConfig(), logger.New(false), "testonly", "", bufferSize, config.WorkerMonitorDisabled)
 }

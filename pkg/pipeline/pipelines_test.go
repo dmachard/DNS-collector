@@ -1,4 +1,4 @@
-package pkginit
+package pipeline
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-dnscollector/v2/telemetry"
 	"github.com/dmachard/go-dnscollector/v2/workers"
 	"github.com/dmachard/go-logger"
@@ -15,31 +15,31 @@ import (
 
 func TestPipelines_IsEnabled(t *testing.T) {
 	// Create a mock configuration for testing
-	config := &pkgconfig.Config{}
-	config.Pipelines = []pkgconfig.ConfigPipelines{{Name: "validroute"}}
+	cfg := &config.Config{}
+	cfg.Pipelines = []config.ConfigPipelines{{Name: "validroute"}}
 
-	if !IsPipelinesEnabled(config) {
+	if !IsPipelinesEnabled(cfg) {
 		t.Errorf("pipelines should be enabled!")
 	}
 }
 
 func TestPipelines_IsRouteExist(t *testing.T) {
 	// Create a mock configuration for testing
-	config := &pkgconfig.Config{}
-	config.Pipelines = []pkgconfig.ConfigPipelines{
+	cfg := &config.Config{}
+	cfg.Pipelines = []config.ConfigPipelines{
 		{Name: "validroute"},
 	}
 
 	// Case where the route exists
 	existingRoute := "validroute"
-	err := IsRouteExist(existingRoute, config)
+	err := IsRouteExist(existingRoute, cfg)
 	if err != nil {
 		t.Errorf("For the existing route %s, an unexpected error was returned: %v", existingRoute, err)
 	}
 
 	// Case where the route does not exist
 	nonExistingRoute := "nonexistent-route"
-	err = IsRouteExist(nonExistingRoute, config)
+	err = IsRouteExist(nonExistingRoute, cfg)
 	if err == nil {
 		t.Errorf("For the non-existing route %s, an expected error was not returned. Received error: %v", nonExistingRoute, err)
 	}
@@ -54,8 +54,8 @@ func TestPipelines_IsRouteExist(t *testing.T) {
 
 func TestPipelines_StanzaNameIsUniq(t *testing.T) {
 	// Create a mock configuration for testing
-	config := &pkgconfig.Config{}
-	config.Pipelines = []pkgconfig.ConfigPipelines{
+	cfg := &config.Config{}
+	cfg.Pipelines = []config.ConfigPipelines{
 		{Name: "unique-stanza"},
 		{Name: "duplicate-stanza"},
 		{Name: "duplicate-stanza"},
@@ -63,14 +63,14 @@ func TestPipelines_StanzaNameIsUniq(t *testing.T) {
 
 	// Case where the stanza name is unique
 	uniqueStanzaName := "unique-stanza"
-	err := StanzaNameIsUniq(uniqueStanzaName, config)
+	err := StanzaNameIsUniq(uniqueStanzaName, cfg)
 	if err != nil {
 		t.Errorf("For the unique stanza name %s, an unexpected error was returned: %v", uniqueStanzaName, err)
 	}
 
 	// Case where the stanza name is not unique
 	duplicateStanzaName := "duplicate-stanza"
-	err = StanzaNameIsUniq(duplicateStanzaName, config)
+	err = StanzaNameIsUniq(duplicateStanzaName, cfg)
 	if err == nil {
 		t.Errorf("For the duplicate stanza name %s, an expected error was not returned. Received error: %v", duplicateStanzaName, err)
 	}
@@ -85,17 +85,17 @@ func TestPipelines_StanzaNameIsUniq(t *testing.T) {
 
 func TestPipelines_NoRoutesDefined(t *testing.T) {
 	// Create a mock configuration for testing
-	config := &pkgconfig.Config{}
-	config.Pipelines = []pkgconfig.ConfigPipelines{
-		{Name: "stanzaA", RoutingPolicy: pkgconfig.PipelinesRouting{Forward: []string{}, Dropped: []string{}}},
-		{Name: "stanzaB", RoutingPolicy: pkgconfig.PipelinesRouting{Forward: []string{}, Dropped: []string{}}},
+	cfg := &config.Config{}
+	cfg.Pipelines = []config.ConfigPipelines{
+		{Name: "stanzaA", RoutingPolicy: config.PipelinesRouting{Forward: []string{}, Dropped: []string{}}},
+		{Name: "stanzaB", RoutingPolicy: config.PipelinesRouting{Forward: []string{}, Dropped: []string{}}},
 	}
 
 	mapLoggers := make(map[string]workers.Worker)
 	mapCollectors := make(map[string]workers.Worker)
 
-	metrics := telemetry.NewPrometheusCollector(config)
-	err := InitPipelines(mapLoggers, mapCollectors, config, logger.New(false), metrics)
+	metrics := telemetry.NewPrometheusCollector(cfg)
+	err := InitPipelines(mapLoggers, mapCollectors, cfg, logger.New(false), metrics)
 	if err == nil {
 		t.Errorf("Want err, got nil")
 	}
@@ -106,22 +106,22 @@ func TestPipelines_NoRoutesDefined(t *testing.T) {
 
 func TestPipelines_RoutingLoop(t *testing.T) {
 	// Create a mock configuration for testing
-	config := pkgconfig.GetDefaultConfig()
-	config.Pipelines = []pkgconfig.ConfigPipelines{
+	cfg := config.GetDefaultConfig()
+	cfg.Pipelines = []config.ConfigPipelines{
 		{
 			Name: "stanzaA",
 			Params: map[string]interface{}{
 				"dnstap": map[string]interface{}{"enable": true},
 			},
-			RoutingPolicy: pkgconfig.PipelinesRouting{Forward: []string{"stanzaA"}, Dropped: []string{}},
+			RoutingPolicy: config.PipelinesRouting{Forward: []string{"stanzaA"}, Dropped: []string{}},
 		},
 	}
 
 	mapLoggers := make(map[string]workers.Worker)
 	mapCollectors := make(map[string]workers.Worker)
 
-	metrics := telemetry.NewPrometheusCollector(config)
-	err := InitPipelines(mapLoggers, mapCollectors, config, logger.New(false), metrics)
+	metrics := telemetry.NewPrometheusCollector(cfg)
+	err := InitPipelines(mapLoggers, mapCollectors, cfg, logger.New(false), metrics)
 	if err == nil {
 		t.Errorf("Want err, got nil")
 	}
@@ -135,11 +135,11 @@ func TestPipelines_RoutingLoop(t *testing.T) {
 }
 
 func TestPipelines_StopPipelines(t *testing.T) {
-	cfg := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	log := logger.New(false)
 
-	c1 := workers.NewGenericWorker(cfg, log, "col1", "", 10, pkgconfig.WorkerMonitorDisabled)
-	l1 := workers.NewGenericWorker(cfg, log, "log1", "", 10, pkgconfig.WorkerMonitorDisabled)
+	c1 := workers.NewGenericWorker(cfg, log, "col1", "", 10, config.WorkerMonitorDisabled)
+	l1 := workers.NewGenericWorker(cfg, log, "log1", "", 10, config.WorkerMonitorDisabled)
 
 	go c1.StartCollect()
 	go l1.StartCollect()
@@ -161,15 +161,15 @@ func TestPipelines_StopPipelines(t *testing.T) {
 }
 
 func TestPipelines_GetStanzaConfig_UnknownWorker(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
-	stanza := pkgconfig.ConfigPipelines{
+	cfg := config.GetDefaultConfig()
+	stanza := config.ConfigPipelines{
 		Name: "invalid-stanza",
 		Params: map[string]interface{}{
 			"unknown-worker": map[string]interface{}{"enable": true},
 		},
 	}
 
-	_, err := GetStanzaConfig(config, stanza)
+	_, err := GetStanzaConfig(cfg, stanza)
 	if err == nil {
 		t.Fatalf("expected error for unknown worker, got nil")
 	}
@@ -183,9 +183,9 @@ func TestPipelines_GetStanzaConfig_UnknownWorker(t *testing.T) {
 }
 
 func TestPipelines_CreateRouting_StanzaNotFound(t *testing.T) {
-	stanza := pkgconfig.ConfigPipelines{
+	stanza := config.ConfigPipelines{
 		Name: "nonexistent",
-		RoutingPolicy: pkgconfig.PipelinesRouting{
+		RoutingPolicy: config.PipelinesRouting{
 			Forward: []string{"target"},
 		},
 	}
@@ -202,9 +202,9 @@ func TestPipelines_CreateRouting_StanzaNotFound(t *testing.T) {
 }
 
 func TestPipelines_CreateRouting_UnsupportedDefaultRouting(t *testing.T) {
-	stanza := pkgconfig.ConfigPipelines{
+	stanza := config.ConfigPipelines{
 		Name: "stanzaA",
-		RoutingPolicy: pkgconfig.PipelinesRouting{
+		RoutingPolicy: config.PipelinesRouting{
 			Forward: []string{"stanzaB"},
 		},
 	}
@@ -231,14 +231,14 @@ func TestPipelines_CreateRouting_UnsupportedDefaultRouting(t *testing.T) {
 }
 
 func TestPipelines_MultipleErrors_Joined(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Pipelines = []pkgconfig.ConfigPipelines{
+	cfg := config.GetDefaultConfig()
+	cfg.Pipelines = []config.ConfigPipelines{
 		{
 			Name: "tap",
 			Params: map[string]interface{}{
 				"dnstap": map[string]interface{}{"enable": true},
 			},
-			RoutingPolicy: pkgconfig.PipelinesRouting{
+			RoutingPolicy: config.PipelinesRouting{
 				Forward: []string{"nonexistent1", "nonexistent2"},
 			},
 		},
@@ -247,7 +247,7 @@ func TestPipelines_MultipleErrors_Joined(t *testing.T) {
 			Params: map[string]interface{}{
 				"dnstap": map[string]interface{}{"enable": true},
 			},
-			RoutingPolicy: pkgconfig.PipelinesRouting{
+			RoutingPolicy: config.PipelinesRouting{
 				Forward: []string{"nonexistent3"},
 			},
 		},
@@ -255,9 +255,9 @@ func TestPipelines_MultipleErrors_Joined(t *testing.T) {
 
 	mapLoggers := make(map[string]workers.Worker)
 	mapCollectors := make(map[string]workers.Worker)
-	metrics := telemetry.NewPrometheusCollector(config)
+	metrics := telemetry.NewPrometheusCollector(cfg)
 
-	err := InitPipelines(mapLoggers, mapCollectors, config, logger.New(false), metrics)
+	err := InitPipelines(mapLoggers, mapCollectors, cfg, logger.New(false), metrics)
 	if err == nil {
 		t.Fatalf("expected multiple errors, got nil")
 	}

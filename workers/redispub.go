@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-dnscollector/v2/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
@@ -30,9 +30,9 @@ type RedisPub struct {
 	writerReady                        bool
 }
 
-func NewRedisPub(config *pkgconfig.Config, logger *logger.Logger, name string) *RedisPub {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &RedisPub{GenericWorker: NewGenericWorker(config, logger, name, "redispub", bufSize, pkgconfig.DefaultMonitor)}
+func NewRedisPub(cfg *config.Config, logger *logger.Logger, name string) *RedisPub {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &RedisPub{GenericWorker: NewGenericWorker(cfg, logger, name, "redispub", bufSize, config.DefaultMonitor)}
 	w.transportReady = make(chan bool)
 	w.transportReconnect = make(chan bool)
 	w.ReadConfig()
@@ -51,7 +51,7 @@ func (w *RedisPub) ReadConfig() {
 	var errFormatter error
 	w.textFormatter, errFormatter = dnsutils.NewTextFormatter(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary)
 	if errFormatter != nil {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "invalid text format: " + errFormatter.Error())
+		w.LogFatal(config.PrefixLogWorker + "invalid text format: " + errFormatter.Error())
 	}
 }
 
@@ -162,7 +162,7 @@ func (w *RedisPub) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 		cmd := "PUBLISH " + strconv.Quote(w.GetConfig().Loggers.RedisPub.RedisChannel) + " "
 		w.transportWriter.WriteString(cmd)
 
-		if w.GetConfig().Loggers.RedisPub.Mode == pkgconfig.ModeText {
+		if w.GetConfig().Loggers.RedisPub.Mode == config.ModeText {
 			textBuf := w.GetTextBuffer()
 			var err error
 			if w.textFormatter != nil {
@@ -189,13 +189,13 @@ func (w *RedisPub) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 			w.PutTextBuffer(textBuf)
 		}
 
-		if w.GetConfig().Loggers.RedisPub.Mode == pkgconfig.ModeJSON {
+		if w.GetConfig().Loggers.RedisPub.Mode == config.ModeJSON {
 			encoder.Encode(dm)
 			w.transportWriter.WriteString(strconv.Quote(escapeBuffer.String()))
 			w.transportWriter.WriteString(w.GetConfig().Loggers.RedisPub.PayloadDelimiter)
 		}
 
-		if w.GetConfig().Loggers.RedisPub.Mode == pkgconfig.ModeFlatJSON {
+		if w.GetConfig().Loggers.RedisPub.Mode == config.ModeFlatJSON {
 			if dm.Relabeling != nil {
 				flat, err := dm.Flatten()
 				if err != nil {
@@ -350,7 +350,7 @@ func (w *RedisPub) StartLogging() {
 }
 
 func init() {
-	RegisterLogger("redispub", func(c *pkgconfig.Config) bool { return c.Loggers.RedisPub.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("redispub", func(c *config.Config) bool { return c.Loggers.RedisPub.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewRedisPub(c, l, s)
 	})
 }

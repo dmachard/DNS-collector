@@ -3,15 +3,15 @@ package workers
 import (
 	"sync"
 
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 // WorkerFactory represents a constructor function to create a new Worker instance.
-type WorkerFactory func(config *pkgconfig.Config, logger *logger.Logger, stanzaName string) Worker
+type WorkerFactory func(config *config.Config, logger *logger.Logger, stanzaName string) Worker
 
 // EnabledCheck represents a function to check if a specific worker is enabled in the config.
-type EnabledCheck func(config *pkgconfig.Config) bool
+type EnabledCheck func(config *config.Config) bool
 
 // Registration holds the factory and enablement predicate for a worker component.
 type Registration struct {

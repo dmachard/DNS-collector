@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-netutils"
 	"github.com/miekg/dns"
 )
@@ -56,7 +56,7 @@ func GetFakeDNSMessage() DNSMessage {
 	dm.DNSTap.Operation = "CLIENT_QUERY"
 	dm.DNSTap.PeerName = "localhost (127.0.0.1)"
 	dm.DNS.Type = DNSQuery
-	dm.DNS.Qname = pkgconfig.ProgQname
+	dm.DNS.Qname = config.ProgQname
 	dm.NetworkInfo.QueryIP = "1.2.3.4"
 	dm.NetworkInfo.QueryPort = "1234"
 	dm.NetworkInfo.ResponseIP = "4.3.2.1"

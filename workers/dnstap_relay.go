@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-framestream"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
@@ -19,9 +19,9 @@ type DnstapProxifier struct {
 	connCounter uint64
 }
 
-func NewDnstapProxifier(next []Worker, config *pkgconfig.Config, logger *logger.Logger, name string) *DnstapProxifier {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	s := &DnstapProxifier{GenericWorker: NewGenericWorker(config, logger, name, "dnstaprelay", bufSize, pkgconfig.DefaultMonitor)}
+func NewDnstapProxifier(next []Worker, cfg *config.Config, logger *logger.Logger, name string) *DnstapProxifier {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	s := &DnstapProxifier{GenericWorker: NewGenericWorker(cfg, logger, name, "dnstaprelay", bufSize, config.DefaultMonitor)}
 	s.SetDefaultRoutes(next)
 	s.CheckConfig()
 	return s
@@ -29,7 +29,7 @@ func NewDnstapProxifier(next []Worker, config *pkgconfig.Config, logger *logger.
 
 func (w *DnstapProxifier) CheckConfig() {
 	if !netutils.IsValidTLS(w.GetConfig().Collectors.DnstapProxifier.TLSMinVersion) {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "] dnstaprelay - invalid tls min version")
+		w.LogFatal(config.PrefixLogWorker + "[" + w.GetName() + "] dnstaprelay - invalid tls min version")
 	}
 }
 
@@ -181,7 +181,7 @@ func (w *DnstapProxifier) StartCollect() {
 }
 
 func init() {
-	RegisterCollector("dnstap-proxifier", func(c *pkgconfig.Config) bool { return c.Collectors.DnstapProxifier.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterCollector("dnstap-proxifier", func(c *config.Config) bool { return c.Collectors.DnstapProxifier.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewDnstapProxifier(nil, c, l, s)
 	})
 }

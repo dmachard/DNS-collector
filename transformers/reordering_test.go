@@ -5,14 +5,14 @@ import (
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func TestReorderingTransform_SortByTimestamp(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Reordering.Enable = true
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Reordering.Enable = true
 
 	// initialize logger
 	log := logger.New(false)
@@ -23,7 +23,7 @@ func TestReorderingTransform_SortByTimestamp(t *testing.T) {
 	}
 
 	// initialize transformer
-	reorder := NewReorderingTransform(config, log, "test", 0, outChans)
+	reorder := NewReorderingTransform(cfg, log, "test", 0, outChans)
 
 	dm1 := dnsutils.GetFakeDNSMessage()
 	dm1.DNSTap.TimestampRFC3339 = "2024-12-20T21:12:14.786109Z"

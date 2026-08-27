@@ -5,20 +5,20 @@ import (
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func TestNormalize_LowercaseQname(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Normalize.Enable = true
-	config.Normalize.QnameLowerCase = true
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Normalize.Enable = true
+	cfg.Normalize.QnameLowerCase = true
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	normTransformer := NewNormalizeTransform(config, logger.New(false), "test", 0, outChans)
+	normTransformer := NewNormalizeTransform(cfg, logger.New(false), "test", 0, outChans)
 
 	qname := "www.Google.Com"
 	dm := dnsutils.GetFakeDNSMessage()
@@ -39,13 +39,13 @@ func TestNormalize_LowercaseQname(t *testing.T) {
 
 func TestNormalize_RRLowercaseQname(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Normalize.Enable = true
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Normalize.Enable = true
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	normTransformer := NewNormalizeTransform(config, logger.New(false), "test", 0, outChans)
+	normTransformer := NewNormalizeTransform(cfg, logger.New(false), "test", 0, outChans)
 
 	// create DNSMessage with answers
 	rrqname := "www.RRGoogle.Com"
@@ -80,14 +80,14 @@ func TestNormalize_RRLowercaseQname(t *testing.T) {
 
 func TestNormalize_QuietText(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Normalize.Enable = true
-	config.Normalize.QuietText = true
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Normalize.Enable = true
+	cfg.Normalize.QuietText = true
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	norm := NewNormalizeTransform(config, logger.New(false), "test", 0, outChans)
+	norm := NewNormalizeTransform(cfg, logger.New(false), "test", 0, outChans)
 
 	dm := dnsutils.GetFakeDNSMessage()
 	norm.QuietText(&dm)
@@ -103,14 +103,14 @@ func TestNormalize_QuietText(t *testing.T) {
 
 func TestNormalize_AddTLD(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Normalize.Enable = true
-	config.Normalize.AddTld = true
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Normalize.Enable = true
+	cfg.Normalize.AddTld = true
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	psl := NewNormalizeTransform(config, logger.New(false), "test", 0, outChans)
+	psl := NewNormalizeTransform(cfg, logger.New(false), "test", 0, outChans)
 
 	tt := []struct {
 		name  string
@@ -153,14 +153,14 @@ func TestNormalize_AddTLD(t *testing.T) {
 
 func TestNormalize_AddTldPlusOne(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Normalize.Enable = true
-	config.Normalize.AddTld = true
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Normalize.Enable = true
+	cfg.Normalize.AddTld = true
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	psl := NewNormalizeTransform(config, logger.New(false), "test", 0, outChans)
+	psl := NewNormalizeTransform(cfg, logger.New(false), "test", 0, outChans)
 
 	tt := []struct {
 		name  string
@@ -198,11 +198,11 @@ func TestNormalize_AddTldPlusOne(t *testing.T) {
 
 func TestNormalize_SuffixUnmanaged(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
+	cfg := config.GetFakeConfigTransformers()
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	psl := NewNormalizeTransform(config, logger.New(true), "test", 0, outChans)
+	psl := NewNormalizeTransform(cfg, logger.New(true), "test", 0, outChans)
 
 	dm := dnsutils.GetFakeDNSMessage()
 	// https://publicsuffix.org/list/effective_tld_names.dat
@@ -223,11 +223,11 @@ func TestNormalize_SuffixUnmanaged(t *testing.T) {
 
 func TestNormalize_SuffixICANNManaged(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
+	cfg := config.GetFakeConfigTransformers()
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	psl := NewNormalizeTransform(config, logger.New(true), "test", 0, outChans)
+	psl := NewNormalizeTransform(cfg, logger.New(true), "test", 0, outChans)
 
 	dm := dnsutils.GetFakeDNSMessage()
 	// https://publicsuffix.org/list/effective_tld_names.dat
@@ -246,12 +246,12 @@ func TestNormalize_SuffixICANNManaged(t *testing.T) {
 }
 
 func TestNormalize_ReplaceNonprintable(t *testing.T) {
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Normalize.Enable = true
-	config.Normalize.ReplaceNonPrintable = true
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Normalize.Enable = true
+	cfg.Normalize.ReplaceNonPrintable = true
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	norm := NewNormalizeTransform(config, logger.New(false), "test", 0, outChans)
+	norm := NewNormalizeTransform(cfg, logger.New(false), "test", 0, outChans)
 
 	tests := []struct {
 		name     string

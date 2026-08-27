@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 )
 
 func TestDnsMessage_TextFormat_Directives_OpenTelemetry(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 
 	testcases := []struct {
 		name     string
@@ -34,7 +34,7 @@ func TestDnsMessage_TextFormat_Directives_OpenTelemetry(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			err := tc.dm.ToTextLine(strings.Fields(tc.format), config.Global.TextFormatDelimiter, config.Global.TextFormatBoundary, &buf)
+			err := tc.dm.ToTextLine(strings.Fields(tc.format), cfg.Global.TextFormatDelimiter, cfg.Global.TextFormatBoundary, &buf)
 			if err != nil {
 				t.Fatalf("failed to generate text line: %v", err)
 			}
@@ -48,7 +48,7 @@ func TestDnsMessage_TextFormat_Directives_OpenTelemetry(t *testing.T) {
 }
 
 func TestDnsMessage_TextFormat_Directives_Pdns(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 
 	testcases := []struct {
 		name     string
@@ -181,7 +181,7 @@ func TestDnsMessage_TextFormat_Directives_Pdns(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			err := tc.dm.ToTextLine(strings.Fields(tc.format), config.Global.TextFormatDelimiter, config.Global.TextFormatBoundary, &buf)
+			err := tc.dm.ToTextLine(strings.Fields(tc.format), cfg.Global.TextFormatDelimiter, cfg.Global.TextFormatBoundary, &buf)
 			if err != nil {
 				t.Fatalf("failed to generate text line: %v", err)
 			}

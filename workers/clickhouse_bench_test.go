@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -45,7 +45,7 @@ func Benchmark_Clickhouse_Throughput_Batch100(b *testing.B) {
 	}))
 	defer server.Close()
 
-	cfg := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	cfg.Loggers.ClickhouseClient.URL = server.URL
 	cfg.Loggers.ClickhouseClient.BufferSize = 100
 	cfg.Loggers.ClickhouseClient.FlushInterval = 60
@@ -74,7 +74,7 @@ func Benchmark_Clickhouse_Throughput_Batch1000(b *testing.B) {
 	}))
 	defer server.Close()
 
-	cfg := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	cfg.Loggers.ClickhouseClient.URL = server.URL
 	cfg.Loggers.ClickhouseClient.BufferSize = 1000
 	cfg.Loggers.ClickhouseClient.FlushInterval = 60

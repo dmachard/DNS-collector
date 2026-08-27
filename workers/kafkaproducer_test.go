@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 
 	sarama "github.com/IBM/sarama"
@@ -54,8 +54,8 @@ func createMockBroker(t *testing.T, brokerID int, address, topic string) (net.Li
 
 	return listener, broker
 }
-func setupKafkaProducerConfig(address, port, topic, compress string) *pkgconfig.Config {
-	cfg := pkgconfig.GetDefaultConfig()
+func setupKafkaProducerConfig(address, port, topic, compress string) *config.Config {
+	cfg := config.GetDefaultConfig()
 	cfg.Loggers.KafkaProducer.BatchSize = 0
 	cfg.Loggers.KafkaProducer.RemoteAddress = address
 	portInt, _ := strconv.Atoi(port)
@@ -204,7 +204,7 @@ func Test_KafkaProducer_SpecificPartition(t *testing.T) {
 }
 
 func Test_KafkaProducer_Modes(t *testing.T) {
-	modes := []string{pkgconfig.ModeText, pkgconfig.ModeJSON, pkgconfig.ModeFlatJSON}
+	modes := []string{config.ModeText, config.ModeJSON, config.ModeFlatJSON}
 
 	for _, mode := range modes {
 		t.Run("mode_"+mode, func(t *testing.T) {

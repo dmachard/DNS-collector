@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-dnscollector/v2/transformers"
 	"github.com/dmachard/go-framestream"
 	"github.com/dmachard/go-logger"
@@ -25,9 +25,9 @@ type DnstapSender struct {
 	transportReady, transportReconnect chan bool
 }
 
-func NewDnstapSender(config *pkgconfig.Config, logger *logger.Logger, name string) *DnstapSender {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &DnstapSender{GenericWorker: NewGenericWorker(config, logger, name, "dnstap", bufSize, pkgconfig.DefaultMonitor)}
+func NewDnstapSender(cfg *config.Config, logger *logger.Logger, name string) *DnstapSender {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &DnstapSender{GenericWorker: NewGenericWorker(cfg, logger, name, "dnstap", bufSize, config.DefaultMonitor)}
 	w.transportReady = make(chan bool)
 	w.transportReconnect = make(chan bool)
 	w.ReadConfig()
@@ -52,7 +52,7 @@ func (w *DnstapSender) ReadConfig() {
 	}
 
 	if !netutils.IsValidTLS(w.GetConfig().Loggers.DNSTap.TLSMinVersion) {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "invalid tls min version")
+		w.LogFatal(config.PrefixLogWorker + "invalid tls min version")
 	}
 }
 
@@ -162,7 +162,7 @@ func (w *DnstapSender) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 			continue
 		}
 
-		if w.GetConfig().Loggers.DNSTap.Compression == pkgconfig.CompressNone {
+		if w.GetConfig().Loggers.DNSTap.Compression == config.CompressNone {
 			// send the frame
 			bulkFrame.Write(data)
 			if err := w.fs.SendFrame(bulkFrame); err != nil {
@@ -177,7 +177,7 @@ func (w *DnstapSender) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 		}
 	}
 
-	if w.GetConfig().Loggers.DNSTap.Compression != pkgconfig.CompressNone {
+	if w.GetConfig().Loggers.DNSTap.Compression != config.CompressNone {
 		bulkFrame.Encode()
 		if err := w.fs.SendCompressedFrame(&compress.GzipCodec, bulkFrame); err != nil {
 			w.LogError("send bulk frame error %s", err)
@@ -328,7 +328,7 @@ func (w *DnstapSender) StartLogging() {
 }
 
 func init() {
-	RegisterLogger("dnstap", func(c *pkgconfig.Config) bool { return c.Loggers.DNSTap.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("dnstap", func(c *config.Config) bool { return c.Loggers.DNSTap.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewDnstapSender(c, l, s)
 	})
 }

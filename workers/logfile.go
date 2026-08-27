@@ -18,7 +18,7 @@ import (
 	"github.com/klauspost/compress/gzip"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-dnscollector/v2/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/google/gopacket"
@@ -35,12 +35,12 @@ const (
 func IsValid(mode string) bool {
 	switch mode {
 	case
-		pkgconfig.ModeJinja,
-		pkgconfig.ModeText,
-		pkgconfig.ModeJSON,
-		pkgconfig.ModeFlatJSON,
-		pkgconfig.ModePCAP,
-		pkgconfig.ModeDNSTap:
+		config.ModeJinja,
+		config.ModeText,
+		config.ModeJSON,
+		config.ModeFlatJSON,
+		config.ModePCAP,
+		config.ModeDNSTap:
 		return true
 	}
 	return false
@@ -65,16 +65,16 @@ type LogFile struct {
 	pcapBuffer                             []byte
 }
 
-func NewLogFile(config *pkgconfig.Config, logger *logger.Logger, name string) *LogFile {
-	bufSize := config.Global.Worker.ChannelBufferSize
+func NewLogFile(cfg *config.Config, logger *logger.Logger, name string) *LogFile {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
 	w := &LogFile{
-		GenericWorker: NewGenericWorker(config, logger, name, "file", bufSize, pkgconfig.DefaultMonitor),
+		GenericWorker: NewGenericWorker(cfg, logger, name, "file", bufSize, config.DefaultMonitor),
 		compressQueue: make(chan string, 1),
 		commandQueue:  make(chan string, 1),
 	}
 	w.ReadConfig()
 	if err := w.OpenCurrentFile(); err != nil {
-		w.LogFatal(pkgconfig.PrefixLogWorker+"["+name+"] file - unable to open output file:", err)
+		w.LogFatal(config.PrefixLogWorker+"["+name+"] file - unable to open output file:", err)
 	}
 
 	// start compressor
@@ -194,7 +194,7 @@ func (w *LogFile) OpenCurrentFile() error {
 	w.writerPlain = bufio.NewWriterSize(fd, writerBufSize)
 
 	switch w.GetConfig().Loggers.LogFile.Mode {
-	case pkgconfig.ModePCAP:
+	case config.ModePCAP:
 		w.writerPcap = pcapgo.NewWriter(w.writerPlain)
 		if w.fileSize == 0 {
 			if err := w.writerPcap.WriteFileHeader(65536, layers.LinkTypeEthernet); err != nil {
@@ -202,7 +202,7 @@ func (w *LogFile) OpenCurrentFile() error {
 			}
 		}
 
-	case pkgconfig.ModeDNSTap:
+	case config.ModeDNSTap:
 		fsOptions := &framestream.EncoderOptions{ContentType: []byte("protobuf:dnstap.Dnstap"), Bidirectional: false}
 		w.writerDnstap, err = framestream.NewEncoder(w.writerPlain, fsOptions)
 		if err != nil {
@@ -321,9 +321,9 @@ func (w *LogFile) postRotateCommand(fullPath string) {
 
 func (w *LogFile) FlushWriters() {
 	switch w.GetConfig().Loggers.LogFile.Mode {
-	case pkgconfig.ModeText, pkgconfig.ModeJSON, pkgconfig.ModeFlatJSON, pkgconfig.ModePCAP:
+	case config.ModeText, config.ModeJSON, config.ModeFlatJSON, config.ModePCAP:
 		w.writerPlain.Flush()
-	case pkgconfig.ModeDNSTap:
+	case config.ModeDNSTap:
 		w.writerDnstap.Flush()
 		w.writerPlain.Flush()
 	}
@@ -347,7 +347,7 @@ func (w *LogFile) RotateFile() error {
 	}
 
 	// close current file
-	if w.GetConfig().Loggers.LogFile.Mode == pkgconfig.ModeDNSTap {
+	if w.GetConfig().Loggers.LogFile.Mode == config.ModeDNSTap {
 		w.writerDnstap.Close()
 	}
 
@@ -594,7 +594,7 @@ func (w *LogFile) StartLogging() {
 
 			// closing file
 			w.LogInfo("closing log file")
-			if w.GetConfig().Loggers.LogFile.Mode == pkgconfig.ModeDNSTap {
+			if w.GetConfig().Loggers.LogFile.Mode == config.ModeDNSTap {
 				w.writerDnstap.Close()
 			}
 			w.fileFd.Close()
@@ -617,7 +617,7 @@ func (w *LogFile) StartLogging() {
 				switch w.GetConfig().Loggers.LogFile.Mode {
 
 				// with basic text mode
-				case pkgconfig.ModeText:
+				case config.ModeText:
 					// get a text buffer from pool
 					buf := w.GetTextBuffer()
 					buf.Reset()
@@ -652,7 +652,7 @@ func (w *LogFile) StartLogging() {
 					w.PutTextBuffer(buf)
 
 				// with custom text mode
-				case pkgconfig.ModeJinja:
+				case config.ModeJinja:
 					textLine, err := dm.ToTextTemplate(w.jinjaFormat)
 					if err != nil {
 						w.CountEgressDiscarded()
@@ -666,11 +666,11 @@ func (w *LogFile) StartLogging() {
 					w.WriteToPlain(data)
 
 				// with json mode
-				case pkgconfig.ModeJSON, pkgconfig.ModeFlatJSON:
+				case config.ModeJSON, config.ModeFlatJSON:
 					buf := w.GetTextBuffer()
 					buf.Reset()
 
-					if w.GetConfig().Loggers.LogFile.Mode == pkgconfig.ModeFlatJSON {
+					if w.GetConfig().Loggers.LogFile.Mode == config.ModeFlatJSON {
 						if dm.Relabeling != nil {
 							flat, err := dm.Flatten()
 							if err != nil {
@@ -694,7 +694,7 @@ func (w *LogFile) StartLogging() {
 					w.PutTextBuffer(buf)
 
 				// with dnstap mode
-				case pkgconfig.ModeDNSTap:
+				case config.ModeDNSTap:
 					data, err := dm.ToDNSTap(w.GetConfig().Loggers.LogFile.ExtendedSupport)
 					if err != nil {
 						w.CountEgressDiscarded()
@@ -704,7 +704,7 @@ func (w *LogFile) StartLogging() {
 					w.WriteToDnstap(data)
 
 				// with pcap mode
-				case pkgconfig.ModePCAP:
+				case config.ModePCAP:
 					if len(dm.DNS.Payload) == 0 {
 						w.CountEgressDiscarded()
 						w.LogError("no dns payload to encode, drop it")
@@ -742,7 +742,7 @@ func (w *LogFile) StartLogging() {
 }
 
 func init() {
-	RegisterLogger("logfile", func(c *pkgconfig.Config) bool { return c.Loggers.LogFile.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("logfile", func(c *config.Config) bool { return c.Loggers.LogFile.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewLogFile(c, l, s)
 	})
 }

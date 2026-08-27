@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-dnscollector/v2/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/google/gopacket"
@@ -20,11 +20,11 @@ import (
 func IsStdoutValidMode(mode string) bool {
 	switch mode {
 	case
-		pkgconfig.ModeJinja,
-		pkgconfig.ModeText,
-		pkgconfig.ModeJSON,
-		pkgconfig.ModeFlatJSON,
-		pkgconfig.ModePCAP:
+		config.ModeJinja,
+		config.ModeText,
+		config.ModeJSON,
+		config.ModeFlatJSON,
+		config.ModePCAP:
 		return true
 	}
 	return false
@@ -40,12 +40,12 @@ type StdOut struct {
 	pcapBuffer    []byte
 }
 
-func NewStdOut(config *pkgconfig.Config, console *logger.Logger, name string) *StdOut {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &StdOut{GenericWorker: NewGenericWorker(config, console, name, "stdout", bufSize, pkgconfig.DefaultMonitor)}
+func NewStdOut(cfg *config.Config, console *logger.Logger, name string) *StdOut {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &StdOut{GenericWorker: NewGenericWorker(cfg, console, name, "stdout", bufSize, config.DefaultMonitor)}
 
 	// init writers with buffer to minimize syscalls
-	writerBufSize := config.Loggers.Stdout.WriterBufferSize
+	writerBufSize := cfg.Loggers.Stdout.WriterBufferSize
 	if writerBufSize <= 0 {
 		writerBufSize = 64 * 1024 // 64KB default
 	}
@@ -157,7 +157,7 @@ func (w *StdOut) StartLogging() {
 	defer w.LoggingDone()
 
 	// setup pcap writer if necessary
-	if w.GetConfig().Loggers.Stdout.Mode == pkgconfig.ModePCAP && w.writerPcap == nil {
+	if w.GetConfig().Loggers.Stdout.Mode == config.ModePCAP && w.writerPcap == nil {
 		w.SetPcapWriter(os.Stdout)
 	}
 
@@ -171,7 +171,7 @@ func (w *StdOut) StartLogging() {
 
 	// setup json encoder if necessary
 	var jsonEncoder *json.Encoder
-	if w.GetConfig().Loggers.Stdout.Mode == pkgconfig.ModeJSON || w.GetConfig().Loggers.Stdout.Mode == pkgconfig.ModeFlatJSON {
+	if w.GetConfig().Loggers.Stdout.Mode == config.ModeJSON || w.GetConfig().Loggers.Stdout.Mode == config.ModeFlatJSON {
 		jsonEncoder = json.NewEncoder(w.writerRaw)
 	}
 
@@ -192,7 +192,7 @@ func (w *StdOut) StartLogging() {
 
 			for _, dm := range batch.Messages {
 				switch w.GetConfig().Loggers.Stdout.Mode {
-				case pkgconfig.ModePCAP:
+				case config.ModePCAP:
 					if len(dm.DNS.Payload) == 0 {
 						w.CountEgressDiscarded()
 						w.LogError("process: no dns payload to encode, drop it")
@@ -220,7 +220,7 @@ func (w *StdOut) StartLogging() {
 						continue
 					}
 
-				case pkgconfig.ModeText:
+				case config.ModeText:
 					// get buffer from pool
 					buf := w.GetTextBuffer()
 					buf.Reset()
@@ -239,7 +239,7 @@ func (w *StdOut) StartLogging() {
 					// return buffer to pool
 					w.PutTextBuffer(buf)
 
-				case pkgconfig.ModeJinja:
+				case config.ModeJinja:
 					textLine, err := dm.ToTextTemplate(w.jinjaFormat)
 					if err != nil {
 						w.CountEgressDiscarded()
@@ -249,7 +249,7 @@ func (w *StdOut) StartLogging() {
 					w.writerRaw.WriteString(textLine)
 					w.writerRaw.WriteByte('\n')
 
-				case pkgconfig.ModeJSON:
+				case config.ModeJSON:
 					err := jsonEncoder.Encode(dm)
 					if err != nil {
 						w.CountEgressDiscarded()
@@ -257,7 +257,7 @@ func (w *StdOut) StartLogging() {
 						continue
 					}
 
-				case pkgconfig.ModeFlatJSON:
+				case config.ModeFlatJSON:
 					if dm.Relabeling != nil {
 						flat, err := dm.Flatten()
 						if err != nil {
@@ -288,7 +288,7 @@ func (w *StdOut) StartLogging() {
 }
 
 func init() {
-	RegisterLogger("stdout", func(c *pkgconfig.Config) bool { return c.Loggers.Stdout.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("stdout", func(c *config.Config) bool { return c.Loggers.Stdout.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewStdOut(c, l, s)
 	})
 }

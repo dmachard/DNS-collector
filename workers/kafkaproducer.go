@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-dnscollector/v2/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
@@ -21,11 +21,11 @@ import (
 )
 
 var supportedWriterCompressions = map[string]kafka.Compression{
-	pkgconfig.CompressGzip:   kafka.Gzip,
-	pkgconfig.CompressLz4:    kafka.Lz4,
-	pkgconfig.CompressSnappy: kafka.Snappy,
-	pkgconfig.CompressZstd:   kafka.Zstd,
-	pkgconfig.CompressNone:   0,
+	config.CompressGzip:   kafka.Gzip,
+	config.CompressLz4:    kafka.Lz4,
+	config.CompressSnappy: kafka.Snappy,
+	config.CompressZstd:   kafka.Zstd,
+	config.CompressNone:   0,
 }
 
 var supportedBalancers = map[string]kafka.Balancer{
@@ -59,10 +59,10 @@ type KafkaProducer struct {
 	writerMutex   sync.RWMutex
 }
 
-func NewKafkaProducer(config *pkgconfig.Config, logger *logger.Logger, name string) *KafkaProducer {
-	bufSize := config.Global.Worker.ChannelBufferSize
+func NewKafkaProducer(cfg *config.Config, logger *logger.Logger, name string) *KafkaProducer {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
 	w := &KafkaProducer{
-		GenericWorker: NewGenericWorker(config, logger, name, "kafka", bufSize, pkgconfig.DefaultMonitor),
+		GenericWorker: NewGenericWorker(cfg, logger, name, "kafka", bufSize, config.DefaultMonitor),
 	}
 	w.ReadConfig()
 	w.writer = w.createWriter()
@@ -80,16 +80,16 @@ func (w *KafkaProducer) ReadConfig() {
 	var errFormatter error
 	w.textFormatter, errFormatter = dnsutils.NewTextFormatter(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary)
 	if errFormatter != nil {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "invalid text format: " + errFormatter.Error())
+		w.LogFatal(config.PrefixLogWorker + "invalid text format: " + errFormatter.Error())
 	}
 
 	if _, ok := supportedWriterCompressions[kafkaConfig.Compression]; !ok {
-		w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] kafka - invalid compress mode: ", kafkaConfig.Compression)
+		w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"] kafka - invalid compress mode: ", kafkaConfig.Compression)
 	}
 
 	if kafkaConfig.Partition == nil && len(kafkaConfig.Balancer) > 0 {
 		if _, ok := supportedBalancers[kafkaConfig.Balancer]; !ok {
-			w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] kafka - invalid balancer: ", kafkaConfig.Balancer)
+			w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"] kafka - invalid balancer: ", kafkaConfig.Balancer)
 		}
 	}
 }
@@ -138,11 +138,11 @@ func (w *KafkaProducer) createWriter() *kafka.Writer {
 		username, password := kafkaConfig.SaslUsername, kafkaConfig.SaslPassword
 
 		switch kafkaConfig.SaslMechanism {
-		case pkgconfig.SASLMechanismPlain:
+		case config.SASLMechanismPlain:
 			transport.SASL = plain.Mechanism{Username: username, Password: password}
-		case pkgconfig.SASLMechanismSha512, pkgconfig.SASLMechanismSha256:
+		case config.SASLMechanismSha512, config.SASLMechanismSha256:
 			algo := scram.SHA512
-			if kafkaConfig.SaslMechanism == pkgconfig.SASLMechanismSha256 {
+			if kafkaConfig.SaslMechanism == config.SASLMechanismSha256 {
 				algo = scram.SHA256
 			}
 			mechanism, err := scram.Mechanism(algo, username, password)
@@ -215,7 +215,7 @@ func (w *KafkaProducer) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 	for _, dm := range *buf {
 		var strDm string
 		switch kafkaConfig.Mode {
-		case pkgconfig.ModeText:
+		case config.ModeText:
 			textBuf := w.GetTextBuffer()
 			var err error
 			if w.textFormatter != nil {
@@ -237,11 +237,11 @@ func (w *KafkaProducer) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 
 			strDm = textBuf.String()
 			w.PutTextBuffer(textBuf)
-		case pkgconfig.ModeJSON:
+		case config.ModeJSON:
 			json.NewEncoder(buffer).Encode(dm)
 			strDm = buffer.String()
 			buffer.Reset()
-		case pkgconfig.ModeFlatJSON:
+		case config.ModeFlatJSON:
 			if dm.Relabeling != nil {
 				flat, err := dm.Flatten()
 				if err != nil {
@@ -395,7 +395,7 @@ func (w *KafkaProducer) StartLogging() {
 }
 
 func init() {
-	RegisterLogger("kafkaproducer", func(c *pkgconfig.Config) bool { return c.Loggers.KafkaProducer.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("kafkaproducer", func(c *config.Config) bool { return c.Loggers.KafkaProducer.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewKafkaProducer(c, l, s)
 	})
 }

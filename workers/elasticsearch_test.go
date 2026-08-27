@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/stretchr/testify/assert"
 )
@@ -31,7 +31,7 @@ func Test_ElasticSearchClient_BulkSize_Exceeded(t *testing.T) {
 		inputSize int
 	}{
 		{
-			mode:      pkgconfig.ModeFlatJSON,
+			mode:      config.ModeFlatJSON,
 			bulkSize:  1024,
 			inputSize: 15,
 		},
@@ -45,7 +45,7 @@ func Test_ElasticSearchClient_BulkSize_Exceeded(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.mode, func(t *testing.T) {
-			conf := pkgconfig.GetDefaultConfig()
+			conf := config.GetDefaultConfig()
 			conf.Loggers.ElasticSearchClient.Index = "indexname"
 			conf.Loggers.ElasticSearchClient.Server = "http://127.0.0.1:59200/"
 			conf.Loggers.ElasticSearchClient.BulkSize = tc.bulkSize
@@ -119,7 +119,7 @@ func Test_ElasticSearchClient_FlushInterval_Exceeded(t *testing.T) {
 		flushInterval int
 	}{
 		{
-			mode:          pkgconfig.ModeFlatJSON,
+			mode:          config.ModeFlatJSON,
 			bulkSize:      1048576,
 			inputSize:     50,
 			flushInterval: 5,
@@ -135,7 +135,7 @@ func Test_ElasticSearchClient_FlushInterval_Exceeded(t *testing.T) {
 	for _, tc := range testcases {
 		totalDm := 0
 		t.Run(tc.mode, func(t *testing.T) {
-			conf := pkgconfig.GetDefaultConfig()
+			conf := config.GetDefaultConfig()
 			conf.Loggers.ElasticSearchClient.Index = "indexname"
 			conf.Loggers.ElasticSearchClient.Server = "http://127.0.0.1:59200/"
 			conf.Loggers.ElasticSearchClient.BulkSize = tc.bulkSize
@@ -167,7 +167,7 @@ func Test_ElasticSearchClient_FlushInterval_Exceeded(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			conn.Write([]byte(pkgconfig.HTTPOK))
+			conn.Write([]byte(config.HTTPOK))
 
 			// read payload from request body
 			payload, err := io.ReadAll(request.Body)
@@ -216,13 +216,13 @@ func Test_ElasticSearchClient_sendBulk_WithBasicAuth(t *testing.T) {
 	defer server.Close()
 
 	// Initialize the configuration using GetDefaultConfig() for consistency
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.ElasticSearchClient.Server = server.URL
-	config.Loggers.ElasticSearchClient.BasicAuthEnabled = true
-	config.Loggers.ElasticSearchClient.BasicAuthLogin = testUser
-	config.Loggers.ElasticSearchClient.BasicAuthPwd = testPassword
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.ElasticSearchClient.Server = server.URL
+	cfg.Loggers.ElasticSearchClient.BasicAuthEnabled = true
+	cfg.Loggers.ElasticSearchClient.BasicAuthLogin = testUser
+	cfg.Loggers.ElasticSearchClient.BasicAuthPwd = testPassword
 
-	client := NewElasticSearchClient(config, logger.New(false), "test-client")
+	client := NewElasticSearchClient(cfg, logger.New(false), "test-client")
 
 	// Send a request with a test payload
 	err := client.sendBulk([]byte("test payload"))
@@ -238,22 +238,22 @@ func Test_ElasticSearchClient_TLSInsecure(t *testing.T) {
 	defer server.Close()
 
 	t.Run("TLS verification enabled (default) - should fail", func(t *testing.T) {
-		config := pkgconfig.GetDefaultConfig()
-		config.Loggers.ElasticSearchClient.Server = server.URL
-		config.Loggers.ElasticSearchClient.TLSInsecure = false
+		cfg := config.GetDefaultConfig()
+		cfg.Loggers.ElasticSearchClient.Server = server.URL
+		cfg.Loggers.ElasticSearchClient.TLSInsecure = false
 
-		client := NewElasticSearchClient(config, logger.New(false), "test-client-fail")
+		client := NewElasticSearchClient(cfg, logger.New(false), "test-client-fail")
 		err := client.sendBulk([]byte("test payload"))
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "certificate signed by unknown authority")
 	})
 
 	t.Run("TLS verification disabled - should succeed", func(t *testing.T) {
-		config := pkgconfig.GetDefaultConfig()
-		config.Loggers.ElasticSearchClient.Server = server.URL
-		config.Loggers.ElasticSearchClient.TLSInsecure = true
+		cfg := config.GetDefaultConfig()
+		cfg.Loggers.ElasticSearchClient.Server = server.URL
+		cfg.Loggers.ElasticSearchClient.TLSInsecure = true
 
-		client := NewElasticSearchClient(config, logger.New(false), "test-client-success")
+		client := NewElasticSearchClient(cfg, logger.New(false), "test-client-success")
 		err := client.sendBulk([]byte("test payload"))
 		assert.NoError(t, err)
 	})

@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -15,8 +15,8 @@ type SuspiciousTransform struct {
 	whitelistDomainsRegex map[string]*regexp.Regexp
 }
 
-func NewSuspiciousTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *SuspiciousTransform {
-	t := &SuspiciousTransform{GenericTransformer: NewTransformer(config, logger, "suspicious", name, instance, nextWorkers)}
+func NewSuspiciousTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *SuspiciousTransform {
+	t := &SuspiciousTransform{GenericTransformer: NewTransformer(cfg, logger, "suspicious", name, instance, nextWorkers)}
 	t.commonQtypes = make(map[string]bool)
 	t.whitelistDomainsRegex = make(map[string]*regexp.Regexp)
 	return t

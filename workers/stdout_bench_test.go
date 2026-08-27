@@ -5,17 +5,17 @@ import (
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func benchmarkStdoutMode(b *testing.B, mode string) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.Stdout.Mode = mode
-	config.Global.Worker.ChannelBufferSize = 65536
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.Stdout.Mode = mode
+	cfg.Global.Worker.ChannelBufferSize = 65536
 
-	stdout := NewStdOut(config, logger.New(false), "stdout")
-	if mode == pkgconfig.ModePCAP {
+	stdout := NewStdOut(cfg, logger.New(false), "stdout")
+	if mode == config.ModePCAP {
 		stdout.SetPcapWriter(io.Discard)
 	} else {
 		stdout.SetTextWriter(io.Discard)
@@ -38,17 +38,17 @@ func benchmarkStdoutMode(b *testing.B, mode string) {
 }
 
 func Benchmark_Stdout_ModeText(b *testing.B) {
-	benchmarkStdoutMode(b, pkgconfig.ModeText)
+	benchmarkStdoutMode(b, config.ModeText)
 }
 
 func Benchmark_Stdout_ModeJSON(b *testing.B) {
-	benchmarkStdoutMode(b, pkgconfig.ModeJSON)
+	benchmarkStdoutMode(b, config.ModeJSON)
 }
 
 func Benchmark_Stdout_ModeFlatJSON(b *testing.B) {
-	benchmarkStdoutMode(b, pkgconfig.ModeFlatJSON)
+	benchmarkStdoutMode(b, config.ModeFlatJSON)
 }
 
 func Benchmark_Stdout_ModePCAP(b *testing.B) {
-	benchmarkStdoutMode(b, pkgconfig.ModePCAP)
+	benchmarkStdoutMode(b, config.ModePCAP)
 }

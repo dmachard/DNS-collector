@@ -5,13 +5,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 )
 
 // Tests for TEXT format
 func TestDnsMessage_TextFormat_ToString(t *testing.T) {
 
-	config := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 
 	testcases := []struct {
 		name      string
@@ -24,9 +24,9 @@ func TestDnsMessage_TextFormat_ToString(t *testing.T) {
 	}{
 		{
 			name:      "default",
-			delimiter: config.Global.TextFormatDelimiter,
-			boundary:  config.Global.TextFormatBoundary,
-			format:    config.Global.TextFormat,
+			delimiter: cfg.Global.TextFormatDelimiter,
+			boundary:  cfg.Global.TextFormatBoundary,
+			format:    cfg.Global.TextFormat,
 			qname:     "dnscollector.fr",
 			identity:  "collector",
 			expected:  "- collector CLIENT_QUERY NOERROR 1.2.3.4 1234 IPv4 UDP 0b dnscollector.fr A -",
@@ -34,8 +34,8 @@ func TestDnsMessage_TextFormat_ToString(t *testing.T) {
 		{
 			name:      "custom_delimiter",
 			delimiter: ";",
-			boundary:  config.Global.TextFormatBoundary,
-			format:    config.Global.TextFormat,
+			boundary:  cfg.Global.TextFormatBoundary,
+			format:    cfg.Global.TextFormat,
 			qname:     "dnscollector.fr",
 			identity:  "collector",
 			expected:  "-;collector;CLIENT_QUERY;NOERROR;1.2.3.4;1234;IPv4;UDP;0b;dnscollector.fr;A;-",
@@ -43,43 +43,43 @@ func TestDnsMessage_TextFormat_ToString(t *testing.T) {
 		{
 			name:      "empty_delimiter",
 			delimiter: "",
-			boundary:  config.Global.TextFormatBoundary,
-			format:    config.Global.TextFormat,
+			boundary:  cfg.Global.TextFormatBoundary,
+			format:    cfg.Global.TextFormat,
 			qname:     "dnscollector.fr",
 			identity:  "collector",
 			expected:  "-collectorCLIENT_QUERYNOERROR1.2.3.41234IPv4UDP0bdnscollector.frA-",
 		},
 		{
 			name:      "qname_quote",
-			delimiter: config.Global.TextFormatDelimiter,
-			boundary:  config.Global.TextFormatBoundary,
-			format:    config.Global.TextFormat,
+			delimiter: cfg.Global.TextFormatDelimiter,
+			boundary:  cfg.Global.TextFormatBoundary,
+			format:    cfg.Global.TextFormat,
 			qname:     "dns collector.fr",
 			identity:  "collector",
 			expected:  "- collector CLIENT_QUERY NOERROR 1.2.3.4 1234 IPv4 UDP 0b \"dns collector.fr\" A -",
 		},
 		{
 			name:      "default_boundary",
-			delimiter: config.Global.TextFormatDelimiter,
-			boundary:  config.Global.TextFormatBoundary,
-			format:    config.Global.TextFormat,
+			delimiter: cfg.Global.TextFormatDelimiter,
+			boundary:  cfg.Global.TextFormatBoundary,
+			format:    cfg.Global.TextFormat,
 			qname:     "dns\"coll tor\".fr",
 			identity:  "collector",
 			expected:  "- collector CLIENT_QUERY NOERROR 1.2.3.4 1234 IPv4 UDP 0b \"dns\\\"coll tor\\\".fr\" A -",
 		},
 		{
 			name:      "custom_boundary",
-			delimiter: config.Global.TextFormatDelimiter,
+			delimiter: cfg.Global.TextFormatDelimiter,
 			boundary:  "!",
-			format:    config.Global.TextFormat,
+			format:    cfg.Global.TextFormat,
 			qname:     "dnscoll tor.fr",
 			identity:  "collector",
 			expected:  "- collector CLIENT_QUERY NOERROR 1.2.3.4 1234 IPv4 UDP 0b !dnscoll tor.fr! A -",
 		},
 		{
 			name:      "custom_text",
-			delimiter: config.Global.TextFormatDelimiter,
-			boundary:  config.Global.TextFormatBoundary,
+			delimiter: cfg.Global.TextFormatDelimiter,
+			boundary:  cfg.Global.TextFormatBoundary,
 			format:    "qname {IN} qtype",
 			qname:     "dnscollector.fr",
 			identity:  "",
@@ -87,8 +87,8 @@ func TestDnsMessage_TextFormat_ToString(t *testing.T) {
 		},
 		{
 			name:      "quote_dnstap_version",
-			delimiter: config.Global.TextFormatDelimiter,
-			boundary:  config.Global.TextFormatBoundary,
+			delimiter: cfg.Global.TextFormatDelimiter,
+			boundary:  cfg.Global.TextFormatBoundary,
 			format:    "identity version qname",
 			qname:     "dnscollector.fr",
 			identity:  "collector",
@@ -96,8 +96,8 @@ func TestDnsMessage_TextFormat_ToString(t *testing.T) {
 		},
 		{
 			name:      "quote_dnstap_identity",
-			delimiter: config.Global.TextFormatDelimiter,
-			boundary:  config.Global.TextFormatBoundary,
+			delimiter: cfg.Global.TextFormatDelimiter,
+			boundary:  cfg.Global.TextFormatBoundary,
 			format:    "identity qname",
 			qname:     "dnscollector.fr",
 			identity:  "dns collector",
@@ -105,8 +105,8 @@ func TestDnsMessage_TextFormat_ToString(t *testing.T) {
 		},
 		{
 			name:      "quote_dnstap_peername",
-			delimiter: config.Global.TextFormatDelimiter,
-			boundary:  config.Global.TextFormatBoundary,
+			delimiter: cfg.Global.TextFormatDelimiter,
+			boundary:  cfg.Global.TextFormatBoundary,
 			format:    "peer-name qname",
 			qname:     "dnscollector.fr",
 			identity:  "",
@@ -136,7 +136,7 @@ func TestDnsMessage_TextFormat_ToString(t *testing.T) {
 }
 
 func TestDnsMessage_TextFormat_DefaultDirectives(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 
 	testcases := []struct {
 		name     string
@@ -374,7 +374,7 @@ func TestDnsMessage_TextFormat_DefaultDirectives(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.format, func(t *testing.T) {
 			var buf bytes.Buffer
-			err := tc.dm.ToTextLine(strings.Fields(tc.format), config.Global.TextFormatDelimiter, config.Global.TextFormatBoundary, &buf)
+			err := tc.dm.ToTextLine(strings.Fields(tc.format), cfg.Global.TextFormatDelimiter, cfg.Global.TextFormatBoundary, &buf)
 			if err != nil {
 				t.Fatalf("failed to generate text line: %v", err)
 			}

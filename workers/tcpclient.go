@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-dnscollector/v2/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
@@ -29,9 +29,9 @@ type TCPClient struct {
 	writerReady                        bool
 }
 
-func NewTCPClient(config *pkgconfig.Config, logger *logger.Logger, name string) *TCPClient {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &TCPClient{GenericWorker: NewGenericWorker(config, logger, name, "tcpclient", bufSize, pkgconfig.DefaultMonitor)}
+func NewTCPClient(cfg *config.Config, logger *logger.Logger, name string) *TCPClient {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &TCPClient{GenericWorker: NewGenericWorker(cfg, logger, name, "tcpclient", bufSize, config.DefaultMonitor)}
 	w.transportReady = make(chan bool)
 	w.transportReconnect = make(chan bool)
 	w.ReadConfig()
@@ -49,7 +49,7 @@ func (w *TCPClient) ReadConfig() {
 	var errFormatter error
 	w.textFormatter, errFormatter = dnsutils.NewTextFormatter(w.textFormat, w.GetConfig().Global.TextFormatDelimiter, w.GetConfig().Global.TextFormatBoundary)
 	if errFormatter != nil {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "invalid text format: " + errFormatter.Error())
+		w.LogFatal(config.PrefixLogWorker + "invalid text format: " + errFormatter.Error())
 	}
 }
 
@@ -150,7 +150,7 @@ func (w *TCPClient) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 	}()
 
 	for _, dm := range *buf {
-		if w.GetConfig().Loggers.TCPClient.Mode == pkgconfig.ModeText {
+		if w.GetConfig().Loggers.TCPClient.Mode == config.ModeText {
 			textBuf := w.GetTextBuffer() // get buffer from pool
 			var err error
 			if w.textFormatter != nil {
@@ -176,12 +176,12 @@ func (w *TCPClient) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 			w.transportWriter.WriteString(w.GetConfig().Loggers.TCPClient.PayloadDelimiter)
 		}
 
-		if w.GetConfig().Loggers.TCPClient.Mode == pkgconfig.ModeJSON {
+		if w.GetConfig().Loggers.TCPClient.Mode == config.ModeJSON {
 			json.NewEncoder(w.transportWriter).Encode(dm)
 			w.transportWriter.WriteString(w.GetConfig().Loggers.TCPClient.PayloadDelimiter)
 		}
 
-		if w.GetConfig().Loggers.TCPClient.Mode == pkgconfig.ModeFlatJSON {
+		if w.GetConfig().Loggers.TCPClient.Mode == config.ModeFlatJSON {
 			if dm.Relabeling != nil {
 				flat, err := dm.Flatten()
 				if err != nil {
@@ -345,7 +345,7 @@ func (w *TCPClient) StartLogging() {
 }
 
 func init() {
-	RegisterLogger("tcpclient", func(c *pkgconfig.Config) bool { return c.Loggers.TCPClient.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("tcpclient", func(c *config.Config) bool { return c.Loggers.TCPClient.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewTCPClient(c, l, s)
 	})
 }

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-dnscollector/v2/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
@@ -23,9 +23,9 @@ type ElasticSearchClient struct {
 	httpClient             *http.Client
 }
 
-func NewElasticSearchClient(config *pkgconfig.Config, console *logger.Logger, name string) *ElasticSearchClient {
-	bufSize := config.Global.Worker.ChannelBufferSize
-	w := &ElasticSearchClient{GenericWorker: NewGenericWorker(config, console, name, "elasticsearch", bufSize, pkgconfig.DefaultMonitor)}
+func NewElasticSearchClient(cfg *config.Config, console *logger.Logger, name string) *ElasticSearchClient {
+	bufSize := cfg.Global.Worker.ChannelBufferSize
+	w := &ElasticSearchClient{GenericWorker: NewGenericWorker(cfg, console, name, "elasticsearch", bufSize, config.DefaultMonitor)}
 	w.httpClient = &http.Client{Timeout: 5 * time.Second}
 	w.ReadConfig()
 	return w
@@ -33,13 +33,13 @@ func NewElasticSearchClient(config *pkgconfig.Config, console *logger.Logger, na
 
 func (w *ElasticSearchClient) ReadConfig() {
 
-	if w.GetConfig().Loggers.ElasticSearchClient.Compression != pkgconfig.CompressNone {
+	if w.GetConfig().Loggers.ElasticSearchClient.Compression != config.CompressNone {
 		w.LogInfo(w.GetConfig().Loggers.ElasticSearchClient.Compression)
 		switch w.GetConfig().Loggers.ElasticSearchClient.Compression {
-		case pkgconfig.CompressGzip:
+		case config.CompressGzip:
 			w.LogInfo("gzip compression is enabled")
 		default:
-			w.LogFatal(pkgconfig.PrefixLogWorker+"["+w.GetName()+"] elasticsearch - invalid compress mode: ", w.GetConfig().Loggers.ElasticSearchClient.Compression)
+			w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"] elasticsearch - invalid compress mode: ", w.GetConfig().Loggers.ElasticSearchClient.Compression)
 		}
 	}
 
@@ -64,7 +64,7 @@ func (w *ElasticSearchClient) ReadConfig() {
 
 	tlsConfig, err := netutils.TLSClientConfig(tlsOptions)
 	if err != nil {
-		w.LogFatal(pkgconfig.PrefixLogWorker + "[" + w.GetName() + "] elasticsearch - tls config failed: " + err.Error())
+		w.LogFatal(config.PrefixLogWorker + "[" + w.GetName() + "] elasticsearch - tls config failed: " + err.Error())
 	}
 
 	// prepare http client
@@ -232,7 +232,7 @@ func (w *ElasticSearchClient) sendBulkWithRetry(bulk []byte) error {
 
 	for {
 		var err error
-		if cfg.Compression == pkgconfig.CompressGzip {
+		if cfg.Compression == config.CompressGzip {
 			err = w.sendCompressedBulk(bulk)
 		} else {
 			err = w.sendBulk(bulk)
@@ -332,7 +332,7 @@ func (w *ElasticSearchClient) sendBulkInternal(bodyReader *bytes.Reader, compres
 }
 
 func init() {
-	RegisterLogger("elasticsearch", func(c *pkgconfig.Config) bool { return c.Loggers.ElasticSearchClient.Enable }, func(c *pkgconfig.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("elasticsearch", func(c *config.Config) bool { return c.Loggers.ElasticSearchClient.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewElasticSearchClient(c, l, s)
 	})
 }

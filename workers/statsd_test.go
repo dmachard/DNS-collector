@@ -5,17 +5,17 @@ import (
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 )
 
 func TestStatsdRun(t *testing.T) {
 	// init logger
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.Statsd.FlushInterval = 1
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.Statsd.FlushInterval = 1
 
-	g := NewStatsdClient(config, logger.New(false), "test")
+	g := NewStatsdClient(cfg, logger.New(false), "test")
 
 	// fake msgpack receiver
 	fakeRcvr, err := net.ListenPacket(netutils.SocketUDP, "127.0.0.1:8125")

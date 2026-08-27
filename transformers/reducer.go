@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 	publicsuffixlist "golang.org/x/net/publicsuffix"
 )
@@ -267,10 +267,10 @@ type ReducerTransform struct {
 	fields     []fieldSpec
 }
 
-func NewReducerTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *ReducerTransform {
-	t := &ReducerTransform{GenericTransformer: NewTransformer(config, logger, "reducer", name, instance, nextWorkers)}
-	t.mapTraffic = NewMapTraffic(time.Duration(config.Reducer.WatchInterval)*time.Second, nextWorkers, t.LogInfo, t.LogError)
-	t.initFields(config.Reducer.UniqueFields)
+func NewReducerTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *ReducerTransform {
+	t := &ReducerTransform{GenericTransformer: NewTransformer(cfg, logger, "reducer", name, instance, nextWorkers)}
+	t.mapTraffic = NewMapTraffic(time.Duration(cfg.Reducer.WatchInterval)*time.Second, nextWorkers, t.LogInfo, t.LogError)
+	t.initFields(cfg.Reducer.UniqueFields)
 	return t
 }
 
@@ -281,10 +281,10 @@ func (t *ReducerTransform) initFields(fields []string) {
 	}
 }
 
-func (t *ReducerTransform) ReloadConfig(config *pkgconfig.ConfigTransformers) {
-	t.GenericTransformer.ReloadConfig(config)
-	t.mapTraffic.SetTTL(time.Duration(config.Reducer.WatchInterval) * time.Second)
-	t.initFields(config.Reducer.UniqueFields)
+func (t *ReducerTransform) ReloadConfig(cfg *config.ConfigTransformers) {
+	t.GenericTransformer.ReloadConfig(cfg)
+	t.mapTraffic.SetTTL(time.Duration(cfg.Reducer.WatchInterval) * time.Second)
+	t.initFields(cfg.Reducer.UniqueFields)
 	t.GetTransforms()
 }
 

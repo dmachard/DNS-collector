@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-dnscollector/v2/pkg/cuckoo"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
 	"github.com/dmachard/go-logger"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 )
@@ -144,15 +144,15 @@ type UniqueResponseTrackerTransform struct {
 	listDomainsRegex map[string]*regexp.Regexp
 }
 
-func NewUniqueResponseTrackerTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *UniqueResponseTrackerTransform {
-	t := &UniqueResponseTrackerTransform{GenericTransformer: NewTransformer(config, logger, "unique-response-tracker", name, instance, nextWorkers)}
+func NewUniqueResponseTrackerTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *UniqueResponseTrackerTransform {
+	t := &UniqueResponseTrackerTransform{GenericTransformer: NewTransformer(cfg, logger, "unique-response-tracker", name, instance, nextWorkers)}
 	t.listDomainsRegex = make(map[string]*regexp.Regexp)
 	return t
 }
 
-func (t *UniqueResponseTrackerTransform) ReloadConfig(config *pkgconfig.ConfigTransformers) {
-	t.GenericTransformer.ReloadConfig(config)
-	ttl := time.Duration(config.UniqueResponseTracker.TTL) * time.Second
+func (t *UniqueResponseTrackerTransform) ReloadConfig(cfg *config.ConfigTransformers) {
+	t.GenericTransformer.ReloadConfig(cfg)
+	ttl := time.Duration(cfg.UniqueResponseTracker.TTL) * time.Second
 	t.responseTracker.ttl = ttl
 	t.LogInfo("unique-response-tracker configuration reloaded")
 }

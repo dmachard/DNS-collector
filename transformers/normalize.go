@@ -6,7 +6,7 @@ import (
 	"unicode"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 	publicsuffixlist "golang.org/x/net/publicsuffix"
 )
@@ -72,8 +72,8 @@ type NormalizeTransform struct {
 	GenericTransformer
 }
 
-func NewNormalizeTransform(config *pkgconfig.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *NormalizeTransform {
-	t := &NormalizeTransform{GenericTransformer: NewTransformer(config, logger, "normalize", name, instance, nextWorkers)}
+func NewNormalizeTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *NormalizeTransform {
+	t := &NormalizeTransform{GenericTransformer: NewTransformer(cfg, logger, "normalize", name, instance, nextWorkers)}
 	return t
 }
 

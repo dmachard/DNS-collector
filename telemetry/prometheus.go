@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors/version"
@@ -41,7 +41,7 @@ type WorkerStats struct {
 
 type PrometheusCollector struct {
 	sync.Mutex
-	config     *pkgconfig.Config
+	config     *config.Config
 	metrics    map[string]*prometheus.Desc
 	Record     chan WorkerStats
 	data       map[string]WorkerStats // To store the worker stats
@@ -50,15 +50,15 @@ type PrometheusCollector struct {
 	promPrefix string
 }
 
-func NewPrometheusCollector(config *pkgconfig.Config) *PrometheusCollector {
+func NewPrometheusCollector(cfg *config.Config) *PrometheusCollector {
 	t := &PrometheusCollector{
-		config: config,
+		config: cfg,
 		Record: make(chan WorkerStats),
 		data:   make(map[string]WorkerStats),
 		stop:   make(chan struct{}),
 	}
 
-	t.promPrefix = SanitizeMetricName(config.Global.Telemetry.PromPrefix)
+	t.promPrefix = SanitizeMetricName(cfg.Global.Telemetry.PromPrefix)
 
 	t.metrics = map[string]*prometheus.Desc{
 		"worker_ingress_total": prometheus.NewDesc(
@@ -163,30 +163,30 @@ func (t *PrometheusCollector) Stop() {
 	})
 }
 
-func InitTelemetryServer(config *pkgconfig.Config, logger *logger.Logger) (*http.Server, *PrometheusCollector, chan error) {
+func InitTelemetryServer(cfg *config.Config, logger *logger.Logger) (*http.Server, *PrometheusCollector, chan error) {
 	// channel for error
 	errChan := make(chan error)
 
 	// Prometheus collectors
-	metrics := NewPrometheusCollector(config)
+	metrics := NewPrometheusCollector(cfg)
 
 	// HTTP server
 	promServer := &http.Server{
-		Addr:              config.Global.Telemetry.WebListen,
+		Addr:              cfg.Global.Telemetry.WebListen,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	if config.Global.Telemetry.Enabled {
+	if cfg.Global.Telemetry.Enabled {
 		go func() {
 			// start metrics
 			go metrics.UpdateStats()
 
 			// register metrics
 			prometheus.MustRegister(metrics)
-			prometheus.MustRegister(version.NewCollector(config.Global.Telemetry.PromPrefix))
+			prometheus.MustRegister(version.NewCollector(cfg.Global.Telemetry.PromPrefix))
 
 			// handle /metrics
-			http.Handle(config.Global.Telemetry.WebPath, promhttp.Handler())
+			http.Handle(cfg.Global.Telemetry.WebPath, promhttp.Handler())
 
 			// handle http error
 			http.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
@@ -194,7 +194,7 @@ func InitTelemetryServer(config *pkgconfig.Config, logger *logger.Logger) (*http
                     <head><title>DNScollector Exporter</title></head>
                     <body>
                     <h1>DNScollector Exporter</h1>
-                    <p><a href='` + config.Global.Telemetry.WebPath + `'>Metrics</a></p>
+                    <p><a href='` + cfg.Global.Telemetry.WebPath + `'>Metrics</a></p>
                     </body>
                     </html>`))
 				if err != nil {
@@ -202,16 +202,16 @@ func InitTelemetryServer(config *pkgconfig.Config, logger *logger.Logger) (*http
 				}
 			})
 
-			if config.Global.Telemetry.TLSSupport {
+			if cfg.Global.Telemetry.TLSSupport {
 				// Load server certificate and key
-				cert, err := tls.LoadX509KeyPair(config.Global.Telemetry.TLSCertFile, config.Global.Telemetry.TLSKeyFile)
+				cert, err := tls.LoadX509KeyPair(cfg.Global.Telemetry.TLSCertFile, cfg.Global.Telemetry.TLSKeyFile)
 				if err != nil {
 					errChan <- fmt.Errorf("failed to load server certificate and key: %w", err)
 					return
 				}
 
 				// Load client CA certificate
-				clientCACert, err := os.ReadFile(config.Global.Telemetry.ClientCAFile)
+				clientCACert, err := os.ReadFile(cfg.Global.Telemetry.ClientCAFile)
 				if err != nil {
 					errChan <- fmt.Errorf("failed to load client CA certificate: %w", err)
 					return
@@ -230,21 +230,21 @@ func InitTelemetryServer(config *pkgconfig.Config, logger *logger.Logger) (*http
 				promServer.TLSConfig = tlsConfig
 			}
 
-			if config.Global.Telemetry.BasicAuthEnable {
-				promServer.Handler = basicAuthMiddleware(http.DefaultServeMux, config.Global.Telemetry.BasicAuthLogin, config.Global.Telemetry.BasicAuthPwd)
+			if cfg.Global.Telemetry.BasicAuthEnable {
+				promServer.Handler = basicAuthMiddleware(http.DefaultServeMux, cfg.Global.Telemetry.BasicAuthLogin, cfg.Global.Telemetry.BasicAuthPwd)
 			} else {
 				promServer.Handler = http.DefaultServeMux
 			}
 
 			// start server
 			switch {
-			case config.Global.Telemetry.SockPath != "":
-				sockMode, err := strconv.ParseUint(config.Global.Telemetry.SockMode, 8, 32)
+			case cfg.Global.Telemetry.SockPath != "":
+				sockMode, err := strconv.ParseUint(cfg.Global.Telemetry.SockMode, 8, 32)
 				if err != nil {
-					errChan <- fmt.Errorf("invalid telemetry sock-mode %q: %w", config.Global.Telemetry.SockMode, err)
+					errChan <- fmt.Errorf("invalid telemetry sock-mode %q: %w", cfg.Global.Telemetry.SockMode, err)
 					return
 				}
-				listener, err := prepareUnixSocket(config.Global.Telemetry.SockPath, os.FileMode(sockMode))
+				listener, err := prepareUnixSocket(cfg.Global.Telemetry.SockPath, os.FileMode(sockMode))
 				if err != nil {
 					errChan <- err
 					return
@@ -252,7 +252,7 @@ func InitTelemetryServer(config *pkgconfig.Config, logger *logger.Logger) (*http
 				if err := promServer.Serve(listener); err != nil && err != http.ErrServerClosed {
 					errChan <- err
 				}
-			case config.Global.Telemetry.TLSSupport:
+			case cfg.Global.Telemetry.TLSSupport:
 				if err := promServer.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
 					errChan <- err
 				}

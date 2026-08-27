@@ -5,15 +5,15 @@ import (
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func Benchmark_Worker_CountIngressTraffic_TelemetryOn(b *testing.B) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Global.Telemetry.Enabled = true
+	cfg := config.GetDefaultConfig()
+	cfg.Global.Telemetry.Enabled = true
 
-	devNull := NewDevNull(config, logger.New(false), "bench-devnull")
+	devNull := NewDevNull(cfg, logger.New(false), "bench-devnull")
 	go devNull.StartCollect()
 	defer devNull.Stop()
 
@@ -26,10 +26,10 @@ func Benchmark_Worker_CountIngressTraffic_TelemetryOn(b *testing.B) {
 }
 
 func Benchmark_Worker_CountIngressTraffic_TelemetryOff(b *testing.B) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Global.Telemetry.Enabled = false
+	cfg := config.GetDefaultConfig()
+	cfg.Global.Telemetry.Enabled = false
 
-	devNull := NewDevNull(config, logger.New(false), "bench-devnull")
+	devNull := NewDevNull(cfg, logger.New(false), "bench-devnull")
 	go devNull.StartCollect()
 	defer devNull.Stop()
 
@@ -42,14 +42,14 @@ func Benchmark_Worker_CountIngressTraffic_TelemetryOff(b *testing.B) {
 }
 
 func Benchmark_Worker_SendForwardedTo_TelemetryOn(b *testing.B) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Global.Telemetry.Enabled = true
+	cfg := config.GetDefaultConfig()
+	cfg.Global.Telemetry.Enabled = true
 
-	devNull := NewDevNull(config, logger.New(false), "bench-devnull")
+	devNull := NewDevNull(cfg, logger.New(false), "bench-devnull")
 	go devNull.StartCollect()
 	defer devNull.Stop()
 
-	target := NewDevNull(config, logger.New(false), "target-devnull")
+	target := NewDevNull(cfg, logger.New(false), "target-devnull")
 	go target.StartCollect()
 	defer target.Stop()
 
@@ -67,14 +67,14 @@ func Benchmark_Worker_SendForwardedTo_TelemetryOn(b *testing.B) {
 }
 
 func Benchmark_Worker_SendForwardedBatchTo_TelemetryOn(b *testing.B) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Global.Telemetry.Enabled = true
+	cfg := config.GetDefaultConfig()
+	cfg.Global.Telemetry.Enabled = true
 
-	devNull := NewDevNull(config, logger.New(false), "bench-devnull")
+	devNull := NewDevNull(cfg, logger.New(false), "bench-devnull")
 	go devNull.StartCollect()
 	defer devNull.Stop()
 
-	target := NewDevNull(config, logger.New(false), "target-devnull")
+	target := NewDevNull(cfg, logger.New(false), "target-devnull")
 	go target.StartCollect()
 	defer target.Stop()
 
@@ -101,11 +101,11 @@ func Benchmark_Worker_SendForwardedBatchTo_TelemetryOn(b *testing.B) {
 // goroutine feeds messages in batches into the GenericWorker channel and RunBatchLoop
 // processes them in the consumer (DevNull).
 func Benchmark_Worker_E2E_RunBatchLoop(b *testing.B) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Global.Telemetry.Enabled = true
-	config.Global.Worker.ChannelBufferSize = 65536
+	cfg := config.GetDefaultConfig()
+	cfg.Global.Telemetry.Enabled = true
+	cfg.Global.Worker.ChannelBufferSize = 65536
 
-	sink := NewDevNull(config, logger.New(false), "sink-devnull")
+	sink := NewDevNull(cfg, logger.New(false), "sink-devnull")
 	go sink.StartCollect()
 	defer sink.Stop()
 
@@ -127,11 +127,11 @@ func Benchmark_Worker_E2E_RunBatchLoop(b *testing.B) {
 
 // Benchmark_Worker_E2E_SingleMessage measures single message wrapped in batch per channel send.
 func Benchmark_Worker_E2E_SingleMessage(b *testing.B) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Global.Telemetry.Enabled = true
-	config.Global.Worker.ChannelBufferSize = 65536
+	cfg := config.GetDefaultConfig()
+	cfg.Global.Telemetry.Enabled = true
+	cfg.Global.Worker.ChannelBufferSize = 65536
 
-	sink := NewDevNull(config, logger.New(false), "sink-devnull")
+	sink := NewDevNull(cfg, logger.New(false), "sink-devnull")
 	go sink.StartCollect()
 	defer sink.Stop()
 
@@ -155,11 +155,11 @@ func Benchmark_Worker_BatchSize_Comparison(b *testing.B) {
 	for _, sz := range sizes {
 		sz := sz
 		b.Run("BatchSize_"+strconv.Itoa(sz), func(subB *testing.B) {
-			config := pkgconfig.GetDefaultConfig()
-			config.Global.Telemetry.Enabled = true
-			config.Global.Worker.ChannelBufferSize = 65536
+			cfg := config.GetDefaultConfig()
+			cfg.Global.Telemetry.Enabled = true
+			cfg.Global.Worker.ChannelBufferSize = 65536
 
-			sink := NewDevNull(config, logger.New(false), "sink-devnull")
+			sink := NewDevNull(cfg, logger.New(false), "sink-devnull")
 			go sink.StartCollect()
 			defer sink.Stop()
 

@@ -9,14 +9,14 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func TestRestAPI_BadBasicAuth(t *testing.T) {
 	// init the logger
-	config := pkgconfig.GetDefaultConfig()
-	g := NewRestAPI(config, logger.New(false), "test")
+	cfg := config.GetDefaultConfig()
+	g := NewRestAPI(cfg, logger.New(false), "test")
 
 	tt := []struct {
 		name       string
@@ -45,7 +45,7 @@ func TestRestAPI_BadBasicAuth(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// init httptest
 			request := httptest.NewRequest(tc.method, tc.uri, strings.NewReader(""))
-			request.SetBasicAuth(config.Loggers.RestAPI.BasicAuthLogin, "badpassword")
+			request.SetBasicAuth(cfg.Loggers.RestAPI.BasicAuthLogin, "badpassword")
 			responseRecorder := httptest.NewRecorder()
 
 			// call handler
@@ -61,8 +61,8 @@ func TestRestAPI_BadBasicAuth(t *testing.T) {
 
 func TestRestAPI_MethodNotAllowed(t *testing.T) {
 	// init the logger
-	config := pkgconfig.GetDefaultConfig()
-	g := NewRestAPI(config, logger.New(false), "test")
+	cfg := config.GetDefaultConfig()
+	g := NewRestAPI(cfg, logger.New(false), "test")
 
 	// record one dns message to simulate some incoming data
 	dm := dnsutils.GetFakeDNSMessage()
@@ -129,7 +129,7 @@ func TestRestAPI_MethodNotAllowed(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// init httptest
 			request := httptest.NewRequest(tc.method, tc.uri, strings.NewReader(""))
-			request.SetBasicAuth(config.Loggers.RestAPI.BasicAuthLogin, config.Loggers.RestAPI.BasicAuthPwd)
+			request.SetBasicAuth(cfg.Loggers.RestAPI.BasicAuthLogin, cfg.Loggers.RestAPI.BasicAuthPwd)
 			responseRecorder := httptest.NewRecorder()
 
 			// call handler
@@ -151,8 +151,8 @@ func TestRestAPI_MethodNotAllowed(t *testing.T) {
 
 func TestRestAPI_GetMethod(t *testing.T) {
 	// init the logger
-	config := pkgconfig.GetDefaultConfig()
-	g := NewRestAPI(config, logger.New(false), "test")
+	cfg := config.GetDefaultConfig()
+	g := NewRestAPI(cfg, logger.New(false), "test")
 
 	tt := []struct {
 		name       string
@@ -294,7 +294,7 @@ func TestRestAPI_GetMethod(t *testing.T) {
 
 			// init httptest
 			request := httptest.NewRequest(tc.method, tc.uri, strings.NewReader(""))
-			request.SetBasicAuth(config.Loggers.RestAPI.BasicAuthLogin, config.Loggers.RestAPI.BasicAuthPwd)
+			request.SetBasicAuth(cfg.Loggers.RestAPI.BasicAuthLogin, cfg.Loggers.RestAPI.BasicAuthPwd)
 			responseRecorder := httptest.NewRecorder()
 
 			// call handler
@@ -315,10 +315,10 @@ func TestRestAPI_GetMethod(t *testing.T) {
 }
 
 func TestRestAPI_LRUEviction(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.RestAPI.DomainsCacheSize = 5
-	config.Loggers.RestAPI.RequestersCacheSize = 5
-	g := NewRestAPI(config, logger.New(false), "test_lru")
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.RestAPI.DomainsCacheSize = 5
+	cfg.Loggers.RestAPI.RequestersCacheSize = 5
+	g := NewRestAPI(cfg, logger.New(false), "test_lru")
 
 	// Insert 10 unique domains
 	for i := 0; i < 10; i++ {
@@ -334,10 +334,10 @@ func TestRestAPI_LRUEviction(t *testing.T) {
 }
 
 func TestRestAPI_TTLExpiration(t *testing.T) {
-	config := pkgconfig.GetDefaultConfig()
-	config.Loggers.RestAPI.DomainsCacheTTL = 1 // 1 second TTL
-	config.Loggers.RestAPI.DomainsCacheSize = 100
-	g := NewRestAPI(config, logger.New(false), "test_ttl")
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.RestAPI.DomainsCacheTTL = 1 // 1 second TTL
+	cfg.Loggers.RestAPI.DomainsCacheSize = 100
+	g := NewRestAPI(cfg, logger.New(false), "test_ttl")
 
 	dm := dnsutils.GetFakeDNSMessage()
 	dm.DNS.Qname = "expire.com"

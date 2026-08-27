@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
@@ -18,19 +18,19 @@ const (
 
 func TestTransforms_ProcessOrder(t *testing.T) {
 	// enable feature
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Normalize.Enable = true
-	config.Normalize.QnameLowerCase = true
-	config.UserPrivacy.Enable = true
-	config.UserPrivacy.AnonymizeIP = true
-	config.Filtering.Enable = true
-	config.Filtering.KeepDomainFile = "../tests/testsdata/filtering_keep_domains.txt" // file contains google.fr, test.github.com
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Normalize.Enable = true
+	cfg.Normalize.QnameLowerCase = true
+	cfg.UserPrivacy.Enable = true
+	cfg.UserPrivacy.AnonymizeIP = true
+	cfg.Filtering.Enable = true
+	cfg.Filtering.KeepDomainFile = "../tests/testsdata/filtering_keep_domains.txt" // file contains google.fr, test.github.com
 
 	testURL1 := "mail.google.com"
 	testURL2 := "test.github.com"
 
 	// init the transformer
-	subprocessors := NewTransforms(config, logger.New(false), "test", []chan *dnsutils.DNSMessageBatch{}, 0)
+	subprocessors := NewTransforms(cfg, logger.New(false), "test", []chan *dnsutils.DNSMessageBatch{}, 0)
 
 	// create test message
 	dm := dnsutils.GetFakeDNSMessage()
@@ -66,13 +66,13 @@ func TestTransforms_ProcessOrder(t *testing.T) {
 }
 
 func TestTransforms_ConfigurableOrder(t *testing.T) {
-	config := pkgconfig.GetFakeConfigTransformers()
-	config.Order = []string{"geoip", "normalize"}
-	config.GeoIP.Enable = true
-	config.Normalize.Enable = true
-	config.Normalize.QnameLowerCase = true
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Order = []string{"geoip", "normalize"}
+	cfg.GeoIP.Enable = true
+	cfg.Normalize.Enable = true
+	cfg.Normalize.QnameLowerCase = true
 
-	subprocessors := NewTransforms(config, logger.New(false), "test", []chan *dnsutils.DNSMessageBatch{}, 0)
+	subprocessors := NewTransforms(cfg, logger.New(false), "test", []chan *dnsutils.DNSMessageBatch{}, 0)
 
 	if len(subprocessors.activeTransforms) != 2 {
 		t.Fatalf("expected 2 active transforms, got %d", len(subprocessors.activeTransforms))
@@ -97,8 +97,8 @@ func TestTransforms_ConfigurableOrder(t *testing.T) {
 	}
 
 	// Reverse order
-	config.Order = []string{"normalize", "geoip"}
-	subprocessors = NewTransforms(config, logger.New(false), "test", []chan *dnsutils.DNSMessageBatch{}, 0)
+	cfg.Order = []string{"normalize", "geoip"}
+	subprocessors = NewTransforms(cfg, logger.New(false), "test", []chan *dnsutils.DNSMessageBatch{}, 0)
 
 	st0, _ = subprocessors.activeTransforms[0].GetTransforms()
 	found = false

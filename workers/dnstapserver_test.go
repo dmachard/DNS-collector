@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-dnscollector/v2/telemetry"
 	"github.com/dmachard/go-dnstap-protobuf"
 	"github.com/dmachard/go-framestream"
@@ -66,19 +66,19 @@ func Test_DnstapCollector(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			g := GetWorkerForTest(pkgconfig.DefaultBufferSize)
+			g := GetWorkerForTest(config.DefaultBufferSize)
 
-			config := pkgconfig.GetDefaultConfig()
+			cfg := config.GetDefaultConfig()
 			if tc.listenPort > 0 {
-				config.Collectors.Dnstap.ListenPort = tc.listenPort
+				cfg.Collectors.Dnstap.ListenPort = tc.listenPort
 			}
 			if tc.mode == netutils.SocketUnix {
-				config.Collectors.Dnstap.SockPath = tc.address
+				cfg.Collectors.Dnstap.SockPath = tc.address
 			}
-			config.Collectors.Dnstap.Compression = tc.compression
+			cfg.Collectors.Dnstap.Compression = tc.compression
 
 			// start the collector
-			c := NewDnstapServer([]Worker{g}, config, logger.New(false), "test")
+			c := NewDnstapServer([]Worker{g}, cfg, logger.New(false), "test")
 			go c.StartCollect()
 
 			// wait before to connect
@@ -114,7 +114,7 @@ func Test_DnstapCollector(t *testing.T) {
 				}
 				// send query
 
-				if config.Collectors.Dnstap.Compression == pkgconfig.CompressNone {
+				if cfg.Collectors.Dnstap.Compression == config.CompressNone {
 					// send the frame
 					bulkFrame.Write(data)
 					if err := fs.SendFrame(bulkFrame); err != nil {
@@ -125,7 +125,7 @@ func Test_DnstapCollector(t *testing.T) {
 					bulkFrame.AppendData(subFrame.Data())
 				}
 
-				if config.Collectors.Dnstap.Compression != pkgconfig.CompressNone {
+				if cfg.Collectors.Dnstap.Compression != config.CompressNone {
 					bulkFrame.Encode()
 					if err := fs.SendCompressedFrame(&compress.GzipCodec, bulkFrame); err != nil {
 						t.Fatalf("send compressed frame error %s", err)
@@ -152,12 +152,12 @@ func Test_DnstapCollector_CloseFrameStream(t *testing.T) {
 	lg := logger.New(true)
 	lg.SetOutputChannel((logsChan))
 
-	config := pkgconfig.GetDefaultConfig()
-	config.Collectors.Dnstap.SockPath = "/tmp/dnscollector.sock"
+	cfg := config.GetDefaultConfig()
+	cfg.Collectors.Dnstap.SockPath = "/tmp/dnscollector.sock"
 
 	// start the collector in unix mode
-	g := GetWorkerForTest(pkgconfig.DefaultBufferSize)
-	c := NewDnstapServer([]Worker{g}, config, lg, "test")
+	g := GetWorkerForTest(config.DefaultBufferSize)
+	c := NewDnstapServer([]Worker{g}, cfg, lg, "test")
 	go c.StartCollect()
 
 	// simulate dns server connection to collector
@@ -206,16 +206,16 @@ func Test_DnstapProcessor_toDNSMessage(t *testing.T) {
 	logger.SetOutput(&o)
 
 	// run the consumer with a fake logger
-	fl := GetWorkerForTest(pkgconfig.DefaultBufferSize)
+	fl := GetWorkerForTest(config.DefaultBufferSize)
 
 	// init the dnstap consumer
-	consumer := NewDNSTapProcessor(0, "peertest", pkgconfig.GetDefaultConfig(), logger, "test", 512)
+	consumer := NewDNSTapProcessor(0, "peertest", config.GetDefaultConfig(), logger, "test", 512)
 	consumer.AddDefaultRoute(fl)
 	consumer.AddDroppedRoute(fl)
 
 	// prepare dns query
 	dnsmsg := new(dns.Msg)
-	dnsmsg.SetQuestion(pkgconfig.ExpectedQname+".", dns.TypeA)
+	dnsmsg.SetQuestion(config.ExpectedQname+".", dns.TypeA)
 	dnsquestion, _ := dnsmsg.Pack()
 
 	// prepare dnstap
@@ -237,7 +237,7 @@ func Test_DnstapProcessor_toDNSMessage(t *testing.T) {
 
 	// read dns message from dnstap consumer
 	batch := <-fl.GetInputChannel()
-	if len(batch.Messages) == 0 || batch.Messages[0].DNS.Qname != pkgconfig.ExpectedQname {
+	if len(batch.Messages) == 0 || batch.Messages[0].DNS.Qname != config.ExpectedQname {
 		t.Errorf("invalid qname in dns message: %v", batch.Messages)
 	}
 }
@@ -248,10 +248,10 @@ func Test_DnstapProcessor_DecodeDNSCounters(t *testing.T) {
 	logger.SetOutput(&o)
 
 	// run the consumer with a fake logger
-	fl := GetWorkerForTest(pkgconfig.DefaultBufferSize)
+	fl := GetWorkerForTest(config.DefaultBufferSize)
 
 	// init the dnstap consumer
-	consumer := NewDNSTapProcessor(0, "peertest", pkgconfig.GetDefaultConfig(), logger, "test", 512)
+	consumer := NewDNSTapProcessor(0, "peertest", config.GetDefaultConfig(), logger, "test", 512)
 	consumer.AddDefaultRoute(fl)
 	consumer.AddDroppedRoute(fl)
 
@@ -296,11 +296,11 @@ func Test_DnstapProcessor_DecodeDNSCounters(t *testing.T) {
 
 func Test_DnstapProcessor_MalformedDnsHeader(t *testing.T) {
 	// run the consumer with a fake logger
-	fl := GetWorkerForTest(pkgconfig.DefaultBufferSize)
+	fl := GetWorkerForTest(config.DefaultBufferSize)
 
 	// init the dnstap consumer
 	logger := logger.New(false)
-	consumer := NewDNSTapProcessor(0, "peertest", pkgconfig.GetDefaultConfig(), logger, "test", 512)
+	consumer := NewDNSTapProcessor(0, "peertest", config.GetDefaultConfig(), logger, "test", 512)
 	consumer.AddDefaultRoute(fl)
 	consumer.AddDroppedRoute(fl)
 
@@ -335,11 +335,11 @@ func Test_DnstapProcessor_MalformedDnsHeader(t *testing.T) {
 
 func Test_DnstapProcessor_MalformedDnsQuestion(t *testing.T) {
 	// run the consumer with a fake logger
-	fl := GetWorkerForTest(pkgconfig.DefaultBufferSize)
+	fl := GetWorkerForTest(config.DefaultBufferSize)
 
 	// init the dnstap consumer
 	logger := logger.New(false)
-	consumer := NewDNSTapProcessor(0, "peertest", pkgconfig.GetDefaultConfig(), logger, "test", 512)
+	consumer := NewDNSTapProcessor(0, "peertest", config.GetDefaultConfig(), logger, "test", 512)
 	consumer.AddDefaultRoute(fl)
 	consumer.AddDroppedRoute(fl)
 
@@ -373,11 +373,11 @@ func Test_DnstapProcessor_MalformedDnsQuestion(t *testing.T) {
 
 func Test_DnstapProcessor_MalformedDnsAnswer(t *testing.T) {
 	// run the consumer with a fake logger
-	fl := GetWorkerForTest(pkgconfig.DefaultBufferSize)
+	fl := GetWorkerForTest(config.DefaultBufferSize)
 
 	// init the dnstap consumer
 	logger := logger.New(false)
-	consumer := NewDNSTapProcessor(0, "peertest", pkgconfig.GetDefaultConfig(), logger, "test", 512)
+	consumer := NewDNSTapProcessor(0, "peertest", config.GetDefaultConfig(), logger, "test", 512)
 	consumer.AddDefaultRoute(fl)
 	consumer.AddDroppedRoute(fl)
 
@@ -412,11 +412,11 @@ func Test_DnstapProcessor_MalformedDnsAnswer(t *testing.T) {
 
 func Test_DnstapProcessor_EmptyDnsPayload(t *testing.T) {
 	// run the consumer with a fake logger
-	fl := GetWorkerForTest(pkgconfig.DefaultBufferSize)
+	fl := GetWorkerForTest(config.DefaultBufferSize)
 
 	// init the dnstap consumer
 	logger := logger.New(false)
-	consumer := NewDNSTapProcessor(0, "peertest", pkgconfig.GetDefaultConfig(), logger, "test", 512)
+	consumer := NewDNSTapProcessor(0, "peertest", config.GetDefaultConfig(), logger, "test", 512)
 	consumer.AddDefaultRoute(fl)
 	consumer.AddDroppedRoute(fl)
 
@@ -445,10 +445,10 @@ func Test_DnstapProcessor_EmptyDnsPayload(t *testing.T) {
 
 func Test_DnstapProcessor_DisableDNSParser(t *testing.T) {
 	// run the consumer with a fake logger
-	fl := GetWorkerForTest(pkgconfig.DefaultBufferSize)
+	fl := GetWorkerForTest(config.DefaultBufferSize)
 
 	// init the dnstap consumer
-	cfg := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	cfg.Collectors.Dnstap.DisableDNSParser = true
 
 	logger := logger.New(false)
@@ -488,14 +488,14 @@ func Test_DnstapProcessor_DisableDNSParser(t *testing.T) {
 // test to decode the extended part
 func Test_DnstapProcessor_Extended(t *testing.T) {
 	// run the consumer with a fake logger
-	fl := GetWorkerForTest(pkgconfig.DefaultBufferSize)
+	fl := GetWorkerForTest(config.DefaultBufferSize)
 
 	logger := logger.New(true)
 	var o bytes.Buffer
 	logger.SetOutput(&o)
 
 	// init the dnstap consumer
-	cfg := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	cfg.Collectors.Dnstap.ExtendedSupport = true
 
 	consumer := NewDNSTapProcessor(0, "peertest", cfg, logger, "test", 512)
@@ -565,7 +565,7 @@ func Test_DnstapProcessor_Extended(t *testing.T) {
 // test for issue https://github.com/dmachard/go-dnscollector/v2/issues/568
 func Test_DnstapProcessor_BufferLoggerIsFull(t *testing.T) {
 	// run the consumer with a fake logger
-	fl := GetWorkerForTest(pkgconfig.DefaultBufferOne)
+	fl := GetWorkerForTest(config.DefaultBufferOne)
 
 	// redirect stdout output to bytes buffer
 	logsChan := make(chan logger.LogEntry, 512)
@@ -573,7 +573,7 @@ func Test_DnstapProcessor_BufferLoggerIsFull(t *testing.T) {
 	lg.SetOutputChannel((logsChan))
 
 	// init the dnstap consumer
-	cfg := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	cfg.Global.Worker.BatchSize = 1
 	cfg.Global.Worker.InternalMonitor = 1
 	consumer := NewDNSTapProcessor(0, "peertest", cfg, lg, "test", 512)
@@ -582,7 +582,7 @@ func Test_DnstapProcessor_BufferLoggerIsFull(t *testing.T) {
 
 	// prepare dns query
 	dnsmsg := new(dns.Msg)
-	dnsmsg.SetQuestion(pkgconfig.ExpectedQname+".", dns.TypeA)
+	dnsmsg.SetQuestion(config.ExpectedQname+".", dns.TypeA)
 	dnsquestion, _ := dnsmsg.Pack()
 
 	// prepare dnstap
@@ -609,7 +609,7 @@ func Test_DnstapProcessor_BufferLoggerIsFull(t *testing.T) {
 
 	for entry := range logsChan {
 		fmt.Println(entry)
-		pattern := regexp.MustCompile(pkgconfig.ExpectedBufferMsg511)
+		pattern := regexp.MustCompile(config.ExpectedBufferMsg511)
 		if pattern.MatchString(entry.Message) {
 			break
 		}
@@ -617,7 +617,7 @@ func Test_DnstapProcessor_BufferLoggerIsFull(t *testing.T) {
 
 	// read dns message from dnstap consumer
 	batch := <-fl.GetInputChannel()
-	if len(batch.Messages) == 0 || batch.Messages[0].DNS.Qname != pkgconfig.ExpectedQname {
+	if len(batch.Messages) == 0 || batch.Messages[0].DNS.Qname != config.ExpectedQname {
 		t.Errorf("invalid qname in dns message: %v", batch.Messages)
 	}
 
@@ -631,7 +631,7 @@ func Test_DnstapProcessor_BufferLoggerIsFull(t *testing.T) {
 
 	for entry := range logsChan {
 		fmt.Println(entry)
-		pattern := regexp.MustCompile(pkgconfig.ExpectedBufferMsg1023)
+		pattern := regexp.MustCompile(config.ExpectedBufferMsg1023)
 		if pattern.MatchString(entry.Message) {
 			break
 		}
@@ -639,7 +639,7 @@ func Test_DnstapProcessor_BufferLoggerIsFull(t *testing.T) {
 
 	// read dns message from dnstap consumer
 	batch2 := <-fl.GetInputChannel()
-	if len(batch2.Messages) == 0 || batch2.Messages[0].DNS.Qname != pkgconfig.ExpectedQname {
+	if len(batch2.Messages) == 0 || batch2.Messages[0].DNS.Qname != config.ExpectedQname {
 		t.Errorf("invalid qname in second dns message: %v", batch2.Messages)
 	}
 }
@@ -651,14 +651,13 @@ func Test_DnstapProcessor_TelemetryCounters(t *testing.T) {
 	logger.SetOutput(&o)
 
 	// run the consumer with a fake logger
-	fl := GetWorkerForTest(pkgconfig.DefaultBufferSize)
+	fl := GetWorkerForTest(config.DefaultBufferSize)
 
-	cfg := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	cfg.Global.Telemetry.Enabled = true
 	cfg.Global.Worker.InternalMonitor = 1
 
-	config := pkgconfig.Config{}
-	metrics := telemetry.NewPrometheusCollector(&config)
+	metrics := telemetry.NewPrometheusCollector(cfg)
 
 	// init the dnstap consumer
 	consumer := NewDNSTapProcessor(0, "peertest", cfg, logger, "test", 512)

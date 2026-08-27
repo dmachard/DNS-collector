@@ -5,20 +5,20 @@ import (
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v2/pkg/config"
 	"github.com/dmachard/go-logger"
 )
 
 func Benchmark_DNSProcessor_Query(b *testing.B) {
-	config := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	log := logger.New(false)
 	log.SetOutput(io.Discard)
 
-	devNull := NewDevNull(config, log, "devnull")
+	devNull := NewDevNull(cfg, log, "devnull")
 	go devNull.StartCollect()
 	defer devNull.Stop()
 
-	consumer := NewDNSProcessor(config, log, "bench-dnsprocessor", 65536)
+	consumer := NewDNSProcessor(cfg, log, "bench-dnsprocessor", 65536)
 	consumer.AddDefaultRoute(devNull)
 	go consumer.StartCollect()
 	defer consumer.Stop()
@@ -36,15 +36,15 @@ func Benchmark_DNSProcessor_Query(b *testing.B) {
 }
 
 func Benchmark_DNSProcessor_Response(b *testing.B) {
-	config := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	log := logger.New(false)
 	log.SetOutput(io.Discard)
 
-	devNull := NewDevNull(config, log, "devnull")
+	devNull := NewDevNull(cfg, log, "devnull")
 	go devNull.StartCollect()
 	defer devNull.Stop()
 
-	consumer := NewDNSProcessor(config, log, "bench-dnsprocessor", 65536)
+	consumer := NewDNSProcessor(cfg, log, "bench-dnsprocessor", 65536)
 	consumer.AddDefaultRoute(devNull)
 	go consumer.StartCollect()
 	defer consumer.Stop()
@@ -65,15 +65,15 @@ func Benchmark_DNSProcessor_Response(b *testing.B) {
 }
 
 func Benchmark_DNSProcessor_Malformed(b *testing.B) {
-	config := pkgconfig.GetDefaultConfig()
+	cfg := config.GetDefaultConfig()
 	log := logger.New(false)
 	log.SetOutput(io.Discard)
 
-	devNull := NewDevNull(config, log, "devnull")
+	devNull := NewDevNull(cfg, log, "devnull")
 	go devNull.StartCollect()
 	defer devNull.Stop()
 
-	consumer := NewDNSProcessor(config, log, "bench-dnsprocessor", 65536)
+	consumer := NewDNSProcessor(cfg, log, "bench-dnsprocessor", 65536)
 	consumer.AddDefaultRoute(devNull)
 	go consumer.StartCollect()
 	defer consumer.Stop()
