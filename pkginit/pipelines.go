@@ -1,13 +1,13 @@
 package pkginit
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
 	"github.com/dmachard/go-dnscollector/v2/telemetry"
 	"github.com/dmachard/go-dnscollector/v2/workers"
 	"github.com/dmachard/go-logger"
-	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -24,8 +24,7 @@ func IsPipelinesEnabled(config *pkgconfig.Config) bool {
 	return len(config.Pipelines) > 0
 }
 
-func GetStanzaConfig(config *pkgconfig.Config, item pkgconfig.ConfigPipelines) *pkgconfig.Config {
-
+func GetStanzaConfig(config *pkgconfig.Config, item pkgconfig.ConfigPipelines) (*pkgconfig.Config, error) {
 	cfg := make(map[string]interface{})
 	section := "collectors"
 
@@ -33,7 +32,9 @@ func GetStanzaConfig(config *pkgconfig.Config, item pkgconfig.ConfigPipelines) *
 	for k, p := range item.Params {
 		// is a logger or collector ?
 		if !config.Loggers.IsExists(k) && !config.Collectors.IsExists(k) {
-			panic(fmt.Sprintln("main - get stanza config error"))
+			return nil, &StanzaConfigError{
+				Message: fmt.Sprintf("stanza '%s' references unknown collector or logger '%s'", item.Name, k),
+			}
 		}
 		if config.Loggers.IsExists(k) {
 			section = "loggers"
@@ -69,13 +70,16 @@ func GetStanzaConfig(config *pkgconfig.Config, item pkgconfig.ConfigPipelines) *
 
 	yamlcfg, _ := yaml.Marshal(cfg)
 	if err := yaml.Unmarshal(yamlcfg, subcfg); err != nil {
-		panic(fmt.Sprintf("main - yaml logger config error: %v", err))
+		return nil, &YAMLConfigError{
+			Section: section,
+			Err:     err,
+		}
 	}
 
-	return subcfg
+	return subcfg, nil
 }
 
-func StanzaNameIsUniq(name string, config *pkgconfig.Config) (ret error) {
+func StanzaNameIsUniq(name string, config *pkgconfig.Config) error {
 	stanzaCounter := 0
 	for _, stanza := range config.Pipelines {
 		if name == stanza.Name {
@@ -84,18 +88,18 @@ func StanzaNameIsUniq(name string, config *pkgconfig.Config) (ret error) {
 	}
 
 	if stanzaCounter > 1 {
-		return fmt.Errorf("stanza=%s already exists", name)
+		return &DuplicateStanzaError{Name: name}
 	}
 	return nil
 }
 
-func IsRouteExist(target string, config *pkgconfig.Config) (ret error) {
+func IsRouteExist(target string, config *pkgconfig.Config) error {
 	for _, stanza := range config.Pipelines {
 		if target == stanza.Name {
 			return nil
 		}
 	}
-	return fmt.Errorf("route=%s doest not exist", target)
+	return &RouteNotFoundError{Name: target}
 }
 
 func CreateRouting(stanza pkgconfig.ConfigPipelines, mapCollectors map[string]workers.Worker, mapLoggers map[string]workers.Worker, logger *logger.Logger) error {
@@ -103,36 +107,63 @@ func CreateRouting(stanza pkgconfig.ConfigPipelines, mapCollectors map[string]wo
 	if collector, ok := mapCollectors[stanza.Name]; ok {
 		currentStanza = collector
 	}
-	if logger, ok := mapLoggers[stanza.Name]; ok {
-		currentStanza = logger
+	if logWorker, ok := mapLoggers[stanza.Name]; ok {
+		currentStanza = logWorker
+	}
+	if currentStanza == nil {
+		return &StanzaNotFoundError{Name: stanza.Name}
 	}
 
 	// forward routing
 	for _, route := range stanza.RoutingPolicy.Forward {
 		if route == stanza.Name {
-			return fmt.Errorf("main - routing error loop with stanza=%s to stanza=%s", stanza.Name, route)
+			return &RoutingLoopError{From: stanza.Name, To: route}
 		}
-		if _, ok := mapCollectors[route]; ok {
-			currentStanza.AddDefaultRoute(mapCollectors[route])
+		if collector, ok := mapCollectors[route]; ok {
+			if collector.GetInputChannel() == nil {
+				return &workers.DefaultRoutingError{
+					StanzaName: route,
+					Reason:     "worker does not accept incoming messages",
+				}
+			}
+			currentStanza.AddDefaultRoute(collector)
 			logger.Info("main - routing (policy=forward) stanza=[%s] to stanza=[%s]", stanza.Name, route)
-		} else if _, ok := mapLoggers[route]; ok {
-			currentStanza.AddDefaultRoute(mapLoggers[route])
+		} else if logWorker, ok := mapLoggers[route]; ok {
+			if logWorker.GetInputChannel() == nil {
+				return &workers.DefaultRoutingError{
+					StanzaName: route,
+					Reason:     "worker does not accept incoming messages",
+				}
+			}
+			currentStanza.AddDefaultRoute(logWorker)
 			logger.Info("main - routing (policy=forward) stanza=[%s] to stanza=[%s]", stanza.Name, route)
 		} else {
-			return fmt.Errorf("main - forward routing error from stanza=%s to stanza=%s doest not exist", stanza.Name, route)
+			return &RouteNotFoundError{Name: route, From: stanza.Name}
 		}
 	}
 
 	// dropped routing
 	for _, route := range stanza.RoutingPolicy.Dropped {
-		if _, ok := mapCollectors[route]; ok {
-			currentStanza.AddDroppedRoute(mapCollectors[route])
+		if collector, ok := mapCollectors[route]; ok {
+			if collector.GetInputChannel() == nil {
+				return &workers.DefaultRoutingError{
+					StanzaName: route,
+					Reason:     "worker does not accept incoming messages",
+				}
+			}
+			currentStanza.AddDroppedRoute(collector)
 			logger.Info("main - routing (policy=dropped) stanza=[%s] to stanza=[%s]", stanza.Name, route)
-		} else if _, ok := mapLoggers[route]; ok {
-			currentStanza.AddDroppedRoute(mapLoggers[route])
+		} else if logWorker, ok := mapLoggers[route]; ok {
+			if logWorker.GetInputChannel() == nil {
+				return &workers.DefaultRoutingError{
+					StanzaName: route,
+					Reason:     "worker does not accept incoming messages",
+				}
+			}
+			currentStanza.AddDroppedRoute(logWorker)
 			logger.Info("main - routing (policy=dropped) stanza=[%s] to stanza=[%s]", stanza.Name, route)
 		} else {
-			return fmt.Errorf("main - routing error with dropped messages from stanza=%s to stanza=%s doest not exist", stanza.Name, route)
+			return &RouteNotFoundError{Name: route, From: stanza.Name}
 		}
 	}
 	return nil
@@ -153,51 +184,77 @@ func CreateStanza(stanzaName string, config *pkgconfig.Config, mapCollectors map
 }
 
 func InitPipelines(mapLoggers map[string]workers.Worker, mapCollectors map[string]workers.Worker, config *pkgconfig.Config, logger *logger.Logger, telemetry *telemetry.PrometheusCollector) error {
-	// check if the name of each stanza is uniq
+	var errs []error
+	seenStanzas := make(map[string]bool)
+	duplicateReported := make(map[string]bool)
 	routesDefined := false
+
+	// 1. Check duplicate stanzas and route definitions
 	for _, stanza := range config.Pipelines {
-		if err := StanzaNameIsUniq(stanza.Name, config); err != nil {
-			return errors.Errorf("stanza with name=[%s] is duplicated", stanza.Name)
+		if seenStanzas[stanza.Name] {
+			if !duplicateReported[stanza.Name] {
+				errs = append(errs, &DuplicateStanzaError{Name: stanza.Name})
+				duplicateReported[stanza.Name] = true
+			}
 		}
+		seenStanzas[stanza.Name] = true
+
 		if len(stanza.RoutingPolicy.Forward) > 0 || len(stanza.RoutingPolicy.Dropped) > 0 {
 			routesDefined = true
 		}
 	}
 
-	if !routesDefined {
-		return errors.Errorf("no routes are defined")
-	}
-
-	// check if all routes exists before continue
+	// 2. Check if all target routes exist
 	for _, stanza := range config.Pipelines {
 		for _, route := range stanza.RoutingPolicy.Forward {
 			if err := IsRouteExist(route, config); err != nil {
-				return errors.Errorf("stanza=[%s] forward route=[%s] doest not exist", stanza.Name, route)
+				errs = append(errs, &RouteNotFoundError{Name: route, From: stanza.Name})
 			}
 		}
 		for _, route := range stanza.RoutingPolicy.Dropped {
 			if err := IsRouteExist(route, config); err != nil {
-				return errors.Errorf("stanza=[%s] dropped route=[%s] doest not exist", stanza.Name, route)
+				errs = append(errs, &RouteNotFoundError{Name: route, From: stanza.Name})
 			}
 		}
 	}
 
-	// read each stanza and init
-	for _, stanza := range config.Pipelines {
-		stanzaConfig := GetStanzaConfig(config, stanza)
-		CreateStanza(stanza.Name, stanzaConfig, mapCollectors, mapLoggers, logger, telemetry)
-
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 
-	// create routing
+	if !routesDefined {
+		return ErrNoRoutesDefined
+	}
+
+	// 3. Read and instantiate each stanza
+	var stanzaErrs []error
+	for _, stanza := range config.Pipelines {
+		stanzaConfig, err := GetStanzaConfig(config, stanza)
+		if err != nil {
+			stanzaErrs = append(stanzaErrs, err)
+			continue
+		}
+		CreateStanza(stanza.Name, stanzaConfig, mapCollectors, mapLoggers, logger, telemetry)
+	}
+
+	if len(stanzaErrs) > 0 {
+		return errors.Join(stanzaErrs...)
+	}
+
+	// 4. Create routing connections between instantiated stanzas
+	var routingErrs []error
 	for _, stanza := range config.Pipelines {
 		if mapCollectors[stanza.Name] != nil || mapLoggers[stanza.Name] != nil {
 			if err := CreateRouting(stanza, mapCollectors, mapLoggers, logger); err != nil {
-				return errors.Wrap(err, "routing")
+				routingErrs = append(routingErrs, err)
 			}
 		} else {
-			return errors.Errorf("routing - stanza=[%v] doest not exist", stanza.Name)
+			routingErrs = append(routingErrs, &StanzaNotFoundError{Name: stanza.Name})
 		}
+	}
+
+	if len(routingErrs) > 0 {
+		return errors.Join(routingErrs...)
 	}
 
 	return nil
@@ -205,7 +262,11 @@ func InitPipelines(mapLoggers map[string]workers.Worker, mapCollectors map[strin
 
 func ReloadPipelines(mapLoggers map[string]workers.Worker, mapCollectors map[string]workers.Worker, config *pkgconfig.Config, logger *logger.Logger) {
 	for _, stanza := range config.Pipelines {
-		newCfg := GetStanzaConfig(config, stanza)
+		newCfg, err := GetStanzaConfig(config, stanza)
+		if err != nil {
+			logger.Error("main - reload config error for stanza=%s: %v", stanza.Name, err)
+			continue
+		}
 		if _, ok := mapLoggers[stanza.Name]; ok {
 			mapLoggers[stanza.Name].ReloadConfig(newCfg)
 		} else if _, ok := mapCollectors[stanza.Name]; ok {
