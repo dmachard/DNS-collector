@@ -12,8 +12,8 @@ import (
 
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/perf"
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 	"golang.org/x/sys/unix"

@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/IBM/fluent-forward-go/fluent/protocol"
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 	"github.com/tinylib/msgp/msgp"

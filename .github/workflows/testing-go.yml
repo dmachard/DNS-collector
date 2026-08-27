@@ -49,12 +49,14 @@ jobs:
         go-version: [ '1.26' ] 
         package:
           - '.'
-          - 'pkgconfig'
-          - 'pkginit'
+          - 'pkg/config'
+          - 'pkg/pipeline'
+          - 'pkg/cuckoo'
+          - 'pkg/bgpmrt'
           - 'dnsutils'
           - 'workers'
           - 'transformers'
-          - 'telemetry'
+          - 'pkg/telemetry'
     
     runs-on: "${{ matrix.os-version }}"
 

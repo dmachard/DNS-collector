@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	dnstap "github.com/dmachard/go-dnstap-protobuf"
 	"github.com/miekg/dns"
 )

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkg/config"
-	"github.com/dmachard/go-dnscollector/v2/pkg/cuckoo"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/pkg/cuckoo"
 	"github.com/dmachard/go-logger"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 )

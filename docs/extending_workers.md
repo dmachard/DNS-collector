@@ -35,8 +35,8 @@ Create your worker file `workers/mylogger.go` (and unit tests `workers/mylogger_
 package workers
 
 import (
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
-	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/pkgconfig"
 	"github.com/dmachard/go-logger"
 )
 

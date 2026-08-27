@@ -1,4 +1,4 @@
-module github.com/dmachard/go-dnscollector/v2
+module github.com/dmachard/go-dnscollector/v3
 
 go 1.26.5
 

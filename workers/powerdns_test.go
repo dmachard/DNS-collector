@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v2/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
 	powerdns_protobuf "github.com/dmachard/go-powerdns-protobuf"
@@ -246,7 +246,7 @@ func Test_PowerDNSProcessor_AddDNSPayload_AnswersTooLongDomain(t *testing.T) {
 	}
 }
 
-// test for issue https://github.com/dmachard/go-dnscollector/v2/issues/568
+// test for issue https://github.com/dmachard/go-dnscollector/v3/issues/568
 func Test_PowerDNSProcessor_BufferLoggerIsFull(t *testing.T) {
 
 	fl := GetWorkerForTest(config.DefaultBufferOne)

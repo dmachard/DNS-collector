@@ -4,7 +4,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/dmachard/go-dnscollector/v2/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-logger"
 	powerdns_protobuf "github.com/dmachard/go-powerdns-protobuf"
 	"google.golang.org/protobuf/proto"

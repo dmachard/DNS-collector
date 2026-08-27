@@ -2,7 +2,7 @@ services:
   dnscollector:
     image: dnscollector:latest
     build:
-      context: ../..
+      context: ../../..
       dockerfile: Dockerfile
     container_name: dnscollector-dev
     volumes:

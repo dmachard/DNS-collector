@@ -7,7 +7,7 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/dmachard/go-dnscollector/v2/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 )
 
 var ErrDecodeEdnsBadRootDomain = errors.New("edns, name MUST be 0 (root domain)")

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/dmachard/go-dnscollector/v2/dnsutils"
+	"github.com/dmachard/go-dnscollector/v3/dnsutils"
 )
 
 func TestWorkerErrors_IsAndAs(t *testing.T) {

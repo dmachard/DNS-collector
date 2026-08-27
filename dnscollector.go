@@ -12,10 +12,10 @@ import (
 
 	_ "net/http/pprof"
 
-	"github.com/dmachard/go-dnscollector/v2/pkg/config"
-	"github.com/dmachard/go-dnscollector/v2/pkg/pipeline"
-	"github.com/dmachard/go-dnscollector/v2/telemetry"
-	"github.com/dmachard/go-dnscollector/v2/workers"
+	"github.com/dmachard/go-dnscollector/v3/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/pkg/pipeline"
+	"github.com/dmachard/go-dnscollector/v3/pkg/telemetry"
+	"github.com/dmachard/go-dnscollector/v3/workers"
 	"github.com/dmachard/go-logger"
 	"github.com/natefinch/lumberjack"
 	"github.com/prometheus/common/version"
