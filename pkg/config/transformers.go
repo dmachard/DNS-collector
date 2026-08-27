@@ -176,13 +176,13 @@ type TransformReordering struct {
 }
 
 type TransformFrequencyFiltering struct {
-	Enable        bool   `yaml:"enable" default:"false"`
-	TrackBy       string `yaml:"track-by" default:"qname"`
-	Threshold     int    `yaml:"threshold" default:"1000"`
-	WindowSeconds int    `yaml:"window-seconds" default:"60"`
-	SampleRate    int    `yaml:"sample-rate" default:"100"`
-	TagOnly       bool   `yaml:"tag-only" default:"false"`
-	Capacity      int    `yaml:"capacity" default:"100000"`
+	Enable         bool   `yaml:"enable" default:"false"`
+	Target         string `yaml:"target" default:"qname"`
+	ThresholdHeavy int    `yaml:"threshold-heavy" default:"1000"`
+	ActionOnHeavy  string `yaml:"action-on-heavy" default:"drop"`
+	SampleRate     int    `yaml:"sample-rate" default:"100"`
+	TTL            int    `yaml:"ttl" default:"300"`
+	MaxCapacity    int    `yaml:"max-capacity" default:"500000"`
 }
 
 type ConfigTransformers struct {

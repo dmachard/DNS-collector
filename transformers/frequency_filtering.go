@@ -22,17 +22,17 @@ func NewFrequencyFilteringTransform(cfg *config.TransformFrequencyFiltering, log
 	t := &FrequencyFilteringTransform{
 		GenericTransformer: NewTransformer(logger, "frequency-filtering", name, instance, nextWorkers),
 		config:             cfg,
-		cuckooFilter:       cuckoo.NewCountingCuckooFilter(cfg.Capacity),
+		cuckooFilter:       cuckoo.NewCountingCuckooFilter(cfg.MaxCapacity),
 		stopChan:           make(chan struct{}),
 	}
-	if cfg.Enable && cfg.WindowSeconds > 0 {
+	if cfg.Enable && cfg.TTL > 0 {
 		go t.decayLoop()
 	}
 	return t
 }
 
 func (t *FrequencyFilteringTransform) decayLoop() {
-	ticker := time.NewTicker(time.Duration(t.config.WindowSeconds) * time.Second)
+	ticker := time.NewTicker(time.Duration(t.config.TTL) * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
@@ -63,14 +63,14 @@ func (t *FrequencyFilteringTransform) GetTransforms() ([]Subtransform, error) {
 
 func (t *FrequencyFilteringTransform) filterFrequency(dm *dnsutils.DNSMessage) (int, error) {
 	var key string
-	switch t.config.TrackBy {
+	switch t.config.Target {
 	case "domain":
 		if dm.PublicSuffix != nil && len(dm.PublicSuffix.QnameEffectiveTLDPlusOne) > 0 {
 			key = dm.PublicSuffix.QnameEffectiveTLDPlusOne
 		} else {
 			key = dm.DNS.Qname
 		}
-	case "query-ip":
+	case "client-ip", "query-ip":
 		key = dm.NetworkInfo.QueryIP
 	case "qname":
 		fallthrough
@@ -83,27 +83,45 @@ func (t *FrequencyFilteringTransform) filterFrequency(dm *dnsutils.DNSMessage) (
 	}
 
 	count := t.cuckooFilter.Increment(key)
-	isHeavy := int(count) > t.config.Threshold
+	isHeavy := int(count) > t.config.ThresholdHeavy
+
+	var tier string
+	switch {
+	case isHeavy:
+		tier = "heavy"
+	case count == 1:
+		tier = "rare"
+	default:
+		tier = "frequent"
+	}
 
 	dm.Frequency = &dnsutils.TransformFrequency{
 		Count:         int(count),
 		IsHeavyHitter: isHeavy,
-		TrackedKey:    key,
+		Tier:          tier,
+		Target:        key,
 	}
 
-	if !isHeavy || t.config.TagOnly {
+	if !isHeavy {
 		return ReturnKeep, nil
 	}
 
-	// Heavy hitter and not TagOnly:
-	if t.config.SampleRate <= 0 {
+	// Action when Heavy Hitter
+	switch t.config.ActionOnHeavy {
+	case "tag", "keep":
+		return ReturnKeep, nil
+	case "sample":
+		if t.config.SampleRate <= 0 {
+			return ReturnDrop, nil
+		}
+		cur := atomic.AddUint64(&t.sampleCounter, 1)
+		if cur%uint64(t.config.SampleRate) == 0 {
+			return ReturnKeep, nil
+		}
+		return ReturnDrop, nil
+	case "drop":
+		fallthrough
+	default:
 		return ReturnDrop, nil
 	}
-
-	cur := atomic.AddUint64(&t.sampleCounter, 1)
-	if cur%uint64(t.config.SampleRate) == 0 {
-		return ReturnKeep, nil
-	}
-
-	return ReturnDrop, nil
 }

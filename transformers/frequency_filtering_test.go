@@ -9,15 +9,14 @@ import (
 	"github.com/dmachard/go-logger"
 )
 
-func TestFrequencyFiltering_ThresholdAndTagOnly(t *testing.T) {
+func TestFrequencyFiltering_ThresholdAndTagAction(t *testing.T) {
 	cfg := &config.TransformFrequencyFiltering{
-		Enable:        true,
-		TrackBy:       "qname",
-		Threshold:     3,
-		WindowSeconds: 60,
-		SampleRate:    0, // drop 100% when heavy
-		TagOnly:       true,
-		Capacity:      1000,
+		Enable:         true,
+		Target:         "qname",
+		ThresholdHeavy: 3,
+		TTL:            60,
+		ActionOnHeavy:  "tag",
+		MaxCapacity:    1000,
 	}
 
 	log := logger.New(true)
@@ -36,38 +35,42 @@ func TestFrequencyFiltering_ThresholdAndTagOnly(t *testing.T) {
 	dm := dnsutils.GetFakeDNSMessage()
 	dm.DNS.Qname = "example.com"
 
-	// 1st request -> Count 1, not heavy
+	// 1st request -> Count 1, Tier "rare", not heavy
 	res, _ := filter(&dm)
 	if res != ReturnKeep {
 		t.Fatalf("expected ReturnKeep on 1st request, got %d", res)
 	}
-	if dm.Frequency == nil || dm.Frequency.Count != 1 || dm.Frequency.IsHeavyHitter {
+	if dm.Frequency == nil || dm.Frequency.Count != 1 || dm.Frequency.IsHeavyHitter || dm.Frequency.Tier != "rare" {
 		t.Fatalf("unexpected frequency payload on 1st request: %+v", dm.Frequency)
 	}
 
-	// 2nd and 3rd requests
+	// 2nd request -> Count 2, Tier "frequent", not heavy
 	filter(&dm)
+	if dm.Frequency.Count != 2 || dm.Frequency.Tier != "frequent" || dm.Frequency.IsHeavyHitter {
+		t.Fatalf("unexpected frequency payload on 2nd request: %+v", dm.Frequency)
+	}
+
+	// 3rd request -> Count 3, Tier "frequent"
 	filter(&dm)
 
-	// 4th request -> Count 4 > Threshold(3) -> Heavy Hitter, but TagOnly is true -> ReturnKeep
+	// 4th request -> Count 4 > ThresholdHeavy(3) -> Heavy Hitter, Tier "heavy", Action "tag" -> ReturnKeep
 	res, _ = filter(&dm)
 	if res != ReturnKeep {
-		t.Fatalf("expected ReturnKeep for TagOnly, got %d", res)
+		t.Fatalf("expected ReturnKeep for ActionOnHeavy=tag, got %d", res)
 	}
-	if dm.Frequency == nil || dm.Frequency.Count != 4 || !dm.Frequency.IsHeavyHitter {
-		t.Fatalf("expected IsHeavyHitter true on 4th request, got %+v", dm.Frequency)
+	if dm.Frequency == nil || dm.Frequency.Count != 4 || !dm.Frequency.IsHeavyHitter || dm.Frequency.Tier != "heavy" {
+		t.Fatalf("expected Tier=heavy and IsHeavyHitter=true on 4th request, got %+v", dm.Frequency)
 	}
 }
 
-func TestFrequencyFiltering_DropMode(t *testing.T) {
+func TestFrequencyFiltering_DropAction(t *testing.T) {
 	cfg := &config.TransformFrequencyFiltering{
-		Enable:        true,
-		TrackBy:       "qname",
-		Threshold:     2,
-		WindowSeconds: 60,
-		SampleRate:    0, // Drop all heavy hitters
-		TagOnly:       false,
-		Capacity:      1000,
+		Enable:         true,
+		Target:         "qname",
+		ThresholdHeavy: 2,
+		TTL:            60,
+		ActionOnHeavy:  "drop",
+		MaxCapacity:    1000,
 	}
 
 	log := logger.New(true)
@@ -80,7 +83,7 @@ func TestFrequencyFiltering_DropMode(t *testing.T) {
 	dm := dnsutils.GetFakeDNSMessage()
 	dm.DNS.Qname = "flood.com"
 
-	// 1st request -> keep
+	// 1st request -> keep (count = 1)
 	res, _ := filter(&dm)
 	if res != ReturnKeep {
 		t.Fatalf("expected ReturnKeep, got %d", res)
@@ -99,15 +102,15 @@ func TestFrequencyFiltering_DropMode(t *testing.T) {
 	}
 }
 
-func TestFrequencyFiltering_SampleRate(t *testing.T) {
+func TestFrequencyFiltering_SampleAction(t *testing.T) {
 	cfg := &config.TransformFrequencyFiltering{
-		Enable:        true,
-		TrackBy:       "qname",
-		Threshold:     1,
-		WindowSeconds: 60,
-		SampleRate:    2, // sample 1 in 2
-		TagOnly:       false,
-		Capacity:      1000,
+		Enable:         true,
+		Target:         "qname",
+		ThresholdHeavy: 1,
+		TTL:            60,
+		ActionOnHeavy:  "sample",
+		SampleRate:     2, // sample 1 in 2
+		MaxCapacity:    1000,
 	}
 
 	log := logger.New(true)
@@ -123,24 +126,25 @@ func TestFrequencyFiltering_SampleRate(t *testing.T) {
 	// 1st request -> count 1 <= threshold 1 -> Keep
 	filter(&dm)
 
-	// Heavy hitter requests: SampleRate = 2 -> 1 keep, 1 drop, 1 keep, 1 drop...
-	res1, _ := filter(&dm) // sampleCounter=1 -> 1%2!=0 -> Drop
-	res2, _ := filter(&dm) // sampleCounter=2 -> 2%2==0 -> Keep
-	res3, _ := filter(&dm) // sampleCounter=3 -> 3%2!=0 -> Drop
-	res4, _ := filter(&dm) // sampleCounter=4 -> 4%2==0 -> Keep
+	// Heavy hitter requests: SampleRate = 2 -> 1 drop, 1 keep, 1 drop, 1 keep...
+	res1, _ := filter(&dm)
+	res2, _ := filter(&dm)
+	res3, _ := filter(&dm)
+	res4, _ := filter(&dm)
 
 	if res1 != ReturnDrop || res2 != ReturnKeep || res3 != ReturnDrop || res4 != ReturnKeep {
 		t.Fatalf("unexpected sampling pattern: [%d, %d, %d, %d]", res1, res2, res3, res4)
 	}
 }
 
-func TestFrequencyFiltering_TrackByDomainAndIP(t *testing.T) {
+func TestFrequencyFiltering_TargetDomainAndIP(t *testing.T) {
 	// Domain track
 	cfgDomain := &config.TransformFrequencyFiltering{
-		Enable:    true,
-		TrackBy:   "domain",
-		Threshold: 1,
-		Capacity:  1000,
+		Enable:         true,
+		Target:         "domain",
+		ThresholdHeavy: 1,
+		ActionOnHeavy:  "tag",
+		MaxCapacity:    1000,
 	}
 	log := logger.New(true)
 	tfDomain := NewFrequencyFilteringTransform(cfgDomain, log, "test", 0, nil)
@@ -159,16 +163,17 @@ func TestFrequencyFiltering_TrackByDomainAndIP(t *testing.T) {
 	dm.DNS.Qname = "sub2.target.com"
 	filterDomain(&dm)
 
-	if dm.Frequency.Count != 2 || dm.Frequency.TrackedKey != "target.com" {
-		t.Fatalf("expected domain tracking for target.com, got count=%d, key=%s", dm.Frequency.Count, dm.Frequency.TrackedKey)
+	if dm.Frequency.Count != 2 || dm.Frequency.Target != "target.com" || dm.Frequency.Tier != "heavy" {
+		t.Fatalf("expected domain tracking for target.com, got count=%d, target=%s, tier=%s", dm.Frequency.Count, dm.Frequency.Target, dm.Frequency.Tier)
 	}
 
-	// IP track
+	// Client IP track
 	cfgIP := &config.TransformFrequencyFiltering{
-		Enable:    true,
-		TrackBy:   "query-ip",
-		Threshold: 1,
-		Capacity:  1000,
+		Enable:         true,
+		Target:         "client-ip",
+		ThresholdHeavy: 1,
+		ActionOnHeavy:  "tag",
+		MaxCapacity:    1000,
 	}
 	tfIP := NewFrequencyFilteringTransform(cfgIP, log, "test", 0, nil)
 	defer tfIP.Stop()
@@ -180,18 +185,19 @@ func TestFrequencyFiltering_TrackByDomainAndIP(t *testing.T) {
 	dmIP.NetworkInfo.QueryIP = "192.0.2.1"
 	filterIP(&dmIP)
 
-	if dmIP.Frequency.TrackedKey != "192.0.2.1" || dmIP.Frequency.Count != 1 {
+	if dmIP.Frequency.Target != "192.0.2.1" || dmIP.Frequency.Count != 1 || dmIP.Frequency.Tier != "rare" {
 		t.Fatalf("expected IP tracking for 192.0.2.1, got %+v", dmIP.Frequency)
 	}
 }
 
 func TestFrequencyFiltering_Decay(t *testing.T) {
 	cfg := &config.TransformFrequencyFiltering{
-		Enable:        true,
-		TrackBy:       "qname",
-		Threshold:     10,
-		WindowSeconds: 1, // 1 second decay
-		Capacity:      1000,
+		Enable:         true,
+		Target:         "qname",
+		ThresholdHeavy: 10,
+		TTL:            1, // 1 second decay
+		ActionOnHeavy:  "tag",
+		MaxCapacity:    1000,
 	}
 	log := logger.New(true)
 	tf := NewFrequencyFilteringTransform(cfg, log, "test", 0, nil)

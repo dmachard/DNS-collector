@@ -306,7 +306,8 @@ type TransformBGP struct {
 type TransformFrequency struct {
 	Count         int    `json:"count"`
 	IsHeavyHitter bool   `json:"is_heavy_hitter"`
-	TrackedKey    string `json:"tracked_key"`
+	Tier          string `json:"tier"`
+	Target        string `json:"target"`
 }
 
 type DNSMessage struct {

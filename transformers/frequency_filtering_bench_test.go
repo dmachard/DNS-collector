@@ -11,13 +11,13 @@ import (
 
 func BenchmarkFrequencyFiltering_Process(b *testing.B) {
 	cfg := &config.TransformFrequencyFiltering{
-		Enable:        true,
-		TrackBy:       "qname",
-		Threshold:     1000,
-		WindowSeconds: 60,
-		SampleRate:    100,
-		TagOnly:       false,
-		Capacity:      100000,
+		Enable:         true,
+		Target:         "qname",
+		ThresholdHeavy: 1000,
+		TTL:            60,
+		ActionOnHeavy:  "sample",
+		SampleRate:     100,
+		MaxCapacity:    100000,
 	}
 
 	log := logger.New(true)

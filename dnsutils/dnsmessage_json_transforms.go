@@ -201,7 +201,9 @@ func (t *TransformFrequency) EncodeJSON(buf *bytes.Buffer) {
 	} else {
 		buf.WriteString("false")
 	}
-	buf.WriteString(`,"tracked_key":`)
-	WriteJSONString(buf, t.TrackedKey)
+	buf.WriteString(`,"tier":`)
+	WriteJSONString(buf, t.Tier)
+	buf.WriteString(`,"target":`)
+	WriteJSONString(buf, t.Target)
 	buf.WriteByte('}')
 }

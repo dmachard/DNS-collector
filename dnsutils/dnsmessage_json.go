@@ -265,7 +265,8 @@ func (dm *DNSMessage) EncodeFlatJSON(buffer *bytes.Buffer) {
 	if dm.Frequency != nil {
 		writeInt("frequency.count", dm.Frequency.Count)
 		writeBool("frequency.is-heavy-hitter", dm.Frequency.IsHeavyHitter)
-		writeString("frequency.tracked-key", dm.Frequency.TrackedKey)
+		writeString("frequency.tier", dm.Frequency.Tier)
+		writeString("frequency.target", dm.Frequency.Target)
 	}
 
 	if dm.MachineLearning != nil {
@@ -510,7 +511,8 @@ func (dm *DNSMessage) Flatten() (map[string]interface{}, error) {
 	if dm.Frequency != nil {
 		dnsFields["frequency.count"] = dm.Frequency.Count
 		dnsFields["frequency.is-heavy-hitter"] = dm.Frequency.IsHeavyHitter
-		dnsFields["frequency.tracked-key"] = dm.Frequency.TrackedKey
+		dnsFields["frequency.tier"] = dm.Frequency.Tier
+		dnsFields["frequency.target"] = dm.Frequency.Target
 	}
 
 	// Add TransformML fields
