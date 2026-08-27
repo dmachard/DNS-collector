@@ -9,7 +9,7 @@ import (
 	"github.com/dmachard/go-dnscollector/v3/pkg/telemetry"
 	"github.com/dmachard/go-dnscollector/v3/workers"
 	"github.com/dmachard/go-logger"
-	"gopkg.in/yaml.v2"
+	"github.com/go-viper/mapstructure/v2"
 )
 
 func registerWorker(m map[string]workers.Worker, name string, enabled bool, factory func() workers.Worker, metrics *telemetry.PrometheusCollector) {
@@ -69,8 +69,20 @@ func GetStanzaConfig(mainConfig *config.Config, item config.ConfigPipelines) (*c
 	// copy global config
 	subcfg.Global = mainConfig.Global
 
-	yamlcfg, _ := yaml.Marshal(cfgMap)
-	if err := yaml.Unmarshal(yamlcfg, subcfg); err != nil {
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		TagName:          "yaml",
+		WeaklyTypedInput: true,
+		Result:           subcfg,
+		ZeroFields:       false,
+	})
+	if err != nil {
+		return nil, &YAMLConfigError{
+			Section: section,
+			Err:     err,
+		}
+	}
+
+	if err := decoder.Decode(cfgMap); err != nil {
 		return nil, &YAMLConfigError{
 			Section: section,
 			Err:     err,

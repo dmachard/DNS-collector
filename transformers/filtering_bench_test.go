@@ -28,7 +28,7 @@ func BenchmarkFiltering_DropDomainRegex(b *testing.B) {
 	cfg.Filtering.DropDomainFile = tmpFile.Name()
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	filtering := NewFilteringTransform(cfg, logger.New(false), "test", 0, outChans)
+	filtering := NewFilteringTransform(&cfg.Filtering, logger.New(false), "test", 0, outChans)
 	_, _ = filtering.GetTransforms()
 
 	dm := dnsutils.GetFakeDNSMessage()

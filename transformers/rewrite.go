@@ -14,23 +14,24 @@ type MutatorFunc func(dm *dnsutils.DNSMessage) error
 
 type RewriteTransform struct {
 	GenericTransformer
+	config   *config.TransformRewrite
 	mutators []MutatorFunc
 }
 
-func NewRewriteTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *RewriteTransform {
-	t := &RewriteTransform{GenericTransformer: NewTransformer(cfg, logger, "rewrite", name, instance, nextWorkers)}
+func NewRewriteTransform(cfg *config.TransformRewrite, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *RewriteTransform {
+	t := &RewriteTransform{config: cfg, GenericTransformer: NewTransformer(logger, "rewrite", name, instance, nextWorkers)}
 	t.initMutators()
 	return t
 }
 
-func (t *RewriteTransform) ReloadConfig(cfg *config.ConfigTransformers) {
-	t.GenericTransformer.ReloadConfig(cfg)
+func (t *RewriteTransform) ReloadConfig(cfg *config.TransformRewrite) {
+	t.config = cfg
 	t.initMutators()
 }
 
 func (t *RewriteTransform) initMutators() {
-	t.mutators = make([]MutatorFunc, 0, len(t.config.Rewrite.Identifiers))
-	for nestedKeys, value := range t.config.Rewrite.Identifiers {
+	t.mutators = make([]MutatorFunc, 0, len(t.config.Identifiers))
+	for nestedKeys, value := range t.config.Identifiers {
 		t.mutators = append(t.mutators, getMutator(nestedKeys, value))
 	}
 }
@@ -119,7 +120,7 @@ func getMutator(nestedKeys string, val interface{}) MutatorFunc {
 
 func (t *RewriteTransform) GetTransforms() ([]Subtransform, error) {
 	subtransforms := []Subtransform{}
-	if len(t.config.Rewrite.Identifiers) > 0 {
+	if len(t.config.Identifiers) > 0 {
 		subtransforms = append(subtransforms, Subtransform{name: "rewrite", processFunc: t.UpdateValues})
 	}
 	return subtransforms, nil

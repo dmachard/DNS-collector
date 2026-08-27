@@ -263,14 +263,15 @@ func appendField(f fieldSpec, dm *dnsutils.DNSMessage, buf []byte) []byte {
 
 type ReducerTransform struct {
 	GenericTransformer
+	config     *config.TransformReducer
 	mapTraffic *MapTraffic
 	fields     []fieldSpec
 }
 
-func NewReducerTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *ReducerTransform {
-	t := &ReducerTransform{GenericTransformer: NewTransformer(cfg, logger, "reducer", name, instance, nextWorkers)}
-	t.mapTraffic = NewMapTraffic(time.Duration(cfg.Reducer.WatchInterval)*time.Second, nextWorkers, t.LogInfo, t.LogError)
-	t.initFields(cfg.Reducer.UniqueFields)
+func NewReducerTransform(cfg *config.TransformReducer, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *ReducerTransform {
+	t := &ReducerTransform{config: cfg, GenericTransformer: NewTransformer(logger, "reducer", name, instance, nextWorkers)}
+	t.mapTraffic = NewMapTraffic(time.Duration(cfg.WatchInterval)*time.Second, nextWorkers, t.LogInfo, t.LogError)
+	t.initFields(cfg.UniqueFields)
 	return t
 }
 
@@ -281,16 +282,16 @@ func (t *ReducerTransform) initFields(fields []string) {
 	}
 }
 
-func (t *ReducerTransform) ReloadConfig(cfg *config.ConfigTransformers) {
-	t.GenericTransformer.ReloadConfig(cfg)
-	t.mapTraffic.SetTTL(time.Duration(cfg.Reducer.WatchInterval) * time.Second)
-	t.initFields(cfg.Reducer.UniqueFields)
+func (t *ReducerTransform) ReloadConfig(cfg *config.TransformReducer) {
+	t.config = cfg
+	t.mapTraffic.SetTTL(time.Duration(cfg.WatchInterval) * time.Second)
+	t.initFields(cfg.UniqueFields)
 	t.GetTransforms()
 }
 
 func (t *ReducerTransform) GetTransforms() ([]Subtransform, error) {
 	subtransforms := []Subtransform{}
-	if t.config.Reducer.RepetitiveTrafficDetector {
+	if t.config.RepetitiveTrafficDetector {
 		subtransforms = append(subtransforms, Subtransform{name: "reducer", processFunc: t.repetitiveTrafficDetector})
 		go t.mapTraffic.Run()
 	}
@@ -303,7 +304,7 @@ func (t *ReducerTransform) repetitiveTrafficDetector(dm *dnsutils.DNSMessage) (i
 	}
 
 	// update qname ?
-	if t.config.Reducer.QnamePlusOne {
+	if t.config.QnamePlusOne {
 		qname := strings.ToLower(dm.DNS.Qname)
 		qname = strings.TrimSuffix(qname, ".")
 		if etld, err := publicsuffixlist.EffectiveTLDPlusOne(qname); err == nil {

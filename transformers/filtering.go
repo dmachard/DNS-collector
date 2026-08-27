@@ -15,6 +15,7 @@ import (
 
 type FilteringTransform struct {
 	GenericTransformer
+	config                                 *config.TransformFiltering
 	mapRcodes                              map[string]bool
 	ipsetDrop, ipsetKeep, rDataIpsetKeep   *netaddr.IPSet
 	listFqdns, listKeepFqdns               map[string]bool
@@ -23,8 +24,11 @@ type FilteringTransform struct {
 	downsample, downsampleCount            int
 }
 
-func NewFilteringTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *FilteringTransform {
-	t := &FilteringTransform{GenericTransformer: NewTransformer(cfg, logger, "filtering", name, instance, nextWorkers)}
+func NewFilteringTransform(cfg *config.TransformFiltering, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *FilteringTransform {
+	t := &FilteringTransform{
+		GenericTransformer: NewTransformer(logger, "filtering", name, instance, nextWorkers),
+		config:             cfg,
+	}
 	t.mapRcodes = make(map[string]bool)
 	t.ipsetDrop = &netaddr.IPSet{}
 	t.ipsetKeep = &netaddr.IPSet{}
@@ -52,22 +56,22 @@ func (t *FilteringTransform) GetTransforms() ([]Subtransform, error) {
 		return nil, err
 	}
 
-	if !t.config.Filtering.LogQueries {
+	if !t.config.LogQueries {
 		subtransforms = append(subtransforms, Subtransform{name: "filtering:drop-queries", processFunc: t.dropQueryFilter})
 	}
-	if !t.config.Filtering.LogReplies {
+	if !t.config.LogReplies {
 		subtransforms = append(subtransforms, Subtransform{name: "filtering:drop-replies", processFunc: t.dropReplyFilter})
 	}
 	if len(t.mapRcodes) > 0 {
 		subtransforms = append(subtransforms, Subtransform{name: "filtering:drop-rcode", processFunc: t.dropRCodeFilter})
 	}
-	if len(t.config.Filtering.KeepQueryIPFile) > 0 {
+	if len(t.config.KeepQueryIPFile) > 0 {
 		subtransforms = append(subtransforms, Subtransform{name: "filtering:keep-queryip", processFunc: t.keepQueryIPFilter})
 	}
-	if len(t.config.Filtering.DropQueryIPFile) > 0 {
+	if len(t.config.DropQueryIPFile) > 0 {
 		subtransforms = append(subtransforms, Subtransform{name: "filtering:drop-queryip", processFunc: t.dropQueryIPFilter})
 	}
-	if len(t.config.Filtering.KeepRdataFile) > 0 {
+	if len(t.config.KeepRdataFile) > 0 {
 		subtransforms = append(subtransforms, Subtransform{name: "filtering:keep-rdata", processFunc: t.keepRdataFilter})
 	}
 	if len(t.listFqdns) > 0 {
@@ -82,8 +86,8 @@ func (t *FilteringTransform) GetTransforms() ([]Subtransform, error) {
 	if len(t.listKeepDomainsRegex) > 0 {
 		subtransforms = append(subtransforms, Subtransform{name: "filtering:keep-domain", processFunc: t.keepDomainRegexFilter})
 	}
-	if t.config.Filtering.Downsample > 0 {
-		t.downsample = t.config.Filtering.Downsample
+	if t.config.Downsample > 0 {
+		t.downsample = t.config.Downsample
 		t.downsampleCount = 0
 		subtransforms = append(subtransforms, Subtransform{name: "filtering:downsampling", processFunc: t.downsampleFilter})
 	}
@@ -97,7 +101,7 @@ func (t *FilteringTransform) LoadRcodes() error {
 	}
 
 	// add
-	for _, v := range t.config.Filtering.DropRcodes {
+	for _, v := range t.config.DropRcodes {
 		t.mapRcodes[v] = true
 	}
 	return nil
@@ -107,16 +111,16 @@ func (t *FilteringTransform) LoadQueryIPList() error {
 	t.ipsetDrop = nil
 	t.ipsetKeep = nil
 
-	if len(t.config.Filtering.DropQueryIPFile) > 0 {
-		read, err := t.loadQueryIPList(t.config.Filtering.DropQueryIPFile, true)
+	if len(t.config.DropQueryIPFile) > 0 {
+		read, err := t.loadQueryIPList(t.config.DropQueryIPFile, true)
 		if err != nil {
 			return fmt.Errorf("unable to open query ip file: %w", err)
 		}
 		t.LogInfo("loaded with %d query ip to the drop list", read)
 	}
 
-	if len(t.config.Filtering.KeepQueryIPFile) > 0 {
-		read, err := t.loadQueryIPList(t.config.Filtering.KeepQueryIPFile, false)
+	if len(t.config.KeepQueryIPFile) > 0 {
+		read, err := t.loadQueryIPList(t.config.KeepQueryIPFile, false)
 		if err != nil {
 			return fmt.Errorf("unable to open query ip file: %w", err)
 		}
@@ -128,8 +132,8 @@ func (t *FilteringTransform) LoadQueryIPList() error {
 func (t *FilteringTransform) LoadrDataIPList() error {
 	t.rDataIpsetKeep = nil
 
-	if len(t.config.Filtering.KeepRdataFile) > 0 {
-		read, err := t.loadKeepRdataIPList(t.config.Filtering.KeepRdataFile)
+	if len(t.config.KeepRdataFile) > 0 {
+		read, err := t.loadKeepRdataIPList(t.config.KeepRdataFile)
 		if err != nil {
 			return fmt.Errorf("unable to open rdata ip file: %w", err)
 		}
@@ -153,8 +157,8 @@ func (t *FilteringTransform) LoadDomainsList() error {
 		delete(t.listKeepDomainsRegex, key)
 	}
 
-	if len(t.config.Filtering.DropFqdnFile) > 0 {
-		file, err := os.Open(t.config.Filtering.DropFqdnFile)
+	if len(t.config.DropFqdnFile) > 0 {
+		file, err := os.Open(t.config.DropFqdnFile)
 		if err != nil {
 			return fmt.Errorf("unable to open fqdn file: %w", err)
 		} else {
@@ -169,8 +173,8 @@ func (t *FilteringTransform) LoadDomainsList() error {
 
 	}
 
-	if len(t.config.Filtering.DropDomainFile) > 0 {
-		file, err := os.Open(t.config.Filtering.DropDomainFile)
+	if len(t.config.DropDomainFile) > 0 {
+		file, err := os.Open(t.config.DropDomainFile)
 		if err != nil {
 			return fmt.Errorf("unable to open regex list file: %w", err)
 		} else {
@@ -184,8 +188,8 @@ func (t *FilteringTransform) LoadDomainsList() error {
 		}
 	}
 
-	if len(t.config.Filtering.KeepFqdnFile) > 0 {
-		file, err := os.Open(t.config.Filtering.KeepFqdnFile)
+	if len(t.config.KeepFqdnFile) > 0 {
+		file, err := os.Open(t.config.KeepFqdnFile)
 		if err != nil {
 			return fmt.Errorf("unable to open KeepFqdnFile file: %w", err)
 		} else {
@@ -198,8 +202,8 @@ func (t *FilteringTransform) LoadDomainsList() error {
 		}
 	}
 
-	if len(t.config.Filtering.KeepDomainFile) > 0 {
-		file, err := os.Open(t.config.Filtering.KeepDomainFile)
+	if len(t.config.KeepDomainFile) > 0 {
+		file, err := os.Open(t.config.KeepDomainFile)
 		if err != nil {
 			return fmt.Errorf("unable to open KeepDomainFile file: %w", err)
 		} else {

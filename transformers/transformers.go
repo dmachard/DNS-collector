@@ -21,20 +21,18 @@ type Subtransform struct {
 
 type Transformation interface {
 	GetTransforms() ([]Subtransform, error)
-	ReloadConfig(cfg *config.ConfigTransformers)
 	Reset()
 }
 
 type GenericTransformer struct {
-	config            *config.ConfigTransformers
 	logger            *logger.Logger
 	name              string
 	nextWorkers       []chan *dnsutils.DNSMessageBatch
 	LogInfo, LogError func(msg string, v ...interface{})
 }
 
-func NewTransformer(cfg *config.ConfigTransformers, logger *logger.Logger, name string, workerName string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) GenericTransformer {
-	t := GenericTransformer{config: cfg, logger: logger, nextWorkers: nextWorkers, name: name}
+func NewTransformer(logger *logger.Logger, name string, workerName string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) GenericTransformer {
+	t := GenericTransformer{logger: logger, nextWorkers: nextWorkers, name: name}
 
 	t.LogInfo = func(msg string, v ...interface{}) {
 		log := fmt.Sprintf("worker - [%s] (conn #%d) [transform=%s] - ", workerName, instance, name)
@@ -48,10 +46,6 @@ func NewTransformer(cfg *config.ConfigTransformers, logger *logger.Logger, name 
 	return t
 }
 
-func (t *GenericTransformer) ReloadConfig(cfg *config.ConfigTransformers) {
-	t.config = cfg
-}
-
 func (t *GenericTransformer) Reset() {}
 
 type TransformEntry struct {
@@ -59,10 +53,11 @@ type TransformEntry struct {
 }
 
 type Transforms struct {
-	config   *config.ConfigTransformers
-	logger   *logger.Logger
-	name     string
-	instance int
+	config      *config.ConfigTransformers
+	logger      *logger.Logger
+	name        string
+	instance    int
+	nextWorkers []chan *dnsutils.DNSMessageBatch
 
 	availableTransforms     []TransformEntry
 	activeTransforms        []TransformEntry
@@ -71,7 +66,7 @@ type Transforms struct {
 
 func NewTransforms(cfg *config.ConfigTransformers, logger *logger.Logger, name string, nextWorkers []chan *dnsutils.DNSMessageBatch, instance int) Transforms {
 
-	d := Transforms{config: cfg, logger: logger, name: name, instance: instance}
+	d := Transforms{config: cfg, logger: logger, name: name, instance: instance, nextWorkers: nextWorkers}
 
 	// order definition
 	pipelineOrder := cfg.Order
@@ -82,39 +77,39 @@ func NewTransforms(cfg *config.ConfigTransformers, logger *logger.Logger, name s
 	for _, nameTransform := range pipelineOrder {
 		switch nameTransform {
 		case "extract":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewExtractTransform(cfg, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewExtractTransform(&cfg.Extract, logger, name, instance, nextWorkers)})
 		case "normalize":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewNormalizeTransform(cfg, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewNormalizeTransform(&cfg.Normalize, logger, name, instance, nextWorkers)})
 		case "filtering":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewFilteringTransform(cfg, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewFilteringTransform(&cfg.Filtering, logger, name, instance, nextWorkers)})
 		case "geoip":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewDNSGeoIPTransform(cfg, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewDNSGeoIPTransform(&cfg.GeoIP, logger, name, instance, nextWorkers)})
 		case "bgp":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewDNSBGPTransform(cfg, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewDNSBGPTransform(&cfg.BGP, logger, name, instance, nextWorkers)})
 		case "atags":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewATagsTransform(cfg, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewATagsTransform(&cfg.ATags, logger, name, instance, nextWorkers)})
 		case "suspicious":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewSuspiciousTransform(cfg, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewSuspiciousTransform(&cfg.Suspicious, logger, name, instance, nextWorkers)})
 		case "user-privacy":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewUserPrivacyTransform(cfg, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewUserPrivacyTransform(&cfg.UserPrivacy, logger, name, instance, nextWorkers)})
 		case "machine-learning":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewMachineLearningTransform(cfg, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewMachineLearningTransform(&cfg.MachineLearning, logger, name, instance, nextWorkers)})
 		case "rest":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewRestTransform(cfg, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewRestTransform(&cfg.Rest, logger, name, instance, nextWorkers)})
 		case "relabeling":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewRelabelTransform(cfg, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewRelabelTransform(&cfg.Relabeling, logger, name, instance, nextWorkers)})
 		case "latency":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewLatencyTransform(cfg, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewLatencyTransform(&cfg.Latency, logger, name, instance, nextWorkers)})
 		case "rewrite":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewRewriteTransform(cfg, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewRewriteTransform(&cfg.Rewrite, logger, name, instance, nextWorkers)})
 		case "new-domain-tracker":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewNewDomainTrackerTransform(cfg, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewNewDomainTrackerTransform(&cfg.NewDomainTracker, logger, name, instance, nextWorkers)})
 		case "unique-response-tracker":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewUniqueResponseTrackerTransform(cfg, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewUniqueResponseTrackerTransform(&cfg.UniqueResponseTracker, logger, name, instance, nextWorkers)})
 		case "reducer":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewReducerTransform(cfg, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewReducerTransform(&cfg.Reducer, logger, name, instance, nextWorkers)})
 		case "reordering":
-			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewReorderingTransform(cfg, logger, name, instance, nextWorkers)})
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewReorderingTransform(&cfg.Reordering, logger, name, instance, nextWorkers)})
 		default:
 			d.LogError("unknown transformer name in order list: %s", nameTransform)
 		}
@@ -125,13 +120,7 @@ func NewTransforms(cfg *config.ConfigTransformers, logger *logger.Logger, name s
 }
 
 func (p *Transforms) ReloadConfig(cfg *config.ConfigTransformers) {
-	p.config = cfg
-
-	for _, transform := range p.availableTransforms {
-		transform.ReloadConfig(cfg)
-	}
-
-	p.Prepare()
+	*p = NewTransforms(cfg, p.logger, p.name, p.nextWorkers, p.instance)
 }
 
 func (p *Transforms) Prepare() error {

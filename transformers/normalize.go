@@ -70,31 +70,32 @@ func processRecords(records []dnsutils.DNSAnswer) {
 
 type NormalizeTransform struct {
 	GenericTransformer
+	config *config.TransformNormalize
 }
 
-func NewNormalizeTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *NormalizeTransform {
-	t := &NormalizeTransform{GenericTransformer: NewTransformer(cfg, logger, "normalize", name, instance, nextWorkers)}
+func NewNormalizeTransform(cfg *config.TransformNormalize, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *NormalizeTransform {
+	t := &NormalizeTransform{config: cfg, GenericTransformer: NewTransformer(logger, "normalize", name, instance, nextWorkers)}
 	return t
 }
 
 func (t *NormalizeTransform) GetTransforms() ([]Subtransform, error) {
 	subprocessors := []Subtransform{}
-	if t.config.Normalize.Enable && t.config.Normalize.ReplaceNonPrintable {
+	if t.config.Enable && t.config.ReplaceNonPrintable {
 		subprocessors = append(subprocessors, Subtransform{name: "normalize:qname-replace-nonprintable", processFunc: t.ReplaceNonprintable})
 	}
-	if t.config.Normalize.Enable && t.config.Normalize.RRLowerCase {
+	if t.config.Enable && t.config.RRLowerCase {
 		subprocessors = append(subprocessors, Subtransform{name: "normalize:rr-lowercase", processFunc: t.RRLowercase})
 	}
-	if t.config.Normalize.Enable && t.config.Normalize.QnameLowerCase {
+	if t.config.Enable && t.config.QnameLowerCase {
 		subprocessors = append(subprocessors, Subtransform{name: "normalize:qname-lowercase", processFunc: t.QnameLowercase})
 	}
-	if t.config.Normalize.Enable && t.config.Normalize.QuietText {
+	if t.config.Enable && t.config.QuietText {
 		subprocessors = append(subprocessors, Subtransform{name: "normalize:quiet", processFunc: t.QuietText})
 	}
-	if t.config.Normalize.Enable && t.config.Normalize.AddTld {
+	if t.config.Enable && t.config.AddTld {
 		subprocessors = append(subprocessors, Subtransform{name: "normalize:add-etld", processFunc: t.GetEffectiveTld})
 	}
-	if t.config.Normalize.Enable && t.config.Normalize.AddTldPlusOne {
+	if t.config.Enable && t.config.AddTldPlusOne {
 		subprocessors = append(subprocessors, Subtransform{name: "normalize:add-etld+1", processFunc: t.GetEffectiveTldPlusOne})
 	}
 	return subprocessors, nil

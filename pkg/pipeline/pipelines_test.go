@@ -160,6 +160,73 @@ func TestPipelines_StopPipelines(t *testing.T) {
 	}
 }
 
+func TestPipelines_GetStanzaConfig_CollectorAndTransformer(t *testing.T) {
+	cfg := config.GetDefaultConfig()
+	stanza := config.ConfigPipelines{
+		Name: "tap",
+		Params: map[string]interface{}{
+			"dnstap": map[string]interface{}{
+				"listen-ip":   "127.0.0.1",
+				"listen-port": 6000,
+			},
+		},
+		Transforms: map[string]interface{}{
+			"normalize": map[string]interface{}{
+				"qname-lowercase": true,
+			},
+		},
+	}
+
+	subcfg, err := GetStanzaConfig(cfg, stanza)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !subcfg.Collectors.Dnstap.Enable {
+		t.Errorf("expected Dnstap.Enable to be true")
+	}
+	if subcfg.Collectors.Dnstap.ListenIP != "127.0.0.1" {
+		t.Errorf("expected ListenIP '127.0.0.1', got %s", subcfg.Collectors.Dnstap.ListenIP)
+	}
+	if subcfg.Collectors.Dnstap.ListenPort != 6000 {
+		t.Errorf("expected ListenPort 6000, got %d", subcfg.Collectors.Dnstap.ListenPort)
+	}
+	if !subcfg.IngoingTransformers.Normalize.Enable {
+		t.Errorf("expected Normalize.Enable to be true")
+	}
+	if !subcfg.IngoingTransformers.Normalize.QnameLowerCase {
+		t.Errorf("expected QnameLowerCase to be true")
+	}
+}
+
+func TestPipelines_GetStanzaConfig_Logger(t *testing.T) {
+	cfg := config.GetDefaultConfig()
+	stanza := config.ConfigPipelines{
+		Name: "prom",
+		Params: map[string]interface{}{
+			"prometheus": map[string]interface{}{
+				"listen-ip":   "0.0.0.0",
+				"listen-port": 8080,
+			},
+		},
+	}
+
+	subcfg, err := GetStanzaConfig(cfg, stanza)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !subcfg.Loggers.Prometheus.Enable {
+		t.Errorf("expected Prometheus.Enable to be true")
+	}
+	if subcfg.Loggers.Prometheus.ListenIP != "0.0.0.0" {
+		t.Errorf("expected ListenIP '0.0.0.0', got %s", subcfg.Loggers.Prometheus.ListenIP)
+	}
+	if subcfg.Loggers.Prometheus.ListenPort != 8080 {
+		t.Errorf("expected ListenPort 8080, got %d", subcfg.Loggers.Prometheus.ListenPort)
+	}
+}
+
 func TestPipelines_GetStanzaConfig_UnknownWorker(t *testing.T) {
 	cfg := config.GetDefaultConfig()
 	stanza := config.ConfigPipelines{

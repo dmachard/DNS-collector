@@ -13,6 +13,7 @@ import (
 
 type ReorderingTransform struct {
 	GenericTransformer
+	config      *config.TransformReordering
 	buffer      []*dnsutils.DNSMessage
 	backBuffer  []*dnsutils.DNSMessage
 	mutex       sync.Mutex
@@ -23,12 +24,12 @@ type ReorderingTransform struct {
 }
 
 // NewLogReorderTransform creates an instance of the transformer.
-func NewReorderingTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *ReorderingTransform {
+func NewReorderingTransform(cfg *config.TransformReordering, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *ReorderingTransform {
 	t := &ReorderingTransform{
-		GenericTransformer: NewTransformer(cfg, logger, "reordering", name, instance, nextWorkers),
-		stopChan:           make(chan struct{}),
-		flushSignal:        make(chan struct{}),
-		nextWorkers:        nextWorkers,
+		config: cfg, GenericTransformer: NewTransformer(logger, "reordering", name, instance, nextWorkers),
+		stopChan:    make(chan struct{}),
+		flushSignal: make(chan struct{}),
+		nextWorkers: nextWorkers,
 	}
 
 	return t
@@ -37,12 +38,12 @@ func NewReorderingTransform(cfg *config.ConfigTransformers, logger *logger.Logge
 // GetTransforms returns the available subtransformations.
 func (t *ReorderingTransform) GetTransforms() ([]Subtransform, error) {
 	subtransforms := []Subtransform{}
-	if t.config.Reordering.Enable {
+	if t.config.Enable {
 		subtransforms = append(subtransforms, Subtransform{name: "reordering:sort-by-timestamp", processFunc: t.ReorderLogs})
 		// Start a goroutine to handle periodic flushing.
-		t.flushTicker = time.NewTicker(time.Duration(t.config.Reordering.FlushInterval) * time.Second)
-		t.buffer = make([]*dnsutils.DNSMessage, 0, t.config.Reordering.MaxBufferSize)
-		t.backBuffer = make([]*dnsutils.DNSMessage, 0, t.config.Reordering.MaxBufferSize)
+		t.flushTicker = time.NewTicker(time.Duration(t.config.FlushInterval) * time.Second)
+		t.buffer = make([]*dnsutils.DNSMessage, 0, t.config.MaxBufferSize)
+		t.backBuffer = make([]*dnsutils.DNSMessage, 0, t.config.MaxBufferSize)
 		go t.flushPeriodically()
 
 	}
@@ -62,7 +63,7 @@ func (t *ReorderingTransform) ReorderLogs(dm *dnsutils.DNSMessage) (int, error) 
 	t.mutex.Lock()
 	dm.Retain(1)
 	t.buffer = append(t.buffer, dm)
-	isFull := len(t.buffer) >= t.config.Reordering.MaxBufferSize
+	isFull := len(t.buffer) >= t.config.MaxBufferSize
 	t.mutex.Unlock()
 
 	// If the buffer exceeds a certain size, flush it.

@@ -15,7 +15,7 @@ import (
 
 func TestExtract_Json(t *testing.T) {
 	// enable feature
-	cfg := config.GetFakeConfigTransformers()
+	cfg := &config.TransformExtract{}
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 	outChans = append(outChans, make(chan *dnsutils.DNSMessageBatch, 1))
 
@@ -66,10 +66,11 @@ func TestExtract_Base64AndHexFields(t *testing.T) {
 	// the Data Extractor can still provide the original raw bytes via Base64 or Hex encoding.
 
 	// enable feature
-	cfg := config.GetFakeConfigTransformers()
-	cfg.Extract.Enable = true
-	cfg.Extract.Base64Fields = []string{"dns.qname"}
-	cfg.Extract.HexFields = []string{"dns.qname"}
+	cfg := &config.TransformExtract{
+		Enable:       true,
+		Base64Fields: []string{"dns.qname"},
+		HexFields:    []string{"dns.qname"},
+	}
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 	outChans = append(outChans, make(chan *dnsutils.DNSMessageBatch, 1))
@@ -122,10 +123,11 @@ func TestExtract_Base64AndHexFields(t *testing.T) {
 
 func TestExtract_WildcardSliceFields(t *testing.T) {
 	// enable feature
-	cfg := config.GetFakeConfigTransformers()
-	cfg.Extract.Enable = true
-	cfg.Extract.Base64Fields = []string{"dns.resource-records.an.*.rdata"}
-	cfg.Extract.HexFields = []string{"dns.resource-records.an.*.rdata"}
+	cfg := &config.TransformExtract{
+		Enable:       true,
+		Base64Fields: []string{"dns.resource-records.an.*.rdata"},
+		HexFields:    []string{"dns.resource-records.an.*.rdata"},
+	}
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 	outChans = append(outChans, make(chan *dnsutils.DNSMessageBatch, 1))

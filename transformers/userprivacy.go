@@ -34,45 +34,46 @@ func HashIP(ip string, algo string) string {
 
 type UserPrivacyTransform struct {
 	GenericTransformer
+	config    *config.TransformUserPrivacy
 	v4MaskArr [4]byte
 	v6MaskArr [16]byte
 }
 
-func NewUserPrivacyTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *UserPrivacyTransform {
-	t := &UserPrivacyTransform{GenericTransformer: NewTransformer(cfg, logger, "userprivacy", name, instance, nextWorkers)}
+func NewUserPrivacyTransform(cfg *config.TransformUserPrivacy, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *UserPrivacyTransform {
+	t := &UserPrivacyTransform{config: cfg, GenericTransformer: NewTransformer(logger, "userprivacy", name, instance, nextWorkers)}
 	return t
 }
 
 func (t *UserPrivacyTransform) GetTransforms() ([]Subtransform, error) {
 	subprocessors := []Subtransform{}
 
-	v4Mask, err := netutils.ParseCIDRMask(t.config.UserPrivacy.AnonymizeIPV4Bits)
+	v4Mask, err := netutils.ParseCIDRMask(t.config.AnonymizeIPV4Bits)
 	if err != nil {
 		return nil, fmt.Errorf("unable to init v4 mask: %w", err)
 	}
 	copy(t.v4MaskArr[:], v4Mask)
 
-	if !strings.Contains(t.config.UserPrivacy.AnonymizeIPV6Bits, ":") {
+	if !strings.Contains(t.config.AnonymizeIPV6Bits, ":") {
 		return nil, fmt.Errorf("invalid v6 mask, expect format ::/integer")
 	}
-	v6Mask, err := netutils.ParseCIDRMask(t.config.UserPrivacy.AnonymizeIPV6Bits)
+	v6Mask, err := netutils.ParseCIDRMask(t.config.AnonymizeIPV6Bits)
 	if err != nil {
 		return nil, fmt.Errorf("unable to init v6 mask: %w", err)
 	}
 	copy(t.v6MaskArr[:], v6Mask)
 
-	if t.config.UserPrivacy.AnonymizeIP {
+	if t.config.AnonymizeIP {
 		subprocessors = append(subprocessors, Subtransform{name: "userprivacy:ip-anonymization", processFunc: t.anonymizeQueryIP})
 	}
 
-	if t.config.UserPrivacy.MinimizeQname {
+	if t.config.MinimizeQname {
 		subprocessors = append(subprocessors, Subtransform{name: "userprivacy:minimize-qname", processFunc: t.minimizeQname})
 	}
 
-	if t.config.UserPrivacy.HashQueryIP {
+	if t.config.HashQueryIP {
 		subprocessors = append(subprocessors, Subtransform{name: "userprivacy:hash-query-ip", processFunc: t.hashQueryIP})
 	}
-	if t.config.UserPrivacy.HashReplyIP {
+	if t.config.HashReplyIP {
 		subprocessors = append(subprocessors, Subtransform{name: "userprivacy:hash-reply-ip", processFunc: t.hashReplyIP})
 	}
 
@@ -129,12 +130,12 @@ func (t *UserPrivacyTransform) anonymizeQueryIP(dm *dnsutils.DNSMessage) (int, e
 }
 
 func (t *UserPrivacyTransform) hashQueryIP(dm *dnsutils.DNSMessage) (int, error) {
-	dm.NetworkInfo.QueryIP = HashIP(dm.NetworkInfo.GetQueryIP(), t.config.UserPrivacy.HashIPAlgo)
+	dm.NetworkInfo.QueryIP = HashIP(dm.NetworkInfo.GetQueryIP(), t.config.HashIPAlgo)
 	return ReturnKeep, nil
 }
 
 func (t *UserPrivacyTransform) hashReplyIP(dm *dnsutils.DNSMessage) (int, error) {
-	dm.NetworkInfo.ResponseIP = HashIP(dm.NetworkInfo.GetResponseIP(), t.config.UserPrivacy.HashIPAlgo)
+	dm.NetworkInfo.ResponseIP = HashIP(dm.NetworkInfo.GetResponseIP(), t.config.HashIPAlgo)
 	return ReturnKeep, nil
 }
 

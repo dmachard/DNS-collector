@@ -23,16 +23,17 @@ func isConsonant(char rune) bool {
 
 type MlTransform struct {
 	GenericTransformer
+	config *config.TransformMachineLearning
 }
 
-func NewMachineLearningTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *MlTransform {
-	t := &MlTransform{GenericTransformer: NewTransformer(cfg, logger, "machinelearning", name, instance, nextWorkers)}
+func NewMachineLearningTransform(cfg *config.TransformMachineLearning, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *MlTransform {
+	t := &MlTransform{config: cfg, GenericTransformer: NewTransformer(logger, "machinelearning", name, instance, nextWorkers)}
 	return t
 }
 
 func (t *MlTransform) GetTransforms() ([]Subtransform, error) {
 	subtransforms := []Subtransform{}
-	if t.config.MachineLearning.Enable {
+	if t.config.Enable {
 		subtransforms = append(subtransforms, Subtransform{name: "machinelearning:add-feature", processFunc: t.addFeatures})
 	}
 	return subtransforms, nil

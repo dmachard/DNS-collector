@@ -18,7 +18,7 @@ func TestRewrite_UpdateFields(t *testing.T) {
 
 	// init the processor
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	rewrite := NewRewriteTransform(cfg, logger.New(false), "test", 0, outChans)
+	rewrite := NewRewriteTransform(&cfg.Rewrite, logger.New(false), "test", 0, outChans)
 
 	// get fake
 	dm := dnsutils.GetFakeDNSMessage()
@@ -46,7 +46,7 @@ func TestRewrite_UpdateFields_InvalidType(t *testing.T) {
 
 	// init the processor
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	rewrite := NewRewriteTransform(cfg, logger.New(false), "test", 0, outChans)
+	rewrite := NewRewriteTransform(&cfg.Rewrite, logger.New(false), "test", 0, outChans)
 
 	// get fake
 	dm := dnsutils.GetFakeDNSMessage()

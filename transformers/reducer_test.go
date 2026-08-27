@@ -23,7 +23,7 @@ func TestReducer_Json(t *testing.T) {
 
 	// init subprocessor
 
-	reducer := NewReducerTransform(cfg, logger.New(false), "test", 0, outChans)
+	reducer := NewReducerTransform(&cfg.Reducer, logger.New(false), "test", 0, outChans)
 	reducer.repetitiveTrafficDetector(&dm)
 
 	// expected json
@@ -68,7 +68,7 @@ func TestReducer_RepetitiveTrafficDetector(t *testing.T) {
 	outChans = append(outChans, outChan)
 
 	// init subprocessor
-	reducer := NewReducerTransform(cfg, logger.New(false), "test", 0, outChans)
+	reducer := NewReducerTransform(&cfg.Reducer, logger.New(false), "test", 0, outChans)
 	subtransforms, _ := reducer.GetTransforms()
 	if len(subtransforms) != 1 {
 		t.Errorf("invalid number of subtransforms enabled")
@@ -212,7 +212,7 @@ func TestReducer_QnamePlusOne(t *testing.T) {
 	outChans = append(outChans, outChan)
 
 	// init subprocessor
-	reducer := NewReducerTransform(cfg, logger.New(false), "test", 0, outChans)
+	reducer := NewReducerTransform(&cfg.Reducer, logger.New(false), "test", 0, outChans)
 	subtransforms, _ := reducer.GetTransforms()
 	if len(subtransforms) != 1 {
 		t.Errorf("invalid number of subtransforms enabled")
