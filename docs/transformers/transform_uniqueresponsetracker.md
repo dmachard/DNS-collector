@@ -79,6 +79,7 @@ transforms:
 The default storage engine uses an **LRU (Least Recently Used) Cache** optimized for throughput and minimal latency.
 
 **Performance Characteristics:**
+
 - **Lookup Speed**: ~192 ns/op (measured with realistic mixed DNS workload: 80% lookups, 20% inserts)
 - **Memory Footprint**: ~30.84 MB for 100,000 tuples
 - **Allocations**: 1 per operation (minimal garbage collection pressure)
@@ -109,6 +110,7 @@ The **Cuckoo Filter** is a probabilistic data structure optimized for extreme me
 | **`32 bits`** | **~11.6 MB** | **$< 10^{-7}\%$** | Ultra-high fidelity (near-zero collision tolerance). |
 
 **Trade-offs & Anti-Saturation Mechanism:**
+
 - **Generational Anti-Churning**: Unlike single-table filters that suffer from high eviction churn when nearly full, the UDR sliding window maintains `active` and `previous` generation tables. New entries are always inserted into a fresh `active` table ($O(1)$ with no kicks), while hot entries are seamlessly promoted from `previous` upon hit.
 - **Zero Eviction Scan Cost**: Stale/cold entries naturally expire when the `previous` table is rotated at $TTL/2$, requiring zero background deletion loops or CPU sweeps.
 
@@ -130,6 +132,7 @@ du -h /var/lib/dnscollector/udr_cache.json
 ### Cuckoo Engine Cache
 
 The Cuckoo Filter operates entirely in-memory with a dual sliding window (`active` and `previous` generation tables rotated every `TTL / 2`):
+
 - **Hot Item Residency (LRU Promotion)**: Continuously queried domains ("hot items") observed in the previous generation are automatically promoted to the active window, ensuring active traffic never prematurely expires.
 - **Automatic Stale Eviction**: Inactive tuples that receive no traffic across two rotation cycles are automatically forgotten.
 - **Bounded Memory**: Memory footprint remains fixed and bounded by `cache-size` (~5.8 MB for 100k items).
