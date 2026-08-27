@@ -110,6 +110,8 @@ func NewTransforms(cfg *config.ConfigTransformers, logger *logger.Logger, name s
 			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewReducerTransform(&cfg.Reducer, logger, name, instance, nextWorkers)})
 		case "reordering":
 			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewReorderingTransform(&cfg.Reordering, logger, name, instance, nextWorkers)})
+		case "frequency-filtering":
+			d.availableTransforms = append(d.availableTransforms, TransformEntry{NewFrequencyFilteringTransform(&cfg.FrequencyFiltering, logger, name, instance, nextWorkers)})
 		default:
 			d.LogError("unknown transformer name in order list: %s", nameTransform)
 		}

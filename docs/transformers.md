@@ -12,7 +12,7 @@ You can define a global execution order in the `global` section, which will be a
 
 ```yaml
 global:
-  transformers-order: [ "extract", "normalize", "filtering", "geoip", "atags", "suspicious", "user-privacy", "machine-learning", "rest", "relabeling", "latency", "rewrite", "new-domain-tracker", "reducer", "reordering" ]
+  transformers-order: [ "extract", "normalize", "filtering", "geoip", "atags", "suspicious", "user-privacy", "machine-learning", "rest", "relabeling", "latency", "rewrite", "new-domain-tracker", "unique-response-tracker", "reducer", "reordering", "frequency-filtering" ]
 ```
 
 You can also override this order for a specific pipeline using the `order` key in the `transformers` section. 
@@ -50,6 +50,7 @@ The default logical processing order is:
 15. **unique-response-tracker** - [Unique Domain Responses](transformers/transform_uniqueresponsetracker.md): Track newly observed response associations (QNAME, RRType, RDATA) with choice of LRU (fast) or Cuckoo Filter (memory-efficient) storage.
 16. **reducer** - [Traffic Reducer](transformers/transform_trafficreducer.md): Deduplicates repetitive queries.
 17. **reordering** - [Reordering](transformers/transform_reordering.md): Sorts DNS messages by timestamp.
+18. **frequency-filtering** - [Frequency Filtering](transformers/transform_frequencyfiltering.md): Heavy-hitters detection and adaptive downsampling with Counting Cuckoo Filter.
 
 
 

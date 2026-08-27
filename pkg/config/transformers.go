@@ -175,6 +175,16 @@ type TransformReordering struct {
 	MaxBufferSize int  `yaml:"max-buffer-size" default:"100"`
 }
 
+type TransformFrequencyFiltering struct {
+	Enable        bool   `yaml:"enable" default:"false"`
+	TrackBy       string `yaml:"track-by" default:"qname"`
+	Threshold     int    `yaml:"threshold" default:"1000"`
+	WindowSeconds int    `yaml:"window-seconds" default:"60"`
+	SampleRate    int    `yaml:"sample-rate" default:"100"`
+	TagOnly       bool   `yaml:"tag-only" default:"false"`
+	Capacity      int    `yaml:"capacity" default:"100000"`
+}
+
 type ConfigTransformers struct {
 	Order                 []string                       `yaml:"order" default:"[]"`
 	UserPrivacy           TransformUserPrivacy           `yaml:"user-privacy"`
@@ -194,6 +204,7 @@ type ConfigTransformers struct {
 	NewDomainTracker      TransformNewDomainTracker      `yaml:"new-domain-tracker"`
 	UniqueResponseTracker TransformUniqueResponseTracker `yaml:"unique-response-tracker"`
 	Reordering            TransformReordering            `yaml:"reordering"`
+	FrequencyFiltering    TransformFrequencyFiltering    `yaml:"frequency-filtering"`
 }
 
 func (c *ConfigTransformers) SetDefault() {
