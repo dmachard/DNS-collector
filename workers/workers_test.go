@@ -1,6 +1,7 @@
 package workers
 
 import (
+	"context"
 	"sync"
 	"testing"
 	"time"
@@ -67,4 +68,50 @@ func Test_MultiLogger_ConcurrentRace(t *testing.T) {
 
 	wg.Wait()
 	time.Sleep(50 * time.Millisecond)
+}
+
+func TestGenericWorker_ContextCancellation(t *testing.T) {
+	gw := NewGenericWorker(pkgconfig.GetDefaultConfig(), logger.New(false), "testctx", "", 10, pkgconfig.WorkerMonitorDisabled)
+	ctx := gw.Context()
+	if ctx == nil {
+		t.Fatalf("expected non-nil context")
+	}
+
+	select {
+	case <-ctx.Done():
+		t.Fatalf("context should not be cancelled yet")
+	default:
+	}
+
+	go gw.StartCollect()
+	gw.Stop()
+
+	select {
+	case <-ctx.Done():
+		// Success: context was cancelled upon Stop()
+	case <-time.After(1 * time.Second):
+		t.Fatalf("context was not cancelled after Stop()")
+	}
+}
+
+func TestStopWorkersParallel(t *testing.T) {
+	cfg := pkgconfig.GetDefaultConfig()
+	log := logger.New(false)
+
+	w1 := NewGenericWorker(cfg, log, "w1", "", 10, pkgconfig.WorkerMonitorDisabled)
+	w2 := NewGenericWorker(cfg, log, "w2", "", 10, pkgconfig.WorkerMonitorDisabled)
+	w3 := NewGenericWorker(cfg, log, "w3", "", 10, pkgconfig.WorkerMonitorDisabled)
+
+	go w1.StartCollect()
+	go w2.StartCollect()
+	go w3.StartCollect()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	StopWorkersParallel(ctx, []Worker{w1, w2, w3}, log)
+
+	if w1.Context().Err() == nil || w2.Context().Err() == nil || w3.Context().Err() == nil {
+		t.Errorf("all workers should have cancelled contexts after StopWorkersParallel")
+	}
 }

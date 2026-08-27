@@ -2,6 +2,7 @@ package workers
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -33,13 +34,23 @@ type Worker interface {
 }
 
 type GenericWorker struct {
-	doneRun, stopRun, stopProcess, doneProcess, doneMonitor, stopMonitor chan bool
-	config                                                               *pkgconfig.Config
-	configChan                                                           chan *pkgconfig.Config
-	logger                                                               *logger.Logger
-	name, descr                                                          string
-	droppedRoutes, defaultRoutes                                         []Worker
-	stopOnce, stopLoggerOnce                                             sync.Once
+	ctx                          context.Context
+	cancel                       context.CancelFunc
+	loggerCtx                    context.Context
+	loggerCancel                 context.CancelFunc
+	collectDone                  chan struct{}
+	processDone                  chan struct{}
+	monitorDone                  chan struct{}
+	doneOnceCollect              sync.Once
+	doneOnceProcess              sync.Once
+	doneOnceMonitor              sync.Once
+	monitor                      bool
+	config                       *pkgconfig.Config
+	configChan                   chan *pkgconfig.Config
+	logger                       *logger.Logger
+	name, descr                  string
+	droppedRoutes, defaultRoutes []Worker
+	stopOnce, stopLoggerOnce     sync.Once
 	// droppedWorkerCounts maps route-name -> atomic dropped message count.
 	// Using a sync.Map of *atomic.Int64 avoids starvation that a channel-based
 	// accumulator can cause when the monitor ticker competes with a high-volume
@@ -55,18 +66,22 @@ type GenericWorker struct {
 
 func NewGenericWorker(config *pkgconfig.Config, logger *logger.Logger, name string, descr string, bufferSize int, monitor bool) *GenericWorker {
 	logger.Info(pkgconfig.PrefixLogWorker+"[%s] %s - enabled", name, descr)
+	ctx, cancel := context.WithCancel(context.Background())
+	loggerCtx, loggerCancel := context.WithCancel(context.Background())
 	w := &GenericWorker{
+		ctx:           ctx,
+		cancel:        cancel,
+		loggerCtx:     loggerCtx,
+		loggerCancel:  loggerCancel,
+		collectDone:   make(chan struct{}),
+		processDone:   make(chan struct{}),
+		monitorDone:   make(chan struct{}),
+		monitor:       monitor,
 		config:        config,
 		configChan:    make(chan *pkgconfig.Config),
 		logger:        logger,
 		name:          name,
 		descr:         descr,
-		doneRun:       make(chan bool, 1),
-		doneMonitor:   make(chan bool, 1),
-		doneProcess:   make(chan bool, 1),
-		stopRun:       make(chan bool, 1),
-		stopMonitor:   make(chan bool, 1),
-		stopProcess:   make(chan bool, 1),
 		dnsMessageIn:  make(chan *dnsutils.DNSMessageBatch, bufferSize),
 		dnsMessageOut: make(chan *dnsutils.DNSMessageBatch, bufferSize),
 		TextBufferPool: &sync.Pool{
@@ -172,40 +187,81 @@ func (w *GenericWorker) LogFatal(v ...interface{}) {
 	w.logger.Fatal(v...)
 }
 
-func (w *GenericWorker) OnStop() chan bool {
-	return w.stopRun
+func (w *GenericWorker) Context() context.Context {
+	return w.ctx
 }
 
-func (w *GenericWorker) OnLoggerStopped() chan bool {
-	return w.stopProcess
+func (w *GenericWorker) OnStop() <-chan struct{} {
+	return w.ctx.Done()
+}
+
+func (w *GenericWorker) OnLoggerStopped() <-chan struct{} {
+	return w.loggerCtx.Done()
 }
 
 func (w *GenericWorker) StopLogger() {
 	w.stopLoggerOnce.Do(func() {
-		w.stopProcess <- true
-		<-w.doneProcess
+		w.loggerCancel()
+		<-w.processDone
 	})
 }
 
 func (w *GenericWorker) CollectDone() {
 	w.LogInfo("collection terminated")
-	w.doneRun <- true
+	w.doneOnceCollect.Do(func() {
+		close(w.collectDone)
+	})
 }
 
 func (w *GenericWorker) LoggingDone() {
 	w.LogInfo("logging terminated")
-	w.doneProcess <- true
+	w.doneOnceProcess.Do(func() {
+		close(w.processDone)
+	})
 }
 
 func (w *GenericWorker) Stop() {
 	w.stopOnce.Do(func() {
+		w.cancel()
 		w.LogInfo("stopping collect...")
-		w.stopRun <- true
-		<-w.doneRun
-		w.LogInfo("stopping monitor...")
-		w.stopMonitor <- true
-		<-w.doneMonitor
+		<-w.collectDone
+		if w.monitor {
+			w.LogInfo("stopping monitor...")
+			<-w.monitorDone
+		}
 	})
+}
+
+// StopWorkersParallel terminates a list of workers concurrently, bounded by ctx.
+func StopWorkersParallel(ctx context.Context, workersList []Worker, log *logger.Logger) {
+	if len(workersList) == 0 {
+		return
+	}
+	var wg sync.WaitGroup
+	for _, wrk := range workersList {
+		if wrk == nil {
+			continue
+		}
+		wg.Add(1)
+		go func(w Worker) {
+			defer wg.Done()
+			w.Stop()
+		}(wrk)
+	}
+
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-ctx.Done():
+		if log != nil {
+			log.Warning("workers stop timeout reached (%v)", ctx.Err())
+		}
+	}
 }
 
 func (w *GenericWorker) Monitor() {
@@ -214,10 +270,9 @@ func (w *GenericWorker) Monitor() {
 			w.LogError("monitor - recovered panic: %v", r)
 		}
 		w.LogInfo("monitor terminated")
-		select {
-		case w.doneMonitor <- true:
-		default:
-		}
+		w.doneOnceMonitor.Do(func() {
+			close(w.monitorDone)
+		})
 	}()
 
 	interval := 10
@@ -231,7 +286,7 @@ func (w *GenericWorker) Monitor() {
 
 	for {
 		select {
-		case <-w.stopMonitor:
+		case <-w.ctx.Done():
 			return
 
 		case <-ticker.C:

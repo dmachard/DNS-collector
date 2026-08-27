@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	_ "net/http/pprof"
 
@@ -212,26 +213,25 @@ func main() {
 			case <-sigTerm:
 				logger.Warning("main - exiting...")
 
-				// and stop all workers
-				for _, c := range mapCollectors {
-					c.Stop()
-				}
+				// Create a timeout-bounded context for graceful shutdown (10s)
+				shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 
-				for _, l := range mapLoggers {
-					l.Stop()
-				}
+				// Gracefully stop all pipeline workers (collectors first, then loggers)
+				pkginit.StopPipelines(shutdownCtx, mapCollectors, mapLoggers, logger)
 
 				// gracefully shutdown the HTTP server
 				if config.Global.Telemetry.Enabled {
 					logger.Info("main - telemetry is stopping")
 					metrics.Stop()
 
-					if err := promServer.Shutdown(context.Background()); err != nil {
+					if err := promServer.Shutdown(shutdownCtx); err != nil {
 						logger.Error("main - telemetry error shutting down http server - %s", err.Error())
 					}
 
 					logger.Info("main - telemetry stopped")
 				}
+
+				shutdownCancel()
 
 				// unblock main function
 				done <- true

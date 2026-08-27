@@ -1,6 +1,7 @@
 package pkginit
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
@@ -214,4 +215,26 @@ func ReloadPipelines(mapLoggers map[string]workers.Worker, mapCollectors map[str
 			logger.Info("main - reload config stanza=%v doest not exist", stanza.Name)
 		}
 	}
+}
+
+// StopPipelines gracefully terminates collectors first (stopping incoming traffic),
+// then terminates loggers (allowing remaining buffered logs to flush), bounded by ctx.
+func StopPipelines(ctx context.Context, mapCollectors map[string]workers.Worker, mapLoggers map[string]workers.Worker, log *logger.Logger) {
+	if log != nil {
+		log.Info("stopping ingress collectors...")
+	}
+	collectorList := make([]workers.Worker, 0, len(mapCollectors))
+	for _, c := range mapCollectors {
+		collectorList = append(collectorList, c)
+	}
+	workers.StopWorkersParallel(ctx, collectorList, log)
+
+	if log != nil {
+		log.Info("stopping egress loggers...")
+	}
+	loggerList := make([]workers.Worker, 0, len(mapLoggers))
+	for _, l := range mapLoggers {
+		loggerList = append(loggerList, l)
+	}
+	workers.StopWorkersParallel(ctx, loggerList, log)
 }

@@ -1,8 +1,10 @@
 package pkginit
 
 import (
+	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
 	"github.com/dmachard/go-dnscollector/v2/telemetry"
@@ -109,5 +111,30 @@ func TestPipelines_RoutingLoop(t *testing.T) {
 	} else if !strings.Contains(err.Error(), "routing error loop") {
 		t.Errorf("Unexpected error: %s", err.Error())
 	}
+}
 
+func TestPipelines_StopPipelines(t *testing.T) {
+	cfg := pkgconfig.GetDefaultConfig()
+	log := logger.New(false)
+
+	c1 := workers.NewGenericWorker(cfg, log, "col1", "", 10, pkgconfig.WorkerMonitorDisabled)
+	l1 := workers.NewGenericWorker(cfg, log, "log1", "", 10, pkgconfig.WorkerMonitorDisabled)
+
+	go c1.StartCollect()
+	go l1.StartCollect()
+
+	mapCollectors := map[string]workers.Worker{"col1": c1}
+	mapLoggers := map[string]workers.Worker{"log1": l1}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	StopPipelines(ctx, mapCollectors, mapLoggers, log)
+
+	if c1.Context().Err() == nil {
+		t.Errorf("collector context should be cancelled")
+	}
+	if l1.Context().Err() == nil {
+		t.Errorf("logger context should be cancelled")
+	}
 }
