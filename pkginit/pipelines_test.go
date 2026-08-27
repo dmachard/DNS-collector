@@ -203,3 +203,50 @@ func TestPipelines_CreateRouting_UnsupportedDefaultRouting(t *testing.T) {
 		t.Errorf("expected DefaultRoutingError, got: %v", err)
 	}
 }
+
+func TestPipelines_MultipleErrors_Joined(t *testing.T) {
+	config := pkgconfig.GetDefaultConfig()
+	config.Pipelines = []pkgconfig.ConfigPipelines{
+		{
+			Name: "tap",
+			Params: map[string]interface{}{
+				"dnstap": map[string]interface{}{"enable": true},
+			},
+			RoutingPolicy: pkgconfig.PipelinesRouting{
+				Forward: []string{"nonexistent1", "nonexistent2"},
+			},
+		},
+		{
+			Name: "tap", // Duplicate stanza name
+			Params: map[string]interface{}{
+				"dnstap": map[string]interface{}{"enable": true},
+			},
+			RoutingPolicy: pkgconfig.PipelinesRouting{
+				Forward: []string{"nonexistent3"},
+			},
+		},
+	}
+
+	mapLoggers := make(map[string]workers.Worker)
+	mapCollectors := make(map[string]workers.Worker)
+	metrics := telemetry.NewPrometheusCollector(config)
+
+	err := InitPipelines(mapLoggers, mapCollectors, config, logger.New(false), metrics)
+	if err == nil {
+		t.Fatalf("expected multiple errors, got nil")
+	}
+
+	// Verify that errors.Join preserved both error categories
+	if !errors.Is(err, ErrDuplicateStanza) {
+		t.Errorf("expected joined error to contain ErrDuplicateStanza, got: %v", err)
+	}
+	if !errors.Is(err, ErrRouteNotFound) {
+		t.Errorf("expected joined error to contain ErrRouteNotFound, got: %v", err)
+	}
+
+	// Verify that error message contains details from both errors
+	errStr := err.Error()
+	if !strings.Contains(errStr, "duplicated") || !strings.Contains(errStr, "nonexistent") {
+		t.Errorf("expected comprehensive multi-error message, got: %s", errStr)
+	}
+}

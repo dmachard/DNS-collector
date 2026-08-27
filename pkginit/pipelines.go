@@ -1,6 +1,7 @@
 package pkginit
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
@@ -183,53 +184,77 @@ func CreateStanza(stanzaName string, config *pkgconfig.Config, mapCollectors map
 }
 
 func InitPipelines(mapLoggers map[string]workers.Worker, mapCollectors map[string]workers.Worker, config *pkgconfig.Config, logger *logger.Logger, telemetry *telemetry.PrometheusCollector) error {
-	// check if the name of each stanza is uniq
+	var errs []error
+	seenStanzas := make(map[string]bool)
+	duplicateReported := make(map[string]bool)
 	routesDefined := false
+
+	// 1. Check duplicate stanzas and route definitions
 	for _, stanza := range config.Pipelines {
-		if err := StanzaNameIsUniq(stanza.Name, config); err != nil {
-			return err
+		if seenStanzas[stanza.Name] {
+			if !duplicateReported[stanza.Name] {
+				errs = append(errs, &DuplicateStanzaError{Name: stanza.Name})
+				duplicateReported[stanza.Name] = true
+			}
 		}
+		seenStanzas[stanza.Name] = true
+
 		if len(stanza.RoutingPolicy.Forward) > 0 || len(stanza.RoutingPolicy.Dropped) > 0 {
 			routesDefined = true
 		}
+	}
+
+	// 2. Check if all target routes exist
+	for _, stanza := range config.Pipelines {
+		for _, route := range stanza.RoutingPolicy.Forward {
+			if err := IsRouteExist(route, config); err != nil {
+				errs = append(errs, &RouteNotFoundError{Name: route, From: stanza.Name})
+			}
+		}
+		for _, route := range stanza.RoutingPolicy.Dropped {
+			if err := IsRouteExist(route, config); err != nil {
+				errs = append(errs, &RouteNotFoundError{Name: route, From: stanza.Name})
+			}
+		}
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 
 	if !routesDefined {
 		return ErrNoRoutesDefined
 	}
 
-	// check if all routes exists before continue
-	for _, stanza := range config.Pipelines {
-		for _, route := range stanza.RoutingPolicy.Forward {
-			if err := IsRouteExist(route, config); err != nil {
-				return &RouteNotFoundError{Name: route, From: stanza.Name}
-			}
-		}
-		for _, route := range stanza.RoutingPolicy.Dropped {
-			if err := IsRouteExist(route, config); err != nil {
-				return &RouteNotFoundError{Name: route, From: stanza.Name}
-			}
-		}
-	}
-
-	// read each stanza and init
+	// 3. Read and instantiate each stanza
+	var stanzaErrs []error
 	for _, stanza := range config.Pipelines {
 		stanzaConfig, err := GetStanzaConfig(config, stanza)
 		if err != nil {
-			return err
+			stanzaErrs = append(stanzaErrs, err)
+			continue
 		}
 		CreateStanza(stanza.Name, stanzaConfig, mapCollectors, mapLoggers, logger, telemetry)
 	}
 
-	// create routing
+	if len(stanzaErrs) > 0 {
+		return errors.Join(stanzaErrs...)
+	}
+
+	// 4. Create routing connections between instantiated stanzas
+	var routingErrs []error
 	for _, stanza := range config.Pipelines {
 		if mapCollectors[stanza.Name] != nil || mapLoggers[stanza.Name] != nil {
 			if err := CreateRouting(stanza, mapCollectors, mapLoggers, logger); err != nil {
-				return err
+				routingErrs = append(routingErrs, err)
 			}
 		} else {
-			return &StanzaNotFoundError{Name: stanza.Name}
+			routingErrs = append(routingErrs, &StanzaNotFoundError{Name: stanza.Name})
 		}
+	}
+
+	if len(routingErrs) > 0 {
+		return errors.Join(routingErrs...)
 	}
 
 	return nil
