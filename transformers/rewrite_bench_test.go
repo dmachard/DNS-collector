@@ -16,7 +16,7 @@ func BenchmarkRewrite_UpdateValues(b *testing.B) {
 	cfg.Rewrite.Identifiers["network.query-ip"] = "1.1.1.1"
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	rewrite := NewRewriteTransform(cfg, logger.New(false), "test", 0, outChans)
+	rewrite := NewRewriteTransform(&cfg.Rewrite, logger.New(false), "test", 0, outChans)
 	rewrite.GetTransforms()
 
 	dm := dnsutils.GetFakeDNSMessage()

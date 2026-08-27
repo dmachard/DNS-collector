@@ -18,7 +18,7 @@ func BenchmarkReducer_RepetitiveTrafficDetector(b *testing.B) {
 	cfg.Reducer.UniqueFields = []string{"dns.qname", "dns.qtype", "network.query-ip"}
 
 	outChan := make(chan *dnsutils.DNSMessageBatch, 100000)
-	reducer := NewReducerTransform(cfg, logger.New(false), "test", 0, []chan *dnsutils.DNSMessageBatch{outChan})
+	reducer := NewReducerTransform(&cfg.Reducer, logger.New(false), "test", 0, []chan *dnsutils.DNSMessageBatch{outChan})
 
 	dm := dnsutils.DNSMessage{
 		DNSTap:      dnsutils.DNSTap{Operation: "CLIENT_QUERY"},
@@ -41,7 +41,7 @@ func BenchmarkReducer_RepetitiveTrafficDetectorParallel(b *testing.B) {
 	cfg.Reducer.UniqueFields = []string{"dns.qname", "dns.qtype", "network.query-ip"}
 
 	outChan := make(chan *dnsutils.DNSMessageBatch, 1000000)
-	reducer := NewReducerTransform(cfg, logger.New(false), "test", 0, []chan *dnsutils.DNSMessageBatch{outChan})
+	reducer := NewReducerTransform(&cfg.Reducer, logger.New(false), "test", 0, []chan *dnsutils.DNSMessageBatch{outChan})
 
 	dm := dnsutils.DNSMessage{
 		DNSTap:      dnsutils.DNSTap{Operation: "CLIENT_QUERY"},

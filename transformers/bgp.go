@@ -16,20 +16,24 @@ import (
 
 type BGPTransform struct {
 	GenericTransformer
+	config       *config.TransformBGP
 	tree         atomic.Pointer[bgpmrt.BGPRadixTree]
 	cancelReload context.CancelFunc
 	lastModTime  time.Time
 	lastFileSize int64
 }
 
-func NewDNSBGPTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *BGPTransform {
-	t := &BGPTransform{GenericTransformer: NewTransformer(cfg, logger, "bgp", name, instance, nextWorkers)}
+func NewDNSBGPTransform(cfg *config.TransformBGP, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *BGPTransform {
+	t := &BGPTransform{
+		GenericTransformer: NewTransformer(logger, "bgp", name, instance, nextWorkers),
+		config:             cfg,
+	}
 	return t
 }
 
 func (t *BGPTransform) GetTransforms() ([]Subtransform, error) {
 	subtransforms := []Subtransform{}
-	if t.config.BGP.Enable {
+	if t.config.Enable {
 		if err := t.Open(); err != nil {
 			return nil, fmt.Errorf("open error %w", err)
 		}
@@ -39,7 +43,7 @@ func (t *BGPTransform) GetTransforms() ([]Subtransform, error) {
 }
 
 func (t *BGPTransform) Reset() {
-	if t.config.BGP.Enable {
+	if t.config.Enable {
 		t.Close()
 	}
 }
@@ -47,7 +51,7 @@ func (t *BGPTransform) Reset() {
 func (t *BGPTransform) Open() error {
 	t.Close()
 
-	if len(t.config.BGP.MrtFile) == 0 {
+	if len(t.config.MrtFile) == 0 {
 		return fmt.Errorf("bgp mrt-file path is required")
 	}
 
@@ -56,7 +60,7 @@ func (t *BGPTransform) Open() error {
 	}
 
 	// Start background housekeeping loop for auto-reloading if configured
-	if t.config.BGP.MrtCheckUpdateInterval > 0 {
+	if t.config.MrtCheckUpdateInterval > 0 {
 		ctx, cancel := context.WithCancel(context.Background())
 		t.cancelReload = cancel
 		go t.watchMRTFile(ctx)
@@ -73,13 +77,13 @@ func (t *BGPTransform) Close() {
 }
 
 func (t *BGPTransform) loadMRTFile() error {
-	fileInfo, err := os.Stat(t.config.BGP.MrtFile)
+	fileInfo, err := os.Stat(t.config.MrtFile)
 	if err != nil {
 		return fmt.Errorf("failed to stat MRT file: %w", err)
 	}
 
 	parser := bgpmrt.NewMRTParser()
-	tree, err := parser.ParseFile(t.config.BGP.MrtFile)
+	tree, err := parser.ParseFile(t.config.MrtFile)
 	if err != nil {
 		return fmt.Errorf("failed to parse MRT file: %w", err)
 	}
@@ -88,12 +92,12 @@ func (t *BGPTransform) loadMRTFile() error {
 	t.lastModTime = fileInfo.ModTime()
 	t.lastFileSize = fileInfo.Size()
 
-	t.LogInfo("MRT file loaded (%d prefixes from %s)", tree.TotalPrefixes(), t.config.BGP.MrtFile)
+	t.LogInfo("MRT file loaded (%d prefixes from %s)", tree.TotalPrefixes(), t.config.MrtFile)
 	return nil
 }
 
 func (t *BGPTransform) watchMRTFile(ctx context.Context) {
-	interval := time.Duration(t.config.BGP.MrtCheckUpdateInterval) * time.Second
+	interval := time.Duration(t.config.MrtCheckUpdateInterval) * time.Second
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
@@ -102,7 +106,7 @@ func (t *BGPTransform) watchMRTFile(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			fileInfo, err := os.Stat(t.config.BGP.MrtFile)
+			fileInfo, err := os.Stat(t.config.MrtFile)
 			if err != nil {
 				t.LogError("failed to check MRT file update: %v", err)
 				continue
@@ -138,7 +142,7 @@ func (t *BGPTransform) bgpTransform(dm *dnsutils.DNSMessage) (int, error) {
 	var parsedIP net.IP
 
 	// Lookup ECS IP if enabled and present
-	if t.config.BGP.LookupECS && len(dm.EDNS.Options) > 0 {
+	if t.config.LookupECS && len(dm.EDNS.Options) > 0 {
 		parsedIP = lookupECSIP(dm)
 	}
 
@@ -148,23 +152,23 @@ func (t *BGPTransform) bgpTransform(dm *dnsutils.DNSMessage) (int, error) {
 
 	rec := t.Lookup(parsedIP)
 	if rec != nil {
-		if t.config.BGP.OriginASN {
+		if t.config.OriginASN {
 			dm.BGP.OriginASN = rec.OriginASN
 		}
-		if t.config.BGP.ASPath {
+		if t.config.ASPath {
 			dm.BGP.ASPath = rec.ASPath
 		}
-		if t.config.BGP.Prefix {
+		if t.config.Prefix {
 			dm.BGP.Prefix = rec.Prefix
 		}
 	} else {
-		if t.config.BGP.OriginASN {
+		if t.config.OriginASN {
 			dm.BGP.OriginASN = "-"
 		}
-		if t.config.BGP.ASPath {
+		if t.config.ASPath {
 			dm.BGP.ASPath = "-"
 		}
-		if t.config.BGP.Prefix {
+		if t.config.Prefix {
 			dm.BGP.Prefix = "-"
 		}
 	}

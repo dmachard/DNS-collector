@@ -15,29 +15,28 @@ type ExtractorFunc func(dm *dnsutils.DNSMessage) (interface{}, bool)
 
 type ExtractTransform struct {
 	GenericTransformer
+	config           *config.TransformExtract
 	base64Extractors []ExtractorFunc
 	hexExtractors    []ExtractorFunc
 }
 
-func NewExtractTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *ExtractTransform {
-	t := &ExtractTransform{GenericTransformer: NewTransformer(cfg, logger, "extract", name, instance, nextWorkers)}
+func NewExtractTransform(cfg *config.TransformExtract, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *ExtractTransform {
+	t := &ExtractTransform{
+		GenericTransformer: NewTransformer(logger, "extract", name, instance, nextWorkers),
+		config:             cfg,
+	}
 	t.initExtractors()
 	return t
 }
 
-func (t *ExtractTransform) ReloadConfig(cfg *config.ConfigTransformers) {
-	t.GenericTransformer.ReloadConfig(cfg)
-	t.initExtractors()
-}
-
 func (t *ExtractTransform) initExtractors() {
-	t.base64Extractors = make([]ExtractorFunc, len(t.config.Extract.Base64Fields))
-	for i, field := range t.config.Extract.Base64Fields {
+	t.base64Extractors = make([]ExtractorFunc, len(t.config.Base64Fields))
+	for i, field := range t.config.Base64Fields {
 		t.base64Extractors[i] = getExtractor(field)
 	}
 
-	t.hexExtractors = make([]ExtractorFunc, len(t.config.Extract.HexFields))
-	for i, field := range t.config.Extract.HexFields {
+	t.hexExtractors = make([]ExtractorFunc, len(t.config.HexFields))
+	for i, field := range t.config.HexFields {
 		t.hexExtractors[i] = getExtractor(field)
 	}
 }
@@ -84,13 +83,13 @@ func getExtractor(tag string) ExtractorFunc {
 
 func (t *ExtractTransform) GetTransforms() ([]Subtransform, error) {
 	subtransforms := []Subtransform{}
-	if t.config.Extract.AddPayload {
+	if t.config.AddPayload {
 		subtransforms = append(subtransforms, Subtransform{name: "extract:add-base64payload", processFunc: t.addBase64Payload})
 	}
-	if len(t.config.Extract.Base64Fields) > 0 {
+	if len(t.config.Base64Fields) > 0 {
 		subtransforms = append(subtransforms, Subtransform{name: "extract:base64-fields", processFunc: t.addBase64Fields})
 	}
-	if len(t.config.Extract.HexFields) > 0 {
+	if len(t.config.HexFields) > 0 {
 		subtransforms = append(subtransforms, Subtransform{name: "extract:hex-fields", processFunc: t.addHexFields})
 	}
 	return subtransforms, nil
@@ -130,10 +129,10 @@ func (t *ExtractTransform) addBase64Fields(dm *dnsutils.DNSMessage) (int, error)
 		dm.Extracted = &dnsutils.TransformExtracted{}
 	}
 	if dm.Extracted.Base64Fields == nil {
-		dm.Extracted.Base64Fields = make(map[string]interface{}, len(t.config.Extract.Base64Fields))
+		dm.Extracted.Base64Fields = make(map[string]interface{}, len(t.config.Base64Fields))
 	}
 
-	for i, field := range t.config.Extract.Base64Fields {
+	for i, field := range t.config.Base64Fields {
 		extractor := t.base64Extractors[i]
 		if val, found := extractor(dm); found {
 			switch v := val.(type) {
@@ -186,10 +185,10 @@ func (t *ExtractTransform) addHexFields(dm *dnsutils.DNSMessage) (int, error) {
 		dm.Extracted = &dnsutils.TransformExtracted{}
 	}
 	if dm.Extracted.HexFields == nil {
-		dm.Extracted.HexFields = make(map[string]interface{}, len(t.config.Extract.HexFields))
+		dm.Extracted.HexFields = make(map[string]interface{}, len(t.config.HexFields))
 	}
 
-	for i, field := range t.config.Extract.HexFields {
+	for i, field := range t.config.HexFields {
 		extractor := t.hexExtractors[i]
 		if val, found := extractor(dm); found {
 			switch v := val.(type) {

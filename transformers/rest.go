@@ -14,17 +14,18 @@ import (
 
 type RestTransform struct {
 	GenericTransformer
+	config     *config.TransformRest
 	httpclient *http.Client
 }
 
-func NewRestTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *RestTransform {
-	t := &RestTransform{GenericTransformer: NewTransformer(cfg, logger, "rest", name, instance, nextWorkers)}
+func NewRestTransform(cfg *config.TransformRest, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *RestTransform {
+	t := &RestTransform{config: cfg, GenericTransformer: NewTransformer(logger, "rest", name, instance, nextWorkers)}
 	return t
 }
 
 func (t *RestTransform) GetTransforms() ([]Subtransform, error) {
 	subtransforms := []Subtransform{}
-	if t.config.Rest.Enable {
+	if t.config.Enable {
 		t.Setup()
 		subtransforms = append(subtransforms, Subtransform{name: "rest:request", processFunc: t.Request})
 	}
@@ -39,7 +40,7 @@ func (t *RestTransform) Setup() {
 	}
 
 	t.httpclient = &http.Client{
-		Timeout:   time.Duration(t.config.Rest.Timeout) * time.Second,
+		Timeout:   time.Duration(t.config.Timeout) * time.Second,
 		Transport: tr,
 	}
 }
@@ -55,7 +56,7 @@ func (t *RestTransform) Request(dm *dnsutils.DNSMessage) (int, error) {
 		return ReturnKeep, nil
 	}
 
-	post, err := http.NewRequest("POST", t.config.Rest.URL, bytes.NewBuffer(payload))
+	post, err := http.NewRequest("POST", t.config.URL, bytes.NewBuffer(payload))
 	if err != nil {
 		t.LogError("HTTP error: %s", err)
 		return ReturnKeep, nil
@@ -63,8 +64,8 @@ func (t *RestTransform) Request(dm *dnsutils.DNSMessage) (int, error) {
 
 	post.Header.Set("Content-Type", "application/json")
 
-	if t.config.Rest.BasicAuthEnabled {
-		post.SetBasicAuth(t.config.Rest.BasicAuthLogin, t.config.Rest.BasicAuthPwd)
+	if t.config.BasicAuthEnabled {
+		post.SetBasicAuth(t.config.BasicAuthLogin, t.config.BasicAuthPwd)
 	}
 
 	resp, err := t.httpclient.Do(post)

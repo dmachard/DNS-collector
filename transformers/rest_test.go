@@ -40,7 +40,7 @@ func TestRest_Request(t *testing.T) {
 
 	// init the processor
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	rest := NewRestTransform(cfg, logger.New(false), "test", 0, outChans)
+	rest := NewRestTransform(&cfg.Rest, logger.New(false), "test", 0, outChans)
 	rest.GetTransforms()
 
 	// send message

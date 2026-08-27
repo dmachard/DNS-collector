@@ -11,12 +11,13 @@ import (
 
 type SuspiciousTransform struct {
 	GenericTransformer
+	config                *config.TransformSuspicious
 	commonQtypes          map[string]bool
 	whitelistDomainsRegex map[string]*regexp.Regexp
 }
 
-func NewSuspiciousTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *SuspiciousTransform {
-	t := &SuspiciousTransform{GenericTransformer: NewTransformer(cfg, logger, "suspicious", name, instance, nextWorkers)}
+func NewSuspiciousTransform(cfg *config.TransformSuspicious, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *SuspiciousTransform {
+	t := &SuspiciousTransform{config: cfg, GenericTransformer: NewTransformer(logger, "suspicious", name, instance, nextWorkers)}
 	t.commonQtypes = make(map[string]bool)
 	t.whitelistDomainsRegex = make(map[string]*regexp.Regexp)
 	return t
@@ -34,14 +35,14 @@ func (t *SuspiciousTransform) GetTransforms() ([]Subtransform, error) {
 	}
 
 	// load maps
-	for _, v := range t.config.Suspicious.CommonQtypes {
+	for _, v := range t.config.CommonQtypes {
 		t.commonQtypes[v] = true
 	}
-	for _, v := range t.config.Suspicious.WhitelistDomains {
+	for _, v := range t.config.WhitelistDomains {
 		t.whitelistDomainsRegex[v] = regexp.MustCompile(v)
 	}
 
-	if t.config.Suspicious.Enable {
+	if t.config.Enable {
 		subtransforms = append(subtransforms, Subtransform{name: "suspicious:check", processFunc: t.checkIfSuspicious})
 	}
 	return subtransforms, nil
@@ -67,19 +68,19 @@ func (t *SuspiciousTransform) checkIfSuspicious(dm *dnsutils.DNSMessage) (int, e
 	}
 
 	// long domain name ?
-	if len(dm.DNS.Qname) > t.config.Suspicious.ThresholdQnameLen {
+	if len(dm.DNS.Qname) > t.config.ThresholdQnameLen {
 		dm.Suspicious.Score += 1.0
 		dm.Suspicious.LongDomain = true
 	}
 
 	// large packet size ?
-	if dm.DNS.Length > t.config.Suspicious.ThresholdPacketLen {
+	if dm.DNS.Length > t.config.ThresholdPacketLen {
 		dm.Suspicious.Score += 1.0
 		dm.Suspicious.LargePacket = true
 	}
 
 	// slow domain name resolution ?
-	if dm.DNSTap.Latency > t.config.Suspicious.ThresholdSlow {
+	if dm.DNSTap.Latency > t.config.ThresholdSlow {
 		dm.Suspicious.Score += 1.0
 		dm.Suspicious.SlowDomain = true
 	}
@@ -91,13 +92,13 @@ func (t *SuspiciousTransform) checkIfSuspicious(dm *dnsutils.DNSMessage) (int, e
 	}
 
 	// count the number of labels in qname
-	if strings.Count(dm.DNS.Qname, ".") > t.config.Suspicious.ThresholdMaxLabels {
+	if strings.Count(dm.DNS.Qname, ".") > t.config.ThresholdMaxLabels {
 		dm.Suspicious.Score += 1.0
 		dm.Suspicious.ExcessiveNumberLabels = true
 	}
 
 	// search for unallowed characters
-	for _, v := range t.config.Suspicious.UnallowedChars {
+	for _, v := range t.config.UnallowedChars {
 		if strings.Contains(dm.DNS.Qname, v) {
 			dm.Suspicious.Score += 1.0
 			dm.Suspicious.UnallowedChars = true

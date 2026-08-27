@@ -21,7 +21,7 @@ func TestGeoIP_Json(t *testing.T) {
 	dm.Init()
 
 	// init subprocessor
-	geoip := NewDNSGeoIPTransform(cfg, logger.New(true), "test", 0, outChans)
+	geoip := NewDNSGeoIPTransform(&cfg.GeoIP, logger.New(true), "test", 0, outChans)
 	if err := geoip.Open(); err != nil {
 		t.Fatalf("geoip init failed: %v+", err)
 	}
@@ -75,7 +75,7 @@ func TestGeoIP_LookupCountry(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	geoip := NewDNSGeoIPTransform(cfg, logger.New(false), "test", 0, outChans)
+	geoip := NewDNSGeoIPTransform(&cfg.GeoIP, logger.New(false), "test", 0, outChans)
 	_, err := geoip.GetTransforms()
 	if err != nil {
 		t.Fatalf("geoip init failed: %v+", err)
@@ -110,7 +110,7 @@ func TestGeoIP_LookupAsn(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	geoip := NewDNSGeoIPTransform(cfg, logger.New(false), "test", 0, outChans)
+	geoip := NewDNSGeoIPTransform(&cfg.GeoIP, logger.New(false), "test", 0, outChans)
 	if err := geoip.Open(); err != nil {
 		t.Fatalf("geoip init failed: %v", err)
 	}
@@ -137,7 +137,7 @@ func TestGeoIP_Lookup_ECS(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	geoip := NewDNSGeoIPTransform(cfg, logger.New(false), "test", 0, outChans)
+	geoip := NewDNSGeoIPTransform(&cfg.GeoIP, logger.New(false), "test", 0, outChans)
 	_, err := geoip.GetTransforms()
 	if err != nil {
 		t.Fatalf("geoip init failed: %v+", err)
@@ -169,7 +169,7 @@ func TestGeoIP_LookupCoordinate(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	geoip := NewDNSGeoIPTransform(cfg, logger.New(false), "test", 0, outChans)
+	geoip := NewDNSGeoIPTransform(&cfg.GeoIP, logger.New(false), "test", 0, outChans)
 	if err := geoip.Open(); err != nil {
 		t.Fatalf("geoip init failed: %v", err)
 	}

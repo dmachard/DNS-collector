@@ -116,37 +116,38 @@ func (ndt *NewDomainTracker) loadCacheFromDisk() error {
 // NewDomainTransform is the Transformer for DNS messages
 type NewDomainTrackerTransform struct {
 	GenericTransformer
+	config           *config.TransformNewDomainTracker
 	domainTracker    *NewDomainTracker
 	listDomainsRegex map[string]*regexp.Regexp
 }
 
 // NewNewDomainTransform creates a new instance of the transformer
-func NewNewDomainTrackerTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *NewDomainTrackerTransform {
-	t := &NewDomainTrackerTransform{GenericTransformer: NewTransformer(cfg, logger, "new-domain-tracker", name, instance, nextWorkers)}
+func NewNewDomainTrackerTransform(cfg *config.TransformNewDomainTracker, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *NewDomainTrackerTransform {
+	t := &NewDomainTrackerTransform{config: cfg, GenericTransformer: NewTransformer(logger, "new-domain-tracker", name, instance, nextWorkers)}
 	t.listDomainsRegex = make(map[string]*regexp.Regexp)
 	return t
 }
 
 // ReloadConfig reloads the configuration
-func (t *NewDomainTrackerTransform) ReloadConfig(cfg *config.ConfigTransformers) {
-	t.GenericTransformer.ReloadConfig(cfg)
-	ttl := time.Duration(cfg.NewDomainTracker.TTL) * time.Second
+func (t *NewDomainTrackerTransform) ReloadConfig(cfg *config.TransformNewDomainTracker) {
+	t.config = cfg
+	ttl := time.Duration(cfg.TTL) * time.Second
 	t.domainTracker.ttl = ttl
 	t.LogInfo("new-domain-transformer configuration reloaded")
 }
 
 func (t *NewDomainTrackerTransform) GetTransforms() ([]Subtransform, error) {
 	subtransforms := []Subtransform{}
-	if t.config.NewDomainTracker.Enable {
+	if t.config.Enable {
 		// init whitelist
 		if err := t.LoadWhiteDomainsList(); err != nil {
 			return nil, err
 		}
 
 		// Initialize the domain tracker
-		ttl := time.Duration(t.config.NewDomainTracker.TTL) * time.Second
-		maxSize := t.config.NewDomainTracker.CacheSize
-		tracker, err := NewNewDomainTracker(ttl, maxSize, t.listDomainsRegex, t.config.NewDomainTracker.PersistenceFile, t.LogInfo, t.LogError)
+		ttl := time.Duration(t.config.TTL) * time.Second
+		maxSize := t.config.CacheSize
+		tracker, err := NewNewDomainTracker(ttl, maxSize, t.listDomainsRegex, t.config.PersistenceFile, t.LogInfo, t.LogError)
 		if err != nil {
 			return nil, err
 		}
@@ -163,8 +164,8 @@ func (t *NewDomainTrackerTransform) LoadWhiteDomainsList() error {
 		delete(t.listDomainsRegex, key)
 	}
 
-	if len(t.config.NewDomainTracker.WhiteDomainsFile) > 0 {
-		file, err := os.Open(t.config.NewDomainTracker.WhiteDomainsFile)
+	if len(t.config.WhiteDomainsFile) > 0 {
+		file, err := os.Open(t.config.WhiteDomainsFile)
 		if err != nil {
 			return fmt.Errorf("unable to open regex list file: %w", err)
 		} else {
@@ -183,7 +184,7 @@ func (t *NewDomainTrackerTransform) LoadWhiteDomainsList() error {
 // Process processes DNS messages and detects newly observed domains
 func (t *NewDomainTrackerTransform) trackNewDomain(dm *dnsutils.DNSMessage) (int, error) {
 	// Log a warning if the cache is full (before adding the new domain)
-	if t.domainTracker.cache.Len() == t.config.NewDomainTracker.CacheSize {
+	if t.domainTracker.cache.Len() == t.config.CacheSize {
 		return ReturnError, fmt.Errorf("LRU cache is full. Consider increasing cache-size to avoid frequent evictions")
 	}
 

@@ -22,7 +22,7 @@ func TestRelabeling_CompileRegex(t *testing.T) {
 
 	// init the processor
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	relabeling := NewRelabelTransform(cfg, logger.New(false), "test", 0, outChans)
+	relabeling := NewRelabelTransform(&cfg.Relabeling, logger.New(false), "test", 0, outChans)
 	relabeling.GetTransforms()
 
 	if len(relabeling.RelabelingRules) != 2 {

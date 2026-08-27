@@ -17,7 +17,7 @@ func TestUniqueResponseTracker_IsNewResponse(t *testing.T) {
 	cfg.UniqueResponseTracker.CacheSize = 100
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	tracker := NewUniqueResponseTrackerTransform(cfg, logger.New(false), "test", 0, outChans)
+	tracker := NewUniqueResponseTrackerTransform(&cfg.UniqueResponseTracker, logger.New(false), "test", 0, outChans)
 
 	_, err := tracker.GetTransforms()
 	if err != nil {
@@ -78,7 +78,7 @@ func TestUniqueResponseTracker_NoAnswers(t *testing.T) {
 	cfg.UniqueResponseTracker.CacheSize = 100
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	tracker := NewUniqueResponseTrackerTransform(cfg, logger.New(false), "test", 0, outChans)
+	tracker := NewUniqueResponseTrackerTransform(&cfg.UniqueResponseTracker, logger.New(false), "test", 0, outChans)
 
 	_, err := tracker.GetTransforms()
 	if err != nil {
@@ -101,7 +101,7 @@ func TestUniqueResponseTracker_Whitelist(t *testing.T) {
 	cfg.UniqueResponseTracker.WhiteDomainsFile = "../tests/testsdata/newdomain_whitelist_regex.txt"
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	tracker := NewUniqueResponseTrackerTransform(cfg, logger.New(false), "test", 0, outChans)
+	tracker := NewUniqueResponseTrackerTransform(&cfg.UniqueResponseTracker, logger.New(false), "test", 0, outChans)
 
 	_, err := tracker.GetTransforms()
 	if err != nil {
@@ -142,7 +142,7 @@ func TestUniqueResponseTracker_Persistence(t *testing.T) {
 	cfg.UniqueResponseTracker.PersistenceFile = persistFile
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	tracker := NewUniqueResponseTrackerTransform(cfg, logger.New(false), "test", 0, outChans)
+	tracker := NewUniqueResponseTrackerTransform(&cfg.UniqueResponseTracker, logger.New(false), "test", 0, outChans)
 
 	_, err := tracker.GetTransforms()
 	if err != nil {
@@ -164,7 +164,7 @@ func TestUniqueResponseTracker_Persistence(t *testing.T) {
 	tracker.Reset()
 
 	// New tracker instance loading state from disk
-	tracker2 := NewUniqueResponseTrackerTransform(cfg, logger.New(false), "test2", 0, outChans)
+	tracker2 := NewUniqueResponseTrackerTransform(&cfg.UniqueResponseTracker, logger.New(false), "test2", 0, outChans)
 	_, err = tracker2.GetTransforms()
 	if err != nil {
 		t.Fatalf("fail to init second transform: %v", err)
@@ -183,7 +183,7 @@ func TestUniqueResponseTracker_LRUCacheFull(t *testing.T) {
 	cfg.UniqueResponseTracker.CacheSize = 1
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	tracker := NewUniqueResponseTrackerTransform(cfg, logger.New(false), "test", 0, outChans)
+	tracker := NewUniqueResponseTrackerTransform(&cfg.UniqueResponseTracker, logger.New(false), "test", 0, outChans)
 
 	_, err := tracker.GetTransforms()
 	if err != nil {
@@ -215,7 +215,7 @@ func TestUniqueResponseTracker_Cuckoo_IsNewResponse(t *testing.T) {
 	cfg.UniqueResponseTracker.StorageEngine = "cuckoo"
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	tracker := NewUniqueResponseTrackerTransform(cfg, logger.New(false), "test-cuckoo", 0, outChans)
+	tracker := NewUniqueResponseTrackerTransform(&cfg.UniqueResponseTracker, logger.New(false), "test-cuckoo", 0, outChans)
 
 	_, err := tracker.GetTransforms()
 	if err != nil {

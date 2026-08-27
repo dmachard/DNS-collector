@@ -161,10 +161,11 @@ func Test_BGP_AutoReload(t *testing.T) {
 	_ = bgpmrt.WriteSampleMRT(f, initialRoutes)
 	f.Close()
 
-	cfg := config.GetFakeConfigTransformers()
-	cfg.BGP.Enable = true
-	cfg.BGP.MrtFile = mrtPath
-	cfg.BGP.MrtCheckUpdateInterval = 1 // Check every 1 second
+	cfg := &config.TransformBGP{
+		Enable:                 true,
+		MrtFile:                mrtPath,
+		MrtCheckUpdateInterval: 1, // Check every 1 second
+	}
 
 	bgpTrans := NewDNSBGPTransform(cfg, logger.New(false), "test-reload", 0, nil)
 	if err := bgpTrans.Open(); err != nil {

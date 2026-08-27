@@ -12,7 +12,7 @@ func Benchmark_UserPrivacy_AnonymizeIPv4_Binary(b *testing.B) {
 	cfg := config.GetFakeConfigTransformers()
 	cfg.UserPrivacy.Enable = true
 	cfg.UserPrivacy.AnonymizeIP = true
-	userPrivacy := NewUserPrivacyTransform(cfg, logger.New(false), "test", 0, nil)
+	userPrivacy := NewUserPrivacyTransform(&cfg.UserPrivacy, logger.New(false), "test", 0, nil)
 	userPrivacy.GetTransforms()
 
 	dm := dnsutils.GetFakeDNSMessage()
@@ -31,7 +31,7 @@ func Benchmark_UserPrivacy_AnonymizeIPv4_String(b *testing.B) {
 	cfg := config.GetFakeConfigTransformers()
 	cfg.UserPrivacy.Enable = true
 	cfg.UserPrivacy.AnonymizeIP = true
-	userPrivacy := NewUserPrivacyTransform(cfg, logger.New(false), "test", 0, nil)
+	userPrivacy := NewUserPrivacyTransform(&cfg.UserPrivacy, logger.New(false), "test", 0, nil)
 	userPrivacy.GetTransforms()
 
 	dm := dnsutils.GetFakeDNSMessage()
@@ -50,7 +50,7 @@ func Benchmark_UserPrivacy_AnonymizeIPv6_String(b *testing.B) {
 	cfg := config.GetFakeConfigTransformers()
 	cfg.UserPrivacy.Enable = true
 	cfg.UserPrivacy.AnonymizeIP = true
-	userPrivacy := NewUserPrivacyTransform(cfg, logger.New(false), "test", 0, nil)
+	userPrivacy := NewUserPrivacyTransform(&cfg.UserPrivacy, logger.New(false), "test", 0, nil)
 	userPrivacy.GetTransforms()
 
 	dm := dnsutils.GetFakeDNSMessage()
@@ -69,7 +69,7 @@ func Benchmark_UserPrivacy_AnonymizeIPv6_Binary(b *testing.B) {
 	cfg := config.GetFakeConfigTransformers()
 	cfg.UserPrivacy.Enable = true
 	cfg.UserPrivacy.AnonymizeIP = true
-	userPrivacy := NewUserPrivacyTransform(cfg, logger.New(false), "test", 0, nil)
+	userPrivacy := NewUserPrivacyTransform(&cfg.UserPrivacy, logger.New(false), "test", 0, nil)
 	userPrivacy.GetTransforms()
 
 	dm := dnsutils.GetFakeDNSMessage()

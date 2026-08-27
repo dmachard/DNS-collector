@@ -54,17 +54,18 @@ type GeoRecord struct {
 
 type GeoIPTransform struct {
 	GenericTransformer
+	config                                 *config.TransformGeoIP
 	dbCountry, dbCity, dbAsn, dbCoordinate *maxminddb.Reader
 }
 
-func NewDNSGeoIPTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *GeoIPTransform {
-	t := &GeoIPTransform{GenericTransformer: NewTransformer(cfg, logger, "geoip", name, instance, nextWorkers)}
+func NewDNSGeoIPTransform(cfg *config.TransformGeoIP, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *GeoIPTransform {
+	t := &GeoIPTransform{config: cfg, GenericTransformer: NewTransformer(logger, "geoip", name, instance, nextWorkers)}
 	return t
 }
 
 func (t *GeoIPTransform) GetTransforms() ([]Subtransform, error) {
 	subtransforms := []Subtransform{}
-	if t.config.GeoIP.Enable {
+	if t.config.Enable {
 		if err := t.Open(); err != nil {
 			return nil, fmt.Errorf("open error %w", err)
 		}
@@ -74,7 +75,7 @@ func (t *GeoIPTransform) GetTransforms() ([]Subtransform, error) {
 }
 
 func (t *GeoIPTransform) Reset() {
-	if t.config.GeoIP.Enable {
+	if t.config.Enable {
 		t.Close()
 	}
 }
@@ -85,32 +86,32 @@ func (t *GeoIPTransform) Open() (err error) {
 	t.Close()
 
 	// open files ?
-	if len(t.config.GeoIP.DBCountryFile) > 0 {
-		t.dbCountry, err = maxminddb.Open(t.config.GeoIP.DBCountryFile)
+	if len(t.config.DBCountryFile) > 0 {
+		t.dbCountry, err = maxminddb.Open(t.config.DBCountryFile)
 		if err != nil {
 			return err
 		}
 		t.LogInfo("country database loaded (%d records)", t.dbCountry.Metadata.NodeCount)
 	}
 
-	if len(t.config.GeoIP.DBCityFile) > 0 {
-		t.dbCity, err = maxminddb.Open(t.config.GeoIP.DBCityFile)
+	if len(t.config.DBCityFile) > 0 {
+		t.dbCity, err = maxminddb.Open(t.config.DBCityFile)
 		if err != nil {
 			return err
 		}
 		t.LogInfo("city database loaded (%d records)", t.dbCity.Metadata.NodeCount)
 	}
 
-	if len(t.config.GeoIP.DBASNFile) > 0 {
-		t.dbAsn, err = maxminddb.Open(t.config.GeoIP.DBASNFile)
+	if len(t.config.DBASNFile) > 0 {
+		t.dbAsn, err = maxminddb.Open(t.config.DBASNFile)
 		if err != nil {
 			return err
 		}
 		t.LogInfo("asn database loaded (%d records)", t.dbAsn.Metadata.NodeCount)
 	}
 
-	if len(t.config.GeoIP.DBCoordinateFile) > 0 {
-		t.dbCoordinate, err = maxminddb.Open(t.config.GeoIP.DBCoordinateFile)
+	if len(t.config.DBCoordinateFile) > 0 {
+		t.dbCoordinate, err = maxminddb.Open(t.config.DBCoordinateFile)
 		if err != nil {
 			return err
 		}
@@ -200,7 +201,7 @@ func (t *GeoIPTransform) geoipTransform(dm *dnsutils.DNSMessage) (int, error) {
 	var parsedIP net.IP
 
 	// lookup ecs ip instead of the query ip?
-	if t.config.GeoIP.LookupECS && len(dm.EDNS.Options) > 0 {
+	if t.config.LookupECS && len(dm.EDNS.Options) > 0 {
 		parsedIP = lookupECSIP(dm)
 	}
 

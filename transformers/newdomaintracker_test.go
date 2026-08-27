@@ -19,7 +19,7 @@ func TestNewDomainTracker_IsNew(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	tracker := NewNewDomainTrackerTransform(cfg, logger.New(false), "test", 0, outChans)
+	tracker := NewNewDomainTrackerTransform(&cfg.NewDomainTracker, logger.New(false), "test", 0, outChans)
 
 	// init transforms
 	_, err := tracker.GetTransforms()
@@ -55,7 +55,7 @@ func TestNewDomainTracker_Whitelist(t *testing.T) {
 
 	// init subprocessor
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	tracker := NewNewDomainTrackerTransform(cfg, logger.New(false), "test", 0, outChans)
+	tracker := NewNewDomainTrackerTransform(&cfg.NewDomainTracker, logger.New(false), "test", 0, outChans)
 	_, err := tracker.GetTransforms()
 	if err != nil {
 		t.Error("fail to init transform", err)
@@ -85,7 +85,7 @@ func TestNewDomainTracker_LRUCacheFull(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	tracker := NewNewDomainTrackerTransform(cfg, logger.New(false), "test", 0, outChans)
+	tracker := NewNewDomainTrackerTransform(&cfg.NewDomainTracker, logger.New(false), "test", 0, outChans)
 
 	// init transforms
 	_, err := tracker.GetTransforms()

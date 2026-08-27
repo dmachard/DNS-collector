@@ -10,17 +10,18 @@ import (
 
 type RelabelTransform struct {
 	GenericTransformer
+	config          *config.TransformRelabeling
 	RelabelingRules []dnsutils.RelabelingRule
 }
 
-func NewRelabelTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *RelabelTransform {
-	t := &RelabelTransform{GenericTransformer: NewTransformer(cfg, logger, "relabeling", name, instance, nextWorkers)}
+func NewRelabelTransform(cfg *config.TransformRelabeling, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *RelabelTransform {
+	t := &RelabelTransform{config: cfg, GenericTransformer: NewTransformer(logger, "relabeling", name, instance, nextWorkers)}
 	return t
 }
 
 func (t *RelabelTransform) GetTransforms() ([]Subtransform, error) {
 	subtransforms := []Subtransform{}
-	if len(t.config.Relabeling.Rename) > 0 || len(t.config.Relabeling.Remove) > 0 {
+	if len(t.config.Rename) > 0 || len(t.config.Remove) > 0 {
 		actions := t.Precompile()
 		subtransforms = append(subtransforms, Subtransform{name: "relabeling:" + actions, processFunc: t.AddRules})
 	}
@@ -31,7 +32,7 @@ func (t *RelabelTransform) GetTransforms() ([]Subtransform, error) {
 func (t *RelabelTransform) Precompile() string {
 	actionRename := false
 	actionRemove := false
-	for _, label := range t.config.Relabeling.Rename {
+	for _, label := range t.config.Rename {
 		t.RelabelingRules = append(t.RelabelingRules, dnsutils.RelabelingRule{
 			Regex:       regexp.MustCompile(label.Regex),
 			Replacement: label.Replacement,
@@ -39,7 +40,7 @@ func (t *RelabelTransform) Precompile() string {
 		})
 		actionRename = true
 	}
-	for _, label := range t.config.Relabeling.Remove {
+	for _, label := range t.config.Remove {
 		t.RelabelingRules = append(t.RelabelingRules, dnsutils.RelabelingRule{
 			Regex:       regexp.MustCompile(label.Regex),
 			Replacement: label.Replacement,

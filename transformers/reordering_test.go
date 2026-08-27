@@ -23,7 +23,7 @@ func TestReorderingTransform_SortByTimestamp(t *testing.T) {
 	}
 
 	// initialize transformer
-	reorder := NewReorderingTransform(cfg, log, "test", 0, outChans)
+	reorder := NewReorderingTransform(&cfg.Reordering, log, "test", 0, outChans)
 
 	dm1 := dnsutils.GetFakeDNSMessage()
 	dm1.DNSTap.TimestampRFC3339 = "2024-12-20T21:12:14.786109Z"

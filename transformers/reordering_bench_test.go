@@ -105,7 +105,7 @@ func Benchmark_Reordering_FlushBuffer_1000(b *testing.B) {
 	cfg.Reordering.MaxBufferSize = 1000
 	log := logger.New(false)
 	outChans := []chan *dnsutils.DNSMessageBatch{make(chan *dnsutils.DNSMessageBatch, 2000)}
-	reorder := NewReorderingTransform(cfg, log, "bench", 0, outChans)
+	reorder := NewReorderingTransform(&cfg.Reordering, log, "bench", 0, outChans)
 
 	template := generateMessages(1000, 50_000_000) // nearly sorted
 

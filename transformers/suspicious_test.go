@@ -20,7 +20,7 @@ func TestSuspicious_Json(t *testing.T) {
 	dm := dnsutils.GetFakeDNSMessage()
 
 	// init subprocessor
-	suspicious := NewSuspiciousTransform(cfg, logger.New(false), "test", 0, outChans)
+	suspicious := NewSuspiciousTransform(&cfg.Suspicious, logger.New(false), "test", 0, outChans)
 
 	// init transforms and check
 	suspicious.GetTransforms()
@@ -77,7 +77,7 @@ func TestSuspicious_MalformedPacket(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	suspicious := NewSuspiciousTransform(cfg, logger.New(false), "test", 0, outChans)
+	suspicious := NewSuspiciousTransform(&cfg.Suspicious, logger.New(false), "test", 0, outChans)
 
 	// malformed DNS message
 	dm := dnsutils.GetFakeDNSMessage()
@@ -112,7 +112,7 @@ func TestSuspicious_LongDomain(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	suspicious := NewSuspiciousTransform(cfg, logger.New(false), "test", 0, outChans)
+	suspicious := NewSuspiciousTransform(&cfg.Suspicious, logger.New(false), "test", 0, outChans)
 
 	// malformed DNS message
 	dm := dnsutils.GetFakeDNSMessage()
@@ -146,7 +146,7 @@ func TestSuspicious_SlowDomain(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	suspicious := NewSuspiciousTransform(cfg, logger.New(false), "test", 0, outChans)
+	suspicious := NewSuspiciousTransform(&cfg.Suspicious, logger.New(false), "test", 0, outChans)
 
 	// malformed DNS message
 	dm := dnsutils.GetFakeDNSMessage()
@@ -180,7 +180,7 @@ func TestSuspicious_LargePacket(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	suspicious := NewSuspiciousTransform(cfg, logger.New(false), "test", 0, outChans)
+	suspicious := NewSuspiciousTransform(&cfg.Suspicious, logger.New(false), "test", 0, outChans)
 
 	// malformed DNS message
 	dm := dnsutils.GetFakeDNSMessage()
@@ -213,7 +213,7 @@ func TestSuspicious_UncommonQtype(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	suspicious := NewSuspiciousTransform(cfg, logger.New(false), "test", 0, outChans)
+	suspicious := NewSuspiciousTransform(&cfg.Suspicious, logger.New(false), "test", 0, outChans)
 
 	// malformed DNS message
 	dm := dnsutils.GetFakeDNSMessage()
@@ -247,7 +247,7 @@ func TestSuspicious_ExceedMaxLabels(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	suspicious := NewSuspiciousTransform(cfg, logger.New(false), "test", 0, outChans)
+	suspicious := NewSuspiciousTransform(&cfg.Suspicious, logger.New(false), "test", 0, outChans)
 
 	// malformed DNS message
 	dm := dnsutils.GetFakeDNSMessage()
@@ -280,7 +280,7 @@ func TestSuspicious_UnallowedChars(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	suspicious := NewSuspiciousTransform(cfg, logger.New(false), "test", 0, outChans)
+	suspicious := NewSuspiciousTransform(&cfg.Suspicious, logger.New(false), "test", 0, outChans)
 
 	// malformed DNS message
 	dm := dnsutils.GetFakeDNSMessage()
@@ -313,7 +313,7 @@ func TestSuspicious_WhitelistDomains(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	suspicious := NewSuspiciousTransform(cfg, logger.New(false), "test", 0, outChans)
+	suspicious := NewSuspiciousTransform(&cfg.Suspicious, logger.New(false), "test", 0, outChans)
 
 	// IPv6 DNS message PTR
 	dm := dnsutils.GetFakeDNSMessage()

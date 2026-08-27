@@ -23,7 +23,7 @@ func TestFilteringQR(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	filtering := NewFilteringTransform(cfg, logger.New(false), "test", 0, outChans)
+	filtering := NewFilteringTransform(&cfg.Filtering, logger.New(false), "test", 0, outChans)
 
 	// get transforms
 	subtransforms, _ := filtering.GetTransforms()
@@ -51,7 +51,7 @@ func TestFilteringByRcodeNOERROR(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	filtering := NewFilteringTransform(cfg, logger.New(false), "test", 0, outChans)
+	filtering := NewFilteringTransform(&cfg.Filtering, logger.New(false), "test", 0, outChans)
 
 	// get transforms
 	subtransforms, _ := filtering.GetTransforms()
@@ -74,7 +74,7 @@ func TestFilteringByRcodeEmpty(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	filtering := NewFilteringTransform(cfg, logger.New(false), "test", 0, outChans)
+	filtering := NewFilteringTransform(&cfg.Filtering, logger.New(false), "test", 0, outChans)
 
 	// get transforms
 	subtransforms, _ := filtering.GetTransforms()
@@ -92,7 +92,7 @@ func TestFilteringByKeepQueryIp(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	filtering := NewFilteringTransform(cfg, logger.New(false), "test", 0, outChans)
+	filtering := NewFilteringTransform(&cfg.Filtering, logger.New(false), "test", 0, outChans)
 
 	// get transforms
 	subtransforms, _ := filtering.GetTransforms()
@@ -139,7 +139,7 @@ func TestFilteringByBothDropAndKeepQueryIp(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	filtering := NewFilteringTransform(cfg, logger.New(false), "test", 0, outChans)
+	filtering := NewFilteringTransform(&cfg.Filtering, logger.New(false), "test", 0, outChans)
 
 	// get transforms
 	subtransforms, err := filtering.GetTransforms()
@@ -181,7 +181,7 @@ func TestFilteringByDropQueryIp(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	filtering := NewFilteringTransform(cfg, logger.New(false), "test", 0, outChans)
+	filtering := NewFilteringTransform(&cfg.Filtering, logger.New(false), "test", 0, outChans)
 
 	// get transforms
 	subtransforms, _ := filtering.GetTransforms()
@@ -227,7 +227,7 @@ func TestFilteringByKeepRdataIp(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	filtering := NewFilteringTransform(cfg, logger.New(false), "test", 0, outChans)
+	filtering := NewFilteringTransform(&cfg.Filtering, logger.New(false), "test", 0, outChans)
 
 	// get transforms
 	subtransforms, _ := filtering.GetTransforms()
@@ -326,7 +326,7 @@ func TestFilteringByFqdn(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	filtering := NewFilteringTransform(cfg, logger.New(false), "test", 0, outChans)
+	filtering := NewFilteringTransform(&cfg.Filtering, logger.New(false), "test", 0, outChans)
 
 	// get transforms
 	subtransforms, _ := filtering.GetTransforms()
@@ -355,7 +355,7 @@ func TestFilteringByDomainRegex(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	filtering := NewFilteringTransform(cfg, logger.New(false), "test", 0, outChans)
+	filtering := NewFilteringTransform(&cfg.Filtering, logger.New(false), "test", 0, outChans)
 
 	// get transforms
 	subtransforms, _ := filtering.GetTransforms()
@@ -391,7 +391,7 @@ func TestFilteringByKeepDomain(t *testing.T) {
 	cfg.Filtering.KeepFqdnFile = "../tests/testsdata/filtering_keep_domains.txt"
 
 	// init subprocessor
-	filtering := NewFilteringTransform(cfg, logger.New(false), "test", 0, outChans)
+	filtering := NewFilteringTransform(&cfg.Filtering, logger.New(false), "test", 0, outChans)
 
 	// get transforms
 	subtransforms, _ := filtering.GetTransforms()
@@ -436,7 +436,7 @@ func TestFilteringByKeepDomainRegex(t *testing.T) {
 	cfg.Filtering.KeepDomainFile = "../tests/testsdata/filtering_keep_domains_regex.txt"
 
 	// init subprocessor
-	filtering := NewFilteringTransform(cfg, logger.New(false), "test", 0, outChans)
+	filtering := NewFilteringTransform(&cfg.Filtering, logger.New(false), "test", 0, outChans)
 
 	// get transforms
 	subtransforms, _ := filtering.GetTransforms()
@@ -478,7 +478,7 @@ func TestFilteringMultipleFilters(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init subprocessor
-	filtering := NewFilteringTransform(cfg, logger.New(false), "test", 0, outChans)
+	filtering := NewFilteringTransform(&cfg.Filtering, logger.New(false), "test", 0, outChans)
 	subtransforms, _ := filtering.GetTransforms()
 
 	if len(subtransforms) != 2 {
@@ -495,7 +495,7 @@ func TestFilteringDownsampleFilter(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init processor
-	filtering := NewFilteringTransform(cfg, logger.New(false), "test", 0, outChans)
+	filtering := NewFilteringTransform(&cfg.Filtering, logger.New(false), "test", 0, outChans)
 
 	// get transform function
 	subtransforms, _ := filtering.GetTransforms()

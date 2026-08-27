@@ -112,26 +112,27 @@ func (mp *HashQueries) Delete(key uint64) {
 // latency transformer
 type LatencyTransform struct {
 	GenericTransformer
+	config      *config.TransformLatency
 	hashQueries HashQueries
 	mapQueries  MapQueries
 }
 
-func NewLatencyTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *LatencyTransform {
-	t := &LatencyTransform{GenericTransformer: NewTransformer(cfg, logger, "latency", name, instance, nextWorkers)}
-	t.hashQueries = NewHashQueries(time.Duration(cfg.Latency.QueriesTimeout) * time.Second)
-	t.mapQueries = NewMapQueries(time.Duration(cfg.Latency.QueriesTimeout)*time.Second, nextWorkers)
+func NewLatencyTransform(cfg *config.TransformLatency, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *LatencyTransform {
+	t := &LatencyTransform{config: cfg, GenericTransformer: NewTransformer(logger, "latency", name, instance, nextWorkers)}
+	t.hashQueries = NewHashQueries(time.Duration(cfg.QueriesTimeout) * time.Second)
+	t.mapQueries = NewMapQueries(time.Duration(cfg.QueriesTimeout)*time.Second, nextWorkers)
 	return t
 }
 
 func (t *LatencyTransform) GetTransforms() ([]Subtransform, error) {
-	t.hashQueries.SetTTL(time.Duration(t.config.Latency.QueriesTimeout) * time.Second)
-	t.mapQueries.SetTTL(time.Duration(t.config.Latency.QueriesTimeout) * time.Second)
+	t.hashQueries.SetTTL(time.Duration(t.config.QueriesTimeout) * time.Second)
+	t.mapQueries.SetTTL(time.Duration(t.config.QueriesTimeout) * time.Second)
 
 	subtransforms := []Subtransform{}
-	if t.config.Latency.MeasureLatency {
+	if t.config.MeasureLatency {
 		subtransforms = append(subtransforms, Subtransform{name: "latency:add", processFunc: t.measureLatency})
 	}
-	if t.config.Latency.UnansweredQueries {
+	if t.config.UnansweredQueries {
 		subtransforms = append(subtransforms, Subtransform{name: "latency:timeout", processFunc: t.detectEvictedTimeout})
 	}
 	return subtransforms, nil

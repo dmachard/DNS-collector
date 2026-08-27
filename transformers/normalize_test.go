@@ -18,7 +18,7 @@ func TestNormalize_LowercaseQname(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	normTransformer := NewNormalizeTransform(cfg, logger.New(false), "test", 0, outChans)
+	normTransformer := NewNormalizeTransform(&cfg.Normalize, logger.New(false), "test", 0, outChans)
 
 	qname := "www.Google.Com"
 	dm := dnsutils.GetFakeDNSMessage()
@@ -45,7 +45,7 @@ func TestNormalize_RRLowercaseQname(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	normTransformer := NewNormalizeTransform(cfg, logger.New(false), "test", 0, outChans)
+	normTransformer := NewNormalizeTransform(&cfg.Normalize, logger.New(false), "test", 0, outChans)
 
 	// create DNSMessage with answers
 	rrqname := "www.RRGoogle.Com"
@@ -87,7 +87,7 @@ func TestNormalize_QuietText(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	norm := NewNormalizeTransform(cfg, logger.New(false), "test", 0, outChans)
+	norm := NewNormalizeTransform(&cfg.Normalize, logger.New(false), "test", 0, outChans)
 
 	dm := dnsutils.GetFakeDNSMessage()
 	norm.QuietText(&dm)
@@ -110,7 +110,7 @@ func TestNormalize_AddTLD(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	psl := NewNormalizeTransform(cfg, logger.New(false), "test", 0, outChans)
+	psl := NewNormalizeTransform(&cfg.Normalize, logger.New(false), "test", 0, outChans)
 
 	tt := []struct {
 		name  string
@@ -160,7 +160,7 @@ func TestNormalize_AddTldPlusOne(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	psl := NewNormalizeTransform(cfg, logger.New(false), "test", 0, outChans)
+	psl := NewNormalizeTransform(&cfg.Normalize, logger.New(false), "test", 0, outChans)
 
 	tt := []struct {
 		name  string
@@ -202,7 +202,7 @@ func TestNormalize_SuffixUnmanaged(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	psl := NewNormalizeTransform(cfg, logger.New(true), "test", 0, outChans)
+	psl := NewNormalizeTransform(&cfg.Normalize, logger.New(true), "test", 0, outChans)
 
 	dm := dnsutils.GetFakeDNSMessage()
 	// https://publicsuffix.org/list/effective_tld_names.dat
@@ -227,7 +227,7 @@ func TestNormalize_SuffixICANNManaged(t *testing.T) {
 	outChans := []chan *dnsutils.DNSMessageBatch{}
 
 	// init the processor
-	psl := NewNormalizeTransform(cfg, logger.New(true), "test", 0, outChans)
+	psl := NewNormalizeTransform(&cfg.Normalize, logger.New(true), "test", 0, outChans)
 
 	dm := dnsutils.GetFakeDNSMessage()
 	// https://publicsuffix.org/list/effective_tld_names.dat
@@ -251,7 +251,7 @@ func TestNormalize_ReplaceNonprintable(t *testing.T) {
 	cfg.Normalize.ReplaceNonPrintable = true
 
 	outChans := []chan *dnsutils.DNSMessageBatch{}
-	norm := NewNormalizeTransform(cfg, logger.New(false), "test", 0, outChans)
+	norm := NewNormalizeTransform(&cfg.Normalize, logger.New(false), "test", 0, outChans)
 
 	tests := []struct {
 		name     string

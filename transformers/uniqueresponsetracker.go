@@ -140,35 +140,36 @@ func (urt *UniqueResponseTracker) Close() {
 
 type UniqueResponseTrackerTransform struct {
 	GenericTransformer
+	config           *config.TransformUniqueResponseTracker
 	responseTracker  *UniqueResponseTracker
 	listDomainsRegex map[string]*regexp.Regexp
 }
 
-func NewUniqueResponseTrackerTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *UniqueResponseTrackerTransform {
-	t := &UniqueResponseTrackerTransform{GenericTransformer: NewTransformer(cfg, logger, "unique-response-tracker", name, instance, nextWorkers)}
+func NewUniqueResponseTrackerTransform(cfg *config.TransformUniqueResponseTracker, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *UniqueResponseTrackerTransform {
+	t := &UniqueResponseTrackerTransform{config: cfg, GenericTransformer: NewTransformer(logger, "unique-response-tracker", name, instance, nextWorkers)}
 	t.listDomainsRegex = make(map[string]*regexp.Regexp)
 	return t
 }
 
-func (t *UniqueResponseTrackerTransform) ReloadConfig(cfg *config.ConfigTransformers) {
-	t.GenericTransformer.ReloadConfig(cfg)
-	ttl := time.Duration(cfg.UniqueResponseTracker.TTL) * time.Second
+func (t *UniqueResponseTrackerTransform) ReloadConfig(cfg *config.TransformUniqueResponseTracker) {
+	t.config = cfg
+	ttl := time.Duration(cfg.TTL) * time.Second
 	t.responseTracker.ttl = ttl
 	t.LogInfo("unique-response-tracker configuration reloaded")
 }
 
 func (t *UniqueResponseTrackerTransform) GetTransforms() ([]Subtransform, error) {
 	subtransforms := []Subtransform{}
-	if t.config.UniqueResponseTracker.Enable {
+	if t.config.Enable {
 		if err := t.LoadWhiteDomainsList(); err != nil {
 			return nil, err
 		}
 
-		ttl := time.Duration(t.config.UniqueResponseTracker.TTL) * time.Second
-		maxSize := t.config.UniqueResponseTracker.CacheSize
-		engine := t.config.UniqueResponseTracker.StorageEngine
-		fpBits := t.config.UniqueResponseTracker.CuckooFingerprintBits
-		tracker, err := NewUniqueResponseTracker(ttl, maxSize, engine, fpBits, t.listDomainsRegex, t.config.UniqueResponseTracker.PersistenceFile, t.LogInfo, t.LogError)
+		ttl := time.Duration(t.config.TTL) * time.Second
+		maxSize := t.config.CacheSize
+		engine := t.config.StorageEngine
+		fpBits := t.config.CuckooFingerprintBits
+		tracker, err := NewUniqueResponseTracker(ttl, maxSize, engine, fpBits, t.listDomainsRegex, t.config.PersistenceFile, t.LogInfo, t.LogError)
 		if err != nil {
 			return nil, err
 		}
@@ -184,8 +185,8 @@ func (t *UniqueResponseTrackerTransform) LoadWhiteDomainsList() error {
 		delete(t.listDomainsRegex, key)
 	}
 
-	if len(t.config.UniqueResponseTracker.WhiteDomainsFile) > 0 {
-		file, err := os.Open(t.config.UniqueResponseTracker.WhiteDomainsFile)
+	if len(t.config.WhiteDomainsFile) > 0 {
+		file, err := os.Open(t.config.WhiteDomainsFile)
 		if err != nil {
 			return fmt.Errorf("unable to open regex list file: %w", err)
 		}
@@ -209,7 +210,7 @@ func (t *UniqueResponseTrackerTransform) trackUniqueResponse(dm *dnsutils.DNSMes
 	}
 
 	if t.responseTracker.storageEngine == "lru" && t.responseTracker.lruCache != nil {
-		if t.responseTracker.lruCache.Len() == t.config.UniqueResponseTracker.CacheSize {
+		if t.responseTracker.lruCache.Len() == t.config.CacheSize {
 			return ReturnError, fmt.Errorf("LRU cache is full. Consider increasing cache-size to avoid frequent evictions")
 		}
 	}

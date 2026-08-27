@@ -8,16 +8,20 @@ import (
 
 type ATagsTransform struct {
 	GenericTransformer
+	config *config.TransformATags
 }
 
-func NewATagsTransform(cfg *config.ConfigTransformers, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *ATagsTransform {
-	t := &ATagsTransform{GenericTransformer: NewTransformer(cfg, logger, "atags", name, instance, nextWorkers)}
+func NewATagsTransform(cfg *config.TransformATags, logger *logger.Logger, name string, instance int, nextWorkers []chan *dnsutils.DNSMessageBatch) *ATagsTransform {
+	t := &ATagsTransform{
+		GenericTransformer: NewTransformer(logger, "atags", name, instance, nextWorkers),
+		config:             cfg,
+	}
 	return t
 }
 
 func (t *ATagsTransform) GetTransforms() ([]Subtransform, error) {
 	subtransforms := []Subtransform{}
-	if len(t.config.ATags.AddTags) > 0 {
+	if len(t.config.AddTags) > 0 {
 		subtransforms = append(subtransforms, Subtransform{name: "atags:add", processFunc: t.addTags})
 	}
 	return subtransforms, nil
@@ -28,6 +32,6 @@ func (t *ATagsTransform) addTags(dm *dnsutils.DNSMessage) (int, error) {
 		dm.ATags = &dnsutils.TransformATags{Tags: []string{}}
 	}
 
-	dm.ATags.Tags = append(dm.ATags.Tags, t.config.ATags.AddTags...)
+	dm.ATags.Tags = append(dm.ATags.Tags, t.config.AddTags...)
 	return ReturnKeep, nil
 }

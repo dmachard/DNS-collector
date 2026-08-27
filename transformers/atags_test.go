@@ -10,10 +10,10 @@ import (
 
 func TestATags_AddTag(t *testing.T) {
 	// enable feature
-	cfg := config.GetFakeConfigTransformers()
-	cfg.ATags.Enable = true
-	cfg.ATags.AddTags = append(cfg.ATags.AddTags, "tag1")
-	cfg.ATags.AddTags = append(cfg.ATags.AddTags, "tag2")
+	cfg := &config.TransformATags{
+		Enable:  true,
+		AddTags: []string{"tag1", "tag2"},
+	}
 
 	// init the processor
 	outChans := []chan *dnsutils.DNSMessageBatch{}
