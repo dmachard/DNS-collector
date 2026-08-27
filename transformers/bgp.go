@@ -9,13 +9,14 @@ import (
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
+	"github.com/dmachard/go-dnscollector/v2/pkg/bgpmrt"
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
 	"github.com/dmachard/go-logger"
 )
 
 type BGPTransform struct {
 	GenericTransformer
-	tree         atomic.Pointer[BGPRadixTree]
+	tree         atomic.Pointer[bgpmrt.BGPRadixTree]
 	cancelReload context.CancelFunc
 	lastModTime  time.Time
 	lastFileSize int64
@@ -77,7 +78,7 @@ func (t *BGPTransform) loadMRTFile() error {
 		return fmt.Errorf("failed to stat MRT file: %w", err)
 	}
 
-	parser := NewMRTParser()
+	parser := bgpmrt.NewMRTParser()
 	tree, err := parser.ParseFile(t.config.BGP.MrtFile)
 	if err != nil {
 		return fmt.Errorf("failed to parse MRT file: %w", err)
@@ -117,7 +118,7 @@ func (t *BGPTransform) watchMRTFile(ctx context.Context) {
 	}
 }
 
-func (t *BGPTransform) Lookup(ip net.IP) *BGPRecord {
+func (t *BGPTransform) Lookup(ip net.IP) *bgpmrt.BGPRecord {
 	tree := t.tree.Load()
 	if tree == nil {
 		return nil

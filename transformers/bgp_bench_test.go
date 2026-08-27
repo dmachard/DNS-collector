@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/v2/dnsutils"
+	"github.com/dmachard/go-dnscollector/v2/pkg/bgpmrt"
 	"github.com/dmachard/go-dnscollector/v2/pkgconfig"
 	"github.com/dmachard/go-logger"
 )
@@ -21,23 +22,23 @@ func Benchmark_BGPRadixTree_Lookup(b *testing.B) {
 	}
 
 	// Generate 1000 simulated BGP routes
-	var routes []BGPRecord
+	var routes []bgpmrt.BGPRecord
 	for i := 0; i < 250; i++ {
-		routes = append(routes, BGPRecord{
+		routes = append(routes, bgpmrt.BGPRecord{
 			Prefix:    fmt.Sprintf("10.%d.0.0/16", i),
 			OriginASN: fmt.Sprintf("%d", 60000+i),
 			ASPath:    fmt.Sprintf("174 2914 %d", 60000+i),
 		})
-		routes = append(routes, BGPRecord{
+		routes = append(routes, bgpmrt.BGPRecord{
 			Prefix:    fmt.Sprintf("10.%d.128.0/24", i),
 			OriginASN: fmt.Sprintf("%d", 70000+i),
 			ASPath:    fmt.Sprintf("174 3356 %d", 70000+i),
 		})
 	}
-	_ = WriteSampleMRT(f, routes)
+	_ = bgpmrt.WriteSampleMRT(f, routes)
 	f.Close()
 
-	parser := NewMRTParser()
+	parser := bgpmrt.NewMRTParser()
 	tree, err := parser.ParseFile(mrtPath)
 	if err != nil {
 		b.Fatal(err)
@@ -64,11 +65,11 @@ func Benchmark_BGPTransform_ProcessMessage(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	routes := []BGPRecord{
+	routes := []bgpmrt.BGPRecord{
 		{Prefix: "192.0.2.0/24", OriginASN: "65001", ASPath: "174 2914 65001"},
 		{Prefix: "192.0.2.128/25", OriginASN: "65002", ASPath: "174 3356 65002"},
 	}
-	_ = WriteSampleMRT(f, routes)
+	_ = bgpmrt.WriteSampleMRT(f, routes)
 	f.Close()
 
 	config := pkgconfig.GetFakeConfigTransformers()
