@@ -206,3 +206,58 @@ func TestUniqueResponseTracker_LRUCacheFull(t *testing.T) {
 		t.Errorf("expected ReturnError on full cache, got %d", res)
 	}
 }
+
+func TestUniqueResponseTracker_Cuckoo_IsNewResponse(t *testing.T) {
+	config := pkgconfig.GetFakeConfigTransformers()
+	config.UniqueResponseTracker.Enable = true
+	config.UniqueResponseTracker.TTL = 2
+	config.UniqueResponseTracker.CacheSize = 100
+	config.UniqueResponseTracker.StorageEngine = "cuckoo"
+
+	outChans := []chan *dnsutils.DNSMessageBatch{}
+	tracker := NewUniqueResponseTrackerTransform(config, logger.New(false), "test-cuckoo", 0, outChans)
+
+	_, err := tracker.GetTransforms()
+	if err != nil {
+		t.Fatalf("fail to init cuckoo transform: %v", err)
+	}
+	defer tracker.Reset()
+
+	// 1. First response for example.com -> 1.2.3.4 (should be unique)
+	dm := dnsutils.GetFakeDNSMessage()
+	dm.DNS.Qname = "example.com"
+	dm.DNS.DNSRRs.Answers = []dnsutils.DNSAnswer{
+		{Rdatatype: "A", Rdata: "1.2.3.4"},
+	}
+
+	if res, _ := tracker.trackUniqueResponse(&dm); res != ReturnKeep {
+		t.Errorf("1. cuckoo: initial response should be unique!")
+	}
+
+	// 2. Duplicate response -> should be dropped
+	if res, _ := tracker.trackUniqueResponse(&dm); res != ReturnDrop {
+		t.Errorf("2. cuckoo: duplicate response should NOT be unique!")
+	}
+
+	// 3. Same domain, new IP 5.6.7.8 -> should be unique!
+	dmNewIP := dnsutils.GetFakeDNSMessage()
+	dmNewIP.DNS.Qname = "example.com"
+	dmNewIP.DNS.DNSRRs.Answers = []dnsutils.DNSAnswer{
+		{Rdatatype: "A", Rdata: "5.6.7.8"},
+	}
+
+	if res, _ := tracker.trackUniqueResponse(&dmNewIP); res != ReturnKeep {
+		t.Errorf("3. cuckoo: new IP for same domain should be unique!")
+	}
+
+	// 4. Same domain, new CNAME -> should be unique!
+	dmCNAME := dnsutils.GetFakeDNSMessage()
+	dmCNAME.DNS.Qname = "example.com"
+	dmCNAME.DNS.DNSRRs.Answers = []dnsutils.DNSAnswer{
+		{Rdatatype: "CNAME", Rdata: "target.com"},
+	}
+
+	if res, _ := tracker.trackUniqueResponse(&dmCNAME); res != ReturnKeep {
+		t.Errorf("4. cuckoo: new CNAME for same domain should be unique!")
+	}
+}
