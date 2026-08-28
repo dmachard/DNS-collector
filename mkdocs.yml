@@ -64,71 +64,88 @@ nav:
       - Configuration: configuration.md
       - Docker: docker.md
       - Kubernetes: kubernetes.md
+      - Observability Stacks: platforms/sinks.md
       - Examples: examples.md
   - Features:
       - DNS Logging: dns_logging.md
       - Pipeline Routing: pipelines.md
       - Output Formats: formats.md
       - DNS Parser: dns_parser.md
+      - DNS Server Compatibility: platforms/dns_servers.md
+      - DNStap on DNS Servers: platforms/dnstap.md
       - Enhanced DNStap: platforms/extended_dnstap.md
   - Collectors:
       - Overview: collectors.md
-      - DNS Server Compatibility: platforms/dns_servers.md
-      - DNStap on DNS Servers: platforms/dnstap.md
-      - AFPacket: collectors/collector_afpacket.md
-      - DNS Message: collectors/collector_dnsmessage.md
-      - DNStap: collectors/collector_dnstap.md
-      - File Ingestor: collectors/collector_fileingestor.md
-      - PowerDNS: collectors/collector_powerdns.md
-      - Tail: collectors/collector_tail.md
-      - TZSP: collectors/collector_tzsp.md
-      - Webhook: collectors/collector_webhook.md
-      - XDP: collectors/collector_xdp.md
+      - Network Capture:
+          - AFPacket: collectors/collector_afpacket.md
+          - DNStap: collectors/collector_dnstap.md
+          - PowerDNS: collectors/collector_powerdns.md
+          - TZSP: collectors/collector_tzsp.md
+          - XDP: collectors/collector_xdp.md
+      - File Ingestion:
+          - File Ingestor: collectors/collector_fileingestor.md
+          - Tail: collectors/collector_tail.md
+      - Pipeline Routing:
+          - DNS Message: collectors/collector_dnsmessage.md
   - Transformers:
       - Overview: transformers.md
-      - Atags: transformers/transform_atags.md
-      - BGP: transformers/transform_bgp.md
-      - Data Extractor: transformers/transform_dataextractor.md
-      - Frequency Filtering: transformers/transform_frequencyfiltering.md
-      - GeoIP: transformers/transform_geoip.md
-      - Latency: transformers/transform_latency.md
-      - New Domain Tracker: transformers/transform_newdomaintracker.md
-      - Normalize: transformers/transform_normalize.md
-      - Relabeling: transformers/transform_relabeling.md
-      - Reordering: transformers/transform_reordering.md
-      - REST API: transformers/transform_rest.md
-      - Rewrite: transformers/transform_rewrite.md
-      - Suspicious Detector: transformers/transform_suspiciousdetector.md
-      - Traffic Filtering: transformers/transform_trafficfiltering.md
-      - Traffic Prediction: transformers/transform_trafficprediction.md
-      - Traffic Reducer: transformers/transform_trafficreducer.md
-      - Unique Response Tracker: transformers/transform_uniqueresponsetracker.md
-      - User Privacy: transformers/transform_userprivacy.md
+      - Normalization & Ordering:
+          - Normalize: transformers/transform_normalize.md
+          - Reordering: transformers/transform_reordering.md
+      - Traffic Management:
+          - Traffic Filtering: transformers/transform_trafficfiltering.md
+          - Frequency Filtering: transformers/transform_frequencyfiltering.md
+          - Traffic Reducer: transformers/transform_trafficreducer.md
+      - Security & Threat Detection:
+          - Suspicious Detector: transformers/transform_suspiciousdetector.md
+          - New Domain Tracker: transformers/transform_newdomaintracker.md
+          - Unique Response Tracker: transformers/transform_uniqueresponsetracker.md
+      - Privacy & Compliance:
+          - User Privacy: transformers/transform_userprivacy.md
+      - Performance & Analytics:
+          - Latency: transformers/transform_latency.md
+          - Traffic Prediction: transformers/transform_trafficprediction.md
+      - Data Enrichment:
+          - GeoIP: transformers/transform_geoip.md
+          - BGP: transformers/transform_bgp.md
+          - Data Extractor: transformers/transform_dataextractor.md
+          - REST API: transformers/transform_rest.md
+      - Tagging & Transformation:
+          - Atags: transformers/transform_atags.md
+          - Relabeling: transformers/transform_relabeling.md
+          - Rewrite: transformers/transform_rewrite.md
   - Loggers:
       - Overview: loggers.md
-      - Integrations & Stacks: platforms/sinks.md
-      - Clickhouse: loggers/logger_clickhouse.md
-      - DevNull: loggers/logger_devnull.md
-      - DNStap: loggers/logger_dnstap.md
-      - Elasticsearch: loggers/logger_elasticsearch.md
-      - Falco: loggers/logger_falco.md
-      - File: loggers/logger_file.md
-      - Fluentd: loggers/logger_fluentd.md
-      - InfluxDB: loggers/logger_influxdb.md
-      - Kafka: loggers/logger_kafka.md
-      - Loki: loggers/logger_loki.md
-      - MQTT: loggers/logger_mqtt.md
-      - NSQ: loggers/logger_nsq.md
-      - OpenTelemetry: loggers/logger_opentelemetry.md
-      - Prometheus: loggers/logger_prometheus.md
-      - Redis: loggers/logger_redis.md
-      - REST API: loggers/logger_restapi.md
-      - Scalyr: loggers/logger_scalyr.md
-      - StatsD: loggers/logger_statsd.md
-      - Stdout: loggers/logger_stdout.md
-      - Syslog: loggers/logger_syslog.md
-      - TCP/Unix: loggers/logger_tcp.md
-      - Top-N: loggers/logger_topn.md
+      - Standard Outputs:
+          - Stdout: loggers/logger_stdout.md
+          - File: loggers/logger_file.md
+      - Network Streaming:
+          - DNStap: loggers/logger_dnstap.md
+          - TCP Client: loggers/logger_tcp.md
+          - Syslog: loggers/logger_syslog.md
+      - Metrics & Monitoring:
+          - Prometheus: loggers/logger_prometheus.md
+          - StatsD: loggers/logger_statsd.md
+          - REST API: loggers/logger_restapi.md
+      - Big Data & Analytics:
+          - Clickhouse: loggers/logger_clickhouse.md
+          - InfluxDB: loggers/logger_influxdb.md
+      - Log Aggregation:
+          - Loki: loggers/logger_loki.md
+          - Elasticsearch: loggers/logger_elasticsearch.md
+          - Fluentd: loggers/logger_fluentd.md
+          - Scalyr: loggers/logger_scalyr.md
+      - Message Queues & Streaming:
+          - Kafka: loggers/logger_kafka.md
+          - Redis: loggers/logger_redis.md
+          - MQTT: loggers/logger_mqtt.md
+          - NSQ: loggers/logger_nsq.md
+      - Specialized Outputs:
+          - Webhook: loggers/logger_webhook.md
+          - OpenTelemetry: loggers/logger_opentelemetry.md
+          - Falco: loggers/logger_falco.md
+          - Top-N: loggers/logger_topn.md
+          - DevNull: loggers/logger_devnull.md
   - Deployment:
       - Overview: deployment/index.md
       - Edge Deployment: deployment/edge.md

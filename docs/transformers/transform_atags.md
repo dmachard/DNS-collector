@@ -2,9 +2,6 @@
 
 Use this transformer to add additional tags in your DNS logs.
 
-This transformation can be valuable in the [`pipeline`](https://github.com/dmachard/DNS-collector/blob/main/docs/running_mode.md#pipelining) mode, where it's possible to match specific traffic.
-In such cases, you can include a tag for identification."
-
 Options:
 
 * `add-tags` (list)

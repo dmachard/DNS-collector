@@ -34,15 +34,15 @@ func Test_Webhook(t *testing.T) {
 	kept := GetWorkerForTest(config.DefaultBufferSize)
 	dropped := GetWorkerForTest(config.DefaultBufferSize)
 
-	// config for the collector
+	// config for the logger
 	cfg := config.GetDefaultConfig()
-	cfg.Collectors.Webhook.Enable = true
-	cfg.Collectors.Webhook.URL = server.URL
-	cfg.Collectors.Webhook.BasicAuthEnabled = true
-	cfg.Collectors.Webhook.BasicAuthLogin = "whuser"
-	cfg.Collectors.Webhook.BasicAuthPwd = "whpass"
+	cfg.Loggers.Webhook.Enable = true
+	cfg.Loggers.Webhook.URL = server.URL
+	cfg.Loggers.Webhook.BasicAuthEnabled = true
+	cfg.Loggers.Webhook.BasicAuthLogin = "whuser"
+	cfg.Loggers.Webhook.BasicAuthPwd = "whpass"
 
-	// init collector
+	// init logger
 	c := NewWebhook(nil, cfg, logger.New(false), "test")
 	c.SetDefaultRoutes([]Worker{kept})
 	c.SetDefaultDropped([]Worker{dropped})

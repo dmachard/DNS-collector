@@ -9,8 +9,8 @@ import (
 
 func TestRegistry_LoggersCount(t *testing.T) {
 	loggers := GetRegisteredLoggers()
-	if len(loggers) < 21 {
-		t.Errorf("expected at least 21 registered loggers, got %d", len(loggers))
+	if len(loggers) < 22 {
+		t.Errorf("expected at least 22 registered loggers, got %d", len(loggers))
 	}
 
 	expectedLoggers := []string{
@@ -18,7 +18,7 @@ func TestRegistry_LoggersCount(t *testing.T) {
 		"tcpclient", "syslog", "fluentd", "influxdb", "lokiclient",
 		"statsd", "nsq", "elasticsearch", "scalyr", "redispub",
 		"kafkaproducer", "falco", "clickhouse", "devnull",
-		"opentelemetry", "mqtt",
+		"opentelemetry", "mqtt", "webhook",
 	}
 
 	for _, name := range expectedLoggers {
@@ -34,13 +34,13 @@ func TestRegistry_LoggersCount(t *testing.T) {
 
 func TestRegistry_CollectorsCount(t *testing.T) {
 	collectors := GetRegisteredCollectors()
-	if len(collectors) < 10 {
-		t.Errorf("expected at least 10 registered collectors, got %d", len(collectors))
+	if len(collectors) < 9 {
+		t.Errorf("expected at least 9 registered collectors, got %d", len(collectors))
 	}
 
 	expectedCollectors := []string{
 		"dnsmessage", "dnstap", "dnstap-proxifier", "afpacket-sniffer",
-		"xdp-sniffer", "tail", "powerdns", "file-ingestor", "tzsp", "webhook",
+		"xdp-sniffer", "tail", "powerdns", "file-ingestor", "tzsp",
 	}
 
 	for _, name := range expectedCollectors {

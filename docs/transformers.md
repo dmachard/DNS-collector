@@ -26,8 +26,7 @@ pipelines:
 
 If both are omitted, the default order is used.
 
-> [!NOTE]
-> When defining a custom `order`, only the listed transformers will be initialized. Any transformer enabled in the configuration but missing from the `order` list will be ignored. If an unknown name is provided, an error will be logged during startup.
+> **Note**: When defining a custom `order`, only the listed transformers will be initialized. Any transformer enabled in the configuration but missing from the `order` list will be ignored. If an unknown name is provided, an error will be logged during startup.
 
 ### Default Order
 
@@ -68,6 +67,7 @@ The default logical processing order is:
 | Transformer | Capabilities | Use Cases |
 |-------------|--------------|-----------|
 | [Traffic Filtering](transformers/transform_trafficfiltering.md) | • **Downsampling**: Reduce data volume by percentage<br/>• **Domain Filtering**: Drop/allow specific domains<br/>• **IP Filtering**: Filter by client or server IP<br/>• **Response Code Filtering**: Filter by DNS response codes | • High-volume environment optimization<br/>• Focused monitoring on specific domains<br/>• Compliance and policy enforcement |
+| [Frequency Filtering](transformers/transform_frequencyfiltering.md) | • **Heavy-Hitters Detection**: Identify high-frequency domains or client IPs<br/>• **Tier Classification**: Classify queries as rare, frequent, or heavy<br/>• **Adaptive Actions**: Drop, sample, or tag heavy traffic<br/>• **Counting Cuckoo Filter**: Memory-efficient frequency tracking with sliding window decay | • Protect SIEM/Loki from query floods<br/>• Preserve rare queries at 100% while downsampling noisy top talkers<br/>• High-volume DDoS and botnet traffic attenuation |
 | [Traffic Reducer](transformers/transform_trafficreducer.md) | • Detect identical repeated queries<br/>• Log unique queries only once<br/>• Maintain occurrence counters<br/>• Reduce storage requirements | • Minimize storage costs<br/>• Focus on unique DNS patterns<br/>• Performance optimization |
 
 ### Security & Threat Detection
