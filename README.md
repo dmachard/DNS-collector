@@ -1,8 +1,4 @@
 <p align="center">
-  <img src="docs/dns-collector_logo.png" alt="DNS-collector" width="220"/>
-</p>
-
-<p align="center">
   <img src="https://img.shields.io/github/v/release/dmachard/DNS-collector?logo=github&sort=semver" alt="release"/>
   <img src="https://img.shields.io/docker/pulls/dmachard/go-dnscollector.svg" alt="docker"/>
   <img src="https://img.shields.io/badge/go%20version-min%201.26-green" alt="Go version"/>
@@ -14,6 +10,10 @@
 ## What is DNS-collector?
 
 **DNS-collector** is a lightweight tool that captures DNS queries and responses from your DNS servers, processes them intelligently, and sends clean data to your **monitoring, analytics** and **security** systems.
+
+<p align="center">
+  <img src="docs/dns-collector_logo.png" alt="DNS-collector" width="220"/>
+</p>
 
 What it does:
 - **Captures at scale**: Ingests streams from BIND, PowerDNS, Unbound, etc., via high-speed [DNStap](https://dnstap.info/) protocol or live wire packet capture.
