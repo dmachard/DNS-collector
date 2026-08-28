@@ -9,11 +9,11 @@
 
 ## What is DNS-collector?
 
-**DNS-collector** is a lightweight tool that captures DNS queries and responses from your DNS servers, processes them intelligently, and sends clean data to your **monitoring, analytics** and **security** systems.
-
 <p align="center">
   <img src="docs/dns-collector_logo.png" alt="DNS-collector" width="220"/>
 </p>
+
+**DNS-collector** is a lightweight tool that captures DNS queries and responses from your DNS servers, processes them intelligently, and sends clean data to your **monitoring, analytics** and **security** systems.
 
 What it does:
 - **Captures at scale**: Ingests streams from BIND, PowerDNS, Unbound, etc., via high-speed [DNStap](https://dnstap.info/) protocol or live wire packet capture.
