@@ -165,7 +165,12 @@ func (w *TopN) StartCollect() {
 		interval = 60
 	}
 
-	go w.reportLoop(time.Duration(interval) * time.Second)
+	var reportWg sync.WaitGroup
+	reportWg.Add(1)
+	go func() {
+		defer reportWg.Done()
+		w.reportLoop(time.Duration(interval) * time.Second)
+	}()
 
 	w.RunBatchLoop(func(batch *dnsutils.DNSMessageBatch) {
 		for _, dm := range batch.Messages {
@@ -187,6 +192,13 @@ func (w *TopN) StartCollect() {
 		}
 		batch.Release()
 	})
+
+	select {
+	case <-w.stopReport:
+	default:
+		close(w.stopReport)
+	}
+	reportWg.Wait()
 }
 
 func (w *TopN) reportLoop(interval time.Duration) {
