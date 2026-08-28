@@ -19,6 +19,8 @@ High-performance live traffic capture directly from network interfaces.
 ### Network Streaming
 Integration with DNS servers using network-based streaming protocols.
 
+> For DNS server compatibility and step-by-step DNStap setup guides (BIND, Unbound, PowerDNS, CoreDNS, Knot Resolver), see [DNS Server Compatibility](platforms/dns_servers.md) and [Enabling DNStap](platforms/dnstap.md).
+
 | Collector | Status | Capabilities |
 |-----------|--------|--------------|
 | [DNStap Server](collectors/collector_dnstap.md) | Production ready | • Collects DNStap streams over TCP or UNIX sockets<br/>• Full integration with BIND, Unbound, PowerDNS, etc.<br/>• Support for TLS encrypted streams |

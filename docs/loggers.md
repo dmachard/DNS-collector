@@ -46,6 +46,8 @@ Ingesting DNS records into high-performance analytical databases.
 ### Log Aggregation Platforms
 Sending logs to centralized log management and aggregation ecosystems.
 
+> For pre-configured Docker Compose stacks (Loki & Grafana, Elasticsearch & Kibana, Prometheus, Fluentd, Kafka, InfluxDB), see [Integrations & Stacks](platforms/sinks.md).
+
 | Logger | Status | Capabilities |
 |--------|--------|--------------|
 | [Loki Client](loggers/logger_loki.md) | Production ready | • Streams logs directly to Grafana Loki using the HTTP API |

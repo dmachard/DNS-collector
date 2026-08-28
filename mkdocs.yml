@@ -73,6 +73,8 @@ nav:
       - Enhanced DNStap: platforms/extended_dnstap.md
   - Collectors:
       - Overview: collectors.md
+      - DNS Server Compatibility: platforms/dns_servers.md
+      - DNStap on DNS Servers: platforms/dnstap.md
       - AFPacket: collectors/collector_afpacket.md
       - DNS Message: collectors/collector_dnsmessage.md
       - DNStap: collectors/collector_dnstap.md
@@ -104,6 +106,7 @@ nav:
       - User Privacy: transformers/transform_userprivacy.md
   - Loggers:
       - Overview: loggers.md
+      - Integrations & Stacks: platforms/sinks.md
       - Clickhouse: loggers/logger_clickhouse.md
       - DevNull: loggers/logger_devnull.md
       - DNStap: loggers/logger_dnstap.md
@@ -126,18 +129,6 @@ nav:
       - Syslog: loggers/logger_syslog.md
       - TCP/Unix: loggers/logger_tcp.md
       - Top-N: loggers/logger_topn.md
-  - Sources & Sinks:
-      - DNS Servers:
-          - Overview: platforms/dns_servers.md
-          - DNStap: platforms/dnstap.md
-      - Sinks:
-          - Overview: platforms/sinks.md
-          - Loki & Grafana: platforms/sinks_loki.md
-          - Elasticsearch & Kibana: platforms/sinks_elasticsearch.md
-          - Prometheus: platforms/sinks_prometheus.md
-          - Fluentd: platforms/sinks_fluentd.md
-          - Kafka: platforms/sinks_kafka.md
-          - InfluxDB: platforms/sinks_influxdb.md
   - Deployment:
       - Overview: deployment/index.md
       - Edge Deployment: deployment/edge.md
