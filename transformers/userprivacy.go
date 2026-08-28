@@ -97,7 +97,7 @@ func (t *UserPrivacyTransform) anonymizeQueryIP(dm *dnsutils.DNSMessage) (int, e
 			dm.NetworkInfo.QueryIPBuf[i] &= t.v6MaskArr[i]
 		}
 		if dm.NetworkInfo.QueryIP != "-" && dm.NetworkInfo.QueryIP != "" {
-			dm.NetworkInfo.QueryIP = netip.AddrFrom16(dm.NetworkInfo.QueryIPBuf).String()
+			dm.NetworkInfo.QueryIP = dnsutils.FastIPv6ToString(dm.NetworkInfo.QueryIPBuf[:16])
 		}
 		return ReturnKeep, nil
 
@@ -123,7 +123,7 @@ func (t *UserPrivacyTransform) anonymizeQueryIP(dm *dnsutils.DNSMessage) (int, e
 				b16[i] &= t.v6MaskArr[i]
 			}
 			dm.NetworkInfo.SetQueryIPBytes(b16[:])
-			dm.NetworkInfo.QueryIP = netip.AddrFrom16(b16).String()
+			dm.NetworkInfo.QueryIP = dnsutils.FastIPv6ToString(b16[:])
 		}
 		return ReturnKeep, nil
 	}
