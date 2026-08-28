@@ -1,24 +1,19 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/go%20version-min%201.26-green" alt="Go version"/>
-  <img src="https://img.shields.io/badge/go%20tests-331-green" alt="Go tests"/>
-  <img src="https://img.shields.io/badge/go%20coverage-67%25-green" alt="Go coverage"/>
-  <img src="https://img.shields.io/badge/go%20microbench-113-green" alt="Go bench"/>
-  <img src="https://img.shields.io/badge/go%20fuzz-1-green" alt="Go Fuzz"/>
-  <img src="https://img.shields.io/badge/go%20lines-19839-green" alt="Go lines"/>
+  <img src="docs/dns-collector_logo.png" alt="DNS-collector" width="220"/>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/github/v/release/dmachard/DNS-collector?logo=github&sort=semver" alt="release"/>
   <img src="https://img.shields.io/docker/pulls/dmachard/go-dnscollector.svg" alt="docker"/>
-</p>
-
-<p align="center">
-  <img src="docs/dns-collector_logo.png" alt="DNS-collector"/>
+  <img src="https://img.shields.io/badge/go%20version-min%201.26-green" alt="Go version"/>
+  <img src="https://img.shields.io/badge/go%20tests-331-green" alt="Go tests"/>
+  <img src="https://img.shields.io/badge/go%20coverage-67%25-green" alt="Go coverage"/>
+  <img src="https://img.shields.io/badge/go%20microbench-113-green" alt="Go bench"/>
 </p>
 
 ## What is DNS-collector?
 
-**DNS-collector** is a lightweight tool that captures DNS queries and responses from your DNS servers, processes them intelligently, and sends clean data to your monitoring, analytics and security systems.
+**DNS-collector** is a lightweight tool that captures DNS queries and responses from your DNS servers, processes them intelligently, and sends clean data to your **monitoring, analytics** and **security** systems.
 
 What it does:
 - **Captures at scale**: Ingests streams from BIND, PowerDNS, Unbound, etc., via high-speed [DNStap](https://dnstap.info/) protocol or live wire packet capture.
