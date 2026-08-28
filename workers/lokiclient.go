@@ -445,12 +445,7 @@ func (w *LokiClient) SendEntries(buf []byte) {
 			return
 		}
 
-		// success ?
-		if resp.StatusCode > 0 && resp.StatusCode != 429 && resp.StatusCode/100 != 5 {
-			break
-		}
-
-		// something is wrong, retry ?
+		// something is wrong, log error response
 		if resp.StatusCode/100 != 2 {
 			scanner := bufio.NewScanner(io.LimitReader(resp.Body, 1024))
 			line := ""
@@ -458,6 +453,12 @@ func (w *LokiClient) SendEntries(buf []byte) {
 				line = scanner.Text()
 			}
 			w.LogError("server returned HTTP status %s (%d): %s", resp.Status, resp.StatusCode, line)
+		}
+		_ = resp.Body.Close()
+
+		// success ?
+		if resp.StatusCode > 0 && resp.StatusCode != 429 && resp.StatusCode/100 != 5 {
+			break
 		}
 
 		// wait before retry

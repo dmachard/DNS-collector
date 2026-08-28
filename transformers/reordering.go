@@ -20,6 +20,7 @@ type ReorderingTransform struct {
 	flushTicker *time.Ticker
 	flushSignal chan struct{}
 	stopChan    chan struct{}
+	running     bool
 	nextWorkers []chan *dnsutils.DNSMessageBatch
 }
 
@@ -40,12 +41,16 @@ func (t *ReorderingTransform) GetTransforms() ([]Subtransform, error) {
 	subtransforms := []Subtransform{}
 	if t.config.Enable {
 		subtransforms = append(subtransforms, Subtransform{name: "reordering:sort-by-timestamp", processFunc: t.ReorderLogs})
-		// Start a goroutine to handle periodic flushing.
-		t.flushTicker = time.NewTicker(time.Duration(t.config.FlushInterval) * time.Second)
-		t.buffer = make([]*dnsutils.DNSMessage, 0, t.config.MaxBufferSize)
-		t.backBuffer = make([]*dnsutils.DNSMessage, 0, t.config.MaxBufferSize)
-		go t.flushPeriodically()
-
+		// Start a goroutine to handle periodic flushing once.
+		t.mutex.Lock()
+		if !t.running {
+			t.running = true
+			t.flushTicker = time.NewTicker(time.Duration(t.config.FlushInterval) * time.Second)
+			t.buffer = make([]*dnsutils.DNSMessage, 0, t.config.MaxBufferSize)
+			t.backBuffer = make([]*dnsutils.DNSMessage, 0, t.config.MaxBufferSize)
+			go t.flushPeriodically()
+		}
+		t.mutex.Unlock()
 	}
 	return subtransforms, nil
 }
@@ -79,10 +84,15 @@ func (t *ReorderingTransform) ReorderLogs(dm *dnsutils.DNSMessage) (int, error) 
 
 // Close stops the periodic flushing.
 func (t *ReorderingTransform) Reset() {
-	select {
-	case <-t.stopChan:
-	default:
-		close(t.stopChan)
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+	if t.running {
+		select {
+		case <-t.stopChan:
+		default:
+			close(t.stopChan)
+		}
+		t.running = false
 	}
 }
 

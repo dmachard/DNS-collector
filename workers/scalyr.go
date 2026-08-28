@@ -352,12 +352,7 @@ func (w *ScalyrClient) send(buf []byte) {
 			return
 		}
 
-		// success ?
-		if resp.StatusCode > 0 && resp.StatusCode != 429 && resp.StatusCode/100 != 5 {
-			break
-		}
-
-		// something is wrong, retry ?
+		// something is wrong, log server response
 		if resp.StatusCode/100 != 2 {
 			response, err := parseServerResponse(resp.Body)
 			if err != nil {
@@ -365,6 +360,12 @@ func (w *ScalyrClient) send(buf []byte) {
 			} else {
 				w.LogError("server returned HTTP status %s (%d), %s", resp.Status, resp.StatusCode, response.Message)
 			}
+		}
+		_ = resp.Body.Close()
+
+		// success ?
+		if resp.StatusCode > 0 && resp.StatusCode != 429 && resp.StatusCode/100 != 5 {
+			break
 		}
 
 		// wait before retry

@@ -46,6 +46,9 @@ type MapTraffic struct {
 	shards       [numReducerShards]*trafficShard
 	channels     []chan *dnsutils.DNSMessageBatch
 	droppedCount int
+	stopChan     chan struct{}
+	running      bool
+	mu           sync.Mutex
 	logInfo      func(msg string, v ...interface{})
 	logError     func(msg string, v ...interface{})
 }
@@ -55,6 +58,7 @@ func NewMapTraffic(ttl time.Duration, channels []chan *dnsutils.DNSMessageBatch,
 	mp := &MapTraffic{
 		ttl:      ttl,
 		channels: channels,
+		stopChan: make(chan struct{}),
 		logInfo:  logInfo,
 		logError: logError,
 	}
@@ -69,6 +73,15 @@ func NewMapTraffic(ttl time.Duration, channels []chan *dnsutils.DNSMessageBatch,
 
 func (mp *MapTraffic) SetTTL(ttl time.Duration) {
 	mp.ttl = ttl
+}
+
+func (mp *MapTraffic) Stop() {
+	mp.mu.Lock()
+	defer mp.mu.Unlock()
+	if mp.running {
+		close(mp.stopChan)
+		mp.running = false
+	}
 }
 
 func (mp *MapTraffic) Set(keyBytes []byte, dm *dnsutils.DNSMessage) {
@@ -96,14 +109,29 @@ func (mp *MapTraffic) Set(keyBytes []byte, dm *dnsutils.DNSMessage) {
 }
 
 func (mp *MapTraffic) Run() {
+	mp.mu.Lock()
+	if mp.running {
+		mp.mu.Unlock()
+		return
+	}
+	mp.running = true
+	mp.mu.Unlock()
+
 	flushTimer := time.NewTimer(mp.ttl)
-	for range flushTimer.C {
-		if mp.droppedCount > 0 {
-			mp.logError("reducer: event(s) %d dropped, output channel full", mp.droppedCount)
-			mp.droppedCount = 0
+	defer flushTimer.Stop()
+
+	for {
+		select {
+		case <-mp.stopChan:
+			return
+		case <-flushTimer.C:
+			if mp.droppedCount > 0 {
+				mp.logError("reducer: event(s) %d dropped, output channel full", mp.droppedCount)
+				mp.droppedCount = 0
+			}
+			mp.ProcessExpiredKeys()
+			flushTimer.Reset(mp.ttl)
 		}
-		mp.ProcessExpiredKeys()
-		flushTimer.Reset(mp.ttl)
 	}
 }
 
@@ -296,6 +324,12 @@ func (t *ReducerTransform) GetTransforms() ([]Subtransform, error) {
 		go t.mapTraffic.Run()
 	}
 	return subtransforms, nil
+}
+
+func (t *ReducerTransform) Reset() {
+	if t.mapTraffic != nil {
+		t.mapTraffic.Stop()
+	}
 }
 
 func (t *ReducerTransform) repetitiveTrafficDetector(dm *dnsutils.DNSMessage) (int, error) {
