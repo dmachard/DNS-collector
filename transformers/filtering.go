@@ -161,59 +161,72 @@ func (t *FilteringTransform) LoadDomainsList() error {
 		file, err := os.Open(t.config.DropFqdnFile)
 		if err != nil {
 			return fmt.Errorf("unable to open fqdn file: %w", err)
-		} else {
-
-			scanner := bufio.NewScanner(file)
-			for scanner.Scan() {
-				fqdn := strings.ToLower(scanner.Text())
-				t.listFqdns[fqdn] = true
-			}
-			t.LogInfo("loaded with %d fqdn to the drop list", len(t.listFqdns))
 		}
+		defer file.Close()
 
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			fqdn := strings.ToLower(scanner.Text())
+			t.listFqdns[fqdn] = true
+		}
+		if err := scanner.Err(); err != nil {
+			return fmt.Errorf("error reading drop fqdn file: %w", err)
+		}
+		t.LogInfo("loaded with %d fqdn to the drop list", len(t.listFqdns))
 	}
 
 	if len(t.config.DropDomainFile) > 0 {
 		file, err := os.Open(t.config.DropDomainFile)
 		if err != nil {
 			return fmt.Errorf("unable to open regex list file: %w", err)
-		} else {
-
-			scanner := bufio.NewScanner(file)
-			for scanner.Scan() {
-				domain := strings.ToLower(scanner.Text())
-				t.listDomainsRegex[domain] = regexp.MustCompile(domain)
-			}
-			t.LogInfo("loaded with %d domains to the drop list", len(t.listDomainsRegex))
 		}
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			domain := strings.ToLower(scanner.Text())
+			t.listDomainsRegex[domain] = regexp.MustCompile(domain)
+		}
+		if err := scanner.Err(); err != nil {
+			return fmt.Errorf("error reading drop domain file: %w", err)
+		}
+		t.LogInfo("loaded with %d domains to the drop list", len(t.listDomainsRegex))
 	}
 
 	if len(t.config.KeepFqdnFile) > 0 {
 		file, err := os.Open(t.config.KeepFqdnFile)
 		if err != nil {
 			return fmt.Errorf("unable to open KeepFqdnFile file: %w", err)
-		} else {
-			scanner := bufio.NewScanner(file)
-			for scanner.Scan() {
-				keepDomain := strings.ToLower(scanner.Text())
-				t.listKeepFqdns[keepDomain] = true
-			}
-			t.LogInfo("loaded with %d fqdn(s) to the keep list", len(t.listKeepFqdns))
 		}
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			keepDomain := strings.ToLower(scanner.Text())
+			t.listKeepFqdns[keepDomain] = true
+		}
+		if err := scanner.Err(); err != nil {
+			return fmt.Errorf("error reading keep fqdn file: %w", err)
+		}
+		t.LogInfo("loaded with %d fqdn(s) to the keep list", len(t.listKeepFqdns))
 	}
 
 	if len(t.config.KeepDomainFile) > 0 {
 		file, err := os.Open(t.config.KeepDomainFile)
 		if err != nil {
 			return fmt.Errorf("unable to open KeepDomainFile file: %w", err)
-		} else {
-			scanner := bufio.NewScanner(file)
-			for scanner.Scan() {
-				keepDomain := strings.ToLower(scanner.Text())
-				t.listKeepDomainsRegex[keepDomain] = regexp.MustCompile(keepDomain)
-			}
-			t.LogInfo("loaded with %d domains to the keep list", len(t.listKeepDomainsRegex))
 		}
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			keepDomain := strings.ToLower(scanner.Text())
+			t.listKeepDomainsRegex[keepDomain] = regexp.MustCompile(keepDomain)
+		}
+		if err := scanner.Err(); err != nil {
+			return fmt.Errorf("error reading keep domain file: %w", err)
+		}
+		t.LogInfo("loaded with %d domains to the keep list", len(t.listKeepDomainsRegex))
 	}
 
 	t.combinedDropRegex = nil
@@ -250,6 +263,7 @@ func (t *FilteringTransform) loadQueryIPList(fname string, drop bool) (uint64, e
 	if err != nil {
 		return 0, err
 	}
+	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 	var read uint64
@@ -270,7 +284,9 @@ func (t *FilteringTransform) loadQueryIPList(fname string, drop bool) (uint64, e
 		ipsetbuilder.AddPrefix(prefix)
 	}
 
-	file.Close()
+	if err := scanner.Err(); err != nil {
+		return read, fmt.Errorf("error reading query IP list file %s: %w", fname, err)
+	}
 
 	if drop {
 		t.ipsetDrop, err = ipsetbuilder.IPSet()
@@ -286,6 +302,7 @@ func (t *FilteringTransform) loadKeepRdataIPList(fname string) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
+	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 	var read uint64
@@ -306,7 +323,9 @@ func (t *FilteringTransform) loadKeepRdataIPList(fname string) (uint64, error) {
 		ipsetbuilder.AddPrefix(prefix)
 	}
 
-	file.Close()
+	if err := scanner.Err(); err != nil {
+		return read, fmt.Errorf("error reading keep rdata IP list file %s: %w", fname, err)
+	}
 
 	t.rDataIpsetKeep, err = ipsetbuilder.IPSet()
 

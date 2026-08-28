@@ -199,6 +199,9 @@ func (t *UniqueResponseTrackerTransform) LoadWhiteDomainsList() error {
 				t.listDomainsRegex[domain] = regexp.MustCompile(domain)
 			}
 		}
+		if err := scanner.Err(); err != nil {
+			return fmt.Errorf("error reading white domains file: %w", err)
+		}
 		t.LogInfo("loaded with %d domains in the whitelist", len(t.listDomainsRegex))
 	}
 	return nil

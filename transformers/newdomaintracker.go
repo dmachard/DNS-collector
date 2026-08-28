@@ -168,15 +168,18 @@ func (t *NewDomainTrackerTransform) LoadWhiteDomainsList() error {
 		file, err := os.Open(t.config.WhiteDomainsFile)
 		if err != nil {
 			return fmt.Errorf("unable to open regex list file: %w", err)
-		} else {
-
-			scanner := bufio.NewScanner(file)
-			for scanner.Scan() {
-				domain := strings.ToLower(scanner.Text())
-				t.listDomainsRegex[domain] = regexp.MustCompile(domain)
-			}
-			t.LogInfo("loaded with %d domains in the whitelist", len(t.listDomainsRegex))
 		}
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			domain := strings.ToLower(scanner.Text())
+			t.listDomainsRegex[domain] = regexp.MustCompile(domain)
+		}
+		if err := scanner.Err(); err != nil {
+			return fmt.Errorf("error reading white domains file: %w", err)
+		}
+		t.LogInfo("loaded with %d domains in the whitelist", len(t.listDomainsRegex))
 	}
 	return nil
 }
