@@ -32,19 +32,24 @@ func NewWebhook(next []Worker, cfg *config.Config, logger *logger.Logger, name s
 }
 
 func (w *Webhook) ReadConfig() {
-	w.URL = w.GetConfig().Collectors.Webhook.URL
-	w.BasicAuthEnabled = w.GetConfig().Collectors.Webhook.BasicAuthEnabled
-	w.BasicAuthLogin = w.GetConfig().Collectors.Webhook.BasicAuthLogin
-	w.BasicAuthPwd = w.GetConfig().Collectors.Webhook.BasicAuthPwd
+	w.URL = w.GetConfig().Loggers.Webhook.URL
+	w.BasicAuthEnabled = w.GetConfig().Loggers.Webhook.BasicAuthEnabled
+	w.BasicAuthLogin = w.GetConfig().Loggers.Webhook.BasicAuthLogin
+	w.BasicAuthPwd = w.GetConfig().Loggers.Webhook.BasicAuthPwd
+
+	maxConns := w.GetConfig().Loggers.Webhook.NumThreads * 2
+	if maxConns < 10 {
+		maxConns = 10
+	}
 
 	tr := &http.Transport{
-		MaxIdleConns:        10,
-		MaxIdleConnsPerHost: 10,
+		MaxIdleConns:        maxConns,
+		MaxIdleConnsPerHost: maxConns,
 		IdleConnTimeout:     30 * time.Second,
 	}
 
 	w.httpclient = &http.Client{
-		Timeout:   time.Duration(w.GetConfig().Collectors.Webhook.Timeout) * time.Second,
+		Timeout:   time.Duration(w.GetConfig().Loggers.Webhook.Timeout) * time.Second,
 		Transport: tr,
 	}
 }
@@ -61,7 +66,7 @@ func (w *Webhook) StartCollect() {
 
 	// goroutines to process and forward transformed dns messages
 	ctx, cancel := context.WithCancel(context.Background())
-	for n := 1; n <= w.GetConfig().Collectors.Webhook.NumThreads; n++ {
+	for n := 1; n <= w.GetConfig().Loggers.Webhook.NumThreads; n++ {
 		go w.StartLogging(n, ctx)
 	}
 
@@ -188,7 +193,7 @@ func (w *Webhook) Request(dm *dnsutils.DNSMessage) error {
 }
 
 func init() {
-	RegisterCollector("webhook", func(c *config.Config) bool { return c.Collectors.Webhook.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
+	RegisterLogger("webhook", func(c *config.Config) bool { return c.Loggers.Webhook.Enable }, func(c *config.Config, l *logger.Logger, s string) Worker {
 		return NewWebhook(nil, c, l, s)
 	})
 }

@@ -22,7 +22,7 @@ Forwarding raw or processed DNStap streams over standard network protocols.
 | Logger | Status | Capabilities |
 |--------|--------|--------------|
 | [DNStap Client](loggers/logger_dnstap.md) | Production ready | • Forwards logs in DNStap format over TCP/Unix sockets<br/>• Frame stream (fstrm) protocol support |
-| [TCP](loggers/logger_tcp.md) | Production ready | • Streams logs over custom TCP connections |
+| [TCP Client](loggers/logger_tcp.md) | Production ready | • Streams logs over custom TCP connections |
 | [Syslog](loggers/logger_syslog.md) | Production ready | • Sends logs via standard syslog protocol (RFC3164/RFC5424)<br/>• Supports TLS encryption |
 
 ### Metrics & Monitoring
@@ -66,10 +66,11 @@ Publishing DNS data to streaming platforms and message queues for downstream pro
 | [MQTT Publisher](loggers/logger_mqtt.md) | Beta support | • Publishes DNS logs to MQTT brokers for IoT/messaging use cases |
 
 ### Specialized Loggers
-Advanced outputs for security, tracing, or performance benchmarking.
+Advanced outputs for security, tracing, or custom API ingestion.
 
 | Logger | Status | Capabilities |
 |--------|--------|--------------|
+| [HTTP Webhook](loggers/logger_webhook.md) | Production ready | • Posts DNS event JSON payloads to remote HTTP/HTTPS webhook endpoints |
 | [Falco](loggers/logger_falco.md) | Beta support | • Integrates with Falco security monitoring to flag anomalies |
 | [OpenTelemetry](loggers/logger_opentelemetry.md) | Experimental | • Distributed tracing and metrics support using OpenTelemetry protocols |
 | [DevNull](loggers/logger_devnull.md) | Production ready | • Discards all logs (useful for performance testing and benchmarking) |

@@ -40,5 +40,4 @@ Advanced Collectors for specific routing, filtering, or automation tasks.
 
 | Collector | Status | Capabilities |
 |-----------|--------|--------------|
-| [DNS Message](collectors/collector_dnsmessage.md) | Production ready | • Filters and matches specific DNS messages from pipelines |
-| [HTTP Webhook](collectors/collector_webhook.md) | Experimental | • Receives DNS event details or payloads via HTTP Webhooks |
+| [DNS Message](collectors/collector_dnsmessage.md) | Production ready | • Virtual pipeline router and matcher for specific DNS messages |

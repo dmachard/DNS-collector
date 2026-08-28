@@ -102,9 +102,8 @@ global:
     flush-interval-ms: 10    # Maximum flush delay in milliseconds (default: 10)
 ```
 
-> [!NOTE]
-> **Channel Capacity (`buffer-size`)**: Channel queue sizes are centrally controlled via `global.worker.buffer-size`. With `buffer-size: 512` and `batch-size: 64`, the pipeline can buffer up to **32,768 messages** during bursts while keeping memory usage minimal.
-> *(Note: The legacy per-worker `chan-buffer-size` setting is deprecated in favor of this global configuration).*
+> **Note**: **Channel Capacity (`buffer-size`)**: Channel queue sizes are centrally controlled via `global.worker.buffer-size`. With `buffer-size: 512` and `batch-size: 64`, the pipeline can buffer up to **32,768 messages** during bursts while keeping memory usage minimal.
+> *(The legacy per-worker `chan-buffer-size` setting is deprecated in favor of this global configuration).*
 
 ### Process Management
 

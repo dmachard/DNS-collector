@@ -4,7 +4,7 @@ Performs HTTP POST to 3rd party system with JSON-encoded DNS message as payload.
 Returned HTTP body is added to DNS message.
 HTTP basic auth is optional.
 
-HTTP lookups have high overhead, see [Webhook collector](../collectors/collector_webhook.md) for increased-performance version of similar functionality.
+HTTP lookups have high overhead, see [HTTP Webhook logger](../loggers/logger_webhook.md) for an asynchronous multi-threaded version of similar functionality.
 
 Options:
 
