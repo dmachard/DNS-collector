@@ -1,17 +1,13 @@
-<p align="center">
-  <img src="https://img.shields.io/github/v/release/dmachard/DNS-collector?logo=github&sort=semver" alt="release"/>
-  <img src="https://img.shields.io/docker/pulls/dmachard/go-dnscollector.svg" alt="docker"/>
-  <img src="https://img.shields.io/badge/go%20version-min%201.26-green" alt="Go version"/>
-  <img src="https://img.shields.io/badge/go%20tests-331-green" alt="Go tests"/>
-  <img src="https://img.shields.io/badge/go%20coverage-67%25-green" alt="Go coverage"/>
-  <img src="https://img.shields.io/badge/go%20microbench-113-green" alt="Go bench"/>
-</p>
+[![DNS-collector](docs/dns-collector_logo.png)](https://dmachard.github.io/DNS-collector/)
+
+[![release](https://img.shields.io/github/v/release/dmachard/DNS-collector?logo=github&sort=semver)](https://github.com/dmachard/DNS-collector/releases)
+[![docker](https://img.shields.io/docker/pulls/dmachard/go-dnscollector.svg)](https://hub.docker.com/r/dmachard/go-dnscollector)
+![Go version](https://img.shields.io/badge/go%20version-min%201.26-green)
+![Go tests](https://img.shields.io/badge/go%20tests-331-green)
+![Go coverage](https://img.shields.io/badge/go%20coverage-67%25-green)
+![Go bench](https://img.shields.io/badge/go%20microbench-113-green)
 
 ## What is DNS-collector?
-
-<p align="center">
-  <img src="docs/dns-collector_logo.png" alt="DNS-collector" width="220"/>
-</p>
 
 **DNS-collector** is a lightweight tool that captures DNS queries and responses from your DNS servers, processes them intelligently, and sends clean data to your **monitoring, analytics** and **security** systems.
 
