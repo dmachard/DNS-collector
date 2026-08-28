@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/netip"
 	"strings"
 
 	"github.com/dmachard/go-dnscollector/v3/pkg/config"
@@ -103,6 +104,9 @@ func DnstapOperationToString(op int) string {
 
 func FastIPv4ToString(ip []byte) string {
 	if len(ip) != 4 {
+		if len(ip) == 16 {
+			return FastIPv6ToString(ip)
+		}
 		return net.IP(ip).String()
 	}
 	var buf [15]byte
@@ -129,6 +133,27 @@ func FastIPv4ToString(ip []byte) string {
 		n++
 	}
 	return string(buf[:n])
+}
+
+// FastIPv6ToString converts a 16-byte IPv6 slice to string with zero intermediate heap allocations.
+func FastIPv6ToString(ip []byte) string {
+	if len(ip) != 16 {
+		return net.IP(ip).String()
+	}
+	addr := netip.AddrFrom16([16]byte(ip))
+	return addr.String()
+}
+
+// FastIPToString converts an IPv4 (4-byte) or IPv6 (16-byte) slice to string.
+func FastIPToString(ip []byte) string {
+	switch len(ip) {
+	case 4:
+		return FastIPv4ToString(ip)
+	case 16:
+		return FastIPv6ToString(ip)
+	default:
+		return net.IP(ip).String()
+	}
 }
 
 // WriteIPv4 formats a 4-byte IPv4 slice directly into a bytes.Buffer without any heap allocation.
@@ -163,13 +188,25 @@ func WriteIPv4(buf *bytes.Buffer, ip []byte) {
 	buf.Write(tmp[:n])
 }
 
+// WriteIPv6 formats a 16-byte IPv6 slice directly into a bytes.Buffer without any heap allocation.
+func WriteIPv6(buf *bytes.Buffer, ip []byte) {
+	if len(ip) != 16 {
+		buf.WriteString(net.IP(ip).String())
+		return
+	}
+	var tmp [40]byte
+	addr := netip.AddrFrom16([16]byte(ip))
+	b := addr.AppendTo(tmp[:0])
+	buf.Write(b)
+}
+
 // WriteIP writes an IPv4 or IPv6 byte slice into a bytes.Buffer without heap allocation.
 func WriteIP(buf *bytes.Buffer, ip []byte) {
 	switch len(ip) {
 	case 4:
 		WriteIPv4(buf, ip)
 	case 16:
-		buf.WriteString(net.IP(ip).String())
+		WriteIPv6(buf, ip)
 	default:
 		if len(ip) > 0 {
 			buf.WriteString(net.IP(ip).String())
