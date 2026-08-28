@@ -64,17 +64,18 @@ nav:
       - Configuration: configuration.md
       - Docker: docker.md
       - Kubernetes: kubernetes.md
+      - Observability Stacks: platforms/sinks.md
       - Examples: examples.md
   - Features:
       - DNS Logging: dns_logging.md
       - Pipeline Routing: pipelines.md
       - Output Formats: formats.md
       - DNS Parser: dns_parser.md
+      - DNS Server Compatibility: platforms/dns_servers.md
+      - DNStap on DNS Servers: platforms/dnstap.md
       - Enhanced DNStap: platforms/extended_dnstap.md
   - Collectors:
       - Overview: collectors.md
-      - DNS Server Compatibility: platforms/dns_servers.md
-      - DNStap on DNS Servers: platforms/dnstap.md
       - AFPacket: collectors/collector_afpacket.md
       - DNS Message: collectors/collector_dnsmessage.md
       - DNStap: collectors/collector_dnstap.md
@@ -106,7 +107,6 @@ nav:
       - User Privacy: transformers/transform_userprivacy.md
   - Loggers:
       - Overview: loggers.md
-      - Integrations & Stacks: platforms/sinks.md
       - Clickhouse: loggers/logger_clickhouse.md
       - DevNull: loggers/logger_devnull.md
       - DNStap: loggers/logger_dnstap.md
