@@ -907,7 +907,7 @@ func ParseIP(r []byte, size int) (string, error) {
 
 		return string(buf[:n]), nil
 	}
-	return net.IP(r[:size]).String(), nil
+	return FastIPv6ToString(r[:size]), nil
 }
 
 /*
