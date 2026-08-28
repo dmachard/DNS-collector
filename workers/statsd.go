@@ -270,40 +270,74 @@ func (w *StatsdClient) StartLogging() {
 				w.LogError("dial error: %s", err)
 			}
 
+			w.Lock()
+			type streamSnapshot struct {
+				totalReceivedBytes int
+				totalSentBytes     int
+				totalRequesters    int
+				totalDomains       int
+				totalNxdomains     int
+				totalPackets       int
+				topTransport       []topmap.TopMapItem
+				topIPproto         []topmap.TopMapItem
+				topRRtypes         []topmap.TopMapItem
+				topRcodes          []topmap.TopMapItem
+			}
+			snapshots := make(map[string]streamSnapshot, len(w.Stats.Streams))
+			for streamID, stream := range w.Stats.Streams {
+				snapshots[streamID] = streamSnapshot{
+					totalReceivedBytes: stream.TotalReceivedBytes,
+					totalSentBytes:     stream.TotalSentBytes,
+					totalRequesters:    len(stream.Clients),
+					totalDomains:       len(stream.Domains),
+					totalNxdomains:     len(stream.Nxdomains),
+					totalPackets:       stream.TotalPackets,
+					topTransport:       stream.TopTransport.Get(),
+					topIPproto:         stream.TopIPproto.Get(),
+					topRRtypes:         stream.TopRRtypes.Get(),
+					topRcodes:          stream.TopRcodes.Get(),
+				}
+				// Purge unbounded maps each interval to prevent memory leaks (OOM)
+				stream.Clients = make(map[string]int)
+				stream.Domains = make(map[string]int)
+				stream.Nxdomains = make(map[string]int)
+			}
+			w.Unlock()
+
 			if conn != nil {
 				w.LogInfo("dialing with success, continue...")
 
 				b := bufio.NewWriter(conn)
 
 				prefix := w.GetConfig().Loggers.Statsd.Prefix
-				for streamID, stream := range w.Stats.Streams {
-					fmt.Fprintf(b, "%s_%s_total_bytes_received:%d|c\n", prefix, streamID, stream.TotalReceivedBytes)
-					fmt.Fprintf(b, "%s_%s_total_bytes_sent:%d|c\n", prefix, streamID, stream.TotalSentBytes)
+				for streamID, snap := range snapshots {
+					fmt.Fprintf(b, "%s_%s_total_bytes_received:%d|c\n", prefix, streamID, snap.totalReceivedBytes)
+					fmt.Fprintf(b, "%s_%s_total_bytes_sent:%d|c\n", prefix, streamID, snap.totalSentBytes)
 
-					fmt.Fprintf(b, "%s_%s_total_requesters:%d|c\n", prefix, streamID, len(stream.Clients))
+					fmt.Fprintf(b, "%s_%s_total_requesters:%d|c\n", prefix, streamID, snap.totalRequesters)
 
-					fmt.Fprintf(b, "%s_%s_total_domains:%d|c\n", prefix, streamID, len(stream.Domains))
-					fmt.Fprintf(b, "%s_%s_total_domains_nx:%d|c\n", prefix, streamID, len(stream.Nxdomains))
+					fmt.Fprintf(b, "%s_%s_total_domains:%d|c\n", prefix, streamID, snap.totalDomains)
+					fmt.Fprintf(b, "%s_%s_total_domains_nx:%d|c\n", prefix, streamID, snap.totalNxdomains)
 
-					fmt.Fprintf(b, "%s_%s_total_packets:%d|c\n", prefix, streamID, stream.TotalPackets)
+					fmt.Fprintf(b, "%s_%s_total_packets:%d|c\n", prefix, streamID, snap.totalPackets)
 
 					// transport repartition
-					for _, v := range stream.TopTransport.Get() {
+					for _, v := range snap.topTransport {
 						fmt.Fprintf(b, "%s_%s_total_packets_%s:%d|c\n", prefix, streamID, v.Name, v.Hit)
 					}
 
 					// ip proto repartition
-					for _, v := range stream.TopIPproto.Get() {
+					for _, v := range snap.topIPproto {
 						fmt.Fprintf(b, "%s_%s_total_packets_%s:%d|c\n", prefix, streamID, v.Name, v.Hit)
 					}
 
 					// qtypes repartition
-					for _, v := range stream.TopRRtypes.Get() {
+					for _, v := range snap.topRRtypes {
 						fmt.Fprintf(b, "%s_%s_total_replies_rrtype_%s:%d|c\n", prefix, streamID, v.Name, v.Hit)
 					}
 
 					// top rcodes
-					for _, v := range stream.TopRcodes.Get() {
+					for _, v := range snap.topRcodes {
 						fmt.Fprintf(b, "%s_%s_total_replies_rcode_%s:%d|c\n", prefix, streamID, v.Name, v.Hit)
 					}
 				}
