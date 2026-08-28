@@ -199,15 +199,13 @@ func (w *TCPClient) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 			}
 			w.transportWriter.WriteString(w.GetConfig().Loggers.TCPClient.PayloadDelimiter)
 		}
+	}
 
-		// flush the transport buffer
-		err := w.transportWriter.Flush()
-		if err != nil {
-			w.LogError("send frame error", err.Error())
-			w.writerReady = false
-			<-w.transportReconnect
-			break
-		}
+	// flush the transport buffer once for the entire batch
+	if err := w.transportWriter.Flush(); err != nil {
+		w.LogError("send frame error", err.Error())
+		w.writerReady = false
+		<-w.transportReconnect
 	}
 }
 
