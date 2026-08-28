@@ -337,3 +337,47 @@ func TestDNSMessage_Matching_Arrays(t *testing.T) {
 		})
 	}
 }
+
+func TestCompileMatcher(t *testing.T) {
+	// Test basic matching
+	dm := &DNSMessage{
+		DNS: DNS{
+			Opcode: 1,
+			Qname:  "www.example.com",
+			Qtype:  "A",
+			Flags:  DNSFlags{QR: true},
+		},
+		NetworkInfo: DNSNetInfo{
+			Family:   "INET",
+			Protocol: "UDP",
+		},
+	}
+
+	matching := map[string]interface{}{
+		"dns.flags.qr":     true,
+		"dns.opcode":       1,
+		"dns.qname":        "www.example.com",
+		"network.family":   "INET",
+		"network.protocol": "UDP",
+	}
+
+	matcher, err := CompileMatcher(matching)
+	if err != nil {
+		t.Fatalf("CompileMatcher error: %v", err)
+	}
+
+	if !matcher.Match(dm) {
+		t.Errorf("expected matcher to match dm")
+	}
+
+	// Test non-matching
+	dmNotMatch := &DNSMessage{
+		DNS: DNS{
+			Opcode: 1,
+			Qname:  "www.google.com",
+		},
+	}
+	if matcher.Match(dmNotMatch) {
+		t.Errorf("expected matcher to not match dmNotMatch")
+	}
+}
