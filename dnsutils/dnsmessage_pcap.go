@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"net"
+	"net/netip"
 
 	"github.com/dmachard/go-netutils"
 	"github.com/google/gopacket"
@@ -46,15 +47,11 @@ func parseIPv4Bytes(s string, dst *[4]byte) bool {
 }
 
 func parseIPv6Bytes(s string, dst *[16]byte) bool {
-	ip := net.ParseIP(s)
-	if ip == nil {
+	addr, err := netip.ParseAddr(s)
+	if err != nil || !addr.Is6() {
 		return false
 	}
-	ip6 := ip.To16()
-	if ip6 == nil {
-		return false
-	}
-	copy(dst[:], ip6)
+	*dst = addr.As16()
 	return true
 }
 
@@ -141,18 +138,18 @@ func (dm *DNSMessage) EncodeToPacketBytes(dst []byte, overwritePort bool) ([]byt
 
 	if isIPv4 {
 		if !parseIPv4Bytes(srcIPStr, &srcIP4) {
-			ip := net.ParseIP(srcIPStr).To4()
-			if ip == nil {
+			addr, err := netip.ParseAddr(srcIPStr)
+			if err != nil || !addr.Is4() {
 				return dst, errInvalidIPAddress
 			}
-			copy(srcIP4[:], ip)
+			srcIP4 = addr.As4()
 		}
 		if !parseIPv4Bytes(dstIPStr, &dstIP4) {
-			ip := net.ParseIP(dstIPStr).To4()
-			if ip == nil {
+			addr, err := netip.ParseAddr(dstIPStr)
+			if err != nil || !addr.Is4() {
 				return dst, errInvalidIPAddress
 			}
-			copy(dstIP4[:], ip)
+			dstIP4 = addr.As4()
 		}
 	} else {
 		if !parseIPv6Bytes(srcIPStr, &srcIP6) {
