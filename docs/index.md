@@ -28,8 +28,8 @@ hide:
     <h3>DNS-Native Processing</h3>
     <p>Natively parses and understands DNS protocols, EDNS extensions, and query types. Designed by and for DNS administrators.</p>
   </div>
-  <a href="workers/" class="feature-box" style="text-decoration: none; color: inherit; display: block;">
-    <h3>Flexible Collectors & Loggers</h3>
+  <a href="collectors/" class="feature-box" style="text-decoration: none; color: inherit; display: block;">
+    <h3>Collectors & Loggers</h3>
     <p>Ingest from DNStap, Live PCAP, BIND, PowerDNS, or Unbound. Send outputs to syslog, Fluentd, Kafka, Elasticsearch, Prometheus, Clickhouse, and more.</p>
   </a>
   <a href="transformers/" class="feature-box" style="text-decoration: none; color: inherit; display: block;">
@@ -40,8 +40,8 @@ hide:
     <h3>Multiple Formats</h3>
     <p>Natively support plain text, JSON lines, PCAP format, Jinja2 templating, and binary streams to fit any workflow.</p>
   </a>
-  <a href="performance/" class="feature-box" style="text-decoration: none; color: inherit; display: block;">
-    <h3>Production Ready</h3>
+  <a href="performance/tuning/" class="feature-box" style="text-decoration: none; color: inherit; display: block;">
+    <h3>High Throughput & Tuning</h3>
     <p>Built in Go for ultimate speed, efficiency, and low memory footprints. Extensively field-tested in high-throughput environments.</p>
   </a>
 </div>
@@ -57,9 +57,9 @@ hide:
     <h3>Configuration</h3>
     <p>Complete documentation for configuration options and parameters.</p>
   </a>
-  <a href="workers/" class="feature-box black-text-box" style="text-decoration: none; color: inherit; display: block;">
-    <h3>Workers Setup</h3>
-    <p>Learn how to connect inputs (collectors) to outputs (loggers).</p>
+  <a href="pipelines/" class="feature-box black-text-box" style="text-decoration: none; color: inherit; display: block;">
+    <h3>Pipelines & Routing</h3>
+    <p>Learn how to connect inputs (collectors) to transforms and outputs (loggers).</p>
   </a>
   <a href="transformers/" class="feature-box black-text-box" style="text-decoration: none; color: inherit; display: block;">
     <h3>Transformers</h3>
