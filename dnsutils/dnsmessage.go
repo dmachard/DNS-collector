@@ -51,14 +51,14 @@ type DNSNetInfo struct {
 
 func (net *DNSNetInfo) GetQueryIP() string {
 	if net.QueryIP == "-" && net.QueryIPLen > 0 {
-		net.QueryIP = FastIPv4ToString(net.QueryIPBuf[:net.QueryIPLen])
+		net.QueryIP = FastIPToString(net.QueryIPBuf[:net.QueryIPLen])
 	}
 	return net.QueryIP
 }
 
 func (net *DNSNetInfo) GetResponseIP() string {
 	if net.ResponseIP == "-" && net.ResponseIPLen > 0 {
-		net.ResponseIP = FastIPv4ToString(net.ResponseIPBuf[:net.ResponseIPLen])
+		net.ResponseIP = FastIPToString(net.ResponseIPBuf[:net.ResponseIPLen])
 	}
 	return net.ResponseIP
 }

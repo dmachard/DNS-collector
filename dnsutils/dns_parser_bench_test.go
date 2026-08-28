@@ -1,6 +1,7 @@
 package dnsutils
 
 import (
+	"bytes"
 	"net"
 	"testing"
 	"time"
@@ -173,6 +174,46 @@ func Benchmark_FastIPv4ToString(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		_ = FastIPv4ToString(ip)
+	}
+}
+
+func Benchmark_IPv6_NetIPString(b *testing.B) {
+	ip := net.ParseIP("2001:db8:85a3::8a2e:370:7334")
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = ip.String()
+	}
+}
+
+func Benchmark_FastIPv6ToString(b *testing.B) {
+	ip := []byte{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0, 0, 0, 0, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34}
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = FastIPv6ToString(ip)
+	}
+}
+
+func Benchmark_WriteIP_IPv4(b *testing.B) {
+	ip := []byte{192, 168, 1, 100}
+	var buf bytes.Buffer
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		buf.Reset()
+		WriteIP(&buf, ip)
+	}
+}
+
+func Benchmark_WriteIP_IPv6(b *testing.B) {
+	ip := []byte{0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0, 0, 0, 0, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34}
+	var buf bytes.Buffer
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		buf.Reset()
+		WriteIP(&buf, ip)
 	}
 }
 

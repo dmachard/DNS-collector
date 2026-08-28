@@ -155,3 +155,42 @@ func TestWriteIP(t *testing.T) {
 		})
 	}
 }
+
+func TestFastIPv6ToString(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"Loopback", "::1", "::1"},
+		{"All zeros", "::", "::"},
+		{"Google DNS", "2001:4860:4860::8888", "2001:4860:4860::8888"},
+		{"Cloudflare DNS", "2606:4700:4700::1111", "2606:4700:4700::1111"},
+		{"Link local", "fe80::1", "fe80::1"},
+		{"Complex", "2001:db8:85a3::8a2e:370:7334", "2001:db8:85a3::8a2e:370:7334"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ip := net.ParseIP(tt.input).To16()
+			got := FastIPv6ToString(ip)
+			if got != tt.expected {
+				t.Errorf("FastIPv6ToString(%s) = %q, want %q", tt.input, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestFastIPToString(t *testing.T) {
+	// IPv4
+	ipv4 := []byte{192, 168, 1, 1}
+	if got := FastIPToString(ipv4); got != "192.168.1.1" {
+		t.Errorf("FastIPToString(IPv4) = %q, want %q", got, "192.168.1.1")
+	}
+
+	// IPv6
+	ipv6 := net.ParseIP("2001:4860:4860::8888").To16()
+	if got := FastIPToString(ipv6); got != "2001:4860:4860::8888" {
+		t.Errorf("FastIPToString(IPv6) = %q, want %q", got, "2001:4860:4860::8888")
+	}
+}
