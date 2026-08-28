@@ -14,6 +14,7 @@ import (
 
 type FalcoClient struct {
 	*GenericWorker
+	httpClient *http.Client
 }
 
 func NewFalcoClient(cfg *config.Config, console *logger.Logger, name string) *FalcoClient {
@@ -21,6 +22,18 @@ func NewFalcoClient(cfg *config.Config, console *logger.Logger, name string) *Fa
 	w := &FalcoClient{GenericWorker: NewGenericWorker(cfg, console, name, "falco", bufSize, config.DefaultMonitor)}
 	w.ReadConfig()
 	return w
+}
+
+func (w *FalcoClient) ReadConfig() {
+	tr := &http.Transport{
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 100,
+		IdleConnTimeout:     90 * time.Second,
+	}
+	w.httpClient = &http.Client{
+		Timeout:   5 * time.Second,
+		Transport: tr,
+	}
 }
 
 func (w *FalcoClient) StartCollect() {
@@ -96,21 +109,33 @@ func (w *FalcoClient) StartLogging() {
 				return
 			}
 			for _, dm := range batch.Messages {
-				// encode
-				json.NewEncoder(buffer).Encode(dm)
-
-				req, _ := http.NewRequest("POST", w.GetConfig().Loggers.FalcoClient.URL, buffer)
-				req.Header.Set("Content-Type", "application/json")
-				client := &http.Client{
-					Timeout: 5 * time.Second,
-				}
-				_, err := client.Do(req)
-				if err != nil {
-					w.LogError(err.Error())
-				}
-
-				// finally reset the buffer for next iter
 				buffer.Reset()
+				if err := json.NewEncoder(buffer).Encode(dm); err != nil {
+					w.LogError("json encode error: %s", err)
+					continue
+				}
+
+				req, err := http.NewRequest("POST", w.GetConfig().Loggers.FalcoClient.URL, bytes.NewReader(buffer.Bytes()))
+				if err != nil {
+					w.LogError("new request error: %s", err)
+					continue
+				}
+				req.Header.Set("Content-Type", "application/json")
+
+				resp, err := w.httpClient.Do(req)
+				if err != nil {
+					w.CountEgressDiscarded()
+					w.LogError("http post error: %s", err)
+					continue
+				}
+				_ = resp.Body.Close()
+
+				if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+					w.CountEgressTraffic()
+				} else {
+					w.CountEgressDiscarded()
+					w.LogError("unexpected http status: %d", resp.StatusCode)
+				}
 			}
 			batch.Release()
 		}

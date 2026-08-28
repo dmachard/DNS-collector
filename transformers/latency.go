@@ -45,18 +45,32 @@ func (mp *MapQueries) Set(key uint64, dm *dnsutils.DNSMessage) {
 	dm.Retain(1)
 	mp.kv[key] = dm
 	time.AfterFunc(mp.ttl, func() {
-		if mp.Exists(key) {
-			dm.DNS.Rcode = "TIMEOUT"
+		mp.Lock()
+		targetDM, exists := mp.kv[key]
+		if exists {
+			delete(mp.kv, key)
+		}
+		mp.Unlock()
+
+		if exists {
+			targetDM.DNS.Rcode = "TIMEOUT"
 			b := dnsutils.AcquireDNSMessageBatch(1)
-			b.Messages = append(b.Messages, dm)
+			b.Messages = append(b.Messages, targetDM)
+			if len(mp.channels) == 0 {
+				b.Release()
+				return
+			}
 			if len(mp.channels) > 1 {
 				b.Retain(int32(len(mp.channels) - 1))
 			}
 			for i := range mp.channels {
-				mp.channels[i] <- b
+				select {
+				case mp.channels[i] <- b:
+				default:
+					b.Release()
+				}
 			}
 		}
-		mp.Delete(key)
 	})
 }
 
