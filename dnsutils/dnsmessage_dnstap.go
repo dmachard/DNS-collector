@@ -2,7 +2,7 @@ package dnsutils
 
 import (
 	"errors"
-	"net"
+	"net/netip"
 	"strconv"
 
 	dnstap "github.com/dmachard/go-dnstap-protobuf"
@@ -58,14 +58,20 @@ func (dm *DNSMessage) ToDNSTap(extended bool) ([]byte, error) {
 	msg.SocketFamily = &sf
 	msg.SocketProtocol = &sp
 
+	var reqIP4, rspIP4 [4]byte
+	var reqIP16, rspIP16 [16]byte
+
 	if dm.NetworkInfo.QueryIPLen > 0 {
 		msg.QueryAddress = dm.NetworkInfo.QueryIPBuf[:dm.NetworkInfo.QueryIPLen]
 	} else if dm.NetworkInfo.QueryIP != "-" {
-		reqIP := net.ParseIP(dm.NetworkInfo.GetQueryIP())
-		if dm.NetworkInfo.Family == netutils.ProtoIPv4 {
-			msg.QueryAddress = reqIP.To4()
-		} else {
-			msg.QueryAddress = reqIP.To16()
+		if addr, err := netip.ParseAddr(dm.NetworkInfo.GetQueryIP()); err == nil {
+			if addr.Is4() {
+				reqIP4 = addr.As4()
+				msg.QueryAddress = reqIP4[:]
+			} else {
+				reqIP16 = addr.As16()
+				msg.QueryAddress = reqIP16[:]
+			}
 		}
 	}
 	msg.QueryPort = &qport
@@ -73,11 +79,14 @@ func (dm *DNSMessage) ToDNSTap(extended bool) ([]byte, error) {
 	if dm.NetworkInfo.ResponseIPLen > 0 {
 		msg.ResponseAddress = dm.NetworkInfo.ResponseIPBuf[:dm.NetworkInfo.ResponseIPLen]
 	} else if dm.NetworkInfo.ResponseIP != "-" {
-		rspIP := net.ParseIP(dm.NetworkInfo.GetResponseIP())
-		if dm.NetworkInfo.Family == netutils.ProtoIPv4 {
-			msg.ResponseAddress = rspIP.To4()
-		} else {
-			msg.ResponseAddress = rspIP.To16()
+		if addr, err := netip.ParseAddr(dm.NetworkInfo.GetResponseIP()); err == nil {
+			if addr.Is4() {
+				rspIP4 = addr.As4()
+				msg.ResponseAddress = rspIP4[:]
+			} else {
+				rspIP16 = addr.As16()
+				msg.ResponseAddress = rspIP16[:]
+			}
 		}
 	}
 	msg.ResponsePort = &rport
