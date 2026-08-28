@@ -200,6 +200,133 @@ func Test_FileIngestor_UnsupportedLinkType(t *testing.T) {
 	}
 }
 
+func Test_FileIngestor_IgnoreTempFiles(t *testing.T) {
+	tempDir := t.TempDir()
+	tmpPcap := filepath.Join(tempDir, "test.pcap.tmp")
+	createTestPcapLinuxSLL(t, tempDir, "temp.example.com")
+	_ = os.Rename(filepath.Join(tempDir, "test_sll.pcap"), tmpPcap)
+
+	g := GetWorkerForTest(config.DefaultBufferSize)
+	cfg := config.GetDefaultConfig()
+	cfg.Collectors.FileIngestor.WatchMode = "pcap"
+	cfg.Collectors.FileIngestor.WatchDir = tempDir
+
+	c := NewFileIngestor([]Worker{g}, cfg, logger.New(false), "test-tmp")
+	go c.StartCollect()
+	defer c.Stop()
+
+	select {
+	case <-g.GetInputChannel():
+		t.Error("unexpected packet received from temporary .tmp file")
+	case <-time.After(1 * time.Second):
+		// Expected: ignored gracefully
+	}
+}
+
+func Test_FileIngestor_PartialRead_NoDuplicate(t *testing.T) {
+	tempDir := t.TempDir()
+	pcapPath := filepath.Join(tempDir, "partial.pcap")
+
+	// 1. Create PCAP with packet1 + trailing truncated bytes
+	createPcapWithPackets(t, pcapPath, []string{"packet1.example.com"}, true)
+
+	g := GetWorkerForTest(config.DefaultBufferSize)
+	cfg := config.GetDefaultConfig()
+	cfg.Collectors.FileIngestor.WatchMode = "pcap"
+	cfg.Collectors.FileIngestor.WatchDir = tempDir
+
+	c := NewFileIngestor([]Worker{g}, cfg, logger.New(false), "test-partial")
+	go c.StartCollect()
+	defer c.Stop()
+
+	// Wait for packet1
+	select {
+	case batch := <-g.GetInputChannel():
+		if len(batch.Messages) == 0 || batch.Messages[0].DNS.Qname != "packet1.example.com" {
+			t.Fatalf("expected packet1.example.com, got %+v", batch.Messages)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timeout waiting for packet1")
+	}
+
+	// 2. Rewrite/complete PCAP with packet1 and packet2 (clean file)
+	createPcapWithPackets(t, pcapPath, []string{"packet1.example.com", "packet2.example.com"}, false)
+
+	// Trigger processing
+	c.ProcessFile(pcapPath)
+
+	// We MUST receive packet2, and NOT packet1 again!
+	select {
+	case batch := <-g.GetInputChannel():
+		for _, msg := range batch.Messages {
+			if msg.DNS.Qname == "packet1.example.com" {
+				t.Fatalf("duplicate detected! received packet1.example.com a second time")
+			}
+			if msg.DNS.Qname == "packet2.example.com" {
+				// Success!
+				return
+			}
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timeout waiting for packet2")
+	}
+}
+
+func createPcapWithPackets(t *testing.T, filePath string, qnames []string, appendCorruptedBytes bool) {
+	t.Helper()
+	f, err := os.Create(filePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	pcapWriter := pcapgo.NewWriter(f)
+	if err := pcapWriter.WriteFileHeader(65536, layers.LinkTypeLinuxSLL); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, qname := range qnames {
+		msg := new(dns.Msg)
+		msg.SetQuestion(dns.Fqdn(qname), dns.TypeA)
+		dnsPayload, err := msg.Pack()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		udp := &layers.UDP{SrcPort: 53533, DstPort: 53}
+		ip := &layers.IPv4{
+			Version: 4, IHL: 5, TTL: 64, Protocol: layers.IPProtocolUDP,
+			SrcIP: net.ParseIP("192.0.2.1"), DstIP: net.ParseIP("192.0.2.53"),
+		}
+		udp.SetNetworkLayerForChecksum(ip)
+
+		buf := gopacket.NewSerializeBuffer()
+		opts := gopacket.SerializeOptions{ComputeChecksums: true, FixLengths: true}
+		_ = gopacket.SerializeLayers(buf, opts, ip, udp, gopacket.Payload(dnsPayload))
+
+		sllHdr := make([]byte, 16)
+		binary.BigEndian.PutUint16(sllHdr[0:2], 0)
+		binary.BigEndian.PutUint16(sllHdr[2:4], 1)
+		binary.BigEndian.PutUint16(sllHdr[4:6], 6)
+		copy(sllHdr[6:12], []byte{0x00, 0x11, 0x22, 0x33, 0x44, 0x55})
+		binary.BigEndian.PutUint16(sllHdr[14:16], uint16(layers.EthernetTypeIPv4))
+		sllHdr = append(sllHdr, buf.Bytes()...)
+
+		ci := gopacket.CaptureInfo{
+			Timestamp:     time.Now(),
+			CaptureLength: len(sllHdr),
+			Length:        len(sllHdr),
+		}
+		if err := pcapWriter.WritePacket(ci, sllHdr); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if appendCorruptedBytes {
+		_, _ = f.Write([]byte{0xFF, 0xFE, 0xFD})
+	}
+}
+
 func Benchmark_FileIngestor_LinuxSLL(b *testing.B) {
 	tempDir := b.TempDir()
 	expectedQname := "bench.sll.com"

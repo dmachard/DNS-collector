@@ -1,39 +1,57 @@
 # Collector: File Ingestor
 
-This collector enable to ingest multiple  files by watching a directory.
-This collector can be configured to search for PCAP files or DNSTAP files.
-Make sure the PCAP is complete before moving the file to the directory so that file data is not truncated. 
+The `file-ingestor` collector continuously monitors a directory to automatically ingest and parse batch capture files (**PCAP** or **DNStap** streams).
 
-If you are in PCAP mode, the collector searches for files with the `.pcap` or `.pcap.gz` extension. Supported PCAP link-layer encapsulation types include **Ethernet**, **Linux Cooked Capture (SLL / `tcpdump -i any`)**, **Loopback / Null**, and **Raw IP**.
-If you are in DNSTap mode, the collector searches for files with the `.fstrm` or `.fstrm.gz` extension.
+---
 
-For config examples, take a look to the following links:
+## Features & Supported Formats
 
-- [dnstap](https://github.com/dmachard/DNS-collector/blob/main/docs/examples/config-dnstap-to-dnstap_file.yml)
-- [pcap](https://github.com/dmachard/DNS-collector/blob/main/docs/examples/config-pcap-to-console.yml)
+* **PCAP Ingestion (`watch-mode: "pcap"`)**:
+  - Searches for files with `.pcap` or `.pcap.gz` extensions.
+  - Supported Link-Layer encapsulations: **Ethernet**, **Linux Cooked Capture (SLL / SLL2, `tcpdump -i any`)**, **Loopback / Null**, **IPv4 / IPv6 Raw**.
+  - Handles IPv4/IPv6 fragmentation and TCP stream reassembly.
+* **DNStap Ingestion (`watch-mode: "dnstap"`)**:
+  - Searches for Framestream files with `.fstrm` extension.
+* **Resilient Ingestion & Staging**:
+  - **Staging / Temp Files**: Automatically ignores temporary extensions (`.tmp`, `.part`, `.writing`, `.crdownload`) during write/transfer until atomically renamed.
+  - **Deduplication on Partial Reads**: If a capture file is partially read or appended to, previously emitted DNS messages are tracked and skipped to prevent downstream duplicate events.
 
-Options:
+---
 
-* `watch-dir` (str)
-  > Specifies the directory where pcap files are monitored for ingestion.
+## Options
 
-* `watch-mode` (str)
-  >  Watch the directory pcap or dnstap file. `*.pcap` extension or dnstap stream with `*.fstrm` extension are expected.
+* `enable` (boolean, default: `false`)
+  > Enables the file ingestor collector.
 
-* `pcap-dns-port` (int)
-  > Expects a source or destination port number use for DNS communication.
+* `watch-dir` (string, default: `"/tmp"`)
+  > Directory monitored for incoming capture files.
 
-* `delete-after:` (boolean)
-  > Determines whether the pcap file should be deleted after ingestion.
+* `watch-mode` (string, default: `"pcap"`)
+  > Mode of operation: `"pcap"` (for `.pcap` / `.pcap.gz` files) or `"dnstap"` (for `.fstrm` files).
 
+* `pcap-dns-port` (integer, default: `53`)
+  > Port number used to filter DNS traffic during PCAP decoding.
 
-Defaults:
+* `delete-after` (boolean, default: `false`)
+  > Automatically deletes the capture file after successful processing.
+
+---
+
+## Configuration Example
 
 ```yaml
-- name: ingest
-  file-ingestor:
-    watch-dir: /tmp
-    watch-mode: pcap
-    pcap-dns-port: 53
-    delete-after: false
+pipelines:
+  - name: ingest-pcap-files
+    file-ingestor:
+      enable: true
+      watch-dir: "/var/log/dns/captures"
+      watch-mode: "pcap"
+      pcap-dns-port: 53
+      delete-after: true
+    routing-policy:
+      forward: [ "console" ]
+
+  - name: console
+    stdout:
+      mode: "text"
 ```

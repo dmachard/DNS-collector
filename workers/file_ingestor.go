@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -33,9 +34,28 @@ func IsValidMode(mode string) bool {
 	return false
 }
 
+func isTemporaryFile(filePath string) bool {
+	ext := filepath.Ext(filePath)
+	switch ext {
+	case ".tmp", ".temp", ".part", ".crdownload", ".writing", ".swp":
+		return true
+	}
+	base := filepath.Base(filePath)
+	return strings.HasPrefix(base, ".") || strings.HasSuffix(base, "~")
+}
+
+type fileState struct {
+	size        int64
+	modTime     time.Time
+	inProgress  bool
+	processed   bool
+	packetCount int
+}
+
 type FileIngestor struct {
 	*GenericWorker
 	watcherTimers   map[string]*time.Timer
+	fileStates      map[string]*fileState
 	dnsProcessor    DNSProcessor
 	dnstapProcessor DNSTapProcessor
 	mu              sync.Mutex
@@ -45,7 +65,9 @@ func NewFileIngestor(next []Worker, cfg *config.Config, logger *logger.Logger, n
 	bufSize := cfg.Global.Worker.ChannelBufferSize
 	w := &FileIngestor{
 		GenericWorker: NewGenericWorker(cfg, logger, name, "fileingestor", bufSize, config.DefaultMonitor),
-		watcherTimers: make(map[string]*time.Timer)}
+		watcherTimers: make(map[string]*time.Timer),
+		fileStates:    make(map[string]*fileState),
+	}
 	w.SetDefaultRoutes(next)
 	w.CheckConfig()
 	return w
@@ -62,6 +84,32 @@ func (w *FileIngestor) CheckConfig() {
 }
 
 func (w *FileIngestor) ProcessFile(filePath string) {
+	if isTemporaryFile(filePath) {
+		return
+	}
+
+	info, err := os.Stat(filePath)
+	if err != nil {
+		return
+	}
+
+	w.mu.Lock()
+	st, exists := w.fileStates[filePath]
+	if exists {
+		// If currently being processed or already processed without changes, skip
+		if st.inProgress || (st.processed && st.size == info.Size() && st.modTime.Equal(info.ModTime())) {
+			w.mu.Unlock()
+			return
+		}
+	} else {
+		st = &fileState{}
+		w.fileStates[filePath] = st
+	}
+	st.inProgress = true
+	st.size = info.Size()
+	st.modTime = info.ModTime()
+	w.mu.Unlock()
+
 	switch w.GetConfig().Collectors.FileIngestor.WatchMode {
 	case config.ModePCAP:
 		// process file with pcap extension only
@@ -79,6 +127,21 @@ func (w *FileIngestor) ProcessFile(filePath string) {
 }
 
 func (w *FileIngestor) ProcessPcap(filePath string) {
+	defer func() {
+		w.mu.Lock()
+		if st, ok := w.fileStates[filePath]; ok {
+			st.inProgress = false
+		}
+		w.mu.Unlock()
+	}()
+
+	w.mu.Lock()
+	skipPackets := 0
+	if st, ok := w.fileStates[filePath]; ok {
+		skipPackets = st.packetCount
+	}
+	w.mu.Unlock()
+
 	// open the file
 	f, err := os.Open(filePath)
 	if err != nil {
@@ -180,6 +243,7 @@ func (w *FileIngestor) ProcessPcap(filePath string) {
 	}()
 
 	nbPackets := 0
+	packetIndex := 0
 	for {
 		packet, err := packetSource.NextPacket()
 
@@ -189,6 +253,11 @@ func (w *FileIngestor) ProcessPcap(filePath string) {
 		if err != nil {
 			w.LogError("unable to read packet: %s", err)
 			break
+		}
+
+		packetIndex++
+		if packetIndex <= skipPackets {
+			continue
 		}
 
 		nbPackets++
@@ -231,10 +300,20 @@ func (w *FileIngestor) ProcessPcap(filePath string) {
 
 	w.LogInfo("pcap file [%s] processing terminated, %d packet(s) read", fileName, nbPackets)
 
+	w.mu.Lock()
+	if st, ok := w.fileStates[filePath]; ok {
+		st.processed = true
+		st.packetCount += nbPackets
+	}
+	w.mu.Unlock()
+
 	// remove it ?
 	if w.GetConfig().Collectors.FileIngestor.DeleteAfter {
 		w.LogInfo("delete file [%s]", fileName)
 		os.Remove(filePath)
+		w.mu.Lock()
+		delete(w.fileStates, filePath)
+		w.mu.Unlock()
 	}
 
 	// close chan
@@ -248,10 +327,24 @@ func (w *FileIngestor) ProcessPcap(filePath string) {
 }
 
 func (w *FileIngestor) ProcessDnstap(filePath string) error {
-	// open the file
+	defer func() {
+		w.mu.Lock()
+		if st, ok := w.fileStates[filePath]; ok {
+			st.inProgress = false
+		}
+		w.mu.Unlock()
+	}()
+
+	w.mu.Lock()
+	skipFrames := 0
+	if st, ok := w.fileStates[filePath]; ok {
+		skipFrames = st.packetCount
+	}
+	w.mu.Unlock()
+
 	f, err := os.Open(filePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to open file: %w", err)
 	}
 	defer f.Close()
 
@@ -259,18 +352,31 @@ func (w *FileIngestor) ProcessDnstap(filePath string) error {
 		ContentType:   []byte("protobuf:dnstap.Dnstap"),
 		Bidirectional: false,
 	})
-
 	if err != nil {
 		return fmt.Errorf("failed to create framestream Decoder: %w", err)
 	}
 
 	fileName := filepath.Base(filePath)
 	w.LogInfo("processing dnstap file [%s]", fileName)
+
+	nbFrames := 0
+	frameIndex := 0
 	for {
 		buf, err := dnstapDecoder.Decode()
 		if errors.Is(err, io.EOF) {
 			break
 		}
+		if err != nil {
+			w.LogError("unable to decode dnstap frame: %s", err)
+			break
+		}
+
+		frameIndex++
+		if frameIndex <= skipFrames {
+			continue
+		}
+
+		nbFrames++
 
 		newbuf := make([]byte, len(buf))
 		copy(newbuf, buf)
@@ -278,11 +384,21 @@ func (w *FileIngestor) ProcessDnstap(filePath string) error {
 		w.dnstapProcessor.GetDataChannel() <- newbuf
 	}
 
+	w.mu.Lock()
+	if st, ok := w.fileStates[filePath]; ok {
+		st.processed = true
+		st.packetCount += nbFrames
+	}
+	w.mu.Unlock()
+
 	// remove it ?
 	w.LogInfo("processing of [%s] terminated", fileName)
 	if w.GetConfig().Collectors.FileIngestor.DeleteAfter {
 		w.LogInfo("delete file [%s]", fileName)
 		os.Remove(filePath)
+		w.mu.Lock()
+		delete(w.fileStates, filePath)
+		w.mu.Unlock()
 	}
 
 	// remove event timer for this file
@@ -292,6 +408,10 @@ func (w *FileIngestor) ProcessDnstap(filePath string) error {
 }
 
 func (w *FileIngestor) RegisterEvent(filePath string) {
+	if isTemporaryFile(filePath) {
+		return
+	}
+
 	// Get timer.
 	w.mu.Lock()
 	t, ok := w.watcherTimers[filePath]
@@ -356,12 +476,12 @@ func (w *FileIngestor) StartCollect() {
 		case config.ModePCAP:
 			// process file with pcap extension
 			if filepath.Ext(fn) == ".pcap" || filepath.Ext(fn) == ".pcap.gz" {
-				go w.ProcessPcap(fn)
+				go w.ProcessFile(fn)
 			}
 		case config.ModeDNSTap:
 			// process dnstap
 			if filepath.Ext(fn) == ".fstrm" {
-				go w.ProcessDnstap(fn)
+				go w.ProcessFile(fn)
 			}
 		}
 	}
