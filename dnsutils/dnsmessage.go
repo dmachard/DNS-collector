@@ -303,6 +303,13 @@ type TransformBGP struct {
 	Prefix    string `json:"prefix"`
 }
 
+type TransformFrequency struct {
+	Count         int    `json:"count"`
+	IsHeavyHitter bool   `json:"is_heavy_hitter"`
+	Tier          string `json:"tier"`
+	Target        string `json:"target"`
+}
+
 type DNSMessage struct {
 	NetworkInfo     DNSNetInfo             `json:"network"`
 	DNS             DNS                    `json:"dns"`
@@ -318,6 +325,7 @@ type DNSMessage struct {
 	Reducer         *TransformReducer      `json:"reducer,omitempty"`
 	MachineLearning *TransformML           `json:"ml,omitempty"`
 	Filtering       *TransformFiltering    `json:"filtering,omitempty"`
+	Frequency       *TransformFrequency    `json:"frequency,omitempty"`
 	ATags           *TransformATags        `json:"atags,omitempty"`
 	Rest            *TransformRest         `json:"rest,omitempty"`
 	Relabeling      *TransformRelabeling   `json:"-"`
@@ -376,6 +384,7 @@ func (dm *DNSMessage) Reset() {
 	dm.Reducer = nil
 	dm.MachineLearning = nil
 	dm.Filtering = nil
+	dm.Frequency = nil
 	dm.ATags = nil
 	dm.Rest = nil
 	dm.Relabeling = nil

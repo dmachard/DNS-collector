@@ -262,6 +262,13 @@ func (dm *DNSMessage) EncodeFlatJSON(buffer *bytes.Buffer) {
 		writeInt("filtering.sample-rate", dm.Filtering.SampleRate)
 	}
 
+	if dm.Frequency != nil {
+		writeInt("frequency.count", dm.Frequency.Count)
+		writeBool("frequency.is-heavy-hitter", dm.Frequency.IsHeavyHitter)
+		writeString("frequency.tier", dm.Frequency.Tier)
+		writeString("frequency.target", dm.Frequency.Target)
+	}
+
 	if dm.MachineLearning != nil {
 		writeInt("ml.consecutive-chars", dm.MachineLearning.ConsecutiveChars)
 		writeInt("ml.consecutive-consonants", dm.MachineLearning.ConsecutiveConsonants)
@@ -498,6 +505,14 @@ func (dm *DNSMessage) Flatten() (map[string]interface{}, error) {
 	// Add TransformFiltering fields
 	if dm.Filtering != nil {
 		dnsFields["filtering.sample-rate"] = dm.Filtering.SampleRate
+	}
+
+	// Add TransformFrequency fields
+	if dm.Frequency != nil {
+		dnsFields["frequency.count"] = dm.Frequency.Count
+		dnsFields["frequency.is-heavy-hitter"] = dm.Frequency.IsHeavyHitter
+		dnsFields["frequency.tier"] = dm.Frequency.Tier
+		dnsFields["frequency.target"] = dm.Frequency.Target
 	}
 
 	// Add TransformML fields
@@ -966,6 +981,10 @@ func (dm *DNSMessage) EncodeJSON(buf *bytes.Buffer) {
 	if dm.Filtering != nil {
 		buf.WriteString(`,"filtering":`)
 		dm.Filtering.EncodeJSON(buf)
+	}
+	if dm.Frequency != nil {
+		buf.WriteString(`,"frequency":`)
+		dm.Frequency.EncodeJSON(buf)
 	}
 	if dm.ATags != nil {
 		buf.WriteString(`,"atags":`)

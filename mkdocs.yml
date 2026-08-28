@@ -71,60 +71,60 @@ nav:
       - Output Formats: formats.md
       - DNS Parser: dns_parser.md
       - Enhanced DNStap: platforms/extended_dnstap.md
-  - DNS Processing:
-      - Collectors (Inputs):
-          - Overview: collectors.md
-          - AFPacket: collectors/collector_afpacket.md
-          - DNS Message: collectors/collector_dnsmessage.md
-          - DNStap: collectors/collector_dnstap.md
-          - File Ingestor: collectors/collector_fileingestor.md
-          - PowerDNS: collectors/collector_powerdns.md
-          - Tail: collectors/collector_tail.md
-          - TZSP: collectors/collector_tzsp.md
-          - Webhook: collectors/collector_webhook.md
-          - XDP: collectors/collector_xdp.md
-      - Loggers (Outputs):
-          - Overview: loggers.md
-          - Clickhouse: loggers/logger_clickhouse.md
-          - DevNull: loggers/logger_devnull.md
-          - DNStap: loggers/logger_dnstap.md
-          - Elasticsearch: loggers/logger_elasticsearch.md
-          - Falco: loggers/logger_falco.md
-          - File: loggers/logger_file.md
-          - Fluentd: loggers/logger_fluentd.md
-          - InfluxDB: loggers/logger_influxdb.md
-          - Kafka: loggers/logger_kafka.md
-          - Loki: loggers/logger_loki.md
-          - MQTT: loggers/logger_mqtt.md
-          - NSQ: loggers/logger_nsq.md
-          - OpenTelemetry: loggers/logger_opentelemetry.md
-          - Prometheus: loggers/logger_prometheus.md
-          - Redis: loggers/logger_redis.md
-          - REST API: loggers/logger_restapi.md
-          - Scalyr: loggers/logger_scalyr.md
-          - StatsD: loggers/logger_statsd.md
-          - Stdout: loggers/logger_stdout.md
-          - Syslog: loggers/logger_syslog.md
-          - TCP/Unix: loggers/logger_tcp.md
-      - Transformers:
-          - Overview: transformers.md
-          - Atags: transformers/transform_atags.md
-          - BGP: transformers/transform_bgp.md
-          - Data Extractor: transformers/transform_dataextractor.md
-          - GeoIP: transformers/transform_geoip.md
-          - Latency: transformers/transform_latency.md
-          - New Domain Tracker: transformers/transform_newdomaintracker.md
-          - Normalize: transformers/transform_normalize.md
-          - Relabeling: transformers/transform_relabeling.md
-          - Reordering: transformers/transform_reordering.md
-          - REST API: transformers/transform_rest.md
-          - Rewrite: transformers/transform_rewrite.md
-          - Suspicious Detector: transformers/transform_suspiciousdetector.md
-          - Traffic Filtering: transformers/transform_trafficfiltering.md
-          - Traffic Prediction: transformers/transform_trafficprediction.md
-          - Traffic Reducer: transformers/transform_trafficreducer.md
-          - Unique Response Tracker: transformers/transform_uniqueresponsetracker.md
-          - User Privacy: transformers/transform_userprivacy.md
+  - Collectors:
+      - Overview: collectors.md
+      - AFPacket: collectors/collector_afpacket.md
+      - DNS Message: collectors/collector_dnsmessage.md
+      - DNStap: collectors/collector_dnstap.md
+      - File Ingestor: collectors/collector_fileingestor.md
+      - PowerDNS: collectors/collector_powerdns.md
+      - Tail: collectors/collector_tail.md
+      - TZSP: collectors/collector_tzsp.md
+      - Webhook: collectors/collector_webhook.md
+      - XDP: collectors/collector_xdp.md
+  - Transformers:
+      - Overview: transformers.md
+      - Atags: transformers/transform_atags.md
+      - BGP: transformers/transform_bgp.md
+      - Data Extractor: transformers/transform_dataextractor.md
+      - Frequency Filtering: transformers/transform_frequencyfiltering.md
+      - GeoIP: transformers/transform_geoip.md
+      - Latency: transformers/transform_latency.md
+      - New Domain Tracker: transformers/transform_newdomaintracker.md
+      - Normalize: transformers/transform_normalize.md
+      - Relabeling: transformers/transform_relabeling.md
+      - Reordering: transformers/transform_reordering.md
+      - REST API: transformers/transform_rest.md
+      - Rewrite: transformers/transform_rewrite.md
+      - Suspicious Detector: transformers/transform_suspiciousdetector.md
+      - Traffic Filtering: transformers/transform_trafficfiltering.md
+      - Traffic Prediction: transformers/transform_trafficprediction.md
+      - Traffic Reducer: transformers/transform_trafficreducer.md
+      - Unique Response Tracker: transformers/transform_uniqueresponsetracker.md
+      - User Privacy: transformers/transform_userprivacy.md
+  - Loggers:
+      - Overview: loggers.md
+      - Clickhouse: loggers/logger_clickhouse.md
+      - DevNull: loggers/logger_devnull.md
+      - DNStap: loggers/logger_dnstap.md
+      - Elasticsearch: loggers/logger_elasticsearch.md
+      - Falco: loggers/logger_falco.md
+      - File: loggers/logger_file.md
+      - Fluentd: loggers/logger_fluentd.md
+      - InfluxDB: loggers/logger_influxdb.md
+      - Kafka: loggers/logger_kafka.md
+      - Loki: loggers/logger_loki.md
+      - MQTT: loggers/logger_mqtt.md
+      - NSQ: loggers/logger_nsq.md
+      - OpenTelemetry: loggers/logger_opentelemetry.md
+      - Prometheus: loggers/logger_prometheus.md
+      - Redis: loggers/logger_redis.md
+      - REST API: loggers/logger_restapi.md
+      - Scalyr: loggers/logger_scalyr.md
+      - StatsD: loggers/logger_statsd.md
+      - Stdout: loggers/logger_stdout.md
+      - Syslog: loggers/logger_syslog.md
+      - TCP/Unix: loggers/logger_tcp.md
   - Sources & Sinks:
       - DNS Servers:
           - Overview: platforms/dns_servers.md

@@ -191,3 +191,19 @@ func (t *TransformRest) EncodeJSON(buf *bytes.Buffer) {
 	WriteJSONString(buf, t.Response)
 	buf.WriteByte('}')
 }
+
+func (t *TransformFrequency) EncodeJSON(buf *bytes.Buffer) {
+	buf.WriteString(`{"count":`)
+	writeJSONInt(buf, t.Count)
+	buf.WriteString(`,"is_heavy_hitter":`)
+	if t.IsHeavyHitter {
+		buf.WriteString("true")
+	} else {
+		buf.WriteString("false")
+	}
+	buf.WriteString(`,"tier":`)
+	WriteJSONString(buf, t.Tier)
+	buf.WriteString(`,"target":`)
+	WriteJSONString(buf, t.Target)
+	buf.WriteByte('}')
+}
