@@ -127,7 +127,11 @@ func TestTopN_StartCollect(t *testing.T) {
 	var buf bytes.Buffer
 	w.SetWriter(&buf)
 
-	go w.StartCollect()
+	done := make(chan struct{})
+	go func() {
+		w.StartCollect()
+		close(done)
+	}()
 
 	dm := dnsutils.GetFakeDNSMessage()
 	dm.DNS.Qname = "streaming-domain.com"
@@ -138,6 +142,7 @@ func TestTopN_StartCollect(t *testing.T) {
 	time.Sleep(1200 * time.Millisecond)
 
 	w.Stop()
+	<-done
 
 	if !strings.Contains(buf.String(), "streaming-domain.com") {
 		t.Fatalf("expected background report loop to output domain, got: %s", buf.String())

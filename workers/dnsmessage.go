@@ -30,6 +30,8 @@ type MatchSource struct {
 
 type DNSMessage struct {
 	*GenericWorker
+	matcherInclude *dnsutils.CompiledMatcher
+	matcherExclude *dnsutils.CompiledMatcher
 }
 
 func NewDNSMessage(next []Worker, cfg *config.Config, logger *logger.Logger, name string) *DNSMessage {
@@ -76,12 +78,27 @@ func (w *DNSMessage) ReadConfig() {
 		for _, value := range w.GetConfig().Collectors.DNSMessage.Matching.Include {
 			w.ReadConfigMatching(value)
 		}
+		matcher, err := dnsutils.CompileMatcher(w.GetConfig().Collectors.DNSMessage.Matching.Include)
+		if err != nil {
+			w.LogError("failed to compile include matcher: %s", err)
+		}
+		w.matcherInclude = matcher
+	} else {
+		w.matcherInclude = nil
 	}
+
 	// load external file for exclude
 	if len(w.GetConfig().Collectors.DNSMessage.Matching.Exclude) > 0 {
 		for _, value := range w.GetConfig().Collectors.DNSMessage.Matching.Exclude {
 			w.ReadConfigMatching(value)
 		}
+		matcher, err := dnsutils.CompileMatcher(w.GetConfig().Collectors.DNSMessage.Matching.Exclude)
+		if err != nil {
+			w.LogError("failed to compile exclude matcher: %s", err)
+		}
+		w.matcherExclude = matcher
+	} else {
+		w.matcherExclude = nil
 	}
 }
 
@@ -130,6 +147,10 @@ func (w *DNSMessage) LoadFromURL(matchSource string, srcKind string) (MatchSourc
 		w.LogInfo("remote source loaded with %d entries kind=%s", len(matchSources.stringList), srcKind)
 	}
 
+	if err := scanner.Err(); err != nil {
+		return MatchSource{}, fmt.Errorf("scanner error: %w", err)
+	}
+
 	return matchSources, nil
 }
 
@@ -141,6 +162,7 @@ func (w *DNSMessage) LoadFromFile(filePath string, srcKind string) (MatchSource,
 	if err != nil {
 		return MatchSource{}, fmt.Errorf("unable to open file: %w", err)
 	}
+	defer file.Close()
 
 	matchSources := MatchSource{}
 	scanner := bufio.NewScanner(file)
@@ -158,14 +180,16 @@ func (w *DNSMessage) LoadFromFile(filePath string, srcKind string) (MatchSource,
 		w.LogInfo("file loaded with %d entries kind=%s", len(matchSources.stringList), srcKind)
 	}
 
+	if err := scanner.Err(); err != nil {
+		return MatchSource{}, fmt.Errorf("scanner error: %w", err)
+	}
+
 	return matchSources, nil
 }
 
 func (w *DNSMessage) StartCollect() {
 	w.LogInfo("starting data collection")
 	defer w.CollectDone()
-
-	var err error
 
 	// prepare next channels
 	defaultRoutes, defaultNames := GetRoutes(w.GetDefaultRoutes())
@@ -198,29 +222,15 @@ func (w *DNSMessage) StartCollect() {
 
 				// matching enabled, filtering DNS messages ?
 				matched := true
-				matchedInclude := false
-				matchedExclude := false
 
-				if len(w.GetConfig().Collectors.DNSMessage.Matching.Include) > 0 {
-					err, matchedInclude = dm.Matching(w.GetConfig().Collectors.DNSMessage.Matching.Include)
-					if err != nil {
-						w.LogError(err.Error())
-					}
-					if matched && matchedInclude {
-						matched = true
-					} else {
+				if w.matcherInclude != nil {
+					if !w.matcherInclude.Match(dm) {
 						matched = false
 					}
 				}
 
-				if len(w.GetConfig().Collectors.DNSMessage.Matching.Exclude) > 0 {
-					err, matchedExclude = dm.Matching(w.GetConfig().Collectors.DNSMessage.Matching.Exclude)
-					if err != nil {
-						w.LogError(err.Error())
-					}
-					if matched && !matchedExclude {
-						matched = true
-					} else {
+				if matched && w.matcherExclude != nil {
+					if w.matcherExclude.Match(dm) {
 						matched = false
 					}
 				}
