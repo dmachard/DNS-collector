@@ -2,20 +2,20 @@
 
 DNS-collector's architecture is modular and built around three distinct types of components that can be chained together inside a pipeline:
 
-* **Collectors (Inputs)**: Capture, sniff, or receive DNS traffic from various live streams (DNStap, PCAP network captures, UNIX/TCP sockets, tailing files, etc.).
-* **Transformers (Processors)**: Intercept DNS message streams to perform inline normalization, traffic filtering, GeoIP enrichment, lowercasing, relabeling, and user privacy anonymization.
-* **Loggers (Outputs)**: Output, route, and store the collected DNS events into file logs, databases (ClickHouse, InfluxDB), log management engines (Loki, Elasticsearch), message queues (Kafka, Redis), or dashboard systems.
+* **Collectors (Inputs)**: Capture, sniff, or receive DNS traffic from various live streams (DNStap, AFPacket / live network sniffing, UNIX/TCP sockets, file ingestors, tailing logs, etc.).
+* **Transformers (Processors)**: Intercept DNS message streams inline to perform normalization, traffic filtering, GeoIP enrichment, lowercasing, relabeling, privacy masking, or frequency filtering.
+* **Loggers (Outputs)**: Output, route, and store the collected DNS events into file logs, console (stdout), analytical databases (ClickHouse, InfluxDB), log management engines (Loki, Elasticsearch), message queues (Kafka, Redis), or monitoring metrics (Prometheus, Top-N).
 
-Each component is configured under its respective section within a pipeline, allowing you to build extremely flexible data flow routing topologies.
+Each component is configured within a pipeline stanza, allowing you to build flexible data flow routing topologies.
+
+---
 
 ## Pipeline Flow
-
-Here is a visual overview of how DNS data flows from its sources, through collectors and transformers, to the loggers and final destinations:
 
 ```mermaid
 flowchart LR
     subgraph Sources ["DNS Sources"]
-        dns_src["• DNStap<br/>• Network PCAP<br/>• Live Capture"]
+        dns_src["• DNStap<br/>• AFPacket / Sniffing<br/>• File Ingestor"]
     end
     
     subgraph Colls ["Collectors (Inputs)"]
@@ -23,7 +23,7 @@ flowchart LR
     end
     
     subgraph Trans ["Transformers (Processors)"]
-        trans["• Traffic Filtering<br/>• GeoIP Enrichment<br/>• Anonymization"]
+        trans["• GeoIP Enrichment<br/>• Frequency Filtering<br/>• Privacy Masking"]
     end
     
     subgraph Logs ["Loggers (Outputs)"]
@@ -40,72 +40,128 @@ flowchart LR
     log --> dest
 ```
 
+---
+
 ## Basic Pipeline Structure
+
+A pipeline stanza defines an **Input (Collector)** or an **Output (Logger)**, optional **Transformers**, and a **Routing Policy**:
 
 ```yaml
 pipelines:
-  - name: "unique-pipeline-name"
-    # Collector OR Logger configuration
-    collector-type:
-      # collector settings
-    
-    # Optional: data transformations
+  # Ingestion Stanza (Collector)
+  - name: "my-collector"
+    dnstap:
+      listen-ip: "0.0.0.0"
+      listen-port: 6000
+
+    # Optional: inline transformations
     transforms:
-      - type: "transformer-name"
-        # transformer settings
-    
-    # Required: routing policy
+      normalize:
+        enable: true
+        qname-lowercase: true
+      geoip:
+        enable: true
+        mmdb-country-file: "/etc/GeoLite2-Country.mmdb"
+
+    # Required for collectors: routing policy
     routing-policy:
-      forward: ["next-pipeline-name"]  # Success path
-      dropped: ["error-pipeline-name"] # Error path (optional)
+      forward: [ "my-logger" ]       # Processed stream
+      dropped: [ "dropped-logger" ]  # Dropped/Filtered stream (optional)
+
+  # Output Stanza (Logger)
+  - name: "my-logger"
+    stdout:
+      mode: "text"
 ```
+
+---
 
 ## Common Pipeline Examples
 
-### DNStap Input → Multiple Outputs
+### 1. DNStap Input → Multiple Outputs (Fan-out)
+
+In this example, incoming DNStap traffic is split and delivered simultaneously to a JSON log file and to Prometheus metrics:
 
 ```yaml
 pipelines:
-  - name: "dnstap-collector"
+  - name: "dnstap-ingest"
     dnstap:
       listen-ip: "0.0.0.0"
       listen-port: 6000
     routing-policy:
-      forward: ["json-file", "console-debug"]
-      dropped: ["error-log"]
+      forward: [ "json-file", "prom-metrics" ]
 
   - name: "json-file"
     logfile:
       file-path: "/var/log/dns/queries.json"
       mode: "json"
 
-  - name: "console-debug"
-    stdout:
-      mode: "text"
+  - name: "prom-metrics"
+    prometheus:
+      listen-ip: "0.0.0.0"
+      listen-port: 9165
+```
+
+---
+
+### 2. Live Network Sniffing (AFPacket) → GeoIP & Frequency Filtering → Loki
+
+In this example, live DNS packets are captured on network interface `eth0`, enriched with GeoIP metadata, downsampled with `frequency-filtering`, and forwarded to Grafana Loki:
+
+```yaml
+pipelines:
+  - name: "live-capture"
+    afpacket:
+      interface: "eth0"
+      port: 53
+    transforms:
+      geoip:
+        enable: true
+        mmdb-country-file: "/etc/GeoLite2-Country.mmdb"
+      frequency-filtering:
+        enable: true
+        target: "qname"
+        threshold-heavy: 1000
+        action-on-heavy: "sample"
+        sample-rate: 100
+    routing-policy:
+      forward: [ "loki-output" ]
+
+  - name: "loki-output"
+    lokiclient:
+      server-url: "http://loki:3100/loki/api/v1/push"
+      job-name: "dnscollector"
+      mode: "flat-json"
+```
+
+---
+
+### 3. File Ingestion → ElasticSearch + Error Isolation
+
+In this example, PCAP or log files are ingested, normalized, and streamed into Elasticsearch, while dropped or unparseable queries are stored in a separate error file:
+
+```yaml
+pipelines:
+  - name: "file-collector"
+    file-ingestor:
+      watch-dir: "/var/log/dns/incoming/"
+      pcap-filter: "port 53"
+    transforms:
+      normalize:
+        enable: true
+        qname-lowercase: true
+    routing-policy:
+      forward: [ "elasticsearch-output" ]
+      dropped: [ "error-log" ]
+
+  - name: "elasticsearch-output"
+    elasticsearch:
+      url: "http://elasticsearch:9200"
+      index: "dns-logs"
+      bulk-size: 500
 
   - name: "error-log"
     logfile:
       file-path: "/var/log/dns/errors.log"
       mode: "text"
-```
-
-### Network Capture → Processing → Storage
-
-```yaml
-pipelines:
-  - name: "network-capture"
-    pcap:
-      device: "eth0"
-      port: 53
-    transforms:
-      - type: "geoip"
-        mmdb-country-file: "/path/to/country.mmdb"
-    routing-policy:
-      forward: ["elasticsearch-output"]
-
-  - name: "elasticsearch-output"
-    elasticsearch:
-      server: "https://localhost:9200"
-      index: "dns-logs"
-      tls-insecure: true
 ```

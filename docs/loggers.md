@@ -31,6 +31,7 @@ Exposing and pushing real-time DNS metrics for monitoring dashboards.
 | Logger | Status | Capabilities |
 |--------|--------|--------------|
 | [Prometheus](loggers/logger_prometheus.md) | Production ready | • Exposes Prometheus metric endpoints for scraping<br/>• Real-time query, response, and performance counters |
+| [Top-N](loggers/logger_topn.md) | Production ready | • Autonomous periodic Top-N summary reports (domains, clients, rcodes)<br/>• Text tables, JSON digest, and Flat JSON formats |
 | [StatsD](loggers/logger_statsd.md) | Beta support | • Sends performance metrics in StatsD format to remote daemons |
 | [REST API](loggers/logger_restapi.md) | Beta support | • Provides built-in webserver with REST API endpoints for real-time log searching |
 

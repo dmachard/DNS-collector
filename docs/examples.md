@@ -2,10 +2,10 @@
 
 Get started quickly with these ready-to-use configuration examples covering common use cases and deployment scenarios.
 
-<div class="grid-2-cols" style="margin-top: 2rem;">
+<div style="display: flex; flex-direction: column; gap: 1.25rem; margin-top: 2rem;">
   
   <div class="feature-box">
-    <h3>Pipelines & Filtering</h3>
+    <h3 style="margin-top: 0;">Pipelines & Filtering</h3>
     <p>Enrich and filter DNS messages at the pipeline level.</p>
     <ul style="margin-top: 0.75rem; padding-left: 1.25rem;">
       <li><a href="https://github.com/dmachard/DNS-collector/blob/main/docs/examples/config-dnstap-add-tags.yml" target="_blank">Advanced tagging & metadata</a></li>
@@ -16,7 +16,7 @@ Get started quickly with these ready-to-use configuration examples covering comm
   </div>
 
   <div class="feature-box">
-    <h3>Ingestion & Routing</h3>
+    <h3 style="margin-top: 0;">Ingestion & Routing</h3>
     <p>Forward, relay, and aggregate various streaming protocols.</p>
     <ul style="margin-top: 0.75rem; padding-left: 1.25rem;">
       <li><a href="https://github.com/dmachard/DNS-collector/blob/main/docs/examples/config-dnstap_unix-to-dnstap_tls.yml" target="_blank">UNIX Socket to TLS Stream Relayer</a></li>
@@ -27,7 +27,7 @@ Get started quickly with these ready-to-use configuration examples covering comm
   </div>
 
   <div class="feature-box">
-    <h3>Format Conversions</h3>
+    <h3 style="margin-top: 0;">Format Conversions</h3>
     <p>Output DNS traffic into multiple formats for downstream processing.</p>
     <ul style="margin-top: 0.75rem; padding-left: 1.25rem;">
       <li><a href="https://github.com/dmachard/DNS-collector/blob/main/docs/examples/config-dnstap-to-text.yml" target="_blank">Custom text output format</a></li>
@@ -39,7 +39,7 @@ Get started quickly with these ready-to-use configuration examples covering comm
   </div>
 
   <div class="feature-box">
-    <h3>Transformations & Enrichment</h3>
+    <h3 style="margin-top: 0;">Transformations & Enrichment</h3>
     <p>Perform inline edits, hashing, and lookups on query streams.</p>
     <ul style="margin-top: 0.75rem; padding-left: 1.25rem;">
       <li><a href="https://github.com/dmachard/DNS-collector/blob/main/docs/examples/config-dnstap_anonymize-to-console.yml" target="_blank">User Privacy / IP Anonymization</a></li>
@@ -51,7 +51,7 @@ Get started quickly with these ready-to-use configuration examples covering comm
   </div>
 
   <div class="feature-box">
-    <h3>File & PCAP Ingestion</h3>
+    <h3 style="margin-top: 0;">File & PCAP Ingestion</h3>
     <p>Ingest, replay, and capture traffic via files.</p>
     <ul style="margin-top: 0.75rem; padding-left: 1.25rem;">
       <li><a href="https://github.com/dmachard/DNS-collector/blob/main/docs/examples/config-dnstap-to-dnstap.yml" target="_blank">Save stream to raw DNStap file</a></li>
@@ -62,7 +62,7 @@ Get started quickly with these ready-to-use configuration examples covering comm
   </div>
 
   <div class="feature-box">
-    <h3>PowerDNS Integration</h3>
+    <h3 style="margin-top: 0;">PowerDNS Integration</h3>
     <p>Ingest and route native PowerDNS logging streams.</p>
     <ul style="margin-top: 0.75rem; padding-left: 1.25rem;">
       <li><a href="https://github.com/dmachard/DNS-collector/blob/main/docs/examples/config-powerdns-to-file.yml" target="_blank">Capture multiple PowerDNS streams</a></li>
@@ -71,7 +71,7 @@ Get started quickly with these ready-to-use configuration examples covering comm
   </div>
 
   <div class="feature-box">
-    <h3>Observability & Monitoring</h3>
+    <h3 style="margin-top: 0;">Observability & Monitoring</h3>
     <p>Expose metrics and stream logs to monitoring stacks.</p>
     <ul style="margin-top: 0.75rem; padding-left: 1.25rem;">
       <li><a href="https://github.com/dmachard/DNS-collector/blob/main/docs/examples/config-dnstap-to-prometheus.yml" target="_blank">Prometheus metrics & Grafana</a></li>
@@ -81,7 +81,7 @@ Get started quickly with these ready-to-use configuration examples covering comm
   </div>
 
   <div class="feature-box">
-    <h3>Security & Advanced Protocols</h3>
+    <h3 style="margin-top: 0;">Security & Advanced Protocols</h3>
     <p>Detect anomalies and ingest proprietary capture protocols.</p>
     <ul style="margin-top: 0.75rem; padding-left: 1.25rem;">
       <li><a href="https://github.com/dmachard/DNS-collector/blob/main/docs/examples/config-dnstap-detect-suspicious.yml" target="_blank">Suspicious DNS traffic detector</a></li>

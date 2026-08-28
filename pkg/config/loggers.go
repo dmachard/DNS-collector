@@ -405,6 +405,20 @@ type ConfigLoggers struct {
 	FalcoClient         LoggerFalcoClient         `yaml:"falco"`
 	ClickhouseClient    LoggerClickhouseClient    `yaml:"clickhouse"`
 	MQTT                LoggerMQTT                `yaml:"mqtt"`
+	TopN                LoggerTopN                `yaml:"topn"`
+}
+
+type LoggerTopN struct {
+	Enable       bool   `yaml:"enable" default:"false"`
+	Interval     int    `yaml:"interval" default:"60"`
+	TopN         int    `yaml:"top-n" default:"10"`
+	Mode         string `yaml:"mode" default:"text"`
+	Output       string `yaml:"output" default:"stdout"`
+	FilePath     string `yaml:"file-path" default:""`
+	TrackQnames  bool   `yaml:"track-qnames" default:"true"`
+	TrackClients bool   `yaml:"track-clients" default:"true"`
+	TrackRcodes  bool   `yaml:"track-rcodes" default:"true"`
+	TrackTlds    bool   `yaml:"track-tlds" default:"false"`
 }
 
 func (c *ConfigLoggers) SetDefault() {

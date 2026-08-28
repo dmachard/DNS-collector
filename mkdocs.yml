@@ -125,6 +125,7 @@ nav:
       - Stdout: loggers/logger_stdout.md
       - Syslog: loggers/logger_syslog.md
       - TCP/Unix: loggers/logger_tcp.md
+      - Top-N: loggers/logger_topn.md
   - Sources & Sinks:
       - DNS Servers:
           - Overview: platforms/dns_servers.md
