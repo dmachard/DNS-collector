@@ -56,6 +56,10 @@ func (mp *MapQueries) Set(key uint64, dm *dnsutils.DNSMessage) {
 			targetDM.DNS.Rcode = "TIMEOUT"
 			b := dnsutils.AcquireDNSMessageBatch(1)
 			b.Messages = append(b.Messages, targetDM)
+			if len(mp.channels) == 0 {
+				b.Release()
+				return
+			}
 			if len(mp.channels) > 1 {
 				b.Retain(int32(len(mp.channels) - 1))
 			}

@@ -172,6 +172,10 @@ func (mp *MapTraffic) ProcessExpiredKeys() {
 	for _, dm := range expiredMessages {
 		b := dnsutils.AcquireDNSMessageBatch(1)
 		b.Messages = append(b.Messages, dm)
+		if len(mp.channels) == 0 {
+			b.Release()
+			continue
+		}
 		if len(mp.channels) > 1 {
 			b.Retain(int32(len(mp.channels) - 1))
 		}

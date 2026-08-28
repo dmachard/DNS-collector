@@ -132,6 +132,10 @@ func (t *ReorderingTransform) flushBuffer() {
 	// Send sorted logs to the next workers in a single batch.
 	b := dnsutils.AcquireDNSMessageBatch(len(t.backBuffer))
 	b.Messages = append(b.Messages, t.backBuffer...)
+	if len(t.nextWorkers) == 0 {
+		b.Release()
+		return
+	}
 	if len(t.nextWorkers) > 1 {
 		b.Retain(int32(len(t.nextWorkers) - 1))
 	}
