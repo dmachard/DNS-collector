@@ -48,22 +48,6 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 	peerName := netutils.GetPeerName(peer)
 	w.LogInfo("conn #%d - new connection from %s (%s)", connID, peer, peerName)
 
-	// start dnstap processor and run it
-	bufSize := w.GetConfig().Global.Worker.ChannelBufferSize
-	dnstapProcessor := NewDNSTapProcessor(int(connID), peerName, w.GetConfig(), w.GetLogger(), w.GetName(), bufSize)
-	dnstapProcessor.SetMetrics(w.GetMetrics())
-	dnstapProcessor.SetDefaultRoutes(w.GetDefaultRoutes())
-	dnstapProcessor.SetDefaultDropped(w.GetDroppedRoutes())
-	go dnstapProcessor.StartCollect()
-
-	// close connection and stop processor on function exit
-	defer func() {
-		w.LogInfo("conn #%d - connection handler terminated", connID)
-		netutils.Close(conn, w.GetConfig().Collectors.Dnstap.ResetConn)
-		dnstapProcessor.Stop()
-		wg.Done()
-	}()
-
 	readBufSize := w.GetConfig().Collectors.Dnstap.ReadBufferSize
 	if readBufSize <= 0 {
 		readBufSize = 4096
@@ -75,6 +59,8 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 	fs := framestream.NewFstrm(fsReader, fsWriter, conn, handshakeTimeout, contentType, true)
 	fs.SetControlFrameMaxLength(w.GetConfig().Global.Framestream.ControlFrameMaxLength)
 	fs.SetDataFrameMaxLength(w.GetConfig().Global.Framestream.DataFrameMaxLength)
+	fs.SetZeroCopy(true)
+	fs.InitViewBuffer(int(w.GetConfig().Global.Framestream.DataFrameMaxLength))
 
 	// framestream as receiver
 	if err := fs.InitReceiver(); err != nil {
@@ -87,10 +73,31 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 		)
 	}
 
-	// process incoming frame and send it to dnstap consumer channel
-	var err error
-	var frame *framestream.Frame
+	// prepare next channels & routes
+	defaultRoutes, defaultNames := GetRoutes(w.GetDefaultRoutes())
+	droppedRoutes, droppedNames := GetRoutes(w.GetDroppedRoutes())
+
+	transforms := transformers.NewTransforms(&w.GetConfig().IngoingTransformers, w.GetLogger(), w.GetName(), defaultRoutes, int(connID))
+	batchSize := w.GetBatchSize()
+	curBatch := dnsutils.AcquireDNSMessageBatch(batchSize)
+	fCache := &frameCache{}
+	dt := &dnstap.Dnstap{}
+	edt := &dnsutils.ExtendedDnstap{}
+
 	cleanup := make(chan struct{})
+
+	// close connection and cleanup on function exit
+	defer func() {
+		if len(curBatch.Messages) > 0 {
+			w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+		} else {
+			curBatch.Release()
+		}
+		transforms.Reset()
+		w.LogInfo("conn #%d - connection handler terminated", connID)
+		netutils.Close(conn, w.GetConfig().Collectors.Dnstap.ResetConn)
+		wg.Done()
+	}()
 
 	// goroutine to close the connection properly
 	go func() {
@@ -106,6 +113,10 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 			w.LogInfo("conn #%d - cleanup the connection handler", connID)
 		}
 	}()
+
+	// process incoming frame synchronously
+	var err error
+	var frame *framestream.Frame
 
 	// handle incoming frame
 	for {
@@ -153,11 +164,13 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 		}
 
 		if w.GetConfig().Collectors.Dnstap.Compression == config.CompressNone {
-			// send payload to the channel
-			select {
-			case dnstapProcessor.GetDataChannel() <- frame.Data(): // Successful send to channel
-			default:
-				w.WorkerIsBusy("dnstap-processor", 1)
+			dm, drop := processDNSTapFrame(w.GenericWorker, peerName, frame.Data(), dt, edt, &transforms, fCache, droppedRoutes, droppedNames)
+			if dm != nil && !drop {
+				curBatch.Messages = append(curBatch.Messages, dm)
+				if len(curBatch.Messages) >= batchSize {
+					w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+					curBatch = dnsutils.AcquireDNSMessageBatch(batchSize)
+				}
 			}
 		} else {
 			// ignore first 4 bytes
@@ -173,11 +186,14 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 					validFrame = false
 					break
 				}
-				// send payload to the channel
-				select {
-				case dnstapProcessor.GetDataChannel() <- data[:payloadSize]: // Successful send to channel
-				default:
-					w.WorkerIsBusy("dnstap-processor", 1)
+
+				dm, drop := processDNSTapFrame(w.GenericWorker, peerName, data[:payloadSize], dt, edt, &transforms, fCache, droppedRoutes, droppedNames)
+				if dm != nil && !drop {
+					curBatch.Messages = append(curBatch.Messages, dm)
+					if len(curBatch.Messages) >= batchSize {
+						w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+						curBatch = dnsutils.AcquireDNSMessageBatch(batchSize)
+					}
 				}
 
 				// continue for next
@@ -440,14 +456,28 @@ func (w *DNSTapProcessor) processFrame(
 	droppedRoutes []chan *dnsutils.DNSMessageBatch,
 	droppedNames []string,
 ) (*dnsutils.DNSMessage, bool) {
+	return processDNSTapFrame(w.GenericWorker, w.PeerName, data, dt, edt, transforms, fCache, droppedRoutes, droppedNames)
+}
+
+func processDNSTapFrame(
+	gw *GenericWorker,
+	peerName string,
+	data []byte,
+	dt *dnstap.Dnstap,
+	edt *dnsutils.ExtendedDnstap,
+	transforms *transformers.Transforms,
+	fCache *frameCache,
+	droppedRoutes []chan *dnsutils.DNSMessageBatch,
+	droppedNames []string,
+) (*dnsutils.DNSMessage, bool) {
 	// count global messages
-	w.CountIngressTraffic()
+	gw.CountIngressTraffic()
 
 	// init dns message from pool
 	dm := dnsutils.AcquireDNSMessage()
-	dm.DNSTap.PeerName = w.PeerName
+	dm.DNSTap.PeerName = peerName
 
-	useFastDecoder := w.GetConfig().Collectors.Dnstap.FastDecoder && !w.GetConfig().Collectors.Dnstap.ExtendedSupport
+	useFastDecoder := gw.GetConfig().Collectors.Dnstap.FastDecoder && !gw.GetConfig().Collectors.Dnstap.ExtendedSupport
 
 	if useFastDecoder {
 		err := dnsutils.DecodeDNSTapWire(data, dm)
@@ -460,6 +490,7 @@ func (w *DNSTapProcessor) processFrame(
 	if !useFastDecoder {
 		err := proto.Unmarshal(data, dt)
 		if err != nil {
+			dm.Release()
 			return nil, false
 		}
 	}
@@ -518,9 +549,10 @@ func (w *DNSTapProcessor) processFrame(
 		dm.DNSTap.Operation = dnsutils.DnstapOperationToString(int(msgType))
 
 		// extended extra field ?
-		if w.GetConfig().Collectors.Dnstap.ExtendedSupport {
+		if gw.GetConfig().Collectors.Dnstap.ExtendedSupport {
 			err := proto.Unmarshal(dt.GetExtra(), edt)
 			if err != nil {
+				dm.Release()
 				return nil, false
 			}
 
@@ -675,7 +707,7 @@ func (w *DNSTapProcessor) processFrame(
 		if len(queryZone) > 0 {
 			qz, _, err := dnsutils.ParseLabels(0, queryZone, true)
 			if err != nil {
-				w.LogError("invalid query zone: %v - %v", err, queryZone)
+				gw.LogError("invalid query zone: %v - %v", err, queryZone)
 			}
 			dm.DNSTap.QueryZone = qz
 		}
@@ -687,14 +719,14 @@ func (w *DNSTapProcessor) processFrame(
 	dm.DNSTap.TimestampRFC3339 = "-"
 
 	// decode payload if provided
-	if !w.GetConfig().Collectors.Dnstap.DisableDNSParser && len(dm.DNS.Payload) > 0 {
+	if !gw.GetConfig().Collectors.Dnstap.DisableDNSParser && len(dm.DNS.Payload) > 0 {
 		dnsHeader, err := dnsutils.DecodeDNS(dm.DNS.Payload)
 		if err != nil {
 			dm.DNS.MalformedPacket = true
-			if w.GetConfig().Global.Trace.LogMalformed {
-				w.LogWarning("dns header parser stopped: %s", err)
-				w.LogWarning("dump dns packet: %v", dm)
-				w.LogWarning("dump dns payload: %v", dm.DNS.Payload)
+			if gw.GetConfig().Global.Trace.LogMalformed {
+				gw.LogWarning("dns header parser stopped: %s", err)
+				gw.LogWarning("dump dns packet: %v", dm)
+				gw.LogWarning("dump dns payload: %v", dm.DNS.Payload)
 			}
 		}
 
@@ -703,26 +735,26 @@ func (w *DNSTapProcessor) processFrame(
 		dm.DNS.ArCount = dnsHeader.Arcount
 		dm.DNS.NsCount = dnsHeader.Nscount
 
-		if err = dnsutils.DecodePayload(dm, &dnsHeader, w.GetConfig()); err != nil {
+		if err = dnsutils.DecodePayload(dm, &dnsHeader, gw.GetConfig()); err != nil {
 			dm.DNS.MalformedPacket = true
-			if w.GetConfig().Global.Trace.LogMalformed {
-				w.LogWarning("dns payload parser stopped: %s", err)
-				w.LogWarning("dump dns packet: %v", dm)
-				w.LogWarning("dump dns payload: %v", dm.DNS.Payload)
+			if gw.GetConfig().Global.Trace.LogMalformed {
+				gw.LogWarning("dns payload parser stopped: %s", err)
+				gw.LogWarning("dump dns packet: %v", dm)
+				gw.LogWarning("dump dns payload: %v", dm.DNS.Payload)
 			}
 		}
 	}
 
 	// count output packets
-	w.CountEgressTraffic()
+	gw.CountEgressTraffic()
 
 	// apply all enabled transformers
 	transformResult, err := transforms.ProcessMessage(dm)
 	if err != nil {
-		w.LogError(err.Error())
+		gw.LogError(err.Error())
 	}
 	if transformResult == transformers.ReturnDrop {
-		w.SendDroppedTo(droppedRoutes, droppedNames, dm)
+		gw.SendDroppedTo(droppedRoutes, droppedNames, dm)
 		return nil, true
 	}
 
