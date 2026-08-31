@@ -167,7 +167,7 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 			dm, drop := processDNSTapFrame(w.GenericWorker, peerName, frame.Data(), dt, edt, &transforms, fCache, droppedRoutes, droppedNames)
 			if dm != nil && !drop {
 				curBatch.Messages = append(curBatch.Messages, dm)
-				if len(curBatch.Messages) >= batchSize {
+				if len(curBatch.Messages) >= batchSize || fsReader.Buffered() == 0 {
 					w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
 					curBatch = dnsutils.AcquireDNSMessageBatch(batchSize)
 				}
@@ -190,7 +190,7 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 				dm, drop := processDNSTapFrame(w.GenericWorker, peerName, data[:payloadSize], dt, edt, &transforms, fCache, droppedRoutes, droppedNames)
 				if dm != nil && !drop {
 					curBatch.Messages = append(curBatch.Messages, dm)
-					if len(curBatch.Messages) >= batchSize {
+					if len(curBatch.Messages) >= batchSize || fsReader.Buffered() == 0 {
 						w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
 						curBatch = dnsutils.AcquireDNSMessageBatch(batchSize)
 					}
@@ -717,6 +717,13 @@ func processDNSTapFrame(
 	ts := time.Unix(int64(dm.DNSTap.TimeSec), int64(dm.DNSTap.TimeNsec))
 	dm.DNSTap.Timestamp = ts.UnixNano()
 	dm.DNSTap.TimestampRFC3339 = "-"
+
+	// clone payload to isolate it from the zero-copy framestream view buffer
+	if len(dm.DNS.Payload) > 0 {
+		payloadCopy := make([]byte, len(dm.DNS.Payload))
+		copy(payloadCopy, dm.DNS.Payload)
+		dm.DNS.Payload = payloadCopy
+	}
 
 	// decode payload if provided
 	if !gw.GetConfig().Collectors.Dnstap.DisableDNSParser && len(dm.DNS.Payload) > 0 {

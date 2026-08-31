@@ -694,3 +694,96 @@ func Test_DnstapProcessor_TelemetryCounters(t *testing.T) {
 		t.Errorf("invalid total egress counter: got %d expect 1", r.TotalEgress)
 	}
 }
+
+func Test_DnstapServer_ZeroCopy_PayloadSafety(t *testing.T) {
+	cfg := config.GetDefaultConfig()
+	cfg.Collectors.Dnstap.ListenPort = 60123
+	cfg.Global.Worker.BatchSize = 1 // flush each message immediately
+
+	g := GetWorkerForTest(config.DefaultBufferSize)
+	c := NewDnstapServer([]Worker{g}, cfg, logger.New(false), "test-zerocopy-safety")
+	go c.StartCollect()
+	defer c.Stop()
+
+	time.Sleep(200 * time.Millisecond)
+
+	conn, err := net.Dial("tcp", "127.0.0.1:60123")
+	if err != nil {
+		t.Fatalf("could not connect: %s", err)
+	}
+	defer conn.Close()
+
+	r := bufio.NewReader(conn)
+	w := bufio.NewWriter(conn)
+	fs := framestream.NewFstrm(r, w, conn, 5*time.Second, []byte("protobuf:dnstap.Dnstap"), true)
+	if err := fs.InitSender(); err != nil {
+		t.Fatalf("framestream init error: %s", err)
+	}
+
+	// Prepare payload A (short domain)
+	dnsA := new(dns.Msg)
+	dnsA.SetQuestion("aaaa.com.", dns.TypeA)
+	payloadA, _ := dnsA.Pack()
+
+	dtA := &dnstap.Dnstap{
+		Type: dnstap.Dnstap_MESSAGE.Enum(),
+		Message: &dnstap.Message{
+			Type:         dnstap.Message_CLIENT_QUERY.Enum(),
+			QueryMessage: payloadA,
+		},
+	}
+	dataA, _ := proto.Marshal(dtA)
+
+	// Prepare payload B (longer domain, different content)
+	dnsB := new(dns.Msg)
+	dnsB.SetQuestion("zzzz-completely-different-long-query-string.org.", dns.TypeTXT)
+	payloadB, _ := dnsB.Pack()
+
+	dtB := &dnstap.Dnstap{
+		Type: dnstap.Dnstap_MESSAGE.Enum(),
+		Message: &dnstap.Message{
+			Type:         dnstap.Message_CLIENT_QUERY.Enum(),
+			QueryMessage: payloadB,
+		},
+	}
+	dataB, _ := proto.Marshal(dtB)
+
+	// Send Frame A
+	frameA := &framestream.Frame{}
+	frameA.Write(dataA)
+	if err := fs.SendFrame(frameA); err != nil {
+		t.Fatalf("failed to send frame A: %s", err)
+	}
+
+	// Send Frame B immediately after to overwrite the zero-copy buffer
+	frameB := &framestream.Frame{}
+	frameB.Write(dataB)
+	if err := fs.SendFrame(frameB); err != nil {
+		t.Fatalf("failed to send frame B: %s", err)
+	}
+
+	// Read message A from downstream worker
+	batchA := <-g.GetInputChannel()
+	if len(batchA.Messages) == 0 {
+		t.Fatalf("no messages received in batch A")
+	}
+	msgA := batchA.Messages[0]
+
+	// Read message B from downstream worker
+	batchB := <-g.GetInputChannel()
+	if len(batchB.Messages) == 0 {
+		t.Fatalf("no messages received in batch B")
+	}
+	msgB := batchB.Messages[0]
+
+	// Verify msgA.DNS.Payload still contains payloadA and was not corrupted by frame B!
+	if !bytes.Equal(msgA.DNS.Payload, payloadA) {
+		t.Errorf("PAYLOAD CORRUPTED: msgA.DNS.Payload was corrupted/overwritten by subsequent frame!\nGot:  %x\nWant: %x",
+			msgA.DNS.Payload, payloadA)
+	}
+	if !bytes.Equal(msgB.DNS.Payload, payloadB) {
+		t.Errorf("PAYLOAD CORRUPTED: msgB.DNS.Payload was corrupted!\nGot:  %x\nWant: %x",
+			msgB.DNS.Payload, payloadB)
+	}
+}
+
