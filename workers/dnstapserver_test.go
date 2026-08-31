@@ -694,3 +694,100 @@ func Test_DnstapProcessor_TelemetryCounters(t *testing.T) {
 		t.Errorf("invalid total egress counter: got %d expect 1", r.TotalEgress)
 	}
 }
+
+func Test_DnstapProcessor_RawBatch(t *testing.T) {
+	fl := GetWorkerForTest(config.DefaultBufferSize)
+	cfg := config.GetDefaultConfig()
+	proc := NewDNSTapProcessor(0, "test", cfg, logger.New(false), "test", 1000)
+	proc.SetDefaultRoutes([]Worker{fl})
+
+	// Prepare dnstap frame
+	queryPkt, err := dnsutils.GetFakeDNS()
+	if err != nil {
+		t.Fatalf("dns question pack error: %v", err)
+	}
+	dt := &dnstap.Dnstap{
+		Type: dnstap.Dnstap_MESSAGE.Enum(),
+		Message: &dnstap.Message{
+			Type:         dnstap.Message_CLIENT_QUERY.Enum(),
+			QueryMessage: queryPkt,
+		},
+	}
+	data, _ := proto.Marshal(dt)
+
+	go proc.StartCollect()
+	defer proc.Stop()
+
+	// Send RawBatch with 5 frames
+	batch := dnsutils.AcquireRawBatch()
+	for i := 0; i < 5; i++ {
+		batch.Frames = append(batch.Frames, data)
+	}
+	proc.GetBatchChannel() <- batch
+
+	// Read output batch
+	select {
+	case outBatch := <-fl.GetInputChannel():
+		if len(outBatch.Messages) != 5 {
+			t.Errorf("expected 5 messages in batch, got %d", len(outBatch.Messages))
+		}
+		if len(outBatch.Messages) > 0 && outBatch.Messages[0].DNSTap.Operation != "CLIENT_QUERY" {
+			t.Errorf("unexpected operation: %s", outBatch.Messages[0].DNSTap.Operation)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatalf("timeout waiting for batch")
+	}
+}
+
+func Test_DnstapCollector_LowTrafficFlush(t *testing.T) {
+	fl := GetWorkerForTest(config.DefaultBufferSize)
+	cfg := config.GetDefaultConfig()
+	cfg.Collectors.Dnstap.ListenPort = 6002
+	cfg.Collectors.Dnstap.UpstreamBatching = true
+	cfg.Global.Worker.ChannelBufferSize = 1000
+
+	server := NewDnstapServer([]Worker{fl}, cfg, logger.New(false), "bench-server")
+	go server.StartCollect()
+	defer server.Stop()
+	time.Sleep(100 * time.Millisecond)
+
+	conn, err := net.Dial("tcp", ":6002")
+	if err != nil {
+		t.Fatalf("could not connect: %v", err)
+	}
+	defer conn.Close()
+
+	r := bufio.NewReader(conn)
+	w := bufio.NewWriter(conn)
+	fs := framestream.NewFstrm(r, w, conn, 5*time.Second, []byte("protobuf:dnstap.Dnstap"), true)
+	if err := fs.InitSender(); err != nil {
+		t.Fatalf("framestream init error: %v", err)
+	}
+
+	queryPkt, err := dnsutils.GetFakeDNS()
+	if err != nil {
+		t.Fatalf("dns question pack error: %v", err)
+	}
+	dt := GetFakeDNSTap(queryPkt)
+	data, _ := proto.Marshal(dt)
+	frame := &framestream.Frame{}
+	frame.Write(data)
+
+	// Send only 3 frames (far below 256 batchSize) without closing connection
+	for i := 0; i < 3; i++ {
+		if err := fs.SendFrame(frame); err != nil {
+			t.Fatalf("send frame error: %v", err)
+		}
+	}
+
+	// Verify all 3 frames are flushed and received immediately (< 1s)
+	received := 0
+	for received < 3 {
+		select {
+		case b := <-fl.GetInputChannel():
+			received += len(b.Messages)
+		case <-time.After(1 * time.Second):
+			t.Fatalf("timeout waiting for flushed frames, received %d/3", received)
+		}
+	}
+}

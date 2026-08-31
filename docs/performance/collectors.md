@@ -50,3 +50,21 @@ collectors:
   dnstap:
     disable-dnsparser: true  # Skips DNS RFC 1035 payload decoding entirely
 ```
+
+---
+
+## 5. Upstream Batching (`upstream-batching`)
+
+Under heavy traffic on multi-core systems, transmitting frames individually through Go channels can introduce channel lock contention and cache-line bouncing between CPU cores.
+
+`upstream-batching` is enabled by default (`true`). It groups incoming raw frames into pooled structures before dispatching them to decoder workers, reducing channel contention and maximizing throughput.
+
+```yaml
+collectors:
+  dnstap:
+    upstream-batching: true   # Default: true
+```
+
+* **Default (`true`)**: Recommended for most environments to maximize multi-core throughput and minimize CPU contention.
+* **When to disable (`false`)**: In highly resource-constrained environments (e.g., micro-containers with 1-2 vCPUs) where saving every megabyte of RAM is prioritized over multi-million QPS throughput.
+

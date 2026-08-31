@@ -41,6 +41,7 @@ type CollectorDnstap struct {
 	ExtendedSupport  bool   `yaml:"extended-support" default:"false"`
 	FastDecoder      bool   `yaml:"fast-decoder" default:"true"`
 	Compression      string `yaml:"compression" default:"none"`
+	UpstreamBatching bool   `yaml:"upstream-batching" default:"true"`
 }
 
 type CollectorDnstapProxifier struct {

@@ -1,6 +1,7 @@
 package workers
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -13,9 +14,9 @@ import (
 
 	"github.com/dmachard/go-dnscollector/v3/dnsutils"
 	"github.com/dmachard/go-dnscollector/v3/pkg/config"
+	"github.com/dmachard/go-framestream"
 	"github.com/dmachard/go-logger"
 	"github.com/dmachard/go-netutils"
-	framestream "github.com/farsightsec/golang-framestream"
 	"github.com/fsnotify/fsnotify"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -348,12 +349,10 @@ func (w *FileIngestor) ProcessDnstap(filePath string) error {
 	}
 	defer f.Close()
 
-	dnstapDecoder, err := framestream.NewDecoder(f, &framestream.DecoderOptions{
-		ContentType:   []byte("protobuf:dnstap.Dnstap"),
-		Bidirectional: false,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create framestream Decoder: %w", err)
+	fs := framestream.NewFstrm(bufio.NewReader(f), nil, nil, 0, []byte("protobuf:dnstap.Dnstap"), false)
+	fs.SetZeroCopy(true)
+	if err := fs.InitReceiver(); err != nil {
+		return fmt.Errorf("failed to init framestream receiver: %w", err)
 	}
 
 	fileName := filepath.Base(filePath)
@@ -362,7 +361,7 @@ func (w *FileIngestor) ProcessDnstap(filePath string) error {
 	nbFrames := 0
 	frameIndex := 0
 	for {
-		buf, err := dnstapDecoder.Decode()
+		frame, err := fs.RecvFrame(false)
 		if errors.Is(err, io.EOF) {
 			break
 		}
@@ -370,6 +369,11 @@ func (w *FileIngestor) ProcessDnstap(filePath string) error {
 			w.LogError("unable to decode dnstap frame: %s", err)
 			break
 		}
+		if frame.IsControl() {
+			break
+		}
+
+		buf := frame.Data()
 
 		frameIndex++
 		if frameIndex <= skipFrames {

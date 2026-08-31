@@ -63,6 +63,11 @@ Options:
   > Specifies the compression algorithm to use.
   > Compression for DNStap messages: `none`, `gzip`, `lz4`, `snappy`, `zstd`.
 
+* `upstream-batching` (bool)
+  > Enables batching of incoming raw frames between the network receiver and decoder workers (`RawBatch`).
+  > This reduces Go channel contention and CPU synchronization overhead under heavy multi-core workloads.
+  > Default is `true`.
+
 Defaults:
 
 ```yaml
@@ -83,6 +88,7 @@ Defaults:
     extended-support: false
     fast-decoder: true
     compression: none
+    upstream-batching: true
 ```
 
 ## DNS tap Proxifier
