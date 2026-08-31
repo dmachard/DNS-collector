@@ -65,9 +65,8 @@ Options:
 
 * `upstream-batching` (bool)
   > Enables batching of incoming raw frames between the network receiver and decoder workers (`RawBatch`).
-  > This eliminates Go channel contention and CPU cache-line bouncing under multi-million QPS loads on multi-core servers (delivering +15% throughput and -20% CPU time).
-  > For small instances (1-2 vCPUs) or standard workloads (< 2M QPS), leaving this disabled minimizes memory footprint.
-  > Default is `false`.
+  > This reduces Go channel contention and CPU synchronization overhead under heavy multi-core workloads.
+  > Default is `true`.
 
 Defaults:
 
@@ -89,7 +88,7 @@ Defaults:
     extended-support: false
     fast-decoder: true
     compression: none
-    upstream-batching: false
+    upstream-batching: true
 ```
 
 ## DNS tap Proxifier

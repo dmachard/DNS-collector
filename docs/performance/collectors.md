@@ -55,16 +55,16 @@ collectors:
 
 ## 5. Upstream Batching (`upstream-batching`)
 
-In ultra-high throughput environments (> 3M - 6M+ queries/sec) on multi-core servers, transmitting frames individually through Go channels introduces channel lock contention and cache-line bouncing between CPU cores.
+Under heavy traffic on multi-core systems, transmitting frames individually through Go channels can introduce channel lock contention and cache-line bouncing between CPU cores.
 
-Enabling `upstream-batching` groups frames into pooled `RawBatch` structures before dispatching them to decoder workers:
+`upstream-batching` is enabled by default (`true`). It groups incoming raw frames into pooled structures before dispatching them to decoder workers, reducing channel contention and maximizing throughput.
 
 ```yaml
 collectors:
   dnstap:
-    upstream-batching: true   # Eliminates channel contention at 3M+ QPS
+    upstream-batching: true   # Default: true
 ```
 
-* **When to enable**: Multi-core systems (8+ cores) processing multi-million QPS streams over a single connection where maximizing throughput (+15%) and reducing CPU time (-20%) is paramount.
-* **When to keep disabled (default)**: Low-to-moderate traffic (< 2M QPS) or resource-constrained environments (1-2 vCPUs) where minimizing memory footprint (~60 MB RSS) is prioritized.
+* **Default (`true`)**: Recommended for most environments to maximize multi-core throughput and minimize CPU contention.
+* **When to disable (`false`)**: In highly resource-constrained environments (e.g., micro-containers with 1-2 vCPUs) where saving every megabyte of RAM is prioritized over multi-million QPS throughput.
 
