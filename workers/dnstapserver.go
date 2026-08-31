@@ -107,6 +107,27 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 		}
 	}()
 
+	batchSize := w.GetBatchSize()
+	curRawBatch := dnsutils.AcquireRawBatch()
+
+	flushRawBatch := func() {
+		if len(curRawBatch.Frames) == 0 {
+			return
+		}
+		select {
+		case dnstapProcessor.GetBatchChannel() <- curRawBatch:
+			curRawBatch = dnsutils.AcquireRawBatch()
+		default:
+			w.WorkerIsBusy("dnstap-processor", len(curRawBatch.Frames))
+			curRawBatch.Release()
+			curRawBatch = dnsutils.AcquireRawBatch()
+		}
+	}
+	defer func() {
+		flushRawBatch()
+		curRawBatch.Release()
+	}()
+
 	// handle incoming frame
 	for {
 		if w.GetConfig().Collectors.Dnstap.Compression == config.CompressNone {
@@ -132,6 +153,7 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 			} else {
 				w.LogError("conn #%d - framestream reader error: %s", connID, err)
 			}
+			flushRawBatch()
 			// exit goroutine
 			close(cleanup)
 			break
@@ -147,17 +169,16 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 
 			}
 
+			flushRawBatch()
 			// exit goroutine
 			close(cleanup)
 			break
 		}
 
 		if w.GetConfig().Collectors.Dnstap.Compression == config.CompressNone {
-			// send payload to the channel
-			select {
-			case dnstapProcessor.GetDataChannel() <- frame.Data(): // Successful send to channel
-			default:
-				w.WorkerIsBusy("dnstap-processor", 1)
+			curRawBatch.Frames = append(curRawBatch.Frames, frame.Data())
+			if len(curRawBatch.Frames) >= batchSize || fsReader.Buffered() == 0 {
+				flushRawBatch()
 			}
 		} else {
 			// ignore first 4 bytes
@@ -173,15 +194,16 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 					validFrame = false
 					break
 				}
-				// send payload to the channel
-				select {
-				case dnstapProcessor.GetDataChannel() <- data[:payloadSize]: // Successful send to channel
-				default:
-					w.WorkerIsBusy("dnstap-processor", 1)
+				curRawBatch.Frames = append(curRawBatch.Frames, data[:payloadSize])
+				if len(curRawBatch.Frames) >= batchSize {
+					flushRawBatch()
 				}
 
 				// continue for next
 				data = data[payloadSize:]
+			}
+			if fsReader.Buffered() == 0 {
+				flushRawBatch()
 			}
 			if !validFrame {
 				w.LogError("conn #%d - invalid compressed frame received", connID)
@@ -290,9 +312,10 @@ func GetFakeDNSTap(dnsquery []byte) *dnstap.Dnstap {
 
 type DNSTapProcessor struct {
 	*GenericWorker
-	ConnID      int
-	PeerName    string
-	dataChannel chan []byte
+	ConnID       int
+	PeerName     string
+	dataChannel  chan []byte
+	batchChannel chan *dnsutils.RawBatch
 }
 
 func NewDNSTapProcessor(connID int, peerName string, cfg *config.Config, logger *logger.Logger, name string, size int) DNSTapProcessor {
@@ -300,11 +323,24 @@ func NewDNSTapProcessor(connID int, peerName string, cfg *config.Config, logger 
 	w.ConnID = connID
 	w.PeerName = peerName
 	w.dataChannel = make(chan []byte, size)
+	batchSize := w.GetBatchSize()
+	batchChanSize := 100
+	if batchSize > 0 {
+		batchChanSize = size / batchSize
+		if batchChanSize < 100 {
+			batchChanSize = 100
+		}
+	}
+	w.batchChannel = make(chan *dnsutils.RawBatch, batchChanSize)
 	return w
 }
 
 func (w *DNSTapProcessor) GetDataChannel() chan []byte {
 	return w.dataChannel
+}
+
+func (w *DNSTapProcessor) GetBatchChannel() chan *dnsutils.RawBatch {
+	return w.batchChannel
 }
 
 func (w *DNSTapProcessor) StartCollect() {
@@ -339,6 +375,32 @@ func (w *DNSTapProcessor) StartCollect() {
 					case cfg := <-cChan:
 						transforms.ReloadConfig(&cfg.IngoingTransformers)
 
+					case batch, opened := <-w.GetBatchChannel():
+						if !opened {
+							if len(curBatch.Messages) > 0 {
+								w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+							} else {
+								curBatch.Release()
+							}
+							transforms.Reset()
+							return
+						}
+						for _, data := range batch.Frames {
+							dm, drop := w.processFrame(data, dt, edt, &transforms, fCache, droppedRoutes, droppedNames)
+							if dm != nil && !drop {
+								curBatch.Messages = append(curBatch.Messages, dm)
+								if len(curBatch.Messages) >= batchSize {
+									w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+									curBatch = dnsutils.AcquireDNSMessageBatch(batchSize)
+								}
+							}
+						}
+						batch.Release()
+						if len(curBatch.Messages) > 0 && len(w.GetBatchChannel()) == 0 {
+							w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+							curBatch = dnsutils.AcquireDNSMessageBatch(batchSize)
+						}
+
 					case data, opened := <-w.GetDataChannel():
 						if !opened {
 							if len(curBatch.Messages) > 0 {
@@ -372,6 +434,7 @@ func (w *DNSTapProcessor) StartCollect() {
 
 			case <-w.OnStop():
 				close(w.GetDataChannel())
+				close(w.GetBatchChannel())
 				wg.Wait()
 				return
 			}
@@ -399,7 +462,34 @@ func (w *DNSTapProcessor) StartCollect() {
 				}
 				transforms.Reset()
 				close(w.GetDataChannel())
+				close(w.GetBatchChannel())
 				return
+
+			case batch, opened := <-w.GetBatchChannel():
+				if !opened {
+					if len(curBatch.Messages) > 0 {
+						w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+					} else {
+						curBatch.Release()
+					}
+					w.LogInfo("batch channel closed, exit")
+					return
+				}
+				for _, data := range batch.Frames {
+					dm, drop := w.processFrame(data, dt, edt, &transforms, fCache, droppedRoutes, droppedNames)
+					if dm != nil && !drop {
+						curBatch.Messages = append(curBatch.Messages, dm)
+						if len(curBatch.Messages) >= batchSize {
+							w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+							curBatch = dnsutils.AcquireDNSMessageBatch(batchSize)
+						}
+					}
+				}
+				batch.Release()
+				if len(curBatch.Messages) > 0 && len(w.GetBatchChannel()) == 0 {
+					w.SendForwardedBatchTo(defaultRoutes, defaultNames, curBatch)
+					curBatch = dnsutils.AcquireDNSMessageBatch(batchSize)
+				}
 
 			case data, opened := <-w.GetDataChannel():
 				if !opened {
