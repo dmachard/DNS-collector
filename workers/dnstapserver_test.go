@@ -743,6 +743,7 @@ func Test_DnstapCollector_LowTrafficFlush(t *testing.T) {
 	fl := GetWorkerForTest(config.DefaultBufferSize)
 	cfg := config.GetDefaultConfig()
 	cfg.Collectors.Dnstap.ListenPort = 6002
+	cfg.Collectors.Dnstap.UpstreamBatching = true
 	cfg.Global.Worker.ChannelBufferSize = 1000
 
 	server := NewDnstapServer([]Worker{fl}, cfg, logger.New(false), "bench-server")

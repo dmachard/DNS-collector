@@ -108,10 +108,14 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 	}()
 
 	batchSize := w.GetBatchSize()
-	curRawBatch := dnsutils.AcquireRawBatch()
+	useUpstreamBatching := w.GetConfig().Collectors.Dnstap.UpstreamBatching
+	var curRawBatch *dnsutils.RawBatch
+	if useUpstreamBatching {
+		curRawBatch = dnsutils.AcquireRawBatch()
+	}
 
 	flushRawBatch := func() {
-		if len(curRawBatch.Frames) == 0 {
+		if !useUpstreamBatching || curRawBatch == nil || len(curRawBatch.Frames) == 0 {
 			return
 		}
 		select {
@@ -125,7 +129,9 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 	}
 	defer func() {
 		flushRawBatch()
-		curRawBatch.Release()
+		if curRawBatch != nil {
+			curRawBatch.Release()
+		}
 	}()
 
 	// handle incoming frame
@@ -176,9 +182,17 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 		}
 
 		if w.GetConfig().Collectors.Dnstap.Compression == config.CompressNone {
-			curRawBatch.Frames = append(curRawBatch.Frames, frame.Data())
-			if len(curRawBatch.Frames) >= batchSize || fsReader.Buffered() == 0 {
-				flushRawBatch()
+			if useUpstreamBatching {
+				curRawBatch.Frames = append(curRawBatch.Frames, frame.Data())
+				if len(curRawBatch.Frames) >= batchSize || fsReader.Buffered() == 0 {
+					flushRawBatch()
+				}
+			} else {
+				select {
+				case dnstapProcessor.GetDataChannel() <- frame.Data():
+				default:
+					w.WorkerIsBusy("dnstap-processor", 1)
+				}
 			}
 		} else {
 			// ignore first 4 bytes
@@ -194,15 +208,23 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 					validFrame = false
 					break
 				}
-				curRawBatch.Frames = append(curRawBatch.Frames, data[:payloadSize])
-				if len(curRawBatch.Frames) >= batchSize {
-					flushRawBatch()
+				if useUpstreamBatching {
+					curRawBatch.Frames = append(curRawBatch.Frames, data[:payloadSize])
+					if len(curRawBatch.Frames) >= batchSize {
+						flushRawBatch()
+					}
+				} else {
+					select {
+					case dnstapProcessor.GetDataChannel() <- data[:payloadSize]:
+					default:
+						w.WorkerIsBusy("dnstap-processor", 1)
+					}
 				}
 
 				// continue for next
 				data = data[payloadSize:]
 			}
-			if fsReader.Buffered() == 0 {
+			if useUpstreamBatching && fsReader.Buffered() == 0 {
 				flushRawBatch()
 			}
 			if !validFrame {
