@@ -193,7 +193,7 @@ Single-level key-value pairs for easier processing:
 
 ### Jinja Templating
 
-**Tip:** For a complete list of available field names and their structure, visit: https://pkg.go.dev/github.com/dmachard/go-dnscollector/v3/dnsutils#DNSMessage
+> **Tip**: For a complete list of available field names and their structure, visit the [DNSMessage documentation](https://pkg.go.dev/github.com/dmachard/go-dnscollector/v3/dnsutils#DNSMessage).
 
 For maximum flexibility, use Jinja2 templates:
 
@@ -203,7 +203,7 @@ text-jinja: |
   {% if dm.DNS.AnswerRRs %}Response: {{ dm.DNS.AnswerRRs[0].Rdata }}{% endif %}
 ```
 
-**Note**: Jinja templating is powerful but slower than standard text format.
+> **Note**: Jinja templating is powerful but slower than standard text format due to template rendering overhead.
 
 ### PCAP Format
 

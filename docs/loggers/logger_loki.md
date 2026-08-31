@@ -1,6 +1,10 @@
 # Logger: Loki client
 
-Loki client to remote server
+The `loki` logger streams DNS event logs directly to a [Grafana Loki](https://grafana.com/oss/loki/) log aggregation server via its HTTP push API.
+
+It allows you to centralize DNS traffic logs alongside your other infrastructure telemetry, query them efficiently using LogQL, and build interactive Grafana dashboards for security monitoring, troubleshooting, and network analytics.
+
+Messages can be formatted as plain text, structured JSON, or flat JSON, and are pushed in batches to maximize throughput and optimize ingestion efficiency on Loki.
 
 Options:
 

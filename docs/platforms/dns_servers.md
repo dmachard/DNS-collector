@@ -19,5 +19,6 @@ For a step-by-step tutorial on setting up DNStap on BIND, Unbound, DNSdist, and 
 👉 **[Enabling DNStap logging on most popular DNS servers](./dnstap.md)**
 
 For a ready-to-use Docker Compose setup with PowerDNS DNSdist and DNS-collector, see:
-👉 **[DNSdist + DNS-collector Docker Compose Example](../../_integration/dnsdist/README.md)**
+👉 **[DNSdist + DNS-collector Docker Compose Example](https://github.com/dmachard/DNS-collector/tree/main/docs/_integration/dnsdist)**
+
 

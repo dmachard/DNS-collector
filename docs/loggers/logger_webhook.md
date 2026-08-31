@@ -6,7 +6,7 @@ It can be used to stream DNS traffic events in real-time to external APIs, custo
 
 ---
 
-## ⚙️ Options
+## Options
 
 * `enable` (boolean, default: `false`)
   > Enables the HTTP Webhook logger.
@@ -31,7 +31,7 @@ It can be used to stream DNS traffic events in real-time to external APIs, custo
 
 ---
 
-## 📋 Configuration Example
+## Configuration Example
 
 ```yaml
 pipelines:
@@ -56,7 +56,7 @@ loggers:
 
 ---
 
-## 📦 Payload Format
+## Payload Format
 
 Each incoming DNS message is serialized as a standard JSON object in the HTTP `POST` body:
 
