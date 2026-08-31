@@ -78,7 +78,7 @@ pipelines:
 
 ### Example 2: Filtering Answers by TTL and Response IP Pattern
 
-Match responses where answer records have a TTL $> 300$ seconds and IP addresses matching specific subnets:
+Match responses where answer records have a TTL > 300 seconds and IP addresses matching specific subnets:
 
 ```yaml
 pipelines:
