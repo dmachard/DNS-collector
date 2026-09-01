@@ -201,10 +201,19 @@ func (t *GeoIPTransform) geoipTransform(dm *dnsutils.DNSMessage) (int, error) {
 	var parsedIP net.IP
 
 	// lookup ecs ip instead of the query ip?
-	if t.config.LookupECS && len(dm.EDNS.Options) > 0 {
-		parsedIP = lookupECSIP(dm)
+	if t.config.LookupECS {
+		// PowerDNS protobuf exposes ECS separately from parsed EDNS options.
+		if dm.PowerDNS != nil && dm.PowerDNS.OriginalRequestSubnet != "" {
+			parsedIP = net.ParseIP(dm.PowerDNS.OriginalRequestSubnet)
+		}
+
+		// DNStap, packet capture and other raw-DNS collectors.
+		if parsedIP == nil && len(dm.EDNS.Options) > 0 {
+			parsedIP = lookupECSIP(dm)
+		}
 	}
 
+	// No usable ECS: fall back to the actual requester address.
 	if parsedIP == nil {
 		parsedIP = net.ParseIP(dm.NetworkInfo.GetQueryIP())
 	}
