@@ -20,10 +20,14 @@ FROM gcr.io/distroless/static-debian13:nonroot
 # Runtime directories
 COPY --from=builder --chown=1000:1000 /rootfs/etc/dnscollector /etc/dnscollector
 COPY --from=builder --chown=1000:1000 /rootfs/var/dnscollector /var/dnscollector
+COPY --from=builder /rootfs/etc/passwd /etc/passwd
+COPY --from=builder /rootfs/etc/group /etc/group
 
 # Binary and default config
 COPY --from=builder /build/dnscollector /bin/dnscollector
 COPY --from=builder /build/docker-config.yml /etc/dnscollector/config.yml
+
+WORKDIR /
 
 USER 1000
 
