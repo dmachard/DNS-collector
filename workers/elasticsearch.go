@@ -281,6 +281,7 @@ func (w *ElasticSearchClient) sendCompressedBulk(bulk []byte) error {
 	gzipWriter := gzip.NewWriter(&compressedBulk)
 	_, err := gzipWriter.Write(bulk)
 	if err != nil {
+		gzipWriter.Close()
 		return err
 	}
 	err = gzipWriter.Close()
