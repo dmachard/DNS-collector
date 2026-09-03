@@ -4,13 +4,38 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
-    
+    groups:
+      opentelemetry:
+        patterns:
+          - "go.opentelemetry.io/*"
+
+      monitoring:
+        patterns:
+          - "github.com/prometheus/*"
+          - "github.com/grafana/*"
+
+      dmachard:
+        patterns:
+          - "github.com/dmachard/*"
+
+      other-dependencies:
+        patterns:
+          - "*"
+
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "monthly"
-    
-  - package-ecosystem: github-actions
-    directory: /
+    groups:
+      docker-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
       interval: "monthly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
