@@ -153,6 +153,7 @@ func Test_StdoutPcapMode(t *testing.T) {
 
 	// send DNSMessage to channel
 	dm := dnsutils.GetFakeDNSMessageWithPayload()
+	expectedLength := dm.DNS.Length
 	g.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
 
 	// stop logger
@@ -170,7 +171,7 @@ func Test_StdoutPcapMode(t *testing.T) {
 		t.Errorf("unable to read packet: %s", err)
 		return
 	}
-	if len(data) < dm.DNS.Length {
+	if len(data) < expectedLength {
 		t.Errorf("incorrect packet size: %d", len(data))
 	}
 }
