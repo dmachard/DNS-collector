@@ -250,12 +250,13 @@ func (w *StdOut) StartLogging() {
 					w.writerRaw.WriteByte('\n')
 
 				case config.ModeJSON:
-					err := jsonEncoder.Encode(dm)
-					if err != nil {
-						w.CountEgressDiscarded()
-						w.LogError("process: unable to encode json: %s", err)
-						continue
-					}
+					buf := w.GetTextBuffer()
+					buf.Reset()
+					dm.GetTimestampRFC3339()
+					dm.EncodeJSON(buf)
+					buf.WriteByte('\n')
+					w.writerRaw.Write(buf.Bytes())
+					w.PutTextBuffer(buf)
 
 				case config.ModeFlatJSON:
 					if dm.Relabeling != nil {

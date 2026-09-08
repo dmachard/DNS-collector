@@ -2,7 +2,6 @@ package workers
 
 import (
 	"bytes"
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -110,10 +109,9 @@ func (w *FalcoClient) StartLogging() {
 			}
 			for _, dm := range batch.Messages {
 				buffer.Reset()
-				if err := json.NewEncoder(buffer).Encode(dm); err != nil {
-					w.LogError("json encode error: %s", err)
-					continue
-				}
+				dm.GetTimestampRFC3339()
+				dm.EncodeJSON(buffer)
+				buffer.WriteByte('\n')
 
 				req, err := http.NewRequest("POST", w.GetConfig().Loggers.FalcoClient.URL, bytes.NewReader(buffer.Bytes()))
 				if err != nil {

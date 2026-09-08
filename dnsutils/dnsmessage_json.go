@@ -28,6 +28,18 @@ func (dm *DNSMessage) ToJSON() string {
 	return buffer.String()
 }
 
+func (dm DNSMessage) MarshalJSON() ([]byte, error) {
+	dm.GetTimestampRFC3339()
+	buffer := jsonBufferPool.Get().(*bytes.Buffer)
+	buffer.Reset()
+	defer jsonBufferPool.Put(buffer)
+
+	dm.EncodeJSON(buffer)
+	b := make([]byte, buffer.Len())
+	copy(b, buffer.Bytes())
+	return b, nil
+}
+
 func (dm *DNSMessage) ToFlatJSON() (string, error) {
 	dm.GetTimestampRFC3339()
 	buffer := jsonBufferPool.Get().(*bytes.Buffer)

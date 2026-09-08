@@ -305,3 +305,47 @@ func Test_LogFileBatchProcessing(t *testing.T) {
 		t.Errorf("Last message integrity failed: expected %s", expectedLast)
 	}
 }
+
+func Test_LogFile_JSON_DNSTap_Fields(t *testing.T) {
+	f, err := os.CreateTemp("", "temp_logfile_json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(f.Name())
+
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.LogFile.FilePath = f.Name()
+	cfg.Loggers.LogFile.Mode = config.ModeJSON
+	cfg.Loggers.LogFile.FlushInterval = 0
+
+	g := NewLogFile(cfg, logger.New(false), "test")
+	go g.StartCollect()
+
+	dm := dnsutils.GetFakeDNSMessage()
+	dm.NetworkInfo.SetQueryIPBytes([]byte{192, 0, 2, 1})
+	dm.NetworkInfo.SetResponseIPBytes([]byte{192, 0, 2, 2})
+	dm.DNSTap.Timestamp = 1600000000123456789
+	dm.DNSTap.TimestampRFC3339 = "-"
+
+	g.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
+
+	time.Sleep(time.Second)
+	g.Stop()
+
+	content, err := os.ReadFile(f.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	contentStr := string(content)
+	if !strings.Contains(contentStr, `"query-ip":"192.0.2.1"`) {
+		t.Errorf("expected query-ip 192.0.2.1, got: %s", contentStr)
+	}
+	if !strings.Contains(contentStr, `"response-ip":"192.0.2.2"`) {
+		t.Errorf("expected response-ip 192.0.2.2, got: %s", contentStr)
+	}
+	if !strings.Contains(contentStr, `"timestamp-rfc3339ns":"2020-09-13T12:26:40.123456789Z"`) {
+		t.Errorf("expected RFC3339 timestamp, got: %s", contentStr)
+	}
+}
+

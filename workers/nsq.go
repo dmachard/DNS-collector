@@ -1,7 +1,6 @@
 package workers
 
 import (
-	"encoding/json"
 	"strconv"
 
 	"github.com/dmachard/go-dnscollector/v3/pkg/config"
@@ -89,14 +88,13 @@ func (w *NsqClient) StartLogging() {
 			}
 
 			for _, dm := range batch.Messages {
-				encoded, err := json.Marshal(dm)
-				if err != nil {
-					w.LogError("json encoding error: %v", err)
-					w.CountEgressDiscarded()
-					continue
-				}
+				buffer := w.GetTextBuffer()
+				buffer.Reset()
+				dm.GetTimestampRFC3339()
+				dm.EncodeJSON(buffer)
 
-				err = w.nsqProducer.Publish(topic, encoded)
+				err := w.nsqProducer.Publish(topic, buffer.Bytes())
+				w.PutTextBuffer(buffer)
 				if err != nil {
 					w.LogError("failed to publish to NSQ: %v", err)
 					w.CountEgressDiscarded()

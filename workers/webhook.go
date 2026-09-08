@@ -3,7 +3,6 @@ package workers
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	"net/http"
 	"time"
@@ -150,13 +149,13 @@ func (w *Webhook) Request(dm *dnsutils.DNSMessage) error {
 		dm.Rest = &dnsutils.TransformRest{Failed: true, Response: ""}
 	}
 
-	payload, err := json.Marshal(dm)
-	if err != nil {
-		w.LogError("JSON marshal failed: %s", err)
-		return err
-	}
+	buffer := w.GetTextBuffer()
+	buffer.Reset()
+	defer w.PutTextBuffer(buffer)
+	dm.GetTimestampRFC3339()
+	dm.EncodeJSON(buffer)
 
-	post, err := http.NewRequest("POST", w.URL, bytes.NewBuffer(payload))
+	post, err := http.NewRequest("POST", w.URL, bytes.NewReader(buffer.Bytes()))
 	if err != nil {
 		w.LogError("HTTP error: %s", err)
 		return err

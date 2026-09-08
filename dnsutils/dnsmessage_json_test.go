@@ -3,6 +3,7 @@ package dnsutils
 import (
 	"encoding/json"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -92,6 +93,46 @@ func TestDnsMessage_Json_Reference(t *testing.T) {
 
 	if !reflect.DeepEqual(dmMap, refMap) {
 		t.Errorf("json format different from reference %v", dmMap)
+	}
+}
+
+func TestDNSMessage_MarshalJSON(t *testing.T) {
+	dm := GetFakeDNSMessage()
+	dm.NetworkInfo.SetQueryIPBytes([]byte{192, 0, 2, 1})
+	dm.NetworkInfo.SetResponseIPBytes([]byte{192, 0, 2, 2})
+	dm.DNSTap.Timestamp = 1600000000123456789
+	dm.DNSTap.TimestampRFC3339 = "-"
+
+	// Test pointer serialization
+	ptrJSON, err := json.Marshal(&dm)
+	if err != nil {
+		t.Fatalf("json.Marshal(&dm) error: %v", err)
+	}
+	ptrStr := string(ptrJSON)
+	if !strings.Contains(ptrStr, `"query-ip":"192.0.2.1"`) {
+		t.Errorf("pointer marshal missing query-ip: %s", ptrStr)
+	}
+	if !strings.Contains(ptrStr, `"response-ip":"192.0.2.2"`) {
+		t.Errorf("pointer marshal missing response-ip: %s", ptrStr)
+	}
+	if !strings.Contains(ptrStr, `"timestamp-rfc3339ns":"2020-09-13T12:26:40.123456789Z"`) {
+		t.Errorf("pointer marshal missing timestamp: %s", ptrStr)
+	}
+
+	// Test value serialization
+	valJSON, err := json.Marshal(dm)
+	if err != nil {
+		t.Fatalf("json.Marshal(dm) error: %v", err)
+	}
+	valStr := string(valJSON)
+	if !strings.Contains(valStr, `"query-ip":"192.0.2.1"`) {
+		t.Errorf("value marshal missing query-ip: %s", valStr)
+	}
+	if !strings.Contains(valStr, `"response-ip":"192.0.2.2"`) {
+		t.Errorf("value marshal missing response-ip: %s", valStr)
+	}
+	if !strings.Contains(valStr, `"timestamp-rfc3339ns":"2020-09-13T12:26:40.123456789Z"`) {
+		t.Errorf("value marshal missing timestamp: %s", valStr)
 	}
 }
 

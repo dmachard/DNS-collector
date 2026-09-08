@@ -305,3 +305,37 @@ func Test_StdoutTextMode_Batching(t *testing.T) {
 		t.Fatalf("expected 5 output lines, got %d\noutput:\n%s", len(lines), output)
 	}
 }
+
+func Test_Stdout_JSON_DNSTap_Fields(t *testing.T) {
+	var stdout bytes.Buffer
+
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.Stdout.Mode = config.ModeJSON
+	g := NewStdOut(cfg, logger.New(false), "test")
+	g.SetTextWriter(&stdout)
+
+	go g.StartCollect()
+
+	dm := dnsutils.GetFakeDNSMessage()
+	dm.NetworkInfo.SetQueryIPBytes([]byte{192, 0, 2, 1})
+	dm.NetworkInfo.SetResponseIPBytes([]byte{192, 0, 2, 2})
+	dm.DNSTap.Timestamp = 1600000000123456789
+	dm.DNSTap.TimestampRFC3339 = "-"
+
+	g.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
+
+	time.Sleep(time.Second)
+	g.Stop()
+
+	contentStr := stdout.String()
+	if !strings.Contains(contentStr, `"query-ip":"192.0.2.1"`) {
+		t.Errorf("expected query-ip 192.0.2.1, got: %s", contentStr)
+	}
+	if !strings.Contains(contentStr, `"response-ip":"192.0.2.2"`) {
+		t.Errorf("expected response-ip 192.0.2.2, got: %s", contentStr)
+	}
+	if !strings.Contains(contentStr, `"timestamp-rfc3339ns":"2020-09-13T12:26:40.123456789Z"`) {
+		t.Errorf("expected RFC3339 timestamp, got: %s", contentStr)
+	}
+}
+

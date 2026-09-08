@@ -686,7 +686,9 @@ func (w *LogFile) StartLogging() {
 							buf.WriteByte('\n')
 						}
 					} else {
-						json.NewEncoder(buf).Encode(dm)
+						dm.GetTimestampRFC3339()
+						dm.EncodeJSON(buf)
+						buf.WriteByte('\n')
 					}
 
 					// send to file and return buffer to pool
