@@ -23,7 +23,7 @@ jobs:
     
     strategy:
       matrix:
-        go-version: ['1.26']
+        go-version: ['1.26', '1.27']
 
     steps:
       - uses: actions/checkout@v7
@@ -50,7 +50,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-26.04, macos-latest, windows-latest]
-        go-version: ['1.26']
+        go-version: ['1.26', '1.27']
         goos: [linux, freebsd, darwin, windows]
         exclude:
           - { os: macos-latest, goos: linux }
