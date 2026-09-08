@@ -338,4 +338,3 @@ func Test_Stdout_JSON_DNSTap_Fields(t *testing.T) {
 		t.Errorf("expected RFC3339 timestamp, got: %s", contentStr)
 	}
 }
-
