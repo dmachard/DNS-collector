@@ -117,15 +117,13 @@ func (w *DnstapProxifier) HandleConn(conn net.Conn, connID uint64, forceClose ch
 
 	// process incoming frame and send it to recv channel
 	err := fs.ProcessFrame(recvChan)
-	if err != nil {
-		if netutils.IsClosedConnectionError(err) {
-			w.LogInfo("conn #%d - connection closed with peer %s", connID, peer)
-		} else {
-			w.LogError("conn #%d - transport error: %s", connID, err)
-		}
-
-		close(cleanup)
+	if netutils.IsClosedConnectionError(err) {
+		w.LogInfo("conn #%d - connection closed with peer %s", connID, peer)
+	} else {
+		w.LogError("conn #%d - transport error: %s", connID, err)
 	}
+
+	close(cleanup)
 }
 
 func (w *DnstapProxifier) StartCollect() {
