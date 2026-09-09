@@ -121,10 +121,39 @@ func TestCompare_VersionN1(t *testing.T) {
 		t.Fatalf("failed to build prev binary (%s): %v\nOutput: %s", prevTag, err, string(out))
 	}
 
-	// 5. Generate benchmark config
+	// 5. Generate benchmark configs (supports BENCH_SCENARIO: "throughput" [default] or "backpressure")
 	listenPort := 60053
-	configPath := filepath.Join(tempDir, "config_bench.yml")
-	configContent := fmt.Sprintf(`
+	scenario := os.Getenv("BENCH_SCENARIO")
+	if scenario == "" {
+		scenario = "throughput"
+	}
+	t.Logf("Benchmark scenario: %s", scenario)
+
+	getConfigPath := func(tag string) string {
+		cfgPath := filepath.Join(tempDir, fmt.Sprintf("config_%s.yml", tag))
+		var cfgContent string
+		if scenario == "backpressure" {
+			logFilePath := filepath.Join(tempDir, fmt.Sprintf("bench_%s.log", tag))
+			cfgContent = fmt.Sprintf(`
+global:
+  trace:
+    verbose: false
+
+pipelines:
+  - name: tap
+    dnstap:
+      listen-ip: "127.0.0.1"
+      listen-port: %d
+    routing-policy:
+      forward: [ bench_logger ]
+
+  - name: bench_logger
+    logfile:
+      file-path: "%s"
+      mode: text
+`, listenPort, logFilePath)
+		} else {
+			cfgContent = fmt.Sprintf(`
 global:
   trace:
     verbose: false
@@ -140,10 +169,15 @@ pipelines:
   - name: devnull_logger
     devnull: {}
 `, listenPort)
-
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
-		t.Fatalf("failed to write bench config: %v", err)
+		}
+		if err := os.WriteFile(cfgPath, []byte(cfgContent), 0644); err != nil {
+			t.Fatalf("failed to write bench config: %v", err)
+		}
+		return cfgPath
 	}
+
+	configPrev := getConfigPath("prev")
+	configCurrent := getConfigPath("current")
 
 	// 6. Generate test payload frame
 	payloadFrame := prepareDnstapFrame(t)
@@ -158,13 +192,13 @@ pipelines:
 
 	// 7. Run Benchmark for Prev Version (N-1)
 	t.Logf("Running benchmark for Version N-1 (%s)...", prevTag)
-	statsPrev := runBenchmark(t, binPrev, configPath, listenPort, payloadFrame, numFrames, prevTag)
+	statsPrev := runBenchmark(t, binPrev, configPrev, listenPort, payloadFrame, numFrames, prevTag)
 
 	time.Sleep(1 * time.Second)
 
 	// 8. Run Benchmark for Current Version
 	t.Log("Running benchmark for Current Version...")
-	statsCurrent := runBenchmark(t, binCurrent, configPath, listenPort, payloadFrame, numFrames, "Current (Refactored)")
+	statsCurrent := runBenchmark(t, binCurrent, configCurrent, listenPort, payloadFrame, numFrames, "Current (Refactored)")
 
 	// 9. Report Results
 	t.Log("\n" + formatComparisonReport(statsPrev, statsCurrent))

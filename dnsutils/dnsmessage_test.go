@@ -3,6 +3,7 @@ package dnsutils
 import (
 	"bytes"
 	"testing"
+	"unsafe"
 )
 
 func TestDNSNetInfo_GetAndSetIPBytes(t *testing.T) {
@@ -148,5 +149,13 @@ func BenchmarkDnsMessage_Init(b *testing.B) {
 		dm := DNSMessage{}
 		dm.Init()
 		dm.InitTransforms()
+	}
+}
+
+func TestDNSMessage_Size(t *testing.T) {
+	size := unsafe.Sizeof(DNSMessage{})
+	t.Logf("Sizeof(DNSMessage): %d bytes", size)
+	if size > 1024 {
+		t.Errorf("DNSMessage struct size bloated: %d bytes (threshold: 1024)", size)
 	}
 }
