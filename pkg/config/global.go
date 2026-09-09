@@ -18,7 +18,7 @@ type GlobalTrace struct {
 
 type GlobalWorker struct {
 	InternalMonitor      int `yaml:"interval-monitor" default:"10"`
-	ChannelBufferSize    int `yaml:"buffer-size" default:"512"`
+	ChannelBufferSize    int `yaml:"buffer-size" default:"256"`
 	BatchSize            int `yaml:"batch-size" default:"64"`
 	BatchFlushIntervalMs int `yaml:"flush-interval-ms" default:"10"`
 }

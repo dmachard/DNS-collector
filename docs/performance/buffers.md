@@ -14,7 +14,7 @@ Queue size and batching parameters are configured under the `global.worker` sect
 global:
   worker:
     interval-monitor: 10     # Monitoring interval in seconds
-    buffer-size: 512         # Channel buffer capacity in batches (Default: 512)
+    buffer-size: 256         # Channel buffer capacity in batches (Default: 256)
     batch-size: 64           # Maximum messages per batch (Default: 64)
     flush-interval-ms: 10    # Maximum flush delay for partial batches (Default: 10ms)
 ```
@@ -23,10 +23,10 @@ global:
 
 ## Key Tuning Guidelines
 
-- **Retention Capacity**: Total messages buffered = `buffer-size * batch-size` (e.g., `512 * 64 = 32,768` messages).
+- **Retention Capacity**: Total messages buffered = `buffer-size * batch-size` (e.g., `256 * 64 = 16,384` messages).
 - **Batch Size Sweet Spot (`batch-size: 64`)**: Provides maximum throughput (+40% speedup vs unbatched) while keeping packet transit latency under 10ms.
 - **Buffer Size Tuning**:
-  - `buffer-size: 256` or `512`: Recommended for low-memory environments (bounds buffer RSS to ~25-40 MB).
+  - `buffer-size: 128` or `256`: Recommended for low-memory environments (bounds buffer RSS to ~15-25 MB).
   - `buffer-size: 1024` or `2048`: Recommended for high-burst environments absorbing sudden spikes of 100k+ packets.
 
 ---
