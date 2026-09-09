@@ -39,7 +39,7 @@ const (
 var (
 	PrefixLogWorker       = "worker - "
 	PrefixLogTransformer  = "transformer - "
-	DefaultBufferSize     = 512
+	DefaultBufferSize     = 256
 	DefaultBufferOne      = 1
 	DefaultBatchSize      = 64
 	DefaultFlushInterval  = 10
