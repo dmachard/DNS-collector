@@ -121,18 +121,35 @@ func TestCompare_VersionN1(t *testing.T) {
 		t.Fatalf("failed to build prev binary (%s): %v\nOutput: %s", prevTag, err, string(out))
 	}
 
-	// 5. Generate benchmark configs (supports BENCH_SCENARIO: "throughput" [default] or "backpressure")
+	// 5. Generate benchmark configs (supports BENCH_SCENARIO: "backpressure" [default] or "devnull")
 	listenPort := 60053
 	scenario := os.Getenv("BENCH_SCENARIO")
 	if scenario == "" {
-		scenario = "throughput"
+		scenario = "backpressure"
 	}
 	t.Logf("Benchmark scenario: %s", scenario)
 
 	getConfigPath := func(tag string) string {
 		cfgPath := filepath.Join(tempDir, fmt.Sprintf("config_%s.yml", tag))
 		var cfgContent string
-		if scenario == "backpressure" {
+		if scenario == "devnull" {
+			cfgContent = fmt.Sprintf(`
+global:
+  trace:
+    verbose: false
+
+pipelines:
+  - name: tap
+    dnstap:
+      listen-ip: "127.0.0.1"
+      listen-port: %d
+    routing-policy:
+      forward: [ devnull_logger ]
+
+  - name: devnull_logger
+    devnull: {}
+`, listenPort)
+		} else {
 			logFilePath := filepath.Join(tempDir, fmt.Sprintf("bench_%s.log", tag))
 			cfgContent = fmt.Sprintf(`
 global:
@@ -152,23 +169,6 @@ pipelines:
       file-path: "%s"
       mode: text
 `, listenPort, logFilePath)
-		} else {
-			cfgContent = fmt.Sprintf(`
-global:
-  trace:
-    verbose: false
-
-pipelines:
-  - name: tap
-    dnstap:
-      listen-ip: "127.0.0.1"
-      listen-port: %d
-    routing-policy:
-      forward: [ devnull_logger ]
-
-  - name: devnull_logger
-    devnull: {}
-`, listenPort)
 		}
 		if err := os.WriteFile(cfgPath, []byte(cfgContent), 0644); err != nil {
 			t.Fatalf("failed to write bench config: %v", err)
