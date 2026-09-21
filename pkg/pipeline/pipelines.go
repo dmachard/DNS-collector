@@ -43,7 +43,11 @@ func GetStanzaConfig(mainConfig *config.Config, item config.ConfigPipelines) (*c
 		if p == nil {
 			item.Params[k] = make(map[string]interface{})
 		}
-		item.Params[k].(map[string]interface{})["enable"] = true
+		if paramMap, ok := item.Params[k].(map[string]interface{}); ok {
+			if _, exists := paramMap["enable"]; !exists {
+				paramMap["enable"] = true
+			}
+		}
 
 		// ignore other keys
 		break
@@ -59,7 +63,9 @@ func GetStanzaConfig(mainConfig *config.Config, item config.ConfigPipelines) (*c
 	// add transformers
 	for k, v := range item.Transforms {
 		if transformerConfig, ok := v.(map[string]interface{}); ok {
-			transformerConfig["enable"] = true
+			if _, exists := transformerConfig["enable"]; !exists {
+				transformerConfig["enable"] = true
+			}
 			cfgMap[section+"-transformers"].(map[string]interface{})[k] = transformerConfig
 		} else {
 			cfgMap[section+"-transformers"].(map[string]interface{})[k] = v
@@ -262,7 +268,7 @@ func InitPipelines(mapLoggers map[string]workers.Worker, mapCollectors map[strin
 				routingErrs = append(routingErrs, err)
 			}
 		} else {
-			routingErrs = append(routingErrs, &StanzaNotFoundError{Name: stanza.Name})
+			logger.Info("main - stanza=[%s] is disabled, skipping routing", stanza.Name)
 		}
 	}
 

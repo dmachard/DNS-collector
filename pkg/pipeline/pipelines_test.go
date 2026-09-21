@@ -343,3 +343,109 @@ func TestPipelines_MultipleErrors_Joined(t *testing.T) {
 		t.Errorf("expected comprehensive multi-error message, got: %s", errStr)
 	}
 }
+
+func TestPipelines_Worker_EnableFalse(t *testing.T) {
+	cfg := config.GetDefaultConfig()
+	stanza := config.ConfigPipelines{
+		Name: "sniffer",
+		Params: map[string]interface{}{
+			"afpacket-sniffer": map[string]interface{}{
+				"enable": false,
+				"port":   53,
+			},
+		},
+	}
+
+	subcfg, err := GetStanzaConfig(cfg, stanza)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if subcfg.Collectors.AfpacketLiveCapture.Enable {
+		t.Errorf("expected AfpacketLiveCapture.Enable to be false, got true")
+	}
+}
+
+func TestPipelines_InitPipelines_WorkerDisabled(t *testing.T) {
+	cfg := config.GetDefaultConfig()
+	cfg.Pipelines = []config.ConfigPipelines{
+		{
+			Name: "dnstap",
+			Params: map[string]interface{}{
+				"dnstap": map[string]interface{}{
+					"enable": true,
+				},
+			},
+			RoutingPolicy: config.PipelinesRouting{
+				Forward: []string{"console"},
+			},
+		},
+		{
+			Name: "sniffer",
+			Params: map[string]interface{}{
+				"afpacket-sniffer": map[string]interface{}{
+					"enable": false,
+				},
+			},
+			RoutingPolicy: config.PipelinesRouting{
+				Forward: []string{"console"},
+			},
+		},
+		{
+			Name: "console",
+			Params: map[string]interface{}{
+				"stdout": map[string]interface{}{
+					"mode": "json",
+				},
+			},
+		},
+	}
+
+	mapLoggers := make(map[string]workers.Worker)
+	mapCollectors := make(map[string]workers.Worker)
+	metrics := telemetry.NewPrometheusCollector(cfg)
+
+	err := InitPipelines(mapLoggers, mapCollectors, cfg, logger.New(false), metrics)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if _, ok := mapCollectors["sniffer"]; ok {
+		t.Errorf("disabled worker 'sniffer' should not be instantiated in mapCollectors")
+	}
+	if _, ok := mapCollectors["dnstap"]; !ok {
+		t.Errorf("enabled worker 'dnstap' should be instantiated in mapCollectors")
+	}
+	if _, ok := mapLoggers["console"]; !ok {
+		t.Errorf("enabled worker 'console' should be instantiated in mapLoggers")
+	}
+}
+
+func TestPipelines_Transforms_EnableFalse(t *testing.T) {
+	cfg := config.GetDefaultConfig()
+	stanza := config.ConfigPipelines{
+		Name: "tap",
+		Params: map[string]interface{}{
+			"dnstap": map[string]interface{}{
+				"listen-ip":   "127.0.0.1",
+				"listen-port": 6000,
+			},
+		},
+		Transforms: map[string]interface{}{
+			"normalize": map[string]interface{}{
+				"enable":          false,
+				"qname-lowercase": true,
+			},
+		},
+	}
+
+	subcfg, err := GetStanzaConfig(cfg, stanza)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if subcfg.IngoingTransformers.Normalize.Enable {
+		t.Errorf("expected Normalize.Enable to be false, got true")
+	}
+}
+
