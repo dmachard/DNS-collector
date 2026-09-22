@@ -35,6 +35,7 @@ func TestTelemetry_PrometheusCollectorUpdateStats(t *testing.T) {
 	cfg := config.Config{}
 
 	collector := NewPrometheusCollector(&cfg)
+	defer collector.Stop()
 
 	// Create a sample WorkerStats
 	ws := WorkerStats{
@@ -48,13 +49,15 @@ func TestTelemetry_PrometheusCollectorUpdateStats(t *testing.T) {
 	collector.Record <- ws
 
 	// Verify that the stats were updated
-	storedWS, ok := collector.GetWorkerStats("worker1")
-	assert.True(t, ok, "Worker stats should be present in the collector")
-	assert.Equal(t, ws.TotalIngress, storedWS.TotalIngress)
-	assert.Equal(t, ws.TotalEgress, storedWS.TotalEgress)
-	assert.Equal(t, ws.TotalForwardedPolicy, storedWS.TotalForwardedPolicy)
-	assert.Equal(t, ws.TotalDroppedPolicy, storedWS.TotalDroppedPolicy)
-	assert.Equal(t, ws.TotalDiscarded, storedWS.TotalDiscarded)
+	assert.Eventually(t, func() bool {
+		storedWS, ok := collector.GetWorkerStats("worker1")
+		return ok &&
+			storedWS.TotalIngress == ws.TotalIngress &&
+			storedWS.TotalEgress == ws.TotalEgress &&
+			storedWS.TotalForwardedPolicy == ws.TotalForwardedPolicy &&
+			storedWS.TotalDroppedPolicy == ws.TotalDroppedPolicy &&
+			storedWS.TotalDiscarded == ws.TotalDiscarded
+	}, 2*time.Second, 10*time.Millisecond, "Worker stats should be present in the collector")
 }
 
 func TestTelemetry_InitTelemetryServer_UnixSocket(t *testing.T) {
