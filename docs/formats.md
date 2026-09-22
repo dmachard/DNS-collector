@@ -29,6 +29,7 @@ Highly customizable text output using field directives:
 | | `rd` | Recursion Desired flag |
 | | `ra` | Recursion Available flag |
 | | `ad` | Authenticated Data flag |
+| | `cd` | Checking Disabled flag |
 | **DNS Information** | `operation` | DNStap operation (e.g. `CLIENT_QUERY`, `CLIENT_RESPONSE`) |
 | | `rcode` | DNS response code (e.g. `NOERROR`, `NXDOMAIN`) |
 | | `rdatatype` | DNS response type (A, AAAA, TXT, etc.) |
@@ -42,6 +43,10 @@ Highly customizable text output using field directives:
 | | `answer-ip` | First A/AAAA answer |
 | | `answer-ips` | All A/AAAA answers (comma-separated) |
 | | `ttl` | Answer Time-To-Live (TTL) |
+| **EDNS** | `edns-dnssec-ok` / `edns-do` / `do` | DNSSEC OK (DO) flag |
+| | `edns-udp-size` | Advertised UDP payload buffer size |
+| | `edns-version` | EDNS version |
+| | `edns-rcode` | EDNS extended RCODE |
 | | `edns-csubnet` | EDNS Client Subnet (ECS) |
 
 #### Text Format Examples

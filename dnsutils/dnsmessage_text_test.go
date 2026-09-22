@@ -210,9 +210,14 @@ func TestDnsMessage_TextFormat_DefaultDirectives(t *testing.T) {
 			expected: "RD",
 		},
 		{
-			format:   "tc aa ra ad rd",
-			dm:       DNSMessage{DNS: DNS{Flags: DNSFlags{TC: false, AA: false, RA: false, AD: false, RD: false}}},
-			expected: "- - - - -",
+			format:   "tc aa ra ad rd cd",
+			dm:       DNSMessage{DNS: DNS{Flags: DNSFlags{TC: false, AA: false, RA: false, AD: false, RD: false, CD: false}}},
+			expected: "- - - - - -",
+		},
+		{
+			format:   "cd",
+			dm:       DNSMessage{DNS: DNS{Flags: DNSFlags{CD: true}}},
+			expected: "CD",
 		},
 		{
 			format:   "df tr",
@@ -368,6 +373,59 @@ func TestDnsMessage_TextFormat_DefaultDirectives(t *testing.T) {
 			format:   "http-protocol",
 			dm:       DNSMessage{DNSTap: DNSTap{HttpProtocol: "HTTP3"}},
 			expected: "HTTP3",
+		},
+		{
+			format: "edns-dnssec-ok edns-do do edns-udp-size edns-version edns-rcode",
+			dm: DNSMessage{
+				EDNS: DNSExtended{
+					Do:            1,
+					UDPSize:       4096,
+					Version:       0,
+					ExtendedRcode: 0,
+				},
+			},
+			expected: "DO DO DO 4096 0 -",
+		},
+		{
+			format: "edns-dnssec-ok edns-do do edns-udp-size edns-version edns-rcode",
+			dm: DNSMessage{
+				EDNS: DNSExtended{
+					Do:            0,
+					UDPSize:       0,
+					Version:       0,
+					ExtendedRcode: 0,
+				},
+			},
+			expected: "- - - - - -",
+		},
+		{
+			format: "edns-rcode",
+			dm: DNSMessage{
+				EDNS: DNSExtended{
+					UDPSize:       1232,
+					ExtendedRcode: 16,
+				},
+			},
+			expected: "16",
+		},
+		{
+			format: "edns-csubnet",
+			dm: DNSMessage{
+				EDNS: DNSExtended{
+					Options: []DNSOption{
+						{
+							Name: "CSUBNET",
+							Data: "192.0.2.0/24",
+						},
+					},
+				},
+			},
+			expected: "192.0.2.0/24",
+		},
+		{
+			format:   "edns-csubnet",
+			dm:       DNSMessage{},
+			expected: "-",
 		},
 	}
 

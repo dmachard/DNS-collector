@@ -368,6 +368,16 @@ func compileDirective(directive string, fieldDelimiter string, fieldBoundary str
 			return nil
 		}, nil
 
+	case "cd":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			if dm.DNS.Flags.CD {
+				s.WriteString("CD")
+			} else {
+				s.WriteByte('-')
+			}
+			return nil
+		}, nil
+
 	case "ttl":
 		return func(dm *DNSMessage, s *bytes.Buffer) error {
 			if len(dm.DNS.DNSRRs.Answers) > 0 {
@@ -503,6 +513,49 @@ func compileDirective(directive string, fieldDelimiter string, fieldBoundary str
 				}
 			}
 			s.WriteByte('-')
+			return nil
+		}, nil
+
+	case "edns-dnssec-ok", "edns-do", "do":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			if dm.EDNS.Do == 1 {
+				s.WriteString("DO")
+			} else {
+				s.WriteByte('-')
+			}
+			return nil
+		}, nil
+
+	case "edns-udp-size":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			if dm.EDNS.UDPSize > 0 {
+				var b [32]byte
+				s.Write(strconv.AppendInt(b[:0], int64(dm.EDNS.UDPSize), 10))
+			} else {
+				s.WriteByte('-')
+			}
+			return nil
+		}, nil
+
+	case "edns-version":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			if dm.EDNS.UDPSize > 0 {
+				var b [32]byte
+				s.Write(strconv.AppendInt(b[:0], int64(dm.EDNS.Version), 10))
+			} else {
+				s.WriteByte('-')
+			}
+			return nil
+		}, nil
+
+	case "edns-rcode":
+		return func(dm *DNSMessage, s *bytes.Buffer) error {
+			if dm.EDNS.ExtendedRcode > 0 {
+				var b [32]byte
+				s.Write(strconv.AppendInt(b[:0], int64(dm.EDNS.ExtendedRcode), 10))
+			} else {
+				s.WriteByte('-')
+			}
 			return nil
 		}, nil
 	}
