@@ -448,4 +448,3 @@ func TestPipelines_Transforms_EnableFalse(t *testing.T) {
 		t.Errorf("expected Normalize.Enable to be false, got true")
 	}
 }
-
