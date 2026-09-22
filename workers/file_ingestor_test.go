@@ -249,6 +249,18 @@ func Test_FileIngestor_PartialRead_NoDuplicate(t *testing.T) {
 		t.Fatal("timeout waiting for packet1")
 	}
 
+	// Ensure initial read finished before rewriting
+	for i := 0; i < 200; i++ {
+		c.mu.Lock()
+		st, ok := c.fileStates[pcapPath]
+		inProg := ok && st.inProgress
+		c.mu.Unlock()
+		if !inProg {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
 	// 2. Rewrite/complete PCAP with packet1 and packet2 (clean file)
 	createPcapWithPackets(t, pcapPath, []string{"packet1.example.com", "packet2.example.com"}, false)
 
