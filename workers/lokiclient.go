@@ -72,6 +72,23 @@ type LokiClient struct {
 	textFormat    []string
 	textFormatter *dnsutils.TextFormatter
 	streams       map[string]*LokiStream
+
+	// Relabelling reads a handful of message fields, but a flattened message has
+	// about a hundred. relabelWanted holds the internal label names the rules
+	// read (their source labels); only those are built per message, unless a
+	// rule needs every label (labelmap), then relabelAll is set.
+	relabelAll    bool
+	relabelWanted map[string]struct{}
+	// flattened key -> internal label name ("dns.qname" -> "__dns_qname")
+	relabelNames map[string]string
+}
+
+// relabelNamesMax bounds the flattened-key cache: keys that carry an index
+// (one per resource record) are not cached past it.
+const relabelNamesMax = 4096
+
+func relabelLabelName(key string) string {
+	return "__" + strings.ReplaceAll(strings.ReplaceAll(key, ".", "_"), "-", "_")
 }
 
 func NewLokiClient(cfg *config.Config, logger *logger.Logger, name string) *LokiClient {
@@ -83,6 +100,7 @@ func NewLokiClient(cfg *config.Config, logger *logger.Logger, name string) *Loki
 }
 
 func (w *LokiClient) ReadConfig() {
+	w.readRelabelConfig()
 	if len(w.GetConfig().Loggers.LokiClient.TextFormat) > 0 {
 		w.textFormat = strings.Fields(w.GetConfig().Loggers.LokiClient.TextFormat)
 	} else {
@@ -135,6 +153,51 @@ func (w *LokiClient) ReadConfig() {
 		}
 		w.GetConfig().Loggers.LokiClient.BasicAuthPwd = string(content)
 	}
+}
+
+// readRelabelConfig works out which labels the relabel rules read, and sets
+// the rules' name validation scheme once instead of on every message.
+func (w *LokiClient) readRelabelConfig() {
+	w.relabelAll = false
+	w.relabelWanted = make(map[string]struct{})
+	w.relabelNames = make(map[string]string)
+	for _, rc := range w.GetConfig().Loggers.LokiClient.RelabelConfigs {
+		// to support prometheus > 3.0.7
+		if rc.NameValidationScheme == model.UnsetValidation {
+			rc.NameValidationScheme = model.LegacyValidation
+		}
+		switch rc.Action {
+		case relabel.LabelMap:
+			// maps every label whose name matches: needs them all
+			w.relabelAll = true
+		case relabel.KeepEqual, relabel.DropEqual:
+			// compares the source value with the target label's value
+			w.relabelWanted[rc.TargetLabel] = struct{}{}
+		}
+		for _, l := range rc.SourceLabels {
+			w.relabelWanted[string(l)] = struct{}{}
+		}
+	}
+}
+
+// relabelInput returns the internal labels the relabel rules can read from dm.
+func (w *LokiClient) relabelInput(flat map[string]interface{}, finalSet []labels.Label) []labels.Label {
+	for k, v := range flat {
+		name, ok := w.relabelNames[k]
+		if !ok {
+			name = relabelLabelName(k)
+			if len(w.relabelNames) < relabelNamesMax {
+				w.relabelNames[k] = name
+			}
+		}
+		if !w.relabelAll {
+			if _, wanted := w.relabelWanted[name]; !wanted {
+				continue
+			}
+		}
+		finalSet = append(finalSet, labels.Label{Name: name, Value: fmt.Sprint(v)})
+	}
+	return finalSet
 }
 
 func (w *LokiClient) StartCollect() {
@@ -237,25 +300,13 @@ func (w *LokiClient) StartLogging() {
 						w.CountEgressDiscarded()
 						continue
 					}
-					for k, v := range flat {
-						cleanKey := strings.ReplaceAll(strings.ReplaceAll(k, ".", "_"), "-", "_")
-						key := fmt.Sprintf("__%s", cleanKey)
-						finalSet = append(finalSet, labels.Label{Name: key, Value: fmt.Sprint(v)})
-					}
+					finalSet = w.relabelInput(flat, finalSet)
 
 					// Apply relabeling
 					ls := labels.New(finalSet...)
 					sb := labels.NewBuilder(ls)
 
-					// to support prometheus > 3.0.7
-					configs := w.GetConfig().Loggers.LokiClient.RelabelConfigs
-					for _, cfg := range configs {
-						if cfg.NameValidationScheme == 0 {
-							cfg.NameValidationScheme = model.LegacyValidation
-						}
-					}
-
-					keep := relabel.ProcessBuilder(sb, configs...)
+					keep := relabel.ProcessBuilder(sb, w.GetConfig().Loggers.LokiClient.RelabelConfigs...)
 					if !keep {
 						w.LogInfo("dropping %v because of relabel config", dm)
 						w.CountEgressDiscarded()

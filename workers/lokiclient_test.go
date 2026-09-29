@@ -7,6 +7,8 @@ import (
 	"net"
 	"net/http"
 	"regexp"
+	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -143,6 +145,40 @@ func Test_LokiClientRelabel(t *testing.T) {
 			},
 			labelsPattern: "{identity=\"test_id\"}",
 		},
+		{
+			name: "labelmap reads every internal label",
+			relabelConfig: []*relabel.Config{
+				{
+					Action:      relabel.LabelMap,
+					Regex:       relabel.MustNewRegexp("__dns_(rcode)"),
+					Replacement: "$1",
+				},
+			},
+			labelsPattern: "{identity=\"test_id\", job=\"dnscollector\", rcode=\"NOERROR\"}",
+		},
+		{
+			name: "keepequal reads its target label",
+			relabelConfig: []*relabel.Config{
+				{
+					Action:      relabel.Replace,
+					Regex:       relabel.MustNewRegexp("(.*)"),
+					Replacement: "NOERROR",
+					TargetLabel: "__want",
+				},
+				{
+					Action:       relabel.KeepEqual,
+					SourceLabels: model.LabelNames{"__want"},
+					TargetLabel:  "__dns_rcode",
+				},
+				{
+					Action:      relabel.Replace,
+					Regex:       relabel.MustNewRegexp("(.*)"),
+					Replacement: "kept",
+					TargetLabel: "status",
+				},
+			},
+			labelsPattern: "{identity=\"test_id\", job=\"dnscollector\", status=\"kept\"}",
+		},
 	}
 
 	// fake msgpack receiver
@@ -171,7 +207,8 @@ func Test_LokiClientRelabel(t *testing.T) {
 				dm.DNSTap.Identity = dnsutils.DNSTapIdentityTest
 				g.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
 
-				// accept conn
+				// accept conn; a message the relabel rules dropped never arrives
+				_ = fakeRcvr.(*net.TCPListener).SetDeadline(time.Now().Add(5 * time.Second))
 				conn, err := fakeRcvr.Accept()
 				if err != nil {
 					t.Fatal(err)
@@ -204,5 +241,72 @@ func Test_LokiClientRelabel(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func Test_LokiClientRelabelInput(t *testing.T) {
+	flat := map[string]interface{}{
+		"dns.qname":             "dns.collector",
+		"dns.rcode":             "NOERROR",
+		"dnstap.identity":       "test_id",
+		"network-info.query-ip": "1.2.3.4",
+	}
+
+	testcases := []struct {
+		name   string
+		rules  []*relabel.Config
+		expect []string
+	}{
+		{
+			name: "only the source labels are built",
+			rules: []*relabel.Config{
+				{Action: relabel.Replace, Regex: relabel.MustNewRegexp("(.*)"), Replacement: "$1",
+					SourceLabels: model.LabelNames{"__dns_qname"}, TargetLabel: "qname"},
+				{Action: relabel.Keep, Regex: relabel.MustNewRegexp("1.*"),
+					SourceLabels: model.LabelNames{"__network_info_query_ip"}},
+			},
+			expect: []string{"__dns_qname", "__network_info_query_ip"},
+		},
+		{
+			name: "keepequal target is built",
+			rules: []*relabel.Config{
+				{Action: relabel.KeepEqual, SourceLabels: model.LabelNames{"__dns_qname"}, TargetLabel: "__dns_rcode"},
+			},
+			expect: []string{"__dns_qname", "__dns_rcode"},
+		},
+		{
+			name: "labelmap builds everything",
+			rules: []*relabel.Config{
+				{Action: relabel.LabelMap, Regex: relabel.MustNewRegexp("__dns_(.*)"), Replacement: "$1"},
+			},
+			expect: []string{"__dns_qname", "__dns_rcode", "__dnstap_identity", "__network_info_query_ip"},
+		},
+		{
+			name:   "no source labels builds nothing",
+			rules:  []*relabel.Config{{Action: relabel.LabelDrop, Regex: relabel.MustNewRegexp("job")}},
+			expect: []string{},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := config.GetDefaultConfig()
+			cfg.Loggers.LokiClient.RelabelConfigs = tc.rules
+			g := NewLokiClient(cfg, logger.New(false), "test")
+
+			got := []string{}
+			for _, l := range g.relabelInput(flat, nil) {
+				got = append(got, l.Name)
+			}
+			sort.Strings(got)
+			if strings.Join(got, ",") != strings.Join(tc.expect, ",") {
+				t.Errorf("want %v, got %v", tc.expect, got)
+			}
+			for _, rc := range tc.rules {
+				if rc.NameValidationScheme != model.LegacyValidation {
+					t.Errorf("validation scheme not set on %v", rc.Action)
+				}
+			}
+		})
 	}
 }
