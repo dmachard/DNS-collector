@@ -4,13 +4,50 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-dnscollector/v3/pkg/telemetry"
 	"github.com/dmachard/go-dnscollector/v3/workers"
 	"github.com/dmachard/go-logger"
 	"github.com/go-viper/mapstructure/v2"
+	"github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/model/relabel"
+	"gopkg.in/yaml.v3"
 )
+
+// relabelConfigHook decodes a Prometheus relabel.Config through its own YAML
+// unmarshaller. mapstructure cannot build a relabel.Regexp from a string, and
+// it never calls relabel.Config.UnmarshalYAML, so without this hook every rule
+// with a `regex` is refused and rules that rely on the defaults (action
+// "replace", regex "(.*)", replacement "$1", separator ";") get zero values.
+// The decoded rule is validated so a bad rule fails at config load.
+func relabelConfigHook() mapstructure.DecodeHookFuncType {
+	cfgType := reflect.TypeOf(relabel.Config{})
+	return func(from reflect.Type, to reflect.Type, data interface{}) (interface{}, error) {
+		if to != cfgType && to != reflect.PointerTo(cfgType) {
+			return data, nil
+		}
+		if from.Kind() != reflect.Map {
+			return data, nil
+		}
+		raw, err := yaml.Marshal(data)
+		if err != nil {
+			return nil, err
+		}
+		cfg := &relabel.Config{}
+		if err := yaml.Unmarshal(raw, cfg); err != nil {
+			return nil, err
+		}
+		if err := cfg.Validate(model.LegacyValidation); err != nil {
+			return nil, err
+		}
+		if to == cfgType {
+			return *cfg, nil
+		}
+		return cfg, nil
+	}
+}
 
 func registerWorker(m map[string]workers.Worker, name string, enabled bool, factory func() workers.Worker, metrics *telemetry.PrometheusCollector) {
 	if !enabled {
@@ -80,6 +117,7 @@ func GetStanzaConfig(mainConfig *config.Config, item config.ConfigPipelines) (*c
 		WeaklyTypedInput: true,
 		Result:           subcfg,
 		ZeroFields:       false,
+		DecodeHook:       relabelConfigHook(),
 	})
 	if err != nil {
 		return nil, &YAMLConfigError{
