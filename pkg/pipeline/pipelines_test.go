@@ -11,6 +11,7 @@ import (
 	"github.com/dmachard/go-dnscollector/v3/pkg/telemetry"
 	"github.com/dmachard/go-dnscollector/v3/workers"
 	"github.com/dmachard/go-logger"
+	"github.com/prometheus/prometheus/model/relabel"
 )
 
 func TestPipelines_IsEnabled(t *testing.T) {
@@ -446,5 +447,64 @@ func TestPipelines_Transforms_EnableFalse(t *testing.T) {
 
 	if subcfg.IngoingTransformers.Normalize.Enable {
 		t.Errorf("expected Normalize.Enable to be false, got true")
+	}
+}
+
+func TestPipelines_GetStanzaConfig_LokiRelabelConfigs(t *testing.T) {
+	cfg := config.GetDefaultConfig()
+	stanza := config.ConfigPipelines{
+		Name: "loki",
+		Params: map[string]interface{}{
+			"lokiclient": map[string]interface{}{
+				"server-url": "http://127.0.0.1:3100/loki/api/v1/push",
+				"relabel-configs": []interface{}{
+					// a regex, as a string
+					map[string]interface{}{"source_labels": []interface{}{"__dnstap_extra"}, "regex": `\{.*`, "action": "keep"},
+					// defaults only: action replace, regex (.*), replacement $1
+					map[string]interface{}{"source_labels": []interface{}{"identity"}, "target_label": "host"},
+					map[string]interface{}{"regex": "identity", "action": "labeldrop"},
+				},
+			},
+		},
+	}
+
+	subcfg, err := GetStanzaConfig(cfg, stanza)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	rcs := subcfg.Loggers.LokiClient.RelabelConfigs
+	if len(rcs) != 3 {
+		t.Fatalf("expected 3 relabel configs, got %d", len(rcs))
+	}
+	if rcs[0].Action != relabel.Keep || !rcs[0].Regex.MatchString(`{"a":1}`) || rcs[0].Regex.MatchString("-") {
+		t.Errorf("keep rule decoded wrong: %+v", rcs[0])
+	}
+	if rcs[1].Action != relabel.Replace || rcs[1].Replacement != "$1" || rcs[1].Separator != ";" || rcs[1].Regex.String() != "(.*)" {
+		t.Errorf("defaults not applied: %+v", rcs[1])
+	}
+	if rcs[2].Action != relabel.LabelDrop || !rcs[2].Regex.MatchString("identity") {
+		t.Errorf("labeldrop rule decoded wrong: %+v", rcs[2])
+	}
+}
+
+func TestPipelines_GetStanzaConfig_LokiRelabelConfigsInvalid(t *testing.T) {
+	cfg := config.GetDefaultConfig()
+	for name, rc := range map[string]map[string]interface{}{
+		"hashmod without modulus": {"source_labels": []interface{}{"__dns_qname"}, "target_label": "__shard", "action": "hashmod"},
+		"bad regex":               {"source_labels": []interface{}{"__dns_qname"}, "regex": "(", "action": "keep"},
+		"unknown action":          {"action": "nope"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			stanza := config.ConfigPipelines{
+				Name: "loki",
+				Params: map[string]interface{}{
+					"lokiclient": map[string]interface{}{"relabel-configs": []interface{}{rc}},
+				},
+			}
+			if _, err := GetStanzaConfig(cfg, stanza); err == nil {
+				t.Errorf("expected an error for %s", name)
+			}
+		})
 	}
 }
