@@ -20,6 +20,12 @@ go run .
 make
 ```
 
+> **Note**: Experimental features (e.g. OpenTelemetry logger) are excluded by default. To compile with them:
+> ```bash
+> make build-experimental
+> # or: go build -tags experimental dnscollector.go
+> ```
+
 Execute the binary
 
 ```bash

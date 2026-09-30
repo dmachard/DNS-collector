@@ -9,16 +9,18 @@ import (
 
 func TestRegistry_LoggersCount(t *testing.T) {
 	loggers := GetRegisteredLoggers()
-	if len(loggers) < 22 {
-		t.Errorf("expected at least 22 registered loggers, got %d", len(loggers))
-	}
 
 	expectedLoggers := []string{
 		"restapi", "prometheus", "stdout", "logfile", "dnstap",
 		"tcpclient", "syslog", "fluentd", "influxdb", "lokiclient",
 		"statsd", "nsq", "elasticsearch", "scalyr", "redispub",
 		"kafkaproducer", "falco", "clickhouse", "devnull",
-		"opentelemetry", "mqtt", "webhook",
+		"mqtt", "webhook",
+	}
+
+	minExpected := len(expectedLoggers)
+	if len(loggers) < minExpected {
+		t.Errorf("expected at least %d registered loggers, got %d", minExpected, len(loggers))
 	}
 
 	for _, name := range expectedLoggers {

@@ -28,7 +28,7 @@ ifndef $(GOPATH)
 	export GOPATH
 endif
 
-.PHONY: all check-go dep lint build clean goversion stats docs-serve count-tests
+.PHONY: all check-go dep lint build build-experimental clean goversion stats docs-serve count-tests
 
 # This target depends on dep and build.
 all: check-go dep build
@@ -63,9 +63,15 @@ dep: goversion
 	@go mod edit -go=$(GO_VERSION)
 	@go mod tidy
 
+GO_TAGS ?=
+
 # Builds the project using go build.
 build: check-go
-	CGO_ENABLED=0 go build -v -ldflags="$(LD_FLAGS)" -o ${BINARY_NAME} dnscollector.go
+	CGO_ENABLED=0 go build -v -tags="$(GO_TAGS)" -ldflags="$(LD_FLAGS)" -o ${BINARY_NAME} dnscollector.go
+
+# Builds the project with all experimental components enabled.
+build-experimental: check-go
+	CGO_ENABLED=0 go build -v -tags="experimental $(GO_TAGS)" -ldflags="$(LD_FLAGS)" -o ${BINARY_NAME} dnscollector.go
 
 # Builds and runs the project.
 run: build
