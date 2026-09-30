@@ -8,6 +8,8 @@ Precompiled binaries for Linux, macOS, and Windows are available on the GitHub R
 
 👉 **[Download latest DNS-collector release](https://github.com/dmachard/DNS-collector/releases/latest)**
 
+> **Important**: Official precompiled binaries only include stable and production-ready features. Experimental components (such as OpenTelemetry) are **not included** in official release binaries and must be compiled from source with the `experimental` tag.
+
 ### Quick Run (Linux/macOS)
 
 1. Download the binary for your architecture.
@@ -53,3 +55,16 @@ make build
 ```
 
 This will produce the `dnscollector` executable in the root directory.
+
+> **Note**: Experimental components (such as the OpenTelemetry logger) are **not included by default** to keep the binary lightweight and stable.
+
+### Build with Experimental Components
+To build with all experimental components included:
+```bash
+make build-experimental
+```
+
+Or using `go build` directly:
+```bash
+go build -tags experimental dnscollector.go
+```

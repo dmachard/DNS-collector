@@ -1,0 +1,54 @@
+name: Go Tests (Experimental)
+
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+      - 'README.md'
+    branches:
+      - main
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - 'README.md'
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build_experimental:
+    runs-on: ubuntu-26.04
+    strategy:
+      matrix:
+        go-version: ['1.26', '1.27']
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure environment to avoid toolchain installs
+        shell: bash
+        run: echo "GOTOOLCHAIN=local" >> "$GITHUB_ENV"
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "${{ matrix.go-version }}"
+      - name: Build Binary with Experimental Tag
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags experimental -ldflags="-s -w" -o dnscollector-experimental dnscollector.go
+
+  test_experimental:
+    runs-on: ubuntu-26.04
+    strategy:
+      matrix:
+        go-version: ['1.26', '1.27']
+        package:
+          - 'workers'
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure environment to avoid toolchain installs
+        shell: bash
+        run: echo "GOTOOLCHAIN=local" >> "$GITHUB_ENV"
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "${{ matrix.go-version }}"
+      - name: Test ${{ matrix.package }} with experimental tag
+        run: go test -tags experimental -timeout 360s -race -cover -v ./${{ matrix.package }}/

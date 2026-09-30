@@ -14,7 +14,7 @@ High-performance live traffic capture directly from network interfaces.
 | Collector | Status | Capabilities |
 |-----------|--------|--------------|
 | [AF_PACKET Sniffer](collectors/collector_afpacket.md) | Production ready | • Live packet capture using AF_PACKET sockets<br/>• Zero-copy ring buffers<br/>• BPF (Berkeley Packet Filter) support |
-| [XDP Sniffer](collectors/collector_xdp.md) | Experimental | • High-performance live packet capture using eBPF/XDP (eXpress Data Path)<br/>• Kernel-level packet filtering<br/>• Minimum CPU overhead |
+| [XDP Sniffer](collectors/collector_xdp.md) | Beta support | • High-performance live packet capture using eBPF/XDP (eXpress Data Path)<br/>• Kernel-level packet filtering<br/>• Minimum CPU overhead |
 
 ### Network Streaming
 Integration with DNS servers using network-based streaming protocols.
