@@ -100,6 +100,7 @@ func TestTelemetry_InitTelemetryServer_UnixSocket(t *testing.T) {
 
 	client := &http.Client{
 		Transport: &http.Transport{
+			DisableKeepAlives: true,
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 				var d net.Dialer
 				return d.DialContext(ctx, "unix", sockPath)
@@ -140,8 +141,11 @@ func TestTelemetry_InitTelemetryServer_UnixSocket(t *testing.T) {
 	}
 	assert.Equal(t, os.FileMode(0660), fi.Mode().Perm())
 
+	// close idle connections so Shutdown doesn't block waiting on them
+	client.CloseIdleConnections()
+
 	// graceful shutdown removes the socket file
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := promServer.Shutdown(ctx); err != nil {
 		t.Fatalf("shutdown failed: %v", err)
