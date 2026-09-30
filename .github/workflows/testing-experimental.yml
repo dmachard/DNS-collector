@@ -51,4 +51,4 @@ jobs:
         with:
           go-version: "${{ matrix.go-version }}"
       - name: Test experimental components in ${{ matrix.package }}
-        run: go test -tags experimental -timeout 360s -race -v -run '^(TestOpenTelemetry)$' ./${{ matrix.package }}/
+        run: go test -tags experimental -timeout 360s -race -v -run '^TestOpenTelemetry' ./${{ matrix.package }}/

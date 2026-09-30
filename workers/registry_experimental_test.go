@@ -4,7 +4,7 @@ package workers
 
 import "testing"
 
-func TestRegistry_OpenTelemetryRegistered(t *testing.T) {
+func TestOpenTelemetry_RegistryRegistered(t *testing.T) {
 	loggers := GetRegisteredLoggers()
 	reg, exists := loggers["opentelemetry"]
 	if !exists {
