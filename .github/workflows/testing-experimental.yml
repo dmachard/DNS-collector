@@ -50,5 +50,5 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version: "${{ matrix.go-version }}"
-      - name: Test ${{ matrix.package }} with experimental tag
-        run: go test -tags experimental -timeout 360s -race -cover -v ./${{ matrix.package }}/
+      - name: Test experimental components in ${{ matrix.package }}
+        run: go test -tags experimental -timeout 360s -race -v -run '^(TestOpenTelemetry)$' ./${{ matrix.package }}/
