@@ -232,6 +232,7 @@ type TransformSuspicious struct {
 	UnallowedChars        bool    `json:"unallowed-chars"`
 	UncommonQtypes        bool    `json:"uncommon-qtypes"`
 	ExcessiveNumberLabels bool    `json:"excessive-number-labels"`
+	HighEntropy           bool    `json:"high-entropy"`
 	Domain                string  `json:"domain,omitempty"`
 }
 

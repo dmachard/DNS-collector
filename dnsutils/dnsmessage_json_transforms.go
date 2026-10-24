@@ -77,6 +77,12 @@ func (t *TransformSuspicious) EncodeJSON(buf *bytes.Buffer) {
 	} else {
 		buf.WriteString("false")
 	}
+	buf.WriteString(`,"high-entropy":`)
+	if t.HighEntropy {
+		buf.WriteString("true")
+	} else {
+		buf.WriteString("false")
+	}
 	if len(t.Domain) > 0 {
 		buf.WriteString(`,"domain":`)
 		WriteJSONString(buf, t.Domain)

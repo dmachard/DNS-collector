@@ -1,7 +1,6 @@
 package transformers
 
 import (
-	"math"
 	"strings"
 	"unicode"
 
@@ -51,25 +50,7 @@ func (t *MlTransform) addFeatures(dm *dnsutils.DNSMessage) (int, error) {
 		n = 1
 	}
 
-	// count number of unique chars
-	uniq := make(map[rune]int)
-	for _, c := range dm.DNS.Qname {
-		uniq[c]++
-	}
-
-	// calculate the probability of occurrence for each unique character.
-	probs := make(map[rune]float64)
-	for char, count := range uniq {
-		probs[char] = float64(count) / n
-	}
-
-	// calculate the entropy
-	var entropy float64
-	for _, prob := range probs {
-		if prob > 0 {
-			entropy -= prob * math.Log2(prob)
-		}
-	}
+	entropy := calcEntropy(dm.DNS.Qname)
 
 	// count digit
 	countDigits := 0

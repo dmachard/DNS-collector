@@ -202,6 +202,7 @@ func TestDnsMessage_JsonFlatten_Transforms_Reference(t *testing.T) {
 				UnallowedChars:        true,
 				UncommonQtypes:        false,
 				ExcessiveNumberLabels: true,
+				HighEntropy:           false,
 				Domain:                "gogle.co",
 			}},
 			jsonRef: `{
@@ -213,6 +214,7 @@ func TestDnsMessage_JsonFlatten_Transforms_Reference(t *testing.T) {
 						"suspicious.unallowed-chars": true,
 						"suspicious.uncommon-qtypes": false,
 						"suspicious.excessive-number-labels": true,
+						"suspicious.high-entropy": false,
 						"suspicious.domain": "gogle.co"
 					  }`,
 		},

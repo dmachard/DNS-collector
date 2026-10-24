@@ -1,6 +1,7 @@
 package transformers
 
 import (
+	"math"
 	"regexp"
 	"strings"
 
@@ -106,5 +107,49 @@ func (t *SuspiciousTransform) checkIfSuspicious(dm *dnsutils.DNSMessage) (int, e
 		}
 	}
 
+	// high entropy domain name or label ?
+	if t.config.ThresholdEntropy > 0 {
+		qname := strings.TrimSuffix(dm.DNS.Qname, ".")
+		if len(qname) >= 8 && calcEntropy(qname) > t.config.ThresholdEntropy {
+			dm.Suspicious.Score += 1.0
+			dm.Suspicious.HighEntropy = true
+		} else {
+			start := 0
+			for i := 0; i <= len(qname); i++ {
+				if i == len(qname) || qname[i] == '.' {
+					if i-start >= 8 && calcEntropy(qname[start:i]) > t.config.ThresholdEntropy {
+						dm.Suspicious.Score += 1.0
+						dm.Suspicious.HighEntropy = true
+						break
+					}
+					start = i + 1
+				}
+			}
+		}
+	}
+
 	return ReturnKeep, nil
+}
+
+func calcEntropy(s string) float64 {
+	if len(s) == 0 {
+		return 0.0
+	}
+	var freq [256]int
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c >= 'A' && c <= 'Z' {
+			c += 'a' - 'A'
+		}
+		freq[c]++
+	}
+	var entropy float64
+	invLen := 1.0 / float64(len(s))
+	for _, count := range freq {
+		if count > 0 {
+			p := float64(count) * invLen
+			entropy -= p * math.Log2(p)
+		}
+	}
+	return entropy
 }
