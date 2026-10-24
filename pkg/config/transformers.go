@@ -112,6 +112,7 @@ type TransformSuspicious struct {
 	UnallowedChars     []string `yaml:"unallowed-chars,flow" default:"[\"\\\"\", \"==\", \"/\", \":\"]"`
 	ThresholdMaxLabels int      `yaml:"threshold-max-labels" default:"10"`
 	WhitelistDomains   []string `yaml:"whitelist-domains,flow" default:"[\"\\\\.ip6\\\\.arpa\"]"`
+	ThresholdEntropy   float64  `yaml:"threshold-entropy" default:"4.0"`
 }
 
 type TransformExtract struct {

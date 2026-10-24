@@ -240,6 +240,7 @@ func (dm *DNSMessage) EncodeFlatJSON(buffer *bytes.Buffer) {
 	if dm.Suspicious != nil {
 		writeString("suspicious.domain", dm.Suspicious.Domain)
 		writeBool("suspicious.excessive-number-labels", dm.Suspicious.ExcessiveNumberLabels)
+		writeBool("suspicious.high-entropy", dm.Suspicious.HighEntropy)
 		writeBool("suspicious.large-pkt", dm.Suspicious.LargePacket)
 		writeBool("suspicious.long-domain", dm.Suspicious.LongDomain)
 		writeBool("suspicious.malformed-pkt", dm.Suspicious.MalformedPacket)
@@ -487,6 +488,7 @@ func (dm *DNSMessage) Flatten() (map[string]interface{}, error) {
 		dnsFields["suspicious.unallowed-chars"] = dm.Suspicious.UnallowedChars
 		dnsFields["suspicious.uncommon-qtypes"] = dm.Suspicious.UncommonQtypes
 		dnsFields["suspicious.excessive-number-labels"] = dm.Suspicious.ExcessiveNumberLabels
+		dnsFields["suspicious.high-entropy"] = dm.Suspicious.HighEntropy
 		dnsFields["suspicious.domain"] = dm.Suspicious.Domain
 	}
 

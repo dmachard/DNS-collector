@@ -43,7 +43,8 @@ func TestSuspicious_Json(t *testing.T) {
 					"slow-domain":false,
 					"unallowed-chars":false,
 					"uncommon-qtypes":false,
-					"excessive-number-labels":false
+					"excessive-number-labels":false,
+					"high-entropy":false
 				}
 			}
 			`
@@ -330,5 +331,109 @@ func TestSuspicious_WhitelistDomains(t *testing.T) {
 
 	if dm.Suspicious.Score != 0.0 {
 		t.Errorf("suspicious score should be equal to 0.0, got: %d", int(dm.Suspicious.Score))
+	}
+}
+
+func TestSuspicious_HighEntropy(t *testing.T) {
+	testCases := []struct {
+		name      string
+		threshold float64
+		qname     string
+		wantHigh  bool
+		wantScore float64
+	}{
+		{
+			name:      "legitimate domain low entropy",
+			threshold: 4.0,
+			qname:     "google.com",
+			wantHigh:  false,
+			wantScore: 0.0,
+		},
+		{
+			name:      "tunneling high entropy domain",
+			threshold: 4.0,
+			qname:     "v8x7a2k9p1q8z4b5m3n6j2h8g1f4d7s9.com",
+			wantHigh:  true,
+			wantScore: 1.0,
+		},
+		{
+			name:      "high entropy subdomain with legitimate base",
+			threshold: 4.0,
+			qname:     "v8x7a2k9p1q8z4b5m3n6j2h8g1f4d7s9.example.org.",
+			wantHigh:  true,
+			wantScore: 1.0,
+		},
+		{
+			name:      "case insensitivity prevents false positive",
+			threshold: 4.0,
+			qname:     "aAaAaAaAaA.com",
+			wantHigh:  false,
+			wantScore: 0.0,
+		},
+		{
+			name:      "disabled entropy threshold",
+			threshold: 0.0,
+			qname:     "v8x7a2k9p1q8z4b5m3n6j2h8g1f4d7s9.com",
+			wantHigh:  false,
+			wantScore: 0.0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := config.GetFakeConfigTransformers()
+			cfg.Suspicious.Enable = true
+			cfg.Suspicious.ThresholdEntropy = tc.threshold
+
+			outChans := []chan *dnsutils.DNSMessageBatch{}
+			suspicious := NewSuspiciousTransform(&cfg.Suspicious, logger.New(false), "test", 0, outChans)
+
+			dm := dnsutils.GetFakeDNSMessage()
+			dm.DNS.Qname = tc.qname
+
+			suspicious.GetTransforms()
+			returnCode, err := suspicious.checkIfSuspicious(&dm)
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if returnCode != ReturnKeep {
+				t.Errorf("Return code is %v, want keep(%v)", returnCode, ReturnKeep)
+			}
+
+			if dm.Suspicious.HighEntropy != tc.wantHigh {
+				t.Errorf("want HighEntropy=%v, got=%v", tc.wantHigh, dm.Suspicious.HighEntropy)
+			}
+			if dm.Suspicious.Score != tc.wantScore {
+				t.Errorf("want Score=%v, got=%v", tc.wantScore, dm.Suspicious.Score)
+			}
+		})
+	}
+}
+
+func Benchmark_CalcEntropy(b *testing.B) {
+	domain := "v8x7a2k9p1q8z4b5m3n6j2h8g1f4d7s9.example.com"
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = calcEntropy(domain)
+	}
+}
+
+func Benchmark_Suspicious_CheckIfSuspicious(b *testing.B) {
+	cfg := config.GetFakeConfigTransformers()
+	cfg.Suspicious.Enable = true
+	cfg.Suspicious.ThresholdEntropy = 4.0
+
+	outChans := []chan *dnsutils.DNSMessageBatch{}
+	suspicious := NewSuspiciousTransform(&cfg.Suspicious, logger.New(false), "test", 0, outChans)
+	suspicious.GetTransforms()
+
+	dm := dnsutils.GetFakeDNSMessage()
+	dm.DNS.Qname = "v8x7a2k9p1q8z4b5m3n6j2h8g1f4d7s9.example.com"
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = suspicious.checkIfSuspicious(&dm)
 	}
 }
