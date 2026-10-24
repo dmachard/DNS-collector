@@ -336,11 +336,11 @@ func TestSuspicious_WhitelistDomains(t *testing.T) {
 
 func TestSuspicious_HighEntropy(t *testing.T) {
 	testCases := []struct {
-		name        string
-		threshold   float64
-		qname       string
-		wantHigh    bool
-		wantScore   float64
+		name      string
+		threshold float64
+		qname     string
+		wantHigh  bool
+		wantScore float64
 	}{
 		{
 			name:      "legitimate domain low entropy",
