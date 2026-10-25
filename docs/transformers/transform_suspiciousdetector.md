@@ -22,6 +22,9 @@ Options:
 * `threshold-max-labels` (int)
   > maximum number of labels in domains name
 
+* `threshold-entropy` (float)
+  > threshold for Shannon entropy of domain or labels to detect tunneling/DGA (set to 0.0 to disable)
+
 * `whitelist-domains` (list of string)
   > to ignore some domains
 
@@ -36,6 +39,7 @@ transforms:
     common-qtypes:  [ "A", "AAAA", "CNAME", "TXT", "PTR", "NAPTR", "DNSKEY", "SRV", "SOA", "NS", "MX", "DS" ]
     unallowed-chars: [ "\"", "==", "/", ":" ]
     threshold-max-labels: 10
+    threshold-entropy: 4.0
     whitelist-domains: [ "\.ip6\.arpa" ]
 ```
 
@@ -51,13 +55,14 @@ Example:
 {
   "suspicious": {
     "score": 0.0,
-    "malformed-packet": false,
+    "malformed-pkt": false,
     "large-pkt": false,
     "long-domain": false,
     "slow-domain": false,
     "unallowed-chars": false,
     "uncommon-qtypes": false,
     "excessive-number-labels": false,
+    "high-entropy": false
   }
 }
 ```

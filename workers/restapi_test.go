@@ -229,7 +229,7 @@ func TestRestAPI_GetMethod(t *testing.T) {
 			uri:        "/suspicious",
 			handler:    g.GetSuspiciousHandler,
 			method:     http.MethodGet,
-			want:       `\[\{"score":1,"malformed-pkt":false,"large-pkt":false,"long-domain":false,"slow-domain":false,"unallowed-chars":false,"uncommon-qtypes":false,"excessive-number-labels":false,"domain":"dns:collector"\}\]`,
+			want:       `\[\{"score":1,"malformed-pkt":false,"large-pkt":false,"long-domain":false,"slow-domain":false,"unallowed-chars":false,"uncommon-qtypes":false,"excessive-number-labels":false,"high-entropy":false,"domain":"dns:collector"\}\]`,
 			statusCode: http.StatusOK,
 			dm:         dnsutils.GetFakeDNSMessage(),
 			dmRcode:    "NOERROR",
