@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -21,13 +22,16 @@ import (
 
 // ProcessStats holds CPU and memory metrics measured during execution.
 type ProcessStats struct {
-	Tag           string
-	Duration      time.Duration
-	UserCPUTime   time.Duration
-	SystemCPUTime time.Duration
-	MaxRSSKb      int64
-	MsgProcessed  int
-	Throughput    float64
+	Tag                 string
+	Duration            time.Duration
+	UserCPUTime         time.Duration
+	SystemCPUTime       time.Duration
+	MaxRSSKb            int64
+	MsgProcessed        int
+	MsgDropped          int
+	EffectiveProcessed  int
+	Throughput          float64
+	EffectiveThroughput float64
 }
 
 func isStableTag(tag string) bool {
@@ -129,6 +133,26 @@ func TestCompare_VersionN1(t *testing.T) {
 	}
 	t.Logf("Benchmark scenario: %s", scenario)
 
+	bufferSize := 2048
+	if envBuf := os.Getenv("BENCH_BUFFER_SIZE"); envBuf != "" {
+		if n, err := strconv.Atoi(envBuf); err == nil && n > 0 {
+			bufferSize = n
+		}
+	}
+	t.Logf("Benchmark buffer-size: %d", bufferSize)
+
+	traffic := os.Getenv("BENCH_TRAFFIC")
+	if traffic == "" {
+		traffic = "stream"
+	}
+	burstSize := 10
+	if envBurst := os.Getenv("BURST_SIZE"); envBurst != "" {
+		if n, err := strconv.Atoi(envBurst); err == nil && n > 0 {
+			burstSize = n
+		}
+	}
+	t.Logf("Benchmark traffic: %s (burst size: %d)", traffic, burstSize)
+
 	getConfigPath := func(tag string) string {
 		cfgPath := filepath.Join(tempDir, fmt.Sprintf("config_%s.yml", tag))
 		var cfgContent string
@@ -137,6 +161,8 @@ func TestCompare_VersionN1(t *testing.T) {
 global:
   trace:
     verbose: false
+  worker:
+    buffer-size: %d
 
 pipelines:
   - name: tap
@@ -148,13 +174,15 @@ pipelines:
 
   - name: devnull_logger
     devnull: {}
-`, listenPort)
+`, bufferSize, listenPort)
 		} else {
 			logFilePath := filepath.Join(tempDir, fmt.Sprintf("bench_%s.log", tag))
 			cfgContent = fmt.Sprintf(`
 global:
   trace:
     verbose: false
+  worker:
+    buffer-size: %d
 
 pipelines:
   - name: tap
@@ -168,7 +196,7 @@ pipelines:
     logfile:
       file-path: "%s"
       mode: text
-`, listenPort, logFilePath)
+`, bufferSize, listenPort, logFilePath)
 		}
 		if err := os.WriteFile(cfgPath, []byte(cfgContent), 0644); err != nil {
 			t.Fatalf("failed to write bench config: %v", err)
@@ -192,13 +220,13 @@ pipelines:
 
 	// 7. Run Benchmark for Prev Version (N-1)
 	t.Logf("Running benchmark for Version N-1 (%s)...", prevTag)
-	statsPrev := runBenchmark(t, binPrev, configPrev, listenPort, payloadFrame, numFrames, prevTag)
+	statsPrev := runBenchmark(t, binPrev, configPrev, listenPort, payloadFrame, numFrames, prevTag, traffic, burstSize)
 
 	time.Sleep(1 * time.Second)
 
 	// 8. Run Benchmark for Current Version
 	t.Log("Running benchmark for Current Version...")
-	statsCurrent := runBenchmark(t, binCurrent, configCurrent, listenPort, payloadFrame, numFrames, "Current (Refactored)")
+	statsCurrent := runBenchmark(t, binCurrent, configCurrent, listenPort, payloadFrame, numFrames, "Current (Refactored)", traffic, burstSize)
 
 	// 9. Report Results
 	t.Log("\n" + formatComparisonReport(statsPrev, statsCurrent))
@@ -241,7 +269,7 @@ func prepareDnstapFrame(t *testing.T) []byte {
 	return buf
 }
 
-func runBenchmark(t *testing.T, binPath, configPath string, port int, frame []byte, numFrames int, tag string) ProcessStats {
+func runBenchmark(t *testing.T, binPath, configPath string, port int, frame []byte, numFrames int, tag string, traffic string, burstSize int) ProcessStats {
 	cmd := exec.Command(binPath, "-config", configPath)
 	var outputBuf bytes.Buffer
 	cmd.Stdout = &outputBuf
@@ -287,13 +315,26 @@ func runBenchmark(t *testing.T, binPath, configPath string, port int, frame []by
 	startTime := time.Now()
 	w := bufio.NewWriterSize(conn, 64*1024)
 
-	for i := 0; i < numFrames; i++ {
-		w.Write(frame)
-		if i%1000 == 0 {
+	if traffic == "burst" {
+		for i := 0; i < numFrames; i += burstSize {
+			count := burstSize
+			if i+count > numFrames {
+				count = numFrames - i
+			}
+			for j := 0; j < count; j++ {
+				w.Write(frame)
+			}
 			w.Flush()
 		}
+	} else {
+		for i := 0; i < numFrames; i++ {
+			w.Write(frame)
+			if i%1000 == 0 {
+				w.Flush()
+			}
+		}
+		w.Flush()
 	}
-	w.Flush()
 	conn.Close()
 
 	// Wait for processing to drain
@@ -314,6 +355,17 @@ func runBenchmark(t *testing.T, binPath, configPath string, port int, frame []by
 	}
 
 	duration := time.Since(startTime)
+
+	// Check output logs for drops
+	var msgDropped int
+	reDrop := regexp.MustCompile(`buffer is full, (\d+) dnsmessage\(s\) dropped`)
+	for _, match := range reDrop.FindAllStringSubmatch(outputBuf.String(), -1) {
+		if len(match) > 1 {
+			if n, err := strconv.Atoi(match[1]); err == nil {
+				msgDropped += n
+			}
+		}
+	}
 
 	// Collect Process Stats & Rusage
 	var userCPU, sysCPU time.Duration
@@ -336,16 +388,24 @@ func runBenchmark(t *testing.T, binPath, configPath string, port int, frame []by
 		maxRSS = getPeakRSSFromProc(cmd.Process.Pid)
 	}
 
+	effectiveProcessed := numFrames - msgDropped
+	if effectiveProcessed < 0 {
+		effectiveProcessed = 0
+	}
 	throughput := float64(numFrames) / duration.Seconds()
+	effectiveThroughput := float64(effectiveProcessed) / duration.Seconds()
 
 	return ProcessStats{
-		Tag:           tag,
-		Duration:      duration,
-		UserCPUTime:   userCPU,
-		SystemCPUTime: sysCPU,
-		MaxRSSKb:      maxRSS,
-		MsgProcessed:  numFrames,
-		Throughput:    throughput,
+		Tag:                 tag,
+		Duration:            duration,
+		UserCPUTime:         userCPU,
+		SystemCPUTime:       sysCPU,
+		MaxRSSKb:            maxRSS,
+		MsgProcessed:        numFrames,
+		MsgDropped:          msgDropped,
+		EffectiveProcessed:  effectiveProcessed,
+		Throughput:          throughput,
+		EffectiveThroughput: effectiveThroughput,
 	}
 }
 
@@ -374,6 +434,15 @@ func formatComparisonReport(prev, curr ProcessStats) string {
 	memDiff := float64(curr.MaxRSSKb-prev.MaxRSSKb) / float64(prev.MaxRSSKb) * 100.0
 	cpuDiff := float64(cpuCurr-cpuPrev) / float64(cpuPrev) * 100.0
 	tputDiff := (curr.Throughput - prev.Throughput) / prev.Throughput * 100.0
+	effDiff := 0.0
+	if prev.EffectiveThroughput > 0 {
+		effDiff = (curr.EffectiveThroughput - prev.EffectiveThroughput) / prev.EffectiveThroughput * 100.0
+	}
+
+	dropDelta := "0"
+	if prev.MsgDropped != curr.MsgDropped {
+		dropDelta = fmt.Sprintf("%+d", curr.MsgDropped-prev.MsgDropped)
+	}
 
 	return fmt.Sprintf(`
 ================================================================================
@@ -381,21 +450,27 @@ func formatComparisonReport(prev, curr ProcessStats) string {
 ================================================================================
 Metric                      %-20s %-20s Delta
 --------------------------------------------------------------------------------
-Total Messages Processed    %-20d %-20d -
+Total Messages Sent         %-20d %-20d -
+Messages Dropped            %-20d %-20d %s
+Effective Processed         %-20d %-20d %+.2f%%
 Execution Time              %-20s %-20s %+.2f%%
 Total CPU Time (User+Sys)   %-20s %-20s %+.2f%%
 Peak Memory (Max RSS)       %-20s %-20s %+.2f%%
-Throughput                  %-20.2f %-20.2f %+.2f%%
+Throughput (Sent)           %-20.2f %-20.2f %+.2f%%
+Throughput (Effective)      %-20.2f %-20.2f %+.2f%%
 ================================================================================
 `,
 		prev.Tag,
 		prev.Tag, "Current",
 		prev.MsgProcessed, curr.MsgProcessed,
+		prev.MsgDropped, curr.MsgDropped, dropDelta,
+		prev.EffectiveProcessed, curr.EffectiveProcessed, (float64(curr.EffectiveProcessed-prev.EffectiveProcessed)/float64(prev.EffectiveProcessed))*100.0,
 		prev.Duration.Round(time.Millisecond), curr.Duration.Round(time.Millisecond), (float64(curr.Duration-prev.Duration)/float64(prev.Duration))*100.0,
 		cpuPrev.Round(time.Millisecond), cpuCurr.Round(time.Millisecond), cpuDiff,
 		fmt.Sprintf("%d KB (%.2f MB)", prev.MaxRSSKb, float64(prev.MaxRSSKb)/1024.0),
 		fmt.Sprintf("%d KB (%.2f MB)", curr.MaxRSSKb, float64(curr.MaxRSSKb)/1024.0),
 		memDiff,
 		prev.Throughput, curr.Throughput, tputDiff,
+		prev.EffectiveThroughput, curr.EffectiveThroughput, effDiff,
 	)
 }

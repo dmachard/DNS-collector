@@ -54,6 +54,10 @@ jobs:
       run: |
         go test -benchmem -run=^$ -bench=. ./workers/
 
-    - name: Compare performance with latest release tag
+    - name: Compare performance with latest release tag (Continuous stream)
       run: |
         NUM_FRAMES=1000000 go test -count=1 -v -run=TestCompare_VersionN1 ./tests
+
+    - name: Compare performance with latest release tag (Micro-bursts)
+      run: |
+        BENCH_TRAFFIC=burst BURST_SIZE=10 NUM_FRAMES=100000 go test -count=1 -v -run=TestCompare_VersionN1 ./tests
