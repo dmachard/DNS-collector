@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net"
 	"regexp"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -954,6 +956,23 @@ func Test_Dnstap_PcapOutput_Regression_Issue1388(t *testing.T) {
 	}
 }
 
+type safeLogBuffer struct {
+	sync.Mutex
+	buf bytes.Buffer
+}
+
+func (s *safeLogBuffer) Write(p []byte) (n int, err error) {
+	s.Lock()
+	defer s.Unlock()
+	return s.buf.Write(p)
+}
+
+func (s *safeLogBuffer) String() string {
+	s.Lock()
+	defer s.Unlock()
+	return s.buf.String()
+}
+
 // Test_DnstapCollector_BurstNoDrop verifies regression for #1392.
 // With batchChanSize := size, a burst of frames (> 100) within ChannelBufferSize
 // must not saturate dnstap-processor's batchChannel.
@@ -967,7 +986,7 @@ func Test_DnstapCollector_BurstNoDrop(t *testing.T) {
 	cfg.Global.Worker.BatchSize = 64
 	cfg.Global.Worker.InternalMonitor = 1
 
-	logBuf := new(bytes.Buffer)
+	logBuf := new(safeLogBuffer)
 	lg := logger.New(true)
 	lg.SetOutput(logBuf)
 
@@ -1007,9 +1026,10 @@ func Test_DnstapCollector_BurstNoDrop(t *testing.T) {
 	_ = w.Flush()
 
 	time.Sleep(1200 * time.Millisecond)
+	server.Stop()
 
 	// Verify dnstap-processor did NOT drop frames
-	if bytes.Contains(logBuf.Bytes(), []byte("worker[dnstap-processor] buffer is full")) {
+	if strings.Contains(logBuf.String(), "worker[dnstap-processor] buffer is full") {
 		t.Fatalf("unexpected drops on dnstap-processor: %s", logBuf.String())
 	}
 }
