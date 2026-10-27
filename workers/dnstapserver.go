@@ -345,13 +345,9 @@ func NewDNSTapProcessor(connID int, peerName string, cfg *config.Config, logger 
 	w.ConnID = connID
 	w.PeerName = peerName
 	w.dataChannel = make(chan []byte, size)
-	batchSize := w.GetBatchSize()
-	batchChanSize := 100
-	if batchSize > 0 {
-		batchChanSize = size / batchSize
-		if batchChanSize < 100 {
-			batchChanSize = 100
-		}
+	batchChanSize := size
+	if batchChanSize < 100 {
+		batchChanSize = 100
 	}
 	w.batchChannel = make(chan *dnsutils.RawBatch, batchChanSize)
 	return w

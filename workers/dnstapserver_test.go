@@ -739,6 +739,23 @@ func Test_DnstapProcessor_RawBatch(t *testing.T) {
 	}
 }
 
+func Test_DnstapProcessor_BatchChannelSize(t *testing.T) {
+	cfg := config.GetDefaultConfig()
+	lg := logger.New(false)
+
+	// Case 1: size > 100 should allocate cap == size
+	proc1 := NewDNSTapProcessor(1, "test", cfg, lg, "test", 2048)
+	if cap(proc1.GetBatchChannel()) != 2048 {
+		t.Errorf("expected batchChannel capacity 2048, got %d", cap(proc1.GetBatchChannel()))
+	}
+
+	// Case 2: size < 100 should floor at 100
+	proc2 := NewDNSTapProcessor(2, "test", cfg, lg, "test", 50)
+	if cap(proc2.GetBatchChannel()) != 100 {
+		t.Errorf("expected batchChannel capacity 100, got %d", cap(proc2.GetBatchChannel()))
+	}
+}
+
 func Test_DnstapCollector_LowTrafficFlush(t *testing.T) {
 	fl := GetWorkerForTest(config.DefaultBufferSize)
 	cfg := config.GetDefaultConfig()
@@ -934,5 +951,65 @@ func Test_Dnstap_PcapOutput_Regression_Issue1388(t *testing.T) {
 	_, err = msg4.EncodeToPacketBytes(buf4[:0], true)
 	if err != nil {
 		t.Errorf("case 4 (omitted SocketFamily IPv6): EncodeToPacketBytes failed: %v", err)
+	}
+}
+
+// Test_DnstapCollector_BurstNoDrop verifies regression for #1392.
+// With batchChanSize := size, a burst of frames (> 100) within ChannelBufferSize
+// must not saturate dnstap-processor's batchChannel.
+func Test_DnstapCollector_BurstNoDrop(t *testing.T) {
+	fl := GetWorkerForTest(1000)
+	cfg := config.GetDefaultConfig()
+	cfg.Collectors.Dnstap.ListenPort = 6008
+	cfg.Collectors.Dnstap.UpstreamBatching = true
+	cfg.Collectors.Dnstap.NumWorkers = 0
+	cfg.Global.Worker.ChannelBufferSize = 500
+	cfg.Global.Worker.BatchSize = 64
+	cfg.Global.Worker.InternalMonitor = 1
+
+	logBuf := new(bytes.Buffer)
+	lg := logger.New(true)
+	lg.SetOutput(logBuf)
+
+	server := NewDnstapServer([]Worker{fl}, cfg, lg, "dnstap-listener")
+	go server.StartCollect()
+	defer server.Stop()
+	time.Sleep(50 * time.Millisecond)
+
+	conn, err := net.Dial("tcp", ":6008")
+	if err != nil {
+		t.Fatalf("could not connect: %v", err)
+	}
+	defer conn.Close()
+
+	r := bufio.NewReader(conn)
+	w := bufio.NewWriter(conn)
+	fs := framestream.NewFstrm(r, w, conn, 5*time.Second, []byte("protobuf:dnstap.Dnstap"), true)
+	if err := fs.InitSender(); err != nil {
+		t.Fatalf("framestream init error: %v", err)
+	}
+
+	dnsquery, err := dnsutils.GetFakeDNS()
+	if err != nil {
+		t.Fatalf("dns query error: %v", err)
+	}
+	dt := GetFakeDNSTap(dnsquery)
+	data, _ := proto.Marshal(dt)
+	frame := &framestream.Frame{}
+	frame.Write(data)
+
+	// Send 250 frames (exceeds previous hardcoded limit of 100, but fits in 500)
+	for i := 0; i < 250; i++ {
+		if err := fs.SendFrame(frame); err != nil {
+			t.Fatalf("send frame error: %v", err)
+		}
+	}
+	_ = w.Flush()
+
+	time.Sleep(1200 * time.Millisecond)
+
+	// Verify dnstap-processor did NOT drop frames
+	if bytes.Contains(logBuf.Bytes(), []byte("worker[dnstap-processor] buffer is full")) {
+		t.Fatalf("unexpected drops on dnstap-processor: %s", logBuf.String())
 	}
 }
