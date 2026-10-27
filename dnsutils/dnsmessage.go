@@ -292,6 +292,32 @@ type RelabelingRule struct {
 	Regex       *regexp.Regexp
 	Replacement string
 	Action      string
+	// optional, shared across copies of the rule; nil = no caching
+	Cache *RelabelMatchCache
+}
+
+// RelabelMatchCache memoizes Regex.MatchString per field key.
+// Bounded to avoid growth from dynamic keys (metadata, tags).
+type RelabelMatchCache struct {
+	m sync.Map
+	n atomic.Int32
+}
+
+const relabelMatchCacheMax = 4096
+
+func (r *RelabelingRule) match(key string) bool {
+	if r.Cache == nil {
+		return r.Regex.MatchString(key)
+	}
+	if v, ok := r.Cache.m.Load(key); ok {
+		return v.(bool)
+	}
+	res := r.Regex.MatchString(key)
+	if r.Cache.n.Load() < relabelMatchCacheMax {
+		r.Cache.m.Store(key, res)
+		r.Cache.n.Add(1)
+	}
+	return res
 }
 
 type TransformRelabeling struct {
