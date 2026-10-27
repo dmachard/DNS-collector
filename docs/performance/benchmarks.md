@@ -85,9 +85,16 @@ go test -v -run=TestCompare_VersionN1 ./tests
 ### Options & Environment Variables:
 - `PREV_TAG`: Release tag to compare against (e.g. `v2.5.0` or `v2.6.0-beta6`).
 - `NUM_FRAMES`: Number of DNSTap frames to send per benchmark run (e.g. `1000000` or `5000000`).
+- `BENCH_TRAFFIC`: Traffic ingestion pattern: `stream` (default, continuous 64KB buffering) or `burst` (micro-bursts with immediate flush to simulate real-world resolver traffic).
+- `BURST_SIZE`: Number of frames per flushed burst in burst mode (default: `10`).
+- `BENCH_BUFFER_SIZE`: Configured worker channel buffer size (default: `2048`).
 
 ```bash
+# Compare against baseline with 1M frames stream:
 PREV_TAG=v2.5.0 NUM_FRAMES=1000000 go test -v -run=TestCompare_VersionN1 ./tests
+
+# Compare under real-world micro-burst traffic with drop detection:
+BENCH_TRAFFIC=burst BURST_SIZE=10 NUM_FRAMES=100000 go test -v -run=TestCompare_VersionN1 ./tests
 ```
 
 ---
@@ -144,6 +151,11 @@ Internal Go benchmarks measure sub-nanosecond processing efficiency and memory a
 ### Running Worker Benchmarks:
 ```bash
 go test -run=^$ -bench=Benchmark_DNSTapProcessor ./workers -benchmem
+```
+
+### Running Framestream TCP End-to-End Benchmarks (Continuous vs Micro-Bursts):
+```bash
+go test -run=^$ -bench="Benchmark_DnstapServer_TCP_MonoWorker" ./workers -benchmem
 ```
 
 ### Running Transformer Benchmarks:
