@@ -37,6 +37,7 @@ func (t *RelabelTransform) Precompile() string {
 			Regex:       regexp.MustCompile(label.Regex),
 			Replacement: label.Replacement,
 			Action:      "rename",
+			Cache:       &dnsutils.RelabelMatchCache{},
 		})
 		actionRename = true
 	}
@@ -45,6 +46,7 @@ func (t *RelabelTransform) Precompile() string {
 			Regex:       regexp.MustCompile(label.Regex),
 			Replacement: label.Replacement,
 			Action:      "drop",
+			Cache:       &dnsutils.RelabelMatchCache{},
 		})
 		actionRemove = true
 	}

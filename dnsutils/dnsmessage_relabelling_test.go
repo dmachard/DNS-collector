@@ -49,11 +49,13 @@ func BenchmarkDnsMessage_ToFlatten_Relabelling(b *testing.B) {
 	dm.Relabeling.Rules = append(dm.Relabeling.Rules, RelabelingRule{
 		Regex:  regexp.MustCompile(`dns.qname`),
 		Action: "remove",
+		Cache:  &RelabelMatchCache{},
 	})
 	dm.Relabeling.Rules = append(dm.Relabeling.Rules, RelabelingRule{
 		Regex:       regexp.MustCompile(`dns.qtype`),
 		Replacement: "qtype",
 		Action:      "rename",
+		Cache:       &RelabelMatchCache{},
 	})
 
 	b.ResetTimer()

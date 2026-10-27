@@ -3,9 +3,8 @@ package dnsutils
 func (dm *DNSMessage) ApplyRelabeling(dnsFields map[string]interface{}) error {
 
 	for _, label := range dm.Relabeling.Rules {
-		regex := label.Regex
 		for key := range dnsFields {
-			if regex.MatchString(key) {
+			if label.match(key) {
 				if label.Action == "rename" {
 					replacement := label.Replacement
 					if value, exists := dnsFields[replacement]; exists {
