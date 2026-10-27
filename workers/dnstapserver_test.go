@@ -1033,3 +1033,94 @@ func Test_DnstapCollector_BurstNoDrop(t *testing.T) {
 		t.Fatalf("unexpected drops on dnstap-processor: %s", logBuf.String())
 	}
 }
+
+// Test_DnstapServer_Telemetry_DiscardedCountOnBufferFull reproduces the issue where
+// drops occurring when dnstap-processor's buffer is full are never reported to telemetry / Prometheus.
+func Test_DnstapServer_Telemetry_DiscardedCountOnBufferFull(t *testing.T) {
+	fl := GetWorkerForTest(100000)
+	cfg := config.GetDefaultConfig()
+	cfg.Collectors.Dnstap.ListenPort = 6009
+	cfg.Collectors.Dnstap.UpstreamBatching = true
+	cfg.Collectors.Dnstap.NumWorkers = 0
+	cfg.Global.Worker.ChannelBufferSize = 100
+	cfg.Global.Worker.BatchSize = 64
+	cfg.Global.Worker.InternalMonitor = 1
+	cfg.Global.Telemetry.Enabled = true
+	cfg.IngoingTransformers.Normalize.QnameLowerCase = true
+	cfg.IngoingTransformers.Normalize.ReplaceNonPrintable = true
+	cfg.IngoingTransformers.Normalize.RRLowerCase = true
+
+	metrics := telemetry.NewPrometheusCollector(cfg)
+
+	logBuf := new(safeLogBuffer)
+	lg := logger.New(true)
+	lg.SetOutput(logBuf)
+
+	server := NewDnstapServer([]Worker{fl}, cfg, lg, "dnstap-listener")
+	server.SetMetrics(metrics)
+	go server.StartCollect()
+	defer server.Stop()
+	time.Sleep(50 * time.Millisecond)
+
+	conn, err := net.Dial("tcp", ":6009")
+	if err != nil {
+		t.Fatalf("could not connect: %v", err)
+	}
+	defer conn.Close()
+
+	r := bufio.NewReader(conn)
+	w := bufio.NewWriter(conn)
+	fs := framestream.NewFstrm(r, w, conn, 5*time.Second, []byte("protobuf:dnstap.Dnstap"), true)
+	if err := fs.InitSender(); err != nil {
+		t.Fatalf("framestream init error: %v", err)
+	}
+
+	dnsmsg := new(dns.Msg)
+	dnsmsg.SetQuestion("dns.collector.dev.", dns.TypeA)
+	for j := 0; j < 50; j++ {
+		rr, _ := dns.NewRR(fmt.Sprintf("sub%d.dns.collector.dev. 3600 IN A 192.168.1.%d", j, j%250))
+		dnsmsg.Answer = append(dnsmsg.Answer, rr)
+	}
+	for j := 0; j < 20; j++ {
+		ns, _ := dns.NewRR(fmt.Sprintf("collector.dev. 3600 IN NS ns%d.collector.dev.", j))
+		dnsmsg.Ns = append(dnsmsg.Ns, ns)
+	}
+	dnsWire, err := dnsmsg.Pack()
+	if err != nil {
+		t.Fatalf("dns pack error: %v", err)
+	}
+
+	dt := GetFakeDNSTap(dnsWire)
+	data, _ := proto.Marshal(dt)
+	frame := &framestream.Frame{}
+	frame.Write(data)
+
+	// Send 20000 frames in a burst to overflow the 100-batch buffer
+	for i := 0; i < 20000; i++ {
+		if err := fs.SendFrame(frame); err != nil {
+			t.Fatalf("send frame error: %v", err)
+		}
+	}
+	_ = w.Flush()
+
+	// Wait for monitor ticker to fire and publish telemetry
+	var totalDiscarded int
+	timeout := time.After(2500 * time.Millisecond)
+	done := false
+	for !done {
+		select {
+		case record := <-metrics.Record:
+			t.Logf("telemetry record: %+v", record)
+			if record.Name == "dnstap-listener" {
+				totalDiscarded += record.TotalDiscarded
+			}
+		case <-timeout:
+			done = true
+		}
+	}
+
+	t.Logf("Server logs:\n%s", logBuf.String())
+	if totalDiscarded == 0 {
+		t.Errorf("expected dnstap-listener TotalDiscarded > 0 in telemetry, got %d", totalDiscarded)
+	}
+}

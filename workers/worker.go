@@ -324,6 +324,9 @@ func (w *GenericWorker) Monitor() {
 }
 
 func (w *GenericWorker) WorkerIsBusy(name string, count int) {
+	if w.config.Global.Telemetry.Enabled {
+		w.totalDiscarded.Add(uint64(count))
+	}
 	// Load-or-store an *atomic.Int64 for this route name, then add atomically.
 	// This is lock-free and cannot starve the Monitor ticker.
 	var counter *atomic.Int64
@@ -388,9 +391,6 @@ func (w *GenericWorker) sendBatch(routes []chan *dnsutils.DNSMessageBatch, route
 		default:
 			droppedCount := len(b.Messages)
 			b.Release()
-			if w.config.Global.Telemetry.Enabled {
-				w.totalDiscarded.Add(uint64(droppedCount))
-			}
 			w.WorkerIsBusy(routesName[i], droppedCount)
 		}
 	}
