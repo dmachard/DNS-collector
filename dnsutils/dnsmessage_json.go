@@ -343,7 +343,7 @@ func (dm *DNSMessage) EncodeFlatJSON(buffer *bytes.Buffer) {
 }
 
 func (dm *DNSMessage) Flatten() (map[string]interface{}, error) {
-	dnsFields := make(map[string]interface{}, 80)
+	dnsFields := make(map[string]interface{}, 128)
 	dnsFields["dns.flags.aa"] = dm.DNS.Flags.AA
 	dnsFields["dns.flags.ad"] = dm.DNS.Flags.AD
 	dnsFields["dns.flags.qr"] = dm.DNS.Flags.QR
