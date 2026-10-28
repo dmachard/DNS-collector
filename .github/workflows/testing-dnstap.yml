@@ -4,13 +4,15 @@ on:
   push:
     paths-ignore:
       - 'docs/**'
-      - 'README.md'
+      - 'mkdocs.yml'
+      - '*.md'
     branches:
       - main
   pull_request:
     paths-ignore:
       - 'docs/**'
-      - 'README.md'
+      - 'mkdocs.yml'
+      - '*.md'
     branches:
       - main
 
