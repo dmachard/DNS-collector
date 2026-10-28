@@ -209,8 +209,10 @@ svg, svg *, .mermaid, .mermaid * {
 }
 
 /* Hide the active section title (e.g. "Sources & Sinks") in the sidebar on desktop */
-.md-sidebar--primary .md-nav[data-md-level="1"]>.md-nav__title,
-.md-sidebar--primary .md-nav__title[for^="__nav_"],
-.md-sidebar--primary .md-nav[data-md-level="0"]>.md-nav__list>.md-nav__item>.md-nav__link {
-  display: none !important;
+@media screen and (min-width: 76.25em) {
+  .md-sidebar--primary .md-nav[data-md-level="1"]>.md-nav__title,
+  .md-sidebar--primary .md-nav__title[for^="__nav_"],
+  .md-sidebar--primary .md-nav[data-md-level="0"]>.md-nav__list>.md-nav__item>.md-nav__link {
+    display: none !important;
+  }
 }

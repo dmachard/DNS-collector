@@ -3,9 +3,9 @@
 [![release](https://img.shields.io/github/v/release/dmachard/DNS-collector?logo=github&sort=semver)](https://github.com/dmachard/DNS-collector/releases)
 [![docker](https://img.shields.io/docker/pulls/dmachard/go-dnscollector.svg)](https://hub.docker.com/r/dmachard/go-dnscollector)
 ![Go version](https://img.shields.io/badge/go%20version-min%201.26-green)
-![Go tests](https://img.shields.io/badge/go%20tests-331-green)
+![Go tests](https://img.shields.io/badge/go%20tests-418-green)
 ![Go coverage](https://img.shields.io/badge/go%20coverage-67%25-green)
-![Go bench](https://img.shields.io/badge/go%20microbench-113-green)
+![Go bench](https://img.shields.io/badge/go%20microbench-160-green)
 
 ## What is DNS-collector?
 
