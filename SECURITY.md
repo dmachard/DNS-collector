@@ -1,7 +1,13 @@
 # Security Policy
 
+## Supported Versions
+
+Only the last stable version at any given point.
+
 ## Reporting a Vulnerability
 
-**Please do not report security vulnerabilities through public GitHub issues or discussions.**
+Vulnerabilities can be disclosed in private using [GitHub advisories](https://github.com/dmachard/go-netutils/security/advisories/report).
 
-Instead: Use **GitHub Private Vulnerability Reporting** via the [Security tab](../../security/advisories/new) of this repository (recommended) or email: `d.machard@gmail.com` 
+## Credit
+
+Publicly acknowledged reporters will be added in release notes, unless anonymity is requested.
