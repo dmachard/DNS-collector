@@ -58,3 +58,9 @@ upx:
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
+
+release:
+  extra_files:
+    - glob: ./docker-compose.yml
+    - glob: ./docker-example.env
+

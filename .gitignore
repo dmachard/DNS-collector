@@ -29,3 +29,6 @@ docs/_integration/loki/data/
 /site/
 tests/testsdata/dnscollector.key
 tests/testsdata/dnscollector.crt
+
+# ignore github context mode
+.github/context-mode/
