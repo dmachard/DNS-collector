@@ -50,15 +50,15 @@ type DNSNetInfo struct {
 }
 
 func (net *DNSNetInfo) GetQueryIP() string {
-	if net.QueryIP == "-" && net.QueryIPLen > 0 {
-		net.QueryIP = FastIPToString(net.QueryIPBuf[:net.QueryIPLen])
+	if net.QueryIPLen > 0 {
+		return FastIPToString(net.QueryIPBuf[:net.QueryIPLen])
 	}
 	return net.QueryIP
 }
 
 func (net *DNSNetInfo) GetResponseIP() string {
-	if net.ResponseIP == "-" && net.ResponseIPLen > 0 {
-		net.ResponseIP = FastIPToString(net.ResponseIPBuf[:net.ResponseIPLen])
+	if net.ResponseIPLen > 0 {
+		return FastIPToString(net.ResponseIPBuf[:net.ResponseIPLen])
 	}
 	return net.ResponseIP
 }
@@ -394,8 +394,7 @@ func (dm *DNSMessage) GetTimestampRFC3339() string {
 		return dm.DNSTap.TimestampRFC3339
 	}
 	if dm.DNSTap.Timestamp > 0 {
-		dm.DNSTap.TimestampRFC3339 = time.Unix(0, dm.DNSTap.Timestamp).UTC().Format(time.RFC3339Nano)
-		return dm.DNSTap.TimestampRFC3339
+		return time.Unix(0, dm.DNSTap.Timestamp).UTC().Format(time.RFC3339Nano)
 	}
 	return "-"
 }
