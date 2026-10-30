@@ -252,7 +252,6 @@ func (w *StdOut) StartLogging() {
 				case config.ModeJSON:
 					buf := w.GetTextBuffer()
 					buf.Reset()
-					dm.GetTimestampRFC3339()
 					dm.EncodeJSON(buf)
 					buf.WriteByte('\n')
 					w.writerRaw.Write(buf.Bytes())
@@ -275,7 +274,6 @@ func (w *StdOut) StartLogging() {
 					} else {
 						buf := w.GetTextBuffer()
 						buf.Reset()
-						dm.GetTimestampRFC3339()
 						dm.EncodeFlatJSON(buf)
 						buf.WriteByte('\n')
 						w.writerRaw.Write(buf.Bytes())

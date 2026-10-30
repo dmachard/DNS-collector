@@ -395,7 +395,6 @@ func (w *LokiClient) StartLogging() {
 					w.PutTextBuffer(buf)
 
 				case config.ModeJSON:
-					dm.GetTimestampRFC3339()
 					dm.EncodeJSON(buffer)
 					buffer.WriteByte('\n')
 					entry.Line = buffer.String()
@@ -418,7 +417,6 @@ func (w *LokiClient) StartLogging() {
 						buffer.Reset()
 					default:
 						buffer.Reset()
-						dm.GetTimestampRFC3339()
 						dm.EncodeFlatJSON(buffer)
 						buffer.WriteByte('\n')
 						entry.Line = buffer.String()

@@ -238,7 +238,6 @@ func (w *KafkaProducer) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 			strDm = textBuf.String()
 			w.PutTextBuffer(textBuf)
 		case config.ModeJSON:
-			dm.GetTimestampRFC3339()
 			dm.EncodeJSON(buffer)
 			buffer.WriteByte('\n')
 			strDm = buffer.String()
@@ -253,7 +252,6 @@ func (w *KafkaProducer) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 				strDm = buffer.String()
 				buffer.Reset()
 			} else {
-				dm.GetTimestampRFC3339()
 				dm.EncodeFlatJSON(buffer)
 				buffer.WriteByte('\n')
 				strDm = buffer.String()

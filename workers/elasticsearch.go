@@ -184,7 +184,6 @@ func (w *ElasticSearchClient) StartLogging() {
 					encoder.Encode(flat)
 				} else {
 					buffer.WriteString("{ \"create\" : {}}\n")
-					dm.GetTimestampRFC3339()
 					dm.EncodeFlatJSON(buffer)
 					buffer.WriteByte('\n')
 				}

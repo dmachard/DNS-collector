@@ -191,7 +191,6 @@ func (w *RedisPub) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 
 		if w.GetConfig().Loggers.RedisPub.Mode == config.ModeJSON {
 			escapeBuffer.Reset()
-			dm.GetTimestampRFC3339()
 			dm.EncodeJSON(escapeBuffer)
 			w.transportWriter.WriteString(strconv.Quote(escapeBuffer.String()))
 			w.transportWriter.WriteString(w.GetConfig().Loggers.RedisPub.PayloadDelimiter)
@@ -207,7 +206,6 @@ func (w *RedisPub) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 				encoder.Encode(flat)
 			} else {
 				escapeBuffer.Reset()
-				dm.GetTimestampRFC3339()
 				dm.EncodeFlatJSON(escapeBuffer)
 			}
 			w.transportWriter.WriteString(strconv.Quote(escapeBuffer.String()))

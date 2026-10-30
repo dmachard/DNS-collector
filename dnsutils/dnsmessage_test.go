@@ -2,7 +2,11 @@ package dnsutils
 
 import (
 	"bytes"
+	"runtime"
+	"strings"
+	"sync"
 	"testing"
+	"time"
 	"unsafe"
 )
 
@@ -157,5 +161,236 @@ func TestDNSMessage_Size(t *testing.T) {
 	t.Logf("Sizeof(DNSMessage): %d bytes", size)
 	if size > 1024 {
 		t.Errorf("DNSMessage struct size bloated: %d bytes (threshold: 1024)", size)
+	}
+}
+
+func TestDNSMessage_TimestampRace(t *testing.T) {
+	dm := AcquireDNSMessage()
+	defer dm.Release()
+
+	dm.DNSTap.Timestamp = time.Now().UnixNano()
+	dm.DNSTap.TimestampRFC3339 = "-" // as processFrame sets it
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		var buf bytes.Buffer
+		dm.GetTimestampRFC3339()
+		dm.EncodeJSON(&buf)
+	}()
+
+	go func() {
+		defer wg.Done()
+		dm.GetTimestampRFC3339()
+	}()
+
+	wg.Wait()
+}
+
+func TestDNSMessage_TimestampCorruptionRepro(t *testing.T) {
+	stopGC := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-stopGC:
+				return
+			default:
+				runtime.GC()
+			}
+		}
+	}()
+	defer close(stopGC)
+
+	corrupted := 0
+	iterations := 500000
+
+	for i := 0; i < iterations; i++ {
+		dm := AcquireDNSMessage()
+		dm.DNSTap.Timestamp = time.Now().UnixNano()
+		dm.DNSTap.TimestampRFC3339 = "-"
+
+		var wg sync.WaitGroup
+		var jsonBuf bytes.Buffer
+		var textTS string
+
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			dm.GetTimestampRFC3339()
+			dm.EncodeJSON(&jsonBuf)
+		}()
+		go func() {
+			defer wg.Done()
+			textTS = dm.GetTimestampRFC3339()
+		}()
+		wg.Wait()
+
+		if len(textTS) > 1 && strings.HasPrefix(textTS, "-") {
+			corrupted++
+			t.Logf("Found corrupted text timestamp at iter %d: %q", i, textTS)
+			break
+		}
+		jsonStr := jsonBuf.String()
+		if strings.Contains(jsonStr, `"timestamp-rfc3339ns":"-`) && !strings.Contains(jsonStr, `"timestamp-rfc3339ns":"-"`) {
+			corrupted++
+			t.Logf("Found corrupted json timestamp at iter %d: %s", i, jsonStr)
+			break
+		}
+
+		dm.Release()
+	}
+
+	if corrupted > 0 {
+		t.Errorf("Detected %d corrupted timestamp occurrences due to data race", corrupted)
+	}
+}
+
+func TestDNSMessage_QueryIPRace(t *testing.T) {
+	dm := AcquireDNSMessage()
+	defer dm.Release()
+
+	dm.NetworkInfo.SetQueryIPBytes([]byte{192, 0, 2, 1})
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		dm.NetworkInfo.GetQueryIP()
+	}()
+
+	go func() {
+		defer wg.Done()
+		dm.NetworkInfo.GetQueryIP()
+	}()
+
+	wg.Wait()
+}
+
+func TestDNSMessage_QueryIPCorruptionRepro(t *testing.T) {
+	stopGC := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-stopGC:
+				return
+			default:
+				runtime.GC()
+			}
+		}
+	}()
+	defer close(stopGC)
+
+	corrupted := 0
+	iterations := 500000
+
+	for i := 0; i < iterations; i++ {
+		net := &DNSNetInfo{}
+		net.SetQueryIPBytes([]byte{192, 0, 2, 1})
+
+		var wg sync.WaitGroup
+		var ip1, ip2 string
+
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ip1 = net.GetQueryIP()
+		}()
+		go func() {
+			defer wg.Done()
+			ip2 = net.GetQueryIP()
+		}()
+		wg.Wait()
+
+		if len(ip1) > 1 && strings.HasPrefix(ip1, "-") {
+			corrupted++
+			t.Logf("Found corrupted QueryIP (ip1) at iter %d: %q", i, ip1)
+			break
+		}
+		if len(ip2) > 1 && strings.HasPrefix(ip2, "-") {
+			corrupted++
+			t.Logf("Found corrupted QueryIP (ip2) at iter %d: %q", i, ip2)
+			break
+		}
+	}
+
+	if corrupted > 0 {
+		t.Errorf("Detected %d corrupted QueryIP occurrences due to data race", corrupted)
+	}
+}
+
+func TestDNSMessage_ResponseIPRace(t *testing.T) {
+	dm := AcquireDNSMessage()
+	defer dm.Release()
+
+	dm.NetworkInfo.SetResponseIPBytes([]byte{8, 8, 8, 8})
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		dm.NetworkInfo.GetResponseIP()
+	}()
+
+	go func() {
+		defer wg.Done()
+		dm.NetworkInfo.GetResponseIP()
+	}()
+
+	wg.Wait()
+}
+
+func TestDNSMessage_ResponseIPCorruptionRepro(t *testing.T) {
+	stopGC := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-stopGC:
+				return
+			default:
+				runtime.GC()
+			}
+		}
+	}()
+	defer close(stopGC)
+
+	corrupted := 0
+	iterations := 500000
+
+	for i := 0; i < iterations; i++ {
+		net := &DNSNetInfo{}
+		net.SetResponseIPBytes([]byte{8, 8, 8, 8})
+
+		var wg sync.WaitGroup
+		var ip1, ip2 string
+
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			ip1 = net.GetResponseIP()
+		}()
+		go func() {
+			defer wg.Done()
+			ip2 = net.GetResponseIP()
+		}()
+		wg.Wait()
+
+		if len(ip1) > 1 && strings.HasPrefix(ip1, "-") {
+			corrupted++
+			t.Logf("Found corrupted ResponseIP (ip1) at iter %d: %q", i, ip1)
+			break
+		}
+		if len(ip2) > 1 && strings.HasPrefix(ip2, "-") {
+			corrupted++
+			t.Logf("Found corrupted ResponseIP (ip2) at iter %d: %q", i, ip2)
+			break
+		}
+	}
+
+	if corrupted > 0 {
+		t.Errorf("Detected %d corrupted ResponseIP occurrences due to data race", corrupted)
 	}
 }

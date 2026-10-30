@@ -242,7 +242,6 @@ func (w *MQTT) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 			w.PutTextBuffer(buf)
 		case config.ModeJSON:
 			buffer.Reset()
-			dm.GetTimestampRFC3339()
 			dm.EncodeJSON(buffer)
 			buffer.WriteByte('\n')
 			payload = buffer.String()
@@ -258,7 +257,6 @@ func (w *MQTT) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 				payload = buffer.String()
 			} else {
 				buffer.Reset()
-				dm.GetTimestampRFC3339()
 				dm.EncodeFlatJSON(buffer)
 				buffer.WriteByte('\n')
 				payload = buffer.String()

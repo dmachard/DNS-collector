@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 	"unicode/utf8"
 )
 
@@ -18,7 +19,6 @@ var jsonBufferPool = sync.Pool{
 }
 
 func (dm *DNSMessage) ToJSON() string {
-	dm.GetTimestampRFC3339()
 	buffer := jsonBufferPool.Get().(*bytes.Buffer)
 	buffer.Reset()
 	defer jsonBufferPool.Put(buffer)
@@ -29,7 +29,6 @@ func (dm *DNSMessage) ToJSON() string {
 }
 
 func (dm DNSMessage) MarshalJSON() ([]byte, error) {
-	dm.GetTimestampRFC3339()
 	buffer := jsonBufferPool.Get().(*bytes.Buffer)
 	buffer.Reset()
 	defer jsonBufferPool.Put(buffer)
@@ -41,7 +40,6 @@ func (dm DNSMessage) MarshalJSON() ([]byte, error) {
 }
 
 func (dm *DNSMessage) ToFlatJSON() (string, error) {
-	dm.GetTimestampRFC3339()
 	buffer := jsonBufferPool.Get().(*bytes.Buffer)
 	buffer.Reset()
 	defer jsonBufferPool.Put(buffer)
@@ -178,7 +176,7 @@ func (dm *DNSMessage) EncodeFlatJSON(buffer *bytes.Buffer) {
 	writeString("dnstap.policy-type", dm.DNSTap.PolicyType)
 	writeString("dnstap.policy-value", dm.DNSTap.PolicyValue)
 	writeString("dnstap.query-zone", dm.DNSTap.QueryZone)
-	writeString("dnstap.timestamp-rfc3339ns", dm.DNSTap.TimestampRFC3339)
+	writeString("dnstap.timestamp-rfc3339ns", dm.GetTimestampRFC3339())
 	writeString("dnstap.version", dm.DNSTap.Version)
 
 	// EDNS
@@ -367,7 +365,7 @@ func (dm *DNSMessage) Flatten() (map[string]interface{}, error) {
 	dnsFields["dnstap.latency"] = dm.DNSTap.Latency
 	dnsFields["dnstap.latency_ms"] = dm.DNSTap.LatencyMs
 	dnsFields["dnstap.operation"] = dm.DNSTap.Operation
-	dnsFields["dnstap.timestamp-rfc3339ns"] = dm.DNSTap.TimestampRFC3339
+	dnsFields["dnstap.timestamp-rfc3339ns"] = dm.GetTimestampRFC3339()
 	dnsFields["dnstap.version"] = dm.DNSTap.Version
 	dnsFields["dnstap.extra"] = dm.DNSTap.Extra
 	dnsFields["dnstap.policy-rule"] = dm.DNSTap.PolicyRule
@@ -923,7 +921,14 @@ func (dt *DNSTap) EncodeJSON(buf *bytes.Buffer) {
 	buf.WriteString(`,"version":`)
 	WriteJSONString(buf, dt.Version)
 	buf.WriteString(`,"timestamp-rfc3339ns":`)
-	WriteJSONString(buf, dt.TimestampRFC3339)
+	switch {
+	case len(dt.TimestampRFC3339) > 0 && dt.TimestampRFC3339 != "-":
+		WriteJSONString(buf, dt.TimestampRFC3339)
+	case dt.Timestamp > 0:
+		WriteJSONString(buf, time.Unix(0, dt.Timestamp).UTC().Format(time.RFC3339Nano))
+	default:
+		buf.WriteString(`"-"`)
+	}
 	buf.WriteString(`,"latency":`)
 	writeJSONFloat(buf, dt.Latency)
 	buf.WriteString(`,"latency_ms":`)
