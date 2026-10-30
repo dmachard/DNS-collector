@@ -90,7 +90,6 @@ func (w *NsqClient) StartLogging() {
 			for _, dm := range batch.Messages {
 				buffer := w.GetTextBuffer()
 				buffer.Reset()
-				dm.GetTimestampRFC3339()
 				dm.EncodeJSON(buffer)
 
 				err := w.nsqProducer.Publish(topic, buffer.Bytes())

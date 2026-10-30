@@ -681,12 +681,10 @@ func (w *LogFile) StartLogging() {
 							}
 							json.NewEncoder(buf).Encode(flat)
 						} else {
-							dm.GetTimestampRFC3339()
 							dm.EncodeFlatJSON(buf)
 							buf.WriteByte('\n')
 						}
 					} else {
-						dm.GetTimestampRFC3339()
 						dm.EncodeJSON(buf)
 						buf.WriteByte('\n')
 					}

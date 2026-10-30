@@ -152,7 +152,6 @@ func (w *Webhook) Request(dm *dnsutils.DNSMessage) error {
 	buffer := w.GetTextBuffer()
 	buffer.Reset()
 	defer w.PutTextBuffer(buffer)
-	dm.GetTimestampRFC3339()
 	dm.EncodeJSON(buffer)
 
 	post, err := http.NewRequest("POST", w.URL, bytes.NewReader(buffer.Bytes()))

@@ -179,7 +179,6 @@ func (w *TCPClient) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 		if w.GetConfig().Loggers.TCPClient.Mode == config.ModeJSON {
 			textBuf := w.GetTextBuffer()
 			textBuf.Reset()
-			dm.GetTimestampRFC3339()
 			dm.EncodeJSON(textBuf)
 			w.transportWriter.Write(textBuf.Bytes())
 			w.PutTextBuffer(textBuf)
@@ -197,7 +196,6 @@ func (w *TCPClient) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 			} else {
 				textBuf := w.GetTextBuffer()
 				textBuf.Reset()
-				dm.GetTimestampRFC3339()
 				dm.EncodeFlatJSON(textBuf)
 				w.transportWriter.Write(textBuf.Bytes())
 				w.PutTextBuffer(textBuf)

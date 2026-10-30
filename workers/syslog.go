@@ -329,7 +329,6 @@ func (w *Syslog) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 
 		case config.ModeJSON:
 			// encode to json the dns message
-			dm.GetTimestampRFC3339()
 			dm.EncodeJSON(buffer)
 			buffer.WriteByte('\n')
 
@@ -354,7 +353,6 @@ func (w *Syslog) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 				}
 				json.NewEncoder(buffer).Encode(flat)
 			} else {
-				dm.GetTimestampRFC3339()
 				dm.EncodeFlatJSON(buffer)
 				buffer.WriteByte('\n')
 			}

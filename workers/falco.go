@@ -109,7 +109,6 @@ func (w *FalcoClient) StartLogging() {
 			}
 			for _, dm := range batch.Messages {
 				buffer.Reset()
-				dm.GetTimestampRFC3339()
 				dm.EncodeJSON(buffer)
 				buffer.WriteByte('\n')
 
