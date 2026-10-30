@@ -924,11 +924,12 @@ func (dt *DNSTap) EncodeJSON(buf *bytes.Buffer) {
 	buf.WriteString(`,"version":`)
 	WriteJSONString(buf, dt.Version)
 	buf.WriteString(`,"timestamp-rfc3339ns":`)
-	if len(dt.TimestampRFC3339) > 0 && dt.TimestampRFC3339 != "-" {
+	switch {
+	case len(dt.TimestampRFC3339) > 0 && dt.TimestampRFC3339 != "-":
 		WriteJSONString(buf, dt.TimestampRFC3339)
-	} else if dt.Timestamp > 0 {
+	case dt.Timestamp > 0:
 		WriteJSONString(buf, time.Unix(0, dt.Timestamp).UTC().Format(time.RFC3339Nano))
-	} else {
+	default:
 		buf.WriteString(`"-"`)
 	}
 	buf.WriteString(`,"latency":`)
