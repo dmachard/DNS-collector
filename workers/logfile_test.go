@@ -410,7 +410,6 @@ func TestOutgoingTransformers_SharedMessageIsolation(t *testing.T) {
 
 	loggerA := NewLogFile(cfgA, logger.New(false), "loggerA")
 	go loggerA.StartCollect()
-	defer loggerA.Stop()
 
 	// Logger B without user-privacy (wants raw original IP)
 	fB, err := os.CreateTemp("", "temp_dns_b.json")
@@ -425,7 +424,6 @@ func TestOutgoingTransformers_SharedMessageIsolation(t *testing.T) {
 
 	loggerB := NewLogFile(cfgB, logger.New(false), "loggerB")
 	go loggerB.StartCollect()
-	defer loggerB.Stop()
 
 	// A single DNSMessage shared between loggerA and loggerB (fanout with RefCount = 2)
 	dm := dnsutils.GetFakeDNSMessage()
@@ -437,9 +435,33 @@ func TestOutgoingTransformers_SharedMessageIsolation(t *testing.T) {
 	loggerA.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
 	loggerB.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
 
-	time.Sleep(time.Second)
+	// Wait until batches are consumed from the channels
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if len(loggerA.GetInputChannel()) == 0 && len(loggerB.GetInputChannel()) == 0 &&
+			len(loggerA.GetOutputChannel()) == 0 && len(loggerB.GetOutputChannel()) == 0 {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	time.Sleep(50 * time.Millisecond)
 
-	contentB, err := os.ReadFile(fB.Name())
+	// Stop loggers: cleanly flushes bufio writer to disk and closes files
+	loggerA.Stop()
+	loggerB.Stop()
+
+	var contentB []byte
+	deadline = time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		contentB, err = os.ReadFile(fB.Name())
+		if err == nil && len(contentB) > 0 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
