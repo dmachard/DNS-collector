@@ -6,6 +6,7 @@ import (
 	"context"
 	"log"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -102,26 +103,8 @@ func (w *OpenTelemetryClient) StartCollect() {
 				return
 			}
 
-			for _, dm := range batch.Messages {
-				// count global messages
-				w.CountIngressTraffic()
-
-				// apply transforms, init dns message with additional parts if necessary
-				transformResult, err := subprocessors.ProcessMessage(dm)
-				if err != nil {
-					w.LogError(err.Error())
-				}
-				if transformResult == transformers.ReturnDrop {
-					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-					continue
-				}
-
-				// send to output channel
-				w.CountEgressTraffic()
-				b := dnsutils.AcquireDNSMessageBatch(1)
-				b.Messages = append(b.Messages, dm)
-				w.GetOutputChannel() <- b
-			}
+			outBatch := w.ProcessBatch(batch, &subprocessors, droppedRoutes, droppedNames)
+			w.SendToOutputAndForwardBatch(nil, nil, outBatch)
 			batch.Release()
 		}
 	}
@@ -133,6 +116,7 @@ func (w *OpenTelemetryClient) StartLogging() {
 
 	// prepare next channels
 	defaultRoutes, defaultNames := GetRoutes(w.GetDefaultRoutes())
+	hasRoutes := len(defaultRoutes) > 0
 
 	// Maps to follow the state of the spans
 	requestorSpans := sync.Map{}
@@ -168,22 +152,32 @@ func (w *OpenTelemetryClient) StartLogging() {
 				}
 				tracer := w.getTracer(dm.DNSTap.Identity)
 
-				// ini opentelemetry with default values
-				dm.OpenTelemetry = &dnsutils.LoggerOpenTelemetry{}
+				targetDm := dm
+				if hasRoutes {
+					if atomic.LoadInt32(&dm.RefCount) > 1 {
+						targetDm = dm.Clone()
+					}
+					targetDm.OpenTelemetry = &dnsutils.LoggerOpenTelemetry{}
+				}
 
-				switch dm.DNSTap.Operation {
+				switch targetDm.DNSTap.Operation {
 				case "CLIENT_QUERY":
-					w.handleClientQuery(&requestorSpans, &messageSpans, tracer, dm, timestamp)
+					w.handleClientQuery(&requestorSpans, &messageSpans, tracer, targetDm, timestamp)
 				case "CLIENT_RESPONSE":
-					w.handleClientResponse(&requestorSpans, &messageSpans, dm, timestamp)
+					w.handleClientResponse(&requestorSpans, &messageSpans, targetDm, timestamp)
 				case "RESOLVER_QUERY":
-					w.handleResolverQuery(&messageSpans, &resolverSpans, tracer, dm, timestamp)
+					w.handleResolverQuery(&messageSpans, &resolverSpans, tracer, targetDm, timestamp)
 				case "RESOLVER_RESPONSE":
-					w.handleResolverResponse(&resolverSpans, dm, timestamp)
+					w.handleResolverResponse(&resolverSpans, targetDm, timestamp)
 				}
 
 				// send to next ?
-				w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+				if hasRoutes {
+					w.SendForwardedTo(defaultRoutes, defaultNames, targetDm)
+					if targetDm != dm {
+						targetDm.Release()
+					}
+				}
 			}
 			batch.Release()
 		}
@@ -200,7 +194,9 @@ func (w *OpenTelemetryClient) handleClientQuery(requestorSpans, messageSpans *sy
 		childSpan.SetAttributes(attribute.String("destination.ip", responseIP))
 
 		messageSpans.Store(dm.PowerDNS.MessageID, trackedSpan{span: childSpan, startTime: timestamp})
-		dm.OpenTelemetry.TraceID = childSpan.SpanContext().TraceID().String()
+		if dm.OpenTelemetry != nil {
+			dm.OpenTelemetry.TraceID = childSpan.SpanContext().TraceID().String()
+		}
 	} else {
 		_, clientSpan := tracer.Start(context.Background(), "Client Query "+responseIP+" ("+dm.DNS.Qname+" / "+dm.DNS.Qtype+" )", trace.WithTimestamp(timestamp))
 		clientSpan.SetAttributes(attribute.String("dns.qname", dm.DNS.Qname))
@@ -208,7 +204,9 @@ func (w *OpenTelemetryClient) handleClientQuery(requestorSpans, messageSpans *sy
 		clientSpan.SetAttributes(attribute.String("destination.ip", responseIP))
 		requestorSpans.Store(dm.PowerDNS.RequestorID, trackedSpan{span: clientSpan, startTime: timestamp})
 		messageSpans.Store(dm.PowerDNS.MessageID, trackedSpan{span: clientSpan, startTime: timestamp})
-		dm.OpenTelemetry.TraceID = clientSpan.SpanContext().TraceID().String()
+		if dm.OpenTelemetry != nil {
+			dm.OpenTelemetry.TraceID = clientSpan.SpanContext().TraceID().String()
+		}
 	}
 }
 
@@ -224,7 +222,9 @@ func (w *OpenTelemetryClient) handleClientResponse(requestorSpans, messageSpans 
 
 		tracked.span.End(trace.WithTimestamp(timestamp))
 		messageSpans.Delete(dm.PowerDNS.MessageID)
-		dm.OpenTelemetry.TraceID = tracked.span.SpanContext().TraceID().String()
+		if dm.OpenTelemetry != nil {
+			dm.OpenTelemetry.TraceID = tracked.span.SpanContext().TraceID().String()
+		}
 	}
 
 	if span, ok := requestorSpans.Load(dm.PowerDNS.RequestorID); ok {
@@ -250,7 +250,9 @@ func (w *OpenTelemetryClient) handleResolverQuery(messageSpans, resolverSpans *s
 		resolverSpan.SetAttributes(attribute.String("source.ip", queryIP))
 		resolverSpan.SetAttributes(attribute.String("destination.ip", responseIP))
 		resolverSpans.Store(dm.PowerDNS.MessageID, trackedSpan{span: resolverSpan, startTime: timestamp})
-		dm.OpenTelemetry.TraceID = resolverSpan.SpanContext().TraceID().String()
+		if dm.OpenTelemetry != nil {
+			dm.OpenTelemetry.TraceID = resolverSpan.SpanContext().TraceID().String()
+		}
 	} else {
 		// No parent span found, create a root span
 		_, resolverSpan := tracer.Start(context.Background(), "Resolver Query ("+dm.DNS.Qname+")", trace.WithTimestamp(timestamp))
@@ -258,7 +260,9 @@ func (w *OpenTelemetryClient) handleResolverQuery(messageSpans, resolverSpans *s
 		resolverSpan.SetAttributes(attribute.String("source.ip", queryIP))
 		resolverSpan.SetAttributes(attribute.String("destination.ip", responseIP))
 		resolverSpans.Store(dm.PowerDNS.MessageID, trackedSpan{span: resolverSpan, startTime: timestamp})
-		dm.OpenTelemetry.TraceID = resolverSpan.SpanContext().TraceID().String()
+		if dm.OpenTelemetry != nil {
+			dm.OpenTelemetry.TraceID = resolverSpan.SpanContext().TraceID().String()
+		}
 	}
 }
 
@@ -274,7 +278,9 @@ func (w *OpenTelemetryClient) handleResolverResponse(resolverSpans *sync.Map, dm
 
 		tracked.span.End(trace.WithTimestamp(timestamp))
 		resolverSpans.Delete(dm.PowerDNS.MessageID)
-		dm.OpenTelemetry.TraceID = tracked.span.SpanContext().TraceID().String()
+		if dm.OpenTelemetry != nil {
+			dm.OpenTelemetry.TraceID = tracked.span.SpanContext().TraceID().String()
+		}
 	}
 }
 

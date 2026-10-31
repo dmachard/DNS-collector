@@ -10,6 +10,7 @@ import (
 	"github.com/dmachard/go-dnscollector/v3/dnsutils"
 	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-dnscollector/v3/pkg/telemetry"
+	"github.com/dmachard/go-dnscollector/v3/transformers"
 	"github.com/dmachard/go-logger"
 )
 
@@ -484,6 +485,51 @@ func (w *GenericWorker) SendToOutputAndForwardBatch(routes []chan *dnsutils.DNSM
 	default:
 		w.sendBatch(routes, routesName, batch, false)
 	}
+}
+
+// ProcessBatch applies outgoing transformers to an incoming batch.
+// If transformers are active and a message is shared (RefCount > 1),
+// the message is cloned (Copy-on-Write) so sibling loggers remain unmutated.
+func (w *GenericWorker) ProcessBatch(
+	batch *dnsutils.DNSMessageBatch,
+	subprocessors *transformers.Transforms,
+	droppedRoutes []chan *dnsutils.DNSMessageBatch,
+	droppedNames []string,
+) *dnsutils.DNSMessageBatch {
+	outBatch := dnsutils.AcquireDNSMessageBatch(len(batch.Messages))
+	hasTransforms := subprocessors != nil && subprocessors.HasActiveTransforms()
+
+	for _, dm := range batch.Messages {
+		w.CountIngressTraffic()
+
+		targetDm := dm
+		isCloned := false
+		if hasTransforms && atomic.LoadInt32(&dm.RefCount) > 1 {
+			targetDm = dm.Clone()
+			isCloned = true
+		}
+
+		if subprocessors != nil {
+			transformResult, err := subprocessors.ProcessMessage(targetDm)
+			if err != nil {
+				w.LogError(err.Error())
+			}
+			if transformResult == transformers.ReturnDrop {
+				w.SendDroppedTo(droppedRoutes, droppedNames, targetDm)
+				if isCloned {
+					targetDm.Release()
+				}
+				continue
+			}
+		}
+
+		targetDm.Retain(1)
+		outBatch.Messages = append(outBatch.Messages, targetDm)
+		if isCloned {
+			targetDm.Release()
+		}
+	}
+	return outBatch
 }
 
 func (w *GenericWorker) GetTextBuffer() *bytes.Buffer {
