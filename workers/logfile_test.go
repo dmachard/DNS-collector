@@ -1,17 +1,20 @@
 package workers
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v3/dnsutils"
 	"github.com/dmachard/go-dnscollector/v3/pkg/config"
+	"github.com/dmachard/go-dnscollector/v3/transformers"
 	"github.com/dmachard/go-logger"
 	"github.com/google/gopacket/pcapgo"
 )
@@ -346,5 +349,108 @@ func Test_LogFile_JSON_DNSTap_Fields(t *testing.T) {
 	}
 	if !strings.Contains(contentStr, `"timestamp-rfc3339ns":"2020-09-13T12:26:40.123456789Z"`) {
 		t.Errorf("expected RFC3339 timestamp, got: %s", contentStr)
+	}
+}
+
+func TestOutgoingTransformers_SharedMessageIsolation(t *testing.T) {
+	// 1. Direct Data Race check: transformer on shared message isolates clone while another logger encodes JSON
+	cfgTransforms := config.GetDefaultConfig()
+	cfgTransforms.OutgoingTransformers.UserPrivacy.Enable = true
+	cfgTransforms.OutgoingTransformers.UserPrivacy.AnonymizeIP = true
+	cfgTransforms.OutgoingTransformers.UserPrivacy.AnonymizeIPV4Bits = "0.0.0.0/16"
+	subprocessors := transformers.NewTransforms(&cfgTransforms.OutgoingTransformers, logger.New(false), "test", nil, 0)
+
+	dmRace := dnsutils.GetFakeDNSMessage()
+	dmRace.NetworkInfo.SetQueryIPBytes([]byte{192, 0, 2, 1})
+	dmRace.NetworkInfo.QueryIP = "192.0.2.1"
+	dmRace.Retain(1) // RefCount = 2 (shared)
+
+	dummyWorker := NewGenericWorker(cfgTransforms, logger.New(false), "test", "test", 10, config.DefaultMonitor)
+	inBatch := dnsutils.AcquireDNSMessageBatch(1)
+	inBatch.Messages = append(inBatch.Messages, &dmRace)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		outBatch := dummyWorker.ProcessBatch(inBatch, &subprocessors, nil, nil)
+		if len(outBatch.Messages) > 0 {
+			if outBatch.Messages[0].NetworkInfo.QueryIP != "192.0.0.0" {
+				t.Errorf("expected anonymized IP on outBatch clone, got: %s", outBatch.Messages[0].NetworkInfo.QueryIP)
+			}
+		}
+		outBatch.Release()
+	}()
+	go func() {
+		defer wg.Done()
+		var buf bytes.Buffer
+		dmRace.EncodeJSON(&buf)
+	}()
+	wg.Wait()
+
+	if dmRace.NetworkInfo.QueryIP != "192.0.2.1" {
+		t.Errorf("original dmRace.NetworkInfo.QueryIP was corrupted, got: %s", dmRace.NetworkInfo.QueryIP)
+	}
+	inBatch.Release()
+	dmRace.Release()
+
+	// 2. End-to-end side-effect corruption check between two Loggers
+	fA, err := os.CreateTemp("", "temp_dns_a.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(fA.Name())
+
+	cfgA := config.GetDefaultConfig()
+	cfgA.Loggers.LogFile.FilePath = fA.Name()
+	cfgA.Loggers.LogFile.Mode = config.ModeJSON
+	cfgA.OutgoingTransformers.UserPrivacy.Enable = true
+	cfgA.OutgoingTransformers.UserPrivacy.AnonymizeIP = true
+	cfgA.OutgoingTransformers.UserPrivacy.AnonymizeIPV4Bits = "0.0.0.0/16"
+
+	loggerA := NewLogFile(cfgA, logger.New(false), "loggerA")
+	go loggerA.StartCollect()
+	defer loggerA.Stop()
+
+	// Logger B without user-privacy (wants raw original IP)
+	fB, err := os.CreateTemp("", "temp_dns_b.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(fB.Name())
+
+	cfgB := config.GetDefaultConfig()
+	cfgB.Loggers.LogFile.FilePath = fB.Name()
+	cfgB.Loggers.LogFile.Mode = config.ModeJSON
+
+	loggerB := NewLogFile(cfgB, logger.New(false), "loggerB")
+	go loggerB.StartCollect()
+	defer loggerB.Stop()
+
+	// A single DNSMessage shared between loggerA and loggerB (fanout with RefCount = 2)
+	dm := dnsutils.GetFakeDNSMessage()
+	dm.NetworkInfo.SetQueryIPBytes([]byte{192, 0, 2, 1})
+	dm.NetworkInfo.QueryIP = "192.0.2.1"
+	dm.Retain(1) // RefCount = 2
+
+	// Send to both loggers concurrently
+	loggerA.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
+	loggerB.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
+
+	time.Sleep(time.Second)
+
+	contentB, err := os.ReadFile(fB.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	contentBStr := string(contentB)
+
+	// Logger B did NOT configure anonymization, it should have received 192.0.2.1!
+	// But because Logger A mutated the shared *DNSMessage in place, Logger B got 192.0.0.0!
+	if strings.Contains(contentBStr, `"query-ip":"192.0.0.0"`) {
+		t.Errorf("CORRUPTION: loggerB received anonymized IP 192.0.0.0 because loggerA mutated the shared *DNSMessage!")
+	}
+	if !strings.Contains(contentBStr, `"query-ip":"192.0.2.1"`) {
+		t.Errorf("expected loggerB to receive original IP 192.0.2.1, got: %s", contentBStr)
 	}
 }

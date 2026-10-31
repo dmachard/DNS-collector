@@ -10,14 +10,19 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func (dm *DNSMessage) ToDNSTap(extended bool) ([]byte, error) {
+func (dm *DNSMessage) ToDNSTap(extended bool, customIdentity ...string) ([]byte, error) {
 	if len(dm.DNSTap.Payload) > 0 {
 		return dm.DNSTap.Payload, nil
 	}
 
+	identity := dm.DNSTap.Identity
+	if len(customIdentity) > 0 && len(customIdentity[0]) > 0 {
+		identity = customIdentity[0]
+	}
+
 	dt := &dnstap.Dnstap{}
 	t := dnstap.Dnstap_MESSAGE
-	dt.Identity = []byte(dm.DNSTap.Identity)
+	dt.Identity = []byte(identity)
 	dt.Version = []byte("-")
 	dt.Type = &t
 

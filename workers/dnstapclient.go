@@ -151,12 +151,13 @@ func (w *DnstapSender) FlushBuffer(buf *[]*dnsutils.DNSMessage) {
 
 	for _, dm := range *buf {
 		// update identity ?
+		identity := ""
 		if w.GetConfig().Loggers.DNSTap.OverwriteIdentity {
-			dm.DNSTap.Identity = w.GetConfig().Loggers.DNSTap.ServerID
+			identity = w.GetConfig().Loggers.DNSTap.ServerID
 		}
 
 		// encode dns message to dnstap protobuf binary
-		data, err = dm.ToDNSTap(w.GetConfig().Loggers.DNSTap.ExtendedSupport)
+		data, err = dm.ToDNSTap(w.GetConfig().Loggers.DNSTap.ExtendedSupport, identity)
 		if err != nil {
 			w.LogError("failed to encode to DNStap protobuf: %s", err)
 			continue
@@ -223,24 +224,7 @@ func (w *DnstapSender) StartCollect() {
 				w.LogInfo("input channel closed!")
 				return
 			}
-			outBatch := dnsutils.AcquireDNSMessageBatch(len(batch.Messages))
-			for _, dm := range batch.Messages {
-				// count global messages
-				w.CountIngressTraffic()
-
-				// apply transforms, init dns message with additional parts if necessary
-				transformResult, err := subprocessors.ProcessMessage(dm)
-				if err != nil {
-					w.LogError(err.Error())
-				}
-				if transformResult == transformers.ReturnDrop {
-					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-					continue
-				}
-
-				dm.Retain(1)
-				outBatch.Messages = append(outBatch.Messages, dm)
-			}
+			outBatch := w.ProcessBatch(batch, &subprocessors, droppedRoutes, droppedNames)
 			w.SendToOutputAndForwardBatch(defaultRoutes, defaultNames, outBatch)
 			batch.Release()
 		}

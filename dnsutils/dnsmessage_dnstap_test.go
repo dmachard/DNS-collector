@@ -57,6 +57,28 @@ func TestDnsMessage_ToDNSTap(t *testing.T) {
 	}
 }
 
+func TestDnsMessage_ToDNSTap_CustomIdentity(t *testing.T) {
+	dm := GetFakeDNSMessageWithPayload()
+	dm.DNSTap.Identity = "original"
+
+	tapMsg, err := dm.ToDNSTap(false, "custom-id")
+	if err != nil {
+		t.Fatalf("could not encode to dnstap: %v\n", err)
+	}
+
+	dt := &dnstap.Dnstap{}
+	if err := proto.Unmarshal(tapMsg, dt); err != nil {
+		t.Fatalf("error to decode dnstap: %v", err)
+	}
+
+	if string(dt.GetIdentity()) != "custom-id" {
+		t.Errorf("identity in dnstap got=%s, want=custom-id", string(dt.GetIdentity()))
+	}
+	if dm.DNSTap.Identity != "original" {
+		t.Errorf("original dm.DNSTap.Identity mutated: got=%s, want=original", dm.DNSTap.Identity)
+	}
+}
+
 func TestDnsMessage_ToDNSTap_FamilyAliases(t *testing.T) {
 	testCases := []struct {
 		family   string

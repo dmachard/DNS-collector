@@ -394,3 +394,38 @@ func TestDNSMessage_ResponseIPCorruptionRepro(t *testing.T) {
 		t.Errorf("Detected %d corrupted ResponseIP occurrences due to data race", corrupted)
 	}
 }
+
+func TestDNSMessage_Clone(t *testing.T) {
+	dm := AcquireDNSMessage()
+	defer dm.Release()
+
+	dm.NetworkInfo.SetQueryIPBytes([]byte{192, 168, 1, 1})
+	dm.DNS.Qname = "example.com"
+	dm.DNS.Payload = []byte{1, 2, 3, 4}
+	dm.DNS.DNSRRs.Answers = []DNSAnswer{{Name: "example.com", Rdata: "93.184.216.34"}}
+	dm.Rest = &TransformRest{Failed: false, Response: "orig"}
+
+	clone := dm.Clone()
+	defer clone.Release()
+
+	if clone.RefCount != 1 {
+		t.Errorf("expected clone RefCount 1, got %d", clone.RefCount)
+	}
+	if clone.DNS.Qname != "example.com" {
+		t.Errorf("expected clone Qname example.com, got %s", clone.DNS.Qname)
+	}
+	if len(clone.DNS.DNSRRs.Answers) != 1 || clone.DNS.DNSRRs.Answers[0].Rdata != "93.184.216.34" {
+		t.Errorf("clone Answers slice mismatch")
+	}
+
+	// Mutate clone Rest and payload, verify original unaffected
+	clone.Rest = &TransformRest{Failed: true, Response: "cloned"}
+	clone.DNS.Payload[0] = 99
+
+	if dm.Rest.Response != "orig" || dm.Rest.Failed != false {
+		t.Errorf("mutating clone mutated original Rest")
+	}
+	if dm.DNS.Payload[0] != 1 {
+		t.Errorf("mutating clone mutated original DNS.Payload")
+	}
+}

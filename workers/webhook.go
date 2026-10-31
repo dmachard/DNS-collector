@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/dmachard/go-dnscollector/v3/dnsutils"
@@ -89,27 +90,8 @@ func (w *Webhook) StartCollect() {
 				cancel()
 				return
 			}
-			for _, dm := range batch.Messages {
-				// count global messages
-				w.CountIngressTraffic()
-
-				// apply transforms, init dns message with additional parts if necessary
-				transformResult, err := subprocessors.ProcessMessage(dm)
-				if err != nil {
-					w.LogError(err.Error())
-				}
-				if transformResult == transformers.ReturnDrop {
-					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-					continue
-				}
-				// count output packets
-				w.CountEgressTraffic()
-
-				dm.Retain(1)
-				b := dnsutils.AcquireDNSMessageBatch(1)
-				b.Messages = append(b.Messages, dm)
-				w.GetOutputChannel() <- b
-			}
+			outBatch := w.ProcessBatch(batch, &subprocessors, droppedRoutes, droppedNames)
+			w.SendToOutputAndForwardBatch(nil, nil, outBatch)
 			batch.Release()
 		}
 	}
@@ -120,6 +102,7 @@ func (w *Webhook) StartLogging(threadnum int, ctx context.Context) {
 	defer w.LoggingDone()
 
 	defaultRoutes, defaultNames := GetRoutes(w.GetDefaultRoutes())
+	hasRoutes := len(defaultRoutes) > 0
 
 	for {
 		select {
@@ -133,11 +116,20 @@ func (w *Webhook) StartLogging(threadnum int, ctx context.Context) {
 			}
 
 			for _, dm := range batch.Messages {
-				// enrich dm with HTTP data
-				w.Request(dm)
-
-				// send to next
-				w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+				if hasRoutes {
+					targetDm := dm
+					if atomic.LoadInt32(&dm.RefCount) > 1 {
+						targetDm = dm.Clone()
+					}
+					targetDm.Rest = &dnsutils.TransformRest{Failed: true, Response: ""}
+					_ = w.Request(targetDm)
+					w.SendForwardedTo(defaultRoutes, defaultNames, targetDm)
+					if targetDm != dm {
+						targetDm.Release()
+					}
+				} else {
+					_ = w.Request(dm)
+				}
 			}
 			batch.Release()
 		}
@@ -145,10 +137,6 @@ func (w *Webhook) StartLogging(threadnum int, ctx context.Context) {
 }
 
 func (w *Webhook) Request(dm *dnsutils.DNSMessage) error {
-	if dm.Rest == nil {
-		dm.Rest = &dnsutils.TransformRest{Failed: true, Response: ""}
-	}
-
 	buffer := w.GetTextBuffer()
 	buffer.Reset()
 	defer w.PutTextBuffer(buffer)
@@ -184,8 +172,10 @@ func (w *Webhook) Request(dm *dnsutils.DNSMessage) error {
 		return err
 	}
 
-	dm.Rest.Failed = false
-	dm.Rest.Response = string(body)
+	if dm.Rest != nil {
+		dm.Rest.Failed = false
+		dm.Rest.Response = string(body)
+	}
 
 	return nil
 }

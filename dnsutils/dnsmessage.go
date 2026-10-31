@@ -373,6 +373,64 @@ func AcquireDNSMessage() *DNSMessage {
 	return dm
 }
 
+func (dm *DNSMessage) Clone() *DNSMessage {
+	newDm := AcquireDNSMessage()
+
+	newDm.NetworkInfo = dm.NetworkInfo
+	newDm.DNS = dm.DNS
+	newDm.EDNS = dm.EDNS
+	newDm.DNSTap = dm.DNSTap
+	newDm.PowerDNS = dm.PowerDNS
+	newDm.OpenTelemetry = dm.OpenTelemetry
+	newDm.Geo = dm.Geo
+	newDm.BGP = dm.BGP
+	newDm.Suspicious = dm.Suspicious
+	newDm.PublicSuffix = dm.PublicSuffix
+	newDm.Extracted = dm.Extracted
+	newDm.Reducer = dm.Reducer
+	newDm.MachineLearning = dm.MachineLearning
+	newDm.Filtering = dm.Filtering
+	newDm.Frequency = dm.Frequency
+	newDm.ATags = dm.ATags
+	newDm.Rest = dm.Rest
+	newDm.Relabeling = dm.Relabeling
+
+	if len(dm.DNS.Payload) > 0 {
+		newDm.DNS.Payload = make([]byte, len(dm.DNS.Payload))
+		copy(newDm.DNS.Payload, dm.DNS.Payload)
+	}
+	if len(dm.DNSTap.Payload) > 0 {
+		newDm.DNSTap.Payload = make([]byte, len(dm.DNSTap.Payload))
+		copy(newDm.DNSTap.Payload, dm.DNSTap.Payload)
+	}
+	if len(dm.DNS.DNSRRs.Answers) > 0 {
+		newDm.DNS.DNSRRs.Answers = make([]DNSAnswer, len(dm.DNS.DNSRRs.Answers))
+		copy(newDm.DNS.DNSRRs.Answers, dm.DNS.DNSRRs.Answers)
+	} else {
+		newDm.DNS.DNSRRs.Answers = emptyAnswers
+	}
+	if len(dm.DNS.DNSRRs.Nameservers) > 0 {
+		newDm.DNS.DNSRRs.Nameservers = make([]DNSAnswer, len(dm.DNS.DNSRRs.Nameservers))
+		copy(newDm.DNS.DNSRRs.Nameservers, dm.DNS.DNSRRs.Nameservers)
+	} else {
+		newDm.DNS.DNSRRs.Nameservers = emptyAnswers
+	}
+	if len(dm.DNS.DNSRRs.Records) > 0 {
+		newDm.DNS.DNSRRs.Records = make([]DNSAnswer, len(dm.DNS.DNSRRs.Records))
+		copy(newDm.DNS.DNSRRs.Records, dm.DNS.DNSRRs.Records)
+	} else {
+		newDm.DNS.DNSRRs.Records = emptyAnswers
+	}
+	if len(dm.EDNS.Options) > 0 {
+		newDm.EDNS.Options = make([]DNSOption, len(dm.EDNS.Options))
+		copy(newDm.EDNS.Options, dm.EDNS.Options)
+	} else {
+		newDm.EDNS.Options = emptyOptions
+	}
+
+	return newDm
+}
+
 func (dm *DNSMessage) Retain(n int32) {
 	if n > 0 {
 		atomic.AddInt32(&dm.RefCount, n)

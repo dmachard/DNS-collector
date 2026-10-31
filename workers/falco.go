@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dmachard/go-dnscollector/v3/dnsutils"
 	"github.com/dmachard/go-dnscollector/v3/pkg/config"
 	"github.com/dmachard/go-dnscollector/v3/transformers"
 	"github.com/dmachard/go-logger"
@@ -67,23 +66,7 @@ func (w *FalcoClient) StartCollect() {
 				w.LogInfo("input channel closed!")
 				return
 			}
-			outBatch := dnsutils.AcquireDNSMessageBatch(len(batch.Messages))
-			for _, dm := range batch.Messages {
-				// count global messages
-				w.CountIngressTraffic()
-
-				// apply transforms, init dns message with additional parts if necessary
-				transformResult, err := subprocessors.ProcessMessage(dm)
-				if err != nil {
-					w.LogError(err.Error())
-				}
-				if transformResult == transformers.ReturnDrop {
-					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-					continue
-				}
-				dm.Retain(1)
-				outBatch.Messages = append(outBatch.Messages, dm)
-			}
+			outBatch := w.ProcessBatch(batch, &subprocessors, droppedRoutes, droppedNames)
 			w.SendToOutputAndForwardBatch(defaultRoutes, defaultNames, outBatch)
 			batch.Release()
 		}

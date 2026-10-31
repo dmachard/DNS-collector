@@ -2,8 +2,10 @@ package workers
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/binary"
 	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -133,4 +135,47 @@ func Test_DnstapClient(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDnstapClient_OverwriteIdentity_SharedMessage(t *testing.T) {
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.DNSTap.OverwriteIdentity = true
+	cfg.Loggers.DNSTap.ServerID = "custom-server-id"
+
+	g := NewDnstapSender(cfg, logger.New(false), "test")
+	r, wPipe := net.Pipe()
+	defer r.Close()
+	defer wPipe.Close()
+	g.fs = framestream.NewFstrm(bufio.NewReader(wPipe), bufio.NewWriter(wPipe), wPipe, 5*time.Second, []byte("protobuf:dnstap.Dnstap"), true)
+
+	go func() {
+		buf := make([]byte, 1024)
+		for {
+			if _, err := r.Read(buf); err != nil {
+				return
+			}
+		}
+	}()
+
+	dm := dnsutils.GetFakeDNSMessage()
+	dm.DNSTap.Identity = "original-identity"
+	dm.Retain(1)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		buf := []*dnsutils.DNSMessage{&dm}
+		g.FlushBuffer(&buf)
+	}()
+
+	go func() {
+		defer wg.Done()
+		defer dm.Release()
+		var out bytes.Buffer
+		dm.EncodeJSON(&out)
+	}()
+
+	wg.Wait()
 }

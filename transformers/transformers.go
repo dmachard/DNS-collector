@@ -125,6 +125,13 @@ func (p *Transforms) ReloadConfig(cfg *config.ConfigTransformers) {
 	*p = NewTransforms(cfg, p.logger, p.name, p.nextWorkers, p.instance)
 }
 
+func (p *Transforms) HasActiveTransforms() bool {
+	if p == nil {
+		return false
+	}
+	return len(p.activeProcessTransforms) > 0
+}
+
 func (p *Transforms) Prepare() error {
 	// clean the slice
 	p.activeProcessTransforms = p.activeProcessTransforms[:0]
