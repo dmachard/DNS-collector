@@ -5,10 +5,10 @@ GO_VERSION := $(shell go env GOVERSION | sed -n 's/go\([0-9]\+\.[0-9]\+\).*/\1/p
 GO_LOGGER := 1.2.0
 GO_POWERDNS_PROTOBUF := 1.7.0
 GO_DNSTAP_PROTOBUF := 1.4.1
-GO_FRAMESTREAM := 1.8.0
+GO_FRAMESTREAM := 1.8.1
 GO_CLIENTSYSLOG := 1.0.4
 GO_TOPMAP := 1.0.3
-GO_NETUTILS := 1.9.1
+GO_NETUTILS := 1.9.4
 
 BUILD_TIME := $(shell LANG=en_US date +"%F_%T_%z")
 COMMIT := $(shell git rev-parse --short HEAD)
