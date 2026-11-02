@@ -425,6 +425,17 @@ func (w *GenericWorker) SendForwardedBatchTo(routes []chan *dnsutils.DNSMessageB
 	w.sendBatch(routes, routesName, batch, false)
 }
 
+// SendDroppedBatchTo dispatches a pre-assembled *DNSMessageBatch to all dropped routes.
+func (w *GenericWorker) SendDroppedBatchTo(routes []chan *dnsutils.DNSMessageBatch, routesName []string, batch *dnsutils.DNSMessageBatch) {
+	if batch == nil || len(batch.Messages) == 0 {
+		if batch != nil {
+			batch.Release()
+		}
+		return
+	}
+	w.sendBatch(routes, routesName, batch, true)
+}
+
 // RunBatchLoop reads *DNSMessageBatch values from the input channel and calls
 // process() for each one. Batching is now done by the producer (via SendForwardedBatchTo
 // or SendForwardedTo which wraps into batch-of-1). No accumulation or ticker needed here.

@@ -33,6 +33,35 @@ func Benchmark_DNSMessageWorker_Passthrough(b *testing.B) {
 	}
 }
 
+func Benchmark_DNSMessageWorker_Batch64(b *testing.B) {
+	cfg := config.GetDefaultConfig()
+	cfg.Global.Worker.ChannelBufferSize = 65536
+
+	devNull := NewDevNull(cfg, logger.New(false), "devnull")
+	go devNull.StartCollect()
+	defer devNull.Stop()
+
+	c := NewDNSMessage(nil, cfg, logger.New(false), "bench-dnsmessage")
+	c.SetDefaultRoutes([]Worker{devNull})
+	go c.StartCollect()
+	defer c.Stop()
+
+	dm := dnsutils.GetFakeDNSMessage()
+	inChan := c.GetInputChannel()
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		batch := dnsutils.AcquireDNSMessageBatch(64)
+		for j := 0; j < 64; j++ {
+			msg := dm
+			batch.Messages = append(batch.Messages, &msg)
+		}
+		inChan <- batch
+	}
+}
+
 func Benchmark_DNSMessageWorker_MatchingInclude(b *testing.B) {
 	cfg := config.GetDefaultConfig()
 	cfg.Global.Worker.ChannelBufferSize = 65536
