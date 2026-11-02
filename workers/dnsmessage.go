@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"sync/atomic"
 
 	"github.com/dmachard/go-dnscollector/v3/dnsutils"
 	"github.com/dmachard/go-dnscollector/v3/pkg/config"
@@ -227,6 +228,13 @@ func (w *DNSMessage) StartCollect() {
 				w.LogInfo("channel closed, exit")
 				return
 			}
+
+			hasTransforms := subprocessors.HasActiveTransforms()
+			hasKeptRoutes := len(defaultRoutes) > 0
+			hasDroppedRoutes := len(droppedRoutes) > 0
+
+			var keptBatch, droppedBatch *dnsutils.DNSMessageBatch
+
 			for _, dm := range batch.Messages {
 				// count global messages
 				w.CountIngressTraffic()
@@ -246,30 +254,63 @@ func (w *DNSMessage) StartCollect() {
 					}
 				}
 
-				// count output packets
-				w.CountEgressTraffic()
+				targetDm := dm
+				isCloned := false
 
 				// apply transform on matched packets only
 				// init dns message with additional parts if necessary
 				if matched {
-					transformResult, err := subprocessors.ProcessMessage(dm)
+					if hasTransforms && atomic.LoadInt32(&dm.RefCount) > 1 {
+						targetDm = dm.Clone()
+						isCloned = true
+					}
+					transformResult, err := subprocessors.ProcessMessage(targetDm)
 					if err != nil {
 						w.LogError(err.Error())
 					}
 					if transformResult == transformers.ReturnDrop {
-						w.SendDroppedTo(droppedRoutes, droppedNames, dm)
-						continue
+						matched = false
 					}
 				}
 
 				// drop packet ?
 				if !matched {
-					w.SendDroppedTo(droppedRoutes, droppedNames, dm)
+					if hasDroppedRoutes {
+						if droppedBatch == nil {
+							droppedBatch = dnsutils.AcquireDNSMessageBatch(len(batch.Messages))
+						}
+						if !isCloned {
+							targetDm.Retain(1)
+						}
+						droppedBatch.Messages = append(droppedBatch.Messages, targetDm)
+					} else if isCloned {
+						targetDm.Release()
+					}
 					continue
 				}
 
+				// count output packets
+				w.CountEgressTraffic()
+
 				// send to next
-				w.SendForwardedTo(defaultRoutes, defaultNames, dm)
+				if hasKeptRoutes {
+					if keptBatch == nil {
+						keptBatch = dnsutils.AcquireDNSMessageBatch(len(batch.Messages))
+					}
+					if !isCloned {
+						targetDm.Retain(1)
+					}
+					keptBatch.Messages = append(keptBatch.Messages, targetDm)
+				} else if isCloned {
+					targetDm.Release()
+				}
+			}
+
+			if keptBatch != nil {
+				w.SendForwardedBatchTo(defaultRoutes, defaultNames, keptBatch)
+			}
+			if droppedBatch != nil {
+				w.SendDroppedBatchTo(droppedRoutes, droppedNames, droppedBatch)
 			}
 			batch.Release()
 		}

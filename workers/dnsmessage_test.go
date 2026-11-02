@@ -162,3 +162,86 @@ func TestDnsMessage_BufferLoggerIsFull(t *testing.T) {
 	// stop all
 	c.Stop()
 }
+
+func TestDnsMessage_BatchPreserved(t *testing.T) {
+	kept := GetWorkerForTest(10)
+	cfg := config.GetDefaultConfig()
+	cfg.Collectors.DNSMessage.Enable = true
+
+	c := NewDNSMessage(nil, cfg, logger.New(false), "test")
+	c.SetDefaultRoutes([]Worker{kept})
+
+	go c.StartCollect()
+	defer c.Stop()
+
+	// send a batch of 10 messages
+	const count = 10
+	inBatch := dnsutils.AcquireDNSMessageBatch(count)
+	for i := 0; i < count; i++ {
+		dm := dnsutils.GetFakeDNSMessage()
+		dm.DNS.Qname = fmt.Sprintf("dns%d.collector", i)
+		inBatch.Messages = append(inBatch.Messages, &dm)
+	}
+	c.GetInputChannel() <- inBatch
+
+	// read from kept worker
+	select {
+	case outBatch := <-kept.GetInputChannel():
+		if len(outBatch.Messages) != count {
+			t.Fatalf("expected batch of %d messages, got batch of %d messages (batching was shattered into single messages)", count, len(outBatch.Messages))
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for batch")
+	}
+}
+
+func TestDnsMessage_BatchPreserved_WithFiltering(t *testing.T) {
+	kept := GetWorkerForTest(10)
+	dropped := GetWorkerForTest(10)
+	cfg := config.GetDefaultConfig()
+	cfg.Collectors.DNSMessage.Enable = true
+	cfg.Collectors.DNSMessage.Matching.Include = map[string]interface{}{
+		"dns.qname": "keep.*",
+	}
+
+	c := NewDNSMessage(nil, cfg, logger.New(false), "test-filtering")
+	c.SetDefaultRoutes([]Worker{kept})
+	c.SetDefaultDropped([]Worker{dropped})
+
+	go c.StartCollect()
+	defer c.Stop()
+
+	// send batch with 6 kept and 4 dropped messages
+	inBatch := dnsutils.AcquireDNSMessageBatch(10)
+	for i := 0; i < 6; i++ {
+		dm := dnsutils.GetFakeDNSMessage()
+		dm.DNS.Qname = fmt.Sprintf("keep.%d.example.com", i)
+		inBatch.Messages = append(inBatch.Messages, &dm)
+	}
+	for i := 0; i < 4; i++ {
+		dm := dnsutils.GetFakeDNSMessage()
+		dm.DNS.Qname = fmt.Sprintf("drop.%d.example.com", i)
+		inBatch.Messages = append(inBatch.Messages, &dm)
+	}
+	c.GetInputChannel() <- inBatch
+
+	// kept route should receive 1 batch of 6
+	select {
+	case outBatch := <-kept.GetInputChannel():
+		if len(outBatch.Messages) != 6 {
+			t.Fatalf("expected kept batch of 6 messages, got %d", len(outBatch.Messages))
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for kept batch")
+	}
+
+	// dropped route should receive 1 batch of 4
+	select {
+	case outBatch := <-dropped.GetInputChannel():
+		if len(outBatch.Messages) != 4 {
+			t.Fatalf("expected dropped batch of 4 messages, got %d", len(outBatch.Messages))
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for dropped batch")
+	}
+}
