@@ -1,6 +1,6 @@
 module github.com/dmachard/go-dnscollector/v3
 
-go 1.26.5
+go 1.26.10
 
 require (
 	github.com/IBM/fluent-forward-go v0.4.0
@@ -9,9 +9,9 @@ require (
 	github.com/creasty/defaults v1.11.0
 	github.com/dmachard/go-clientsyslog v1.0.4
 	github.com/dmachard/go-dnstap-protobuf v1.4.1
-	github.com/dmachard/go-framestream v1.8.0
+	github.com/dmachard/go-framestream v1.8.1
 	github.com/dmachard/go-logger v1.2.0
-	github.com/dmachard/go-netutils v1.9.1
+	github.com/dmachard/go-netutils v1.9.2
 	github.com/dmachard/go-powerdns-protobuf v1.7.0
 	github.com/dmachard/go-topmap v1.0.3
 	github.com/eclipse/paho.mqtt.golang v1.5.1
@@ -24,7 +24,7 @@ require (
 	github.com/google/gopacket v1.1.19
 	github.com/google/uuid v1.6.0
 	github.com/grafana/dskit v0.0.0-20260209132809-8d1c6d34bb5a
-	github.com/grafana/loki/v3 v3.7.8
+	github.com/grafana/loki/v3 v3.7.9
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/hpcloud/tail v1.0.0
 	github.com/influxdata/influxdb-client-go v1.4.0
@@ -33,7 +33,7 @@ require (
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/nsqio/go-nsq v1.1.0
 	github.com/oschwald/maxminddb-golang v1.13.1
-	github.com/prometheus/client_golang v1.24.1
+	github.com/prometheus/client_golang v1.25.0
 	github.com/rs/tzsp v0.0.0-20161230003637-8ce729c826b9
 	github.com/segmentio/kafka-go v0.4.51
 	github.com/stretchr/testify v1.12.1
@@ -43,8 +43,8 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.47.0
 	go.opentelemetry.io/otel/sdk v1.47.0
 	go.opentelemetry.io/otel/trace v1.47.0
-	golang.org/x/net v0.59.0
-	golang.org/x/sys v0.48.0
+	golang.org/x/net v0.61.0
+	golang.org/x/sys v0.49.0
 	google.golang.org/protobuf v1.36.12
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -71,7 +71,7 @@ require (
 	github.com/facette/natsort v0.0.0-20181210072756-2cd4dd1e2dcb // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
-	github.com/fxamacker/cbor/v2 v2.9.2 // indirect
+	github.com/fxamacker/cbor/v2 v2.9.6 // indirect
 	github.com/go-kit/log v0.2.1 // indirect
 	github.com/go-logfmt/logfmt v0.6.1 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
@@ -126,6 +126,7 @@ require (
 	github.com/opentracing-contrib/go-grpc v0.1.4 // indirect
 	github.com/opentracing-contrib/go-stdlib v1.1.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b // indirect
+	github.com/pandatix/go-abnf v0.5.3 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.31 // indirect
 	github.com/pires/go-proxyproto v0.8.1 // indirect
@@ -178,16 +179,16 @@ require (
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	go4.org/intern v0.0.0-20211027215823-ae77deb06f29 // indirect
-	go4.org/netipx v0.0.0-20230125063823-8449b0a6169f // indirect
+	go4.org/netipx v0.0.0-20260823151212-3075585bcbeb // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20230525183740-e7c30c78aeb2 // indirect
-	golang.org/x/crypto v0.57.0 // indirect
-	golang.org/x/exp v0.0.0-20260709172345-9ea1abe57597 // indirect
+	golang.org/x/crypto v0.58.0 // indirect
+	golang.org/x/exp v0.0.0-20261014143641-f0251eb4aa3e // indirect
 	golang.org/x/oauth2 v0.37.0 // indirect
-	golang.org/x/sync v0.23.0 // indirect
-	golang.org/x/term v0.46.0 // indirect
+	golang.org/x/sync v0.24.0 // indirect
+	golang.org/x/term v0.47.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20260928230214-8a89bd6388cc // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260928230214-8a89bd6388cc // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20261012220534-4341edf3f941 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20261005182115-fad411399dd8 // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
@@ -195,8 +196,8 @@ require (
 	k8s.io/client-go v0.37.0 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260721132016-d427ff9ee9ad // indirect
-	k8s.io/utils v0.0.0-20260626114624-be93311217bd // indirect
-	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
+	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3 // indirect
+	sigs.k8s.io/json v0.0.0-20260909141634-11ed52e25bc5 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
@@ -209,10 +210,10 @@ require (
 	github.com/influxdata/line-protocol v0.0.0-20200327222509-2487e7298839 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_model v0.6.3
-	github.com/prometheus/common v0.72.0
-	github.com/prometheus/procfs v0.21.1 // indirect
-	github.com/prometheus/prometheus v0.315.0
-	golang.org/x/text v0.42.0 // indirect
+	github.com/prometheus/common v0.73.1
+	github.com/prometheus/procfs v0.22.0 // indirect
+	github.com/prometheus/prometheus v0.315.1
+	golang.org/x/text v0.43.0 // indirect
 	google.golang.org/grpc v1.83.2 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
