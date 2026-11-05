@@ -19,17 +19,25 @@ func (c *ConfigPipelines) IsValid(userCfg map[string]interface{}) error {
 	}
 	delete(userCfg, "name")
 
-	if _, ok := userCfg["transforms"]; ok {
+	if val, ok := userCfg["transforms"]; ok {
+		transformsMap, isMap := val.(map[string]interface{})
+		if !isMap {
+			return errors.Errorf("transform - expected map, got %T", val)
+		}
 		cfg := ConfigTransformers{}
-		if err := cfg.IsValid(userCfg["transforms"].(map[string]interface{})); err != nil {
+		if err := cfg.IsValid(transformsMap); err != nil {
 			return errors.Errorf("transform - %s", err)
 		}
 		delete(userCfg, "transforms")
 	}
 
-	if _, ok := userCfg["routing-policy"]; ok {
+	if val, ok := userCfg["routing-policy"]; ok {
+		routingMap, isMap := val.(map[string]interface{})
+		if !isMap {
+			return errors.Errorf("routing-policy - expected map, got %T", val)
+		}
 		cfg := PipelinesRouting{}
-		if err := cfg.IsValid(userCfg["routing-policy"].(map[string]interface{})); err != nil {
+		if err := cfg.IsValid(routingMap); err != nil {
 			return errors.Errorf("routing-policy - %s", err)
 		}
 		delete(userCfg, "routing-policy")

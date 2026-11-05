@@ -49,6 +49,24 @@ func TestConfigPipelines_IsValid(t *testing.T) {
 			expectErr: true,
 			errorMsg:  "transform - unknown key=`invalidTransform`",
 		},
+		{
+			name: "Non-map Transforms Type",
+			config: map[string]interface{}{
+				"name":       "testPipeline",
+				"transforms": "invalid",
+			},
+			expectErr: true,
+			errorMsg:  "transform - expected map, got string",
+		},
+		{
+			name: "Non-map Routing Policy Type",
+			config: map[string]interface{}{
+				"name":           "testPipeline",
+				"routing-policy": "invalid",
+			},
+			expectErr: true,
+			errorMsg:  "routing-policy - expected map, got string",
+		},
 	}
 
 	for _, tc := range testCases {
