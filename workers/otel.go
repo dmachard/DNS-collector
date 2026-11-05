@@ -4,7 +4,6 @@ package workers
 
 import (
 	"context"
-	"log"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/dmachard/go-dnscollector/v3/dnsutils"
 	"github.com/dmachard/go-dnscollector/v3/pkg/config"
@@ -29,7 +29,7 @@ type trackedSpan struct {
 
 type OpenTelemetryClient struct {
 	*GenericWorker
-	tracerProviders map[string]*sdktrace.TracerProvider
+	tracerProviders map[string]trace.TracerProvider
 }
 
 func NewOpenTelemetryClient(cfg *config.Config, console *logger.Logger, name string) *OpenTelemetryClient {
@@ -37,18 +37,19 @@ func NewOpenTelemetryClient(cfg *config.Config, console *logger.Logger, name str
 
 	w := &OpenTelemetryClient{
 		GenericWorker:   NewGenericWorker(cfg, console, name, "opentelemetry", bufSize, config.DefaultMonitor),
-		tracerProviders: make(map[string]*sdktrace.TracerProvider),
+		tracerProviders: make(map[string]trace.TracerProvider),
 	}
 	return w
 }
 
-func (w *OpenTelemetryClient) initTracerProvider(serviceName string) *sdktrace.TracerProvider {
+func (w *OpenTelemetryClient) initTracerProvider(serviceName string) (*sdktrace.TracerProvider, error) {
 	exporter, err := otlptrace.New(context.Background(), otlptracegrpc.NewClient(
 		otlptracegrpc.WithEndpoint(w.config.Loggers.OpenTelemetryClient.OtelEndpoint),
 		otlptracegrpc.WithInsecure(),
 	))
 	if err != nil {
-		log.Fatalf("failed to create OTLP exporter: %v", err)
+		w.LogError("failed to create OTLP exporter: %v", err)
+		return nil, err
 	}
 
 	tracerProvider := sdktrace.NewTracerProvider(
@@ -57,7 +58,7 @@ func (w *OpenTelemetryClient) initTracerProvider(serviceName string) *sdktrace.T
 			attribute.String("service.name", serviceName),
 		)),
 	)
-	return tracerProvider
+	return tracerProvider, nil
 }
 
 func (w *OpenTelemetryClient) getTracer(serviceName string) trace.Tracer {
@@ -65,7 +66,12 @@ func (w *OpenTelemetryClient) getTracer(serviceName string) trace.Tracer {
 		return tp.Tracer("")
 	}
 
-	tp := w.initTracerProvider(serviceName)
+	tp, err := w.initTracerProvider(serviceName)
+	if err != nil {
+		noopTP := noop.NewTracerProvider()
+		w.tracerProviders[serviceName] = noopTP
+		return noopTP.Tracer("")
+	}
 	w.tracerProviders[serviceName] = tp
 	return tp.Tracer("")
 }

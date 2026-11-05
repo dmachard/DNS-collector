@@ -7,7 +7,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"net"
-	"os"
 	"syscall"
 	"time"
 
@@ -90,8 +89,8 @@ func (w *AfpacketSniffer) StartCollect() {
 
 	if w.fd == 0 {
 		if err := w.Listen(); err != nil {
-			w.LogError("init raw socket failed: %v\n", err)
-			os.Exit(1) // nolint
+			w.LogError("init raw socket failed: %v", err)
+			return
 		}
 	}
 
