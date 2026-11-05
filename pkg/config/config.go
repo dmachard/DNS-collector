@@ -61,9 +61,17 @@ func (c *Config) IsValid(userCfg map[string]interface{}) error {
 			}
 
 		case "pipelines":
-			for i, cv := range userValue.([]interface{}) {
+			pipelinesSlice, ok := userValue.([]interface{})
+			if !ok {
+				return errors.Errorf("pipelines - expected list, got %T", userValue)
+			}
+			for i, cv := range pipelinesSlice {
 				cfg := ConfigPipelines{}
-				if err := cfg.IsValid(cv.(map[string]interface{})); err != nil {
+				cvMap, ok := cv.(map[string]interface{})
+				if !ok {
+					return errors.Errorf("stanza(index=%d) - expected map, got %T", i, cv)
+				}
+				if err := cfg.IsValid(cvMap); err != nil {
 					return errors.Errorf("stanza(index=%d) - %s", i, err)
 				}
 			}
@@ -138,7 +146,7 @@ func ReloadConfig(configPath string, config *Config) error {
 	// Open config file
 	configFile, err := os.Open(configPath)
 	if err != nil {
-		return nil
+		return err
 	}
 	defer configFile.Close()
 

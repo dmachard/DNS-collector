@@ -185,3 +185,11 @@ pipelines:
 		})
 	}
 }
+
+func TestConfig_ReloadConfig_NonExistentFile(t *testing.T) {
+	cfg := &Config{}
+	err := ReloadConfig("/nonexistent/file/path/dnscollector.yaml", cfg)
+	if err == nil {
+		t.Errorf("ReloadConfig() expected error for non-existent file, got nil")
+	}
+}
