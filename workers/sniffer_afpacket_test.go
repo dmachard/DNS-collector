@@ -5,6 +5,7 @@ package workers
 import (
 	"net"
 	"testing"
+	"time"
 
 	"github.com/dmachard/go-dnscollector/v3/dnsutils"
 	"github.com/dmachard/go-dnscollector/v3/pkg/config"
@@ -28,5 +29,26 @@ func TestAfpacketSnifferRun(t *testing.T) {
 		if len(batch.Messages) > 0 && batch.Messages[0].DNSTap.Operation == dnsutils.DNSTapClientQuery && batch.Messages[0].DNS.Qname == config.ProgQname {
 			break
 		}
+	}
+}
+
+func TestAfpacketSniffer_StartCollect_ListenFailure(t *testing.T) {
+	cfg := config.GetDefaultConfig()
+	cfg.Collectors.AfpacketLiveCapture.Device = "nonexistent_iface_xyz"
+
+	g := GetWorkerForTest(config.DefaultBufferSize)
+	c := NewAfpacketSniffer([]Worker{g}, cfg, logger.New(false), "test")
+
+	done := make(chan struct{})
+	go func() {
+		c.StartCollect()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// success: returned cleanly without os.Exit
+	case <-time.After(2 * time.Second):
+		t.Fatal("StartCollect did not return after listen failure")
 	}
 }

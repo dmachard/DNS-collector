@@ -27,6 +27,11 @@ func TestOpenTelemetry_InitTracerProvider(t *testing.T) {
 
 	// Assert tracer is not nil
 	assert.NotNil(t, tracer, "Tracer should not be nil")
+
+	// Verify cached
+	assert.Contains(t, client.tracerProviders, "test-service")
+	tracerCached := client.getTracer("test-service")
+	assert.Equal(t, tracer, tracerCached)
 }
 
 func TestOpenTelemetry_LeafHandler_SharedMessage(t *testing.T) {
