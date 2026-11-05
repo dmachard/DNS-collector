@@ -51,33 +51,47 @@ func TestCompare_VersionN1(t *testing.T) {
 	// 1. Determine N-1 Tag (Stable release only)
 	prevTag := os.Getenv("PREV_TAG")
 	if prevTag == "" {
-		outRemote, errRemote := exec.Command("git", "ls-remote", "--tags", "--refs", "https://github.com/dmachard/DNS-collector.git").Output()
-		if errRemote == nil {
-			lines := strings.Split(strings.TrimSpace(string(outRemote)), "\n")
-			for i := len(lines) - 1; i >= 0; i-- {
-				parts := strings.Split(lines[i], "refs/tags/")
-				if len(parts) == 2 {
-					tagCandidate := strings.TrimSpace(parts[1])
-					if isStableTag(tagCandidate) {
-						prevTag = tagCandidate
-						break
-					}
+		// Fetch tags to ensure local repo is up-to-date with remote
+		_ = exec.Command("git", "fetch", "--tags", "--quiet").Run()
+
+		// Identify tags pointing to current HEAD (to avoid comparing a release against itself)
+		headTags := make(map[string]bool)
+		if outHead, err := exec.Command("git", "tag", "--points-at", "HEAD").Output(); err == nil {
+			for _, tName := range strings.Fields(string(outHead)) {
+				headTags[tName] = true
+			}
+		}
+
+		out, err := exec.Command("git", "tag", "-l", "--sort=-v:refname").Output()
+		if err == nil {
+			tags := strings.Split(strings.TrimSpace(string(out)), "\n")
+			for _, tName := range tags {
+				tName = strings.TrimSpace(tName)
+				if tName != "" && isStableTag(tName) && !headTags[tName] {
+					prevTag = tName
+					break
 				}
 			}
 		}
+
+		// Fallback to remote ls-remote if local tag list was empty
 		if prevTag == "" {
-			out, err := exec.Command("git", "tag", "-l", "--sort=-v:refname").Output()
-			if err == nil {
-				tags := strings.Split(strings.TrimSpace(string(out)), "\n")
-				for _, tName := range tags {
-					tName = strings.TrimSpace(tName)
-					if tName != "" && isStableTag(tName) {
-						prevTag = tName
-						break
+			outRemote, errRemote := exec.Command("git", "ls-remote", "--tags", "--refs", "--sort=-v:refname", "https://github.com/dmachard/DNS-collector.git").Output()
+			if errRemote == nil {
+				lines := strings.Split(strings.TrimSpace(string(outRemote)), "\n")
+				for _, line := range lines {
+					parts := strings.Split(line, "refs/tags/")
+					if len(parts) == 2 {
+						tagCandidate := strings.TrimSpace(parts[1])
+						if isStableTag(tagCandidate) && !headTags[tagCandidate] {
+							prevTag = tagCandidate
+							break
+						}
 					}
 				}
 			}
 		}
+
 		if prevTag == "" {
 			t.Fatalf("failed to detect a stable git tag")
 		}
@@ -114,7 +128,10 @@ func TestCompare_VersionN1(t *testing.T) {
 	t.Logf("Cloning & building N-1 tag (%s)...", prevTag)
 	repoDir := filepath.Join(tempDir, "repo_prev")
 	if out, err := exec.Command("git", "clone", "--quiet", "--branch", prevTag, "--depth", "1", "file://"+getRepoRoot(t), repoDir).CombinedOutput(); err != nil {
-		t.Fatalf("failed to clone tag %s: %v\nOutput: %s", prevTag, err, string(out))
+		// Fallback to remote repo if local clone does not have the tag yet
+		if outRemote, errRemote := exec.Command("git", "clone", "--quiet", "--branch", prevTag, "--depth", "1", "https://github.com/dmachard/DNS-collector.git", repoDir).CombinedOutput(); errRemote != nil {
+			t.Fatalf("failed to clone tag %s: %v\nLocal output: %s\nRemote output: %s", prevTag, errRemote, string(out), string(outRemote))
+		}
 	}
 	cmdBuildPrev := exec.Command(goBin, "build", "-a", "-o", binPrev, ".")
 	cmdBuildPrev.Dir = repoDir
