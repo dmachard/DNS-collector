@@ -256,3 +256,35 @@ func Test_KafkaProducer_Balancers(t *testing.T) {
 		})
 	}
 }
+
+func Test_KafkaProducer_BatchSize_GroupedInSingleRequest(t *testing.T) {
+	listener, broker := createMockBroker(t, 1, testAddress+":"+testPort, testTopic)
+	defer listener.Close()
+	defer broker.Close()
+
+	cfg := setupKafkaProducerConfig(testAddress, testPort, testTopic, "none")
+	batchSize := 10
+	cfg.Loggers.KafkaProducer.BatchSize = batchSize
+	partition := 0
+	cfg.Loggers.KafkaProducer.Partition = &partition
+
+	producer := NewKafkaProducer(cfg, logger.New(false), "test")
+	go producer.StartCollect()
+	defer producer.StopLogger()
+
+	time.Sleep(1 * time.Second)
+
+	batch := dnsutils.AcquireDNSMessageBatch(batchSize)
+	for i := 0; i < batchSize; i++ {
+		dm := dnsutils.GetFakeDNSMessage()
+		batch.Messages = append(batch.Messages, &dm)
+	}
+	producer.GetInputChannel() <- batch
+
+	time.Sleep(1 * time.Second)
+
+	count := countProduceRequests(broker)
+	if count != 1 {
+		t.Fatalf("expected 1 ProduceRequest for batch of %d messages, got %d", batchSize, count)
+	}
+}

@@ -165,6 +165,11 @@ func (w *KafkaProducer) createWriter() *kafka.Writer {
 		compression = comp
 	}
 
+	batchSize := kafkaConfig.BatchSize
+	if batchSize <= 0 {
+		batchSize = 1
+	}
+
 	writer := &kafka.Writer{
 		Addr:                   kafka.TCP(addresses...),
 		Topic:                  kafkaConfig.Topic,
@@ -175,7 +180,7 @@ func (w *KafkaProducer) createWriter() *kafka.Writer {
 		WriteTimeout:           time.Duration(kafkaConfig.ConnectTimeout) * time.Second,
 		MaxAttempts:            3,
 		AllowAutoTopicCreation: true,
-		BatchSize:              1,
+		BatchSize:              batchSize,
 		BatchTimeout:           10 * time.Millisecond,
 	}
 
