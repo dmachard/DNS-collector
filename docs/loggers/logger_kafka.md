@@ -91,13 +91,13 @@ kafkaproducer:
   remote-address: 127.0.0.1
   remote-port: 9092
   connect-timeout: 5
-  flush-interval: 30
+  flush-interval: 10
   tls-support: false
   tls-insecure: false
   sasl-support: false
   sasl-mechanism: PLAIN
-  sasl-username: false
-  sasl-password: false
+  sasl-username: ""
+  sasl-password: ""
   mode: flat-json
   text-format: ""
   batch-size: 100
