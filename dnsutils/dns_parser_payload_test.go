@@ -1222,3 +1222,74 @@ func TestDecodePayload_Response_Extended_Rcode(t *testing.T) {
 		t.Errorf("did not expect RCode to be %s", dm.DNS.Rcode)
 	}
 }
+
+func TestDecodePayload_TruncatedCountOOMAmplification(t *testing.T) {
+	// 12-byte DNS header only (no RR bytes in payload):
+	// QR=1, TC=1 (0x8200), QDCOUNT=0, ANCOUNT=65535, NSCOUNT=65535, ARCOUNT=65535.
+	payload := []byte{
+		0x12, 0x34, // ID
+		0x82, 0x00, // Flags: QR=1, TC=1
+		0x00, 0x00, // QDCOUNT = 0
+		0xff, 0xff, // ANCOUNT = 65535
+		0xff, 0xff, // NSCOUNT = 65535
+		0xff, 0xff, // ARCOUNT = 65535
+	}
+
+	dm := AcquireDNSMessage()
+	defer dm.Release()
+	dm.DNS.Payload = payload
+	dm.DNS.Length = len(payload)
+
+	header, err := DecodeDNS(payload)
+	if err != nil {
+		t.Fatalf("unexpected error when decoding header: %v", err)
+	}
+
+	if err = DecodePayload(dm, &header, config.GetDefaultConfig()); err != nil {
+		t.Fatalf("unexpected error while decoding truncated payload: %v", err)
+	}
+
+	// A 12-byte packet has 0 bytes after the header and cannot contain any RR (min RR wire size is 11 bytes).
+	// Yet DecodeAnswerInto pre-allocates cap=65535 per section (~5.24 MB each, ~15.7 MB total),
+	// and dm.Reset()/Init() retains those backing arrays in DNSMessagePool via [:0].
+	anCap := cap(dm.DNS.DNSRRs.Answers)
+	nsCap := cap(dm.DNS.DNSRRs.Nameservers)
+	arCap := cap(dm.DNS.DNSRRs.Records)
+
+	dm.Reset()
+	retainedCap := cap(dm.DNS.DNSRRs.Answers) + cap(dm.DNS.DNSRRs.Nameservers) + cap(dm.DNS.DNSRRs.Records)
+
+	if anCap > 64 || nsCap > 64 || arCap > 64 {
+		t.Fatalf(
+			"OOM amplification reproduced on 12-byte packet: allocated slice capacities Answers=%d, Nameservers=%d, Records=%d (retained after Reset=%d RRs, ~%d MB)",
+			anCap, nsCap, arCap, retainedCap, (retainedCap*80)/(1024*1024),
+		)
+	}
+
+	// Case 2: 64 KB packet with TC=1, ANCOUNT=65535, NSCOUNT=65535, ARCOUNT=65535
+	// where RR #1 has RDLENGTH=65535 (truncated inside Answer section).
+	// Ensures (len(payload)-startOffset)/11 (~5956 RRs) is still capped at 64
+	// and subsequent sections (Nameservers/Records) are not parsed on truncated Answer bytes.
+	largePayload := make([]byte, 65535)
+	copy(largePayload, payload)
+	// RR #1 at offset 12: root name (0x00), TYPE=A (1), CLASS=IN (1), TTL=0, RDLENGTH=65535
+	copy(largePayload[12:], []byte{0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff})
+
+	dm.DNS.Payload = largePayload
+	dm.DNS.Length = len(largePayload)
+	if err = DecodePayload(dm, &header, config.GetDefaultConfig()); err != nil {
+		t.Fatalf("unexpected error while decoding large truncated payload: %v", err)
+	}
+	if cap(dm.DNS.DNSRRs.Answers) > 64 || cap(dm.DNS.DNSRRs.Nameservers) > 0 || cap(dm.DNS.DNSRRs.Records) > 0 {
+		t.Fatalf(
+			"unexpected capacities on 64KB truncated packet: Answers=%d, Nameservers=%d, Records=%d",
+			cap(dm.DNS.DNSRRs.Answers), cap(dm.DNS.DNSRRs.Nameservers), cap(dm.DNS.DNSRRs.Records),
+		)
+	}
+
+	// Case 3: negative ancount should not panic
+	if _, _, err := DecodeAnswer(-1, 12, payload); err != nil {
+		t.Fatalf("unexpected error on negative ancount: %v", err)
+	}
+}
+
