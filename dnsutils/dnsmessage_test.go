@@ -2,6 +2,7 @@ package dnsutils
 
 import (
 	"bytes"
+	"fmt"
 	"runtime"
 	"strings"
 	"sync"
@@ -428,6 +429,89 @@ func TestDNSMessage_Clone(t *testing.T) {
 	if dm.DNS.Payload[0] != 1 {
 		t.Errorf("mutating clone mutated original DNS.Payload")
 	}
+}
+
+func TestDNSMessage_Clone_DeepCopyPointers(t *testing.T) {
+	// Reproduce Bug C:
+	// DNSMessage.Clone() shallow copies pointer extension fields.
+	// Mutating fields inside clone.ATags, clone.Extracted, clone.BGP, clone.Geo, etc.
+	// corrupts the original dm!
+	dm := AcquireDNSMessage()
+	defer dm.Release()
+
+	dm.ATags = &TransformATags{Tags: []string{"tag1", "tag2"}}
+	dm.BGP = &TransformBGP{OriginASN: "65001", ASPath: "100 200", Prefix: "192.0.2.0/24"}
+	dm.Geo = &TransformDNSGeo{City: "Paris", CountryIsoCode: "FR"}
+	dm.Extracted = &TransformExtracted{
+		Base64Payload: []byte("payload"),
+		Base64Fields:  map[string]interface{}{"field1": "val1"},
+		HexFields:     map[string]interface{}{"hfield1": "hval1"},
+	}
+	dm.PowerDNS = &CollectorPowerDNS{Tags: []string{"pdns1"}, Metadata: map[string]string{"k1": "v1"}}
+
+	clone := dm.Clone()
+	defer clone.Release()
+
+	// Mutate clone extensions
+	clone.ATags.Tags = append(clone.ATags.Tags, "tag3_mutated")
+	clone.BGP.OriginASN = "65999_mutated"
+	clone.Geo.City = "London_mutated"
+	clone.Extracted.Base64Fields["field1"] = "val1_mutated"
+	clone.PowerDNS.Tags = append(clone.PowerDNS.Tags, "pdns_mutated")
+	clone.PowerDNS.Metadata["k1"] = "v1_mutated"
+
+	// Verify original is NOT mutated
+	if len(dm.ATags.Tags) != 2 {
+		t.Errorf("SHALLOW COPY CORRUPTION: dm.ATags.Tags was mutated via clone! Got %v, want 2 items", dm.ATags.Tags)
+	}
+	if dm.BGP.OriginASN != "65001" {
+		t.Errorf("SHALLOW COPY CORRUPTION: dm.BGP.OriginASN was mutated via clone! Got %s, want 65001", dm.BGP.OriginASN)
+	}
+	if dm.Geo.City != "Paris" {
+		t.Errorf("SHALLOW COPY CORRUPTION: dm.Geo.City was mutated via clone! Got %s, want Paris", dm.Geo.City)
+	}
+	if dm.Extracted.Base64Fields["field1"] != "val1" {
+		t.Errorf("SHALLOW COPY CORRUPTION: dm.Extracted.Base64Fields was mutated via clone! Got %v, want val1", dm.Extracted.Base64Fields["field1"])
+	}
+	if len(dm.PowerDNS.Tags) != 1 || dm.PowerDNS.Metadata["k1"] != "v1" {
+		t.Errorf("SHALLOW COPY CORRUPTION: dm.PowerDNS was mutated via clone!")
+	}
+}
+
+func TestDNSMessage_Clone_ConcurrentMapWrite_Panic(t *testing.T) {
+	// Reproduce Bug C: concurrent map writes on Extracted.Base64Fields
+	// When dm is cloned, clone.Extracted points to the SAME struct with the SAME map.
+	// Two sibling workers running in parallel and modifying/extracting fields
+	// will write to the same map concurrently -> Go fatal runtime panic!
+	dm := AcquireDNSMessage()
+	defer dm.Release()
+
+	dm.Extracted = &TransformExtracted{
+		Base64Fields: make(map[string]interface{}),
+	}
+	dm.Extracted.Base64Fields["init"] = "val"
+
+	clone := dm.Clone()
+	defer clone.Release()
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 500; i++ {
+			dm.Extracted.Base64Fields[fmt.Sprintf("k_%d", i)] = i
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 500; i++ {
+			clone.Extracted.Base64Fields[fmt.Sprintf("k_clone_%d", i)] = i
+		}
+	}()
+
+	wg.Wait()
 }
 
 func TestDNSNetInfo_SetQueryIP_OverridesBinaryBuffer(t *testing.T) {
