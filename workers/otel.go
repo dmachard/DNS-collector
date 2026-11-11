@@ -160,7 +160,7 @@ func (w *OpenTelemetryClient) StartLogging() {
 
 				targetDm := dm
 				if hasRoutes {
-					if atomic.LoadInt32(&dm.RefCount) > 1 {
+					if atomic.LoadInt32(&batch.RefCount) > 1 || atomic.LoadInt32(&dm.RefCount) > 1 {
 						targetDm = dm.Clone()
 					}
 					targetDm.OpenTelemetry = &dnsutils.LoggerOpenTelemetry{}

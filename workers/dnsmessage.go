@@ -260,7 +260,7 @@ func (w *DNSMessage) StartCollect() {
 				// apply transform on matched packets only
 				// init dns message with additional parts if necessary
 				if matched {
-					if hasTransforms && atomic.LoadInt32(&dm.RefCount) > 1 {
+					if hasTransforms && (atomic.LoadInt32(&batch.RefCount) > 1 || atomic.LoadInt32(&dm.RefCount) > 1) {
 						targetDm = dm.Clone()
 						isCloned = true
 					}

@@ -476,3 +476,89 @@ func TestOutgoingTransformers_SharedMessageIsolation(t *testing.T) {
 		t.Errorf("expected loggerB to receive original IP 192.0.2.1, got: %s", contentBStr)
 	}
 }
+
+func TestOutgoingTransformers_SharedBatchFanout_Corruption(t *testing.T) {
+	// Reproduce Bug A:
+	// A collector dispatches a pre-assembled batch to two downstream loggers using
+	// SendForwardedBatchTo.
+	// sendBatch retains the batch (batch.RefCount = 2), but does NOT retain individual
+	// messages (dm.RefCount remains 1).
+	// Logger A runs with userprivacy (anonymize IP 192.0.2.1 -> 192.0.0.0).
+	// Logger B runs without userprivacy (wants original IP 192.0.2.1).
+	//
+	// In GenericWorker.ProcessBatch:
+	//   if hasTransforms && atomic.LoadInt32(&dm.RefCount) > 1 { targetDm = dm.Clone() }
+	// Because dm.RefCount is 1, Logger A DOES NOT CLONE dm!
+	// Logger A mutates dm in place, corrupting Logger B's output!
+
+	// Logger A with user-privacy
+	fA, err := os.CreateTemp("", "temp_dns_a_fanout.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(fA.Name())
+
+	cfgA := config.GetDefaultConfig()
+	cfgA.Loggers.LogFile.FilePath = fA.Name()
+	cfgA.Loggers.LogFile.Mode = config.ModeJSON
+	cfgA.OutgoingTransformers.UserPrivacy.Enable = true
+	cfgA.OutgoingTransformers.UserPrivacy.AnonymizeIP = true
+	cfgA.OutgoingTransformers.UserPrivacy.AnonymizeIPV4Bits = "0.0.0.0/16"
+
+	loggerA := NewLogFile(cfgA, logger.New(false), "loggerA")
+	go loggerA.StartCollect()
+
+	// Logger B without user-privacy
+	fB, err := os.CreateTemp("", "temp_dns_b_fanout.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(fB.Name())
+
+	cfgB := config.GetDefaultConfig()
+	cfgB.Loggers.LogFile.FilePath = fB.Name()
+	cfgB.Loggers.LogFile.Mode = config.ModeJSON
+
+	loggerB := NewLogFile(cfgB, logger.New(false), "loggerB")
+	go loggerB.StartCollect()
+
+	// Upstream collector sending a batch via SendForwardedBatchTo
+	collector := GetWorkerForTest(10)
+	routes := []chan *dnsutils.DNSMessageBatch{loggerA.GetInputChannel(), loggerB.GetInputChannel()}
+	routeNames := []string{"loggerA", "loggerB"}
+
+	dm := dnsutils.GetFakeDNSMessage()
+	dm.NetworkInfo.SetQueryIPBytes([]byte{192, 0, 2, 1})
+	dm.NetworkInfo.QueryIP = "192.0.2.1"
+	// dm is in a batch-of-1, normal production path (dm.RefCount = 1)
+
+	batch := dnsutils.NewDNSMessageBatch(&dm)
+	collector.SendForwardedBatchTo(routes, routeNames, batch)
+
+	// Wait until consumed
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if len(loggerA.GetInputChannel()) == 0 && len(loggerB.GetInputChannel()) == 0 &&
+			len(loggerA.GetOutputChannel()) == 0 && len(loggerB.GetOutputChannel()) == 0 {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	time.Sleep(50 * time.Millisecond)
+
+	loggerA.Stop()
+	loggerB.Stop()
+
+	contentB, err := os.ReadFile(fB.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	contentBStr := string(contentB)
+
+	if strings.Contains(contentBStr, `"query-ip":"192.0.0.0"`) {
+		t.Errorf("DATA CORRUPTION IN FANOUT: loggerB received anonymized IP 192.0.0.0 because loggerA mutated shared *DNSMessage in batch (dm.RefCount was 1 while batch.RefCount was 2)!")
+	}
+	if !strings.Contains(contentBStr, `"query-ip":"192.0.2.1"`) {
+		t.Errorf("expected loggerB to receive original IP 192.0.2.1, got: %s", contentBStr)
+	}
+}
