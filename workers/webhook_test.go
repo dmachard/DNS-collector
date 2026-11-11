@@ -185,3 +185,59 @@ func TestWebhook_ForwardedRoutes_SharedMessageClone(t *testing.T) {
 	dm.Release()
 	c.Stop()
 }
+
+func TestWebhook_ForwardedRoutes_SharedBatchFanout(t *testing.T) {
+	// Reproduce Bug A on Webhook:
+	// When a batch is dispatched via fan-out (batch.RefCount > 1), but dm.RefCount is 1,
+	// Webhook MUST clone dm before mutating dm.Rest so the sibling worker's
+	// view of dm remains unmutated.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("routed_ok"))
+	}))
+	defer server.Close()
+
+	kept := GetWorkerForTest(config.DefaultBufferSize)
+
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.Webhook.Enable = true
+	cfg.Loggers.Webhook.URL = server.URL
+
+	c := NewWebhook(nil, cfg, logger.New(false), "test")
+	c.SetDefaultRoutes([]Worker{kept})
+
+	go c.StartCollect()
+
+	dm := dnsutils.AcquireDNSMessage()
+	dm.Init()
+	dm.DNSTap.Identity = "shared-batch-fanout-webhook"
+	dm.Rest = nil
+	// dm.RefCount is 1
+
+	b := dnsutils.AcquireDNSMessageBatch(1)
+	b.Messages = append(b.Messages, dm)
+	// Simulate fan-out to 2 destinations
+	b.Retain(1) // batch.RefCount = 2
+
+	c.GetInputChannel() <- b
+
+	batchOut := <-kept.GetInputChannel()
+
+	if len(batchOut.Messages) == 0 {
+		t.Fatalf("expected message in forwarded batch")
+	}
+	dmOut := batchOut.Messages[0]
+
+	if dmOut.Rest == nil {
+		t.Fatalf("expected dmOut.Rest to be set on forwarded clone")
+	}
+
+	// Original dm must remain nil!
+	if dm.Rest != nil {
+		t.Errorf("CORRUPTION: original dm.Rest was mutated in-place during batch fan-out!")
+	}
+
+	batchOut.Release()
+	b.Release()
+	c.Stop()
+}

@@ -523,13 +523,14 @@ func (w *GenericWorker) ProcessBatch(
 ) *dnsutils.DNSMessageBatch {
 	outBatch := dnsutils.AcquireDNSMessageBatch(len(batch.Messages))
 	hasTransforms := subprocessors != nil && subprocessors.HasActiveTransforms()
+	batchShared := atomic.LoadInt32(&batch.RefCount) > 1
 
 	for _, dm := range batch.Messages {
 		w.CountIngressTraffic()
 
 		targetDm := dm
 		isCloned := false
-		if hasTransforms && atomic.LoadInt32(&dm.RefCount) > 1 {
+		if hasTransforms && (batchShared || atomic.LoadInt32(&dm.RefCount) > 1) {
 			targetDm = dm.Clone()
 			isCloned = true
 		}

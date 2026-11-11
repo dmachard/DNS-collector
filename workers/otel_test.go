@@ -145,3 +145,109 @@ func TestOpenTelemetry_ForwardedRoutes_SharedMessageClone(t *testing.T) {
 	dm.Release()
 	client.Stop()
 }
+
+func TestOpenTelemetry_ForwardedRoutes_SharedBatchFanout(t *testing.T) {
+	// Reproduce Bug A on OpenTelemetry:
+	// When a batch is dispatched via fan-out (batch.RefCount > 1), but dm.RefCount is 1,
+	// OpenTelemetry MUST clone dm before mutating dm.OpenTelemetry so the sibling worker's
+	// view of dm remains unmutated.
+	kept := GetWorkerForTest(config.DefaultBufferSize)
+
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.OpenTelemetryClient.Enable = true
+	cfg.Loggers.OpenTelemetryClient.OtelEndpoint = "localhost:4317"
+
+	client := NewOpenTelemetryClient(cfg, logger.New(false), "test-client")
+	client.SetDefaultRoutes([]Worker{kept})
+
+	go client.StartCollect()
+
+	dm := dnsutils.AcquireDNSMessage()
+	dm.Init()
+	dm.DNSTap.Timestamp = time.Now().UnixNano()
+	dm.DNSTap.Identity = "batch-fanout-otel"
+	dm.DNSTap.Operation = "CLIENT_QUERY"
+	dm.PowerDNS = &dnsutils.CollectorPowerDNS{RequestorID: "req-1", MessageID: "msg-1"}
+	dm.OpenTelemetry = nil
+	// Notice: dm.RefCount is 1 (normal production batch)
+
+	b := dnsutils.AcquireDNSMessageBatch(1)
+	b.Messages = append(b.Messages, dm)
+	// Simulate batch fan-out to 2 destinations
+	b.Retain(1) // batch.RefCount = 2
+
+	client.GetInputChannel() <- b
+
+	batchOut := <-kept.GetInputChannel()
+
+	if len(batchOut.Messages) == 0 {
+		t.Fatalf("expected message in forwarded batch")
+	}
+	dmOut := batchOut.Messages[0]
+
+	if dmOut.OpenTelemetry == nil {
+		t.Fatalf("expected dmOut.OpenTelemetry to be set on forwarded clone")
+	}
+
+	// The original dm in the shared batch MUST remain unmutated!
+	if dm.OpenTelemetry != nil {
+		t.Errorf("CORRUPTION: original dm.OpenTelemetry was mutated in-place during batch fan-out!")
+	}
+
+	batchOut.Release()
+	b.Release()
+	client.Stop()
+}
+
+func TestOpenTelemetry_ForwardedRoutes_SharedBatchFanout(t *testing.T) {
+	// Reproduce Bug A on OpenTelemetry:
+	// When a batch is dispatched via fan-out (batch.RefCount > 1), but dm.RefCount is 1,
+	// OpenTelemetry MUST clone dm before mutating dm.OpenTelemetry so the sibling worker's
+	// view of dm remains unmutated.
+	kept := GetWorkerForTest(config.DefaultBufferSize)
+
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.OpenTelemetryClient.Enable = true
+	cfg.Loggers.OpenTelemetryClient.OtelEndpoint = "localhost:4317"
+
+	client := NewOpenTelemetryClient(cfg, logger.New(false), "test-client")
+	client.SetDefaultRoutes([]Worker{kept})
+
+	go client.StartCollect()
+
+	dm := dnsutils.AcquireDNSMessage()
+	dm.Init()
+	dm.DNSTap.Timestamp = time.Now().UnixNano()
+	dm.DNSTap.Identity = "batch-fanout-otel"
+	dm.DNSTap.Operation = "CLIENT_QUERY"
+	dm.PowerDNS = &dnsutils.CollectorPowerDNS{RequestorID: "req-1", MessageID: "msg-1"}
+	dm.OpenTelemetry = nil
+	// Notice: dm.RefCount is 1 (normal production batch)
+
+	b := dnsutils.AcquireDNSMessageBatch(1)
+	b.Messages = append(b.Messages, dm)
+	// Simulate batch fan-out to 2 destinations
+	b.Retain(1) // batch.RefCount = 2
+
+	client.GetInputChannel() <- b
+
+	batchOut := <-kept.GetInputChannel()
+
+	if len(batchOut.Messages) == 0 {
+		t.Fatalf("expected message in forwarded batch")
+	}
+	dmOut := batchOut.Messages[0]
+
+	if dmOut.OpenTelemetry == nil {
+		t.Fatalf("expected dmOut.OpenTelemetry to be set on forwarded clone")
+	}
+
+	// The original dm in the shared batch MUST remain unmutated!
+	if dm.OpenTelemetry != nil {
+		t.Errorf("CORRUPTION: original dm.OpenTelemetry was mutated in-place during batch fan-out!")
+	}
+
+	batchOut.Release()
+	b.Release()
+	client.Stop()
+}

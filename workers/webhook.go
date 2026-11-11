@@ -118,7 +118,7 @@ func (w *Webhook) StartLogging(threadnum int, ctx context.Context) {
 			for _, dm := range batch.Messages {
 				if hasRoutes {
 					targetDm := dm
-					if atomic.LoadInt32(&dm.RefCount) > 1 {
+					if atomic.LoadInt32(&batch.RefCount) > 1 || atomic.LoadInt32(&dm.RefCount) > 1 {
 						targetDm = dm.Clone()
 					}
 					targetDm.Rest = &dnsutils.TransformRest{Failed: true, Response: ""}

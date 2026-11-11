@@ -245,3 +245,56 @@ func TestDnsMessage_BatchPreserved_WithFiltering(t *testing.T) {
 		t.Fatal("timeout waiting for dropped batch")
 	}
 }
+
+func TestDnsMessage_SharedBatchFanout_Clone(t *testing.T) {
+	// Reproduce Bug A on DNSMessage collector worker:
+	// When a batch received by dnsmessage is shared (batch.RefCount > 1) and transformers
+	// are active, dnsmessage MUST clone dm before mutating it so sibling readers don't see
+	// unexpected side effects on the shared dm.
+	kept := GetWorkerForTest(10)
+	cfg := config.GetDefaultConfig()
+	cfg.Collectors.DNSMessage.Enable = true
+	// Enable userprivacy transformer (anonymize IP 192.0.2.1 -> 192.0.0.0)
+	cfg.IngoingTransformers.UserPrivacy.Enable = true
+	cfg.IngoingTransformers.UserPrivacy.AnonymizeIP = true
+	cfg.IngoingTransformers.UserPrivacy.AnonymizeIPV4Bits = "0.0.0.0/16"
+
+	c := NewDNSMessage(nil, cfg, logger.New(false), "test-shared-batch")
+	c.SetDefaultRoutes([]Worker{kept})
+
+	go c.StartCollect()
+	defer c.Stop()
+
+	dm := dnsutils.GetFakeDNSMessage()
+	dm.NetworkInfo.SetQueryIPBytes([]byte{192, 0, 2, 1})
+	dm.NetworkInfo.QueryIP = "192.0.2.1"
+	// dm.RefCount is 1 (normal message in batch)
+
+	inBatch := dnsutils.AcquireDNSMessageBatch(1)
+	inBatch.Messages = append(inBatch.Messages, &dm)
+	// Simulate fanout: batch is shared with another destination (batch.RefCount = 2)
+	inBatch.Retain(1)
+
+	c.GetInputChannel() <- inBatch
+
+	select {
+	case outBatch := <-kept.GetInputChannel():
+		if len(outBatch.Messages) != 1 {
+			t.Fatalf("expected 1 message in output batch, got %d", len(outBatch.Messages))
+		}
+		dmOut := outBatch.Messages[0]
+		// The forwarded message must be anonymized:
+		if dmOut.NetworkInfo.GetQueryIP() != "192.0.0.0" {
+			t.Errorf("expected output message to have anonymized IP 192.0.0.0, got %s", dmOut.NetworkInfo.GetQueryIP())
+		}
+		// The original dm in the shared batch MUST remain unmutated (192.0.2.1)!
+		if dm.NetworkInfo.GetQueryIP() != "192.0.2.1" {
+			t.Errorf("CORRUPTION: original dm was mutated in-place during batch fanout! Got %s, want 192.0.2.1", dm.NetworkInfo.GetQueryIP())
+		}
+		outBatch.Release()
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for output batch")
+	}
+
+	inBatch.Release()
+}
