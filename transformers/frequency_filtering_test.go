@@ -224,3 +224,38 @@ func TestFrequencyFiltering_Decay(t *testing.T) {
 		t.Fatalf("expected count 3 after decay + 1 increment, got %d", dm.Frequency.Count)
 	}
 }
+
+func TestFrequencyFiltering_BinaryIngestion_TargetIP(t *testing.T) {
+	// Verify that frequency filtering correctly tracks client-ip even when
+	// the packet comes from a binary collector (dnstap, xdp, afpacket)
+	// which populates QueryIPBuf with QueryIP == "-".
+	cfgIP := &config.TransformFrequencyFiltering{
+		Enable:         true,
+		Target:         "client-ip",
+		ThresholdHeavy: 1,
+		ActionOnHeavy:  "tag",
+		MaxCapacity:    1000,
+	}
+	log := logger.New(false)
+	tfIP := NewFrequencyFilteringTransform(cfgIP, log, "test", 0, nil)
+	defer tfIP.Stop()
+
+	subtransformsIP, _ := tfIP.GetTransforms()
+	filterIP := subtransformsIP[0].processFunc
+
+	dm := dnsutils.GetFakeDNSMessage()
+	// Binary ingress: QueryIPBuf is filled, QueryIP is "-"
+	dm.NetworkInfo.SetQueryIPBytes([]byte{192, 0, 2, 42})
+
+	filterIP(&dm)
+
+	if dm.Frequency == nil {
+		t.Fatalf("expected dm.Frequency to be initialized")
+	}
+	if dm.Frequency.Target != "192.0.2.42" {
+		t.Errorf("expected frequency target 192.0.2.42, got: %s", dm.Frequency.Target)
+	}
+	if dm.Frequency.Count != 1 {
+		t.Errorf("expected count 1, got: %d", dm.Frequency.Count)
+	}
+}

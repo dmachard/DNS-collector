@@ -1,6 +1,8 @@
 package transformers
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/dmachard/go-dnscollector/v3/dnsutils"
@@ -106,6 +108,45 @@ func TestUserPrivacy_HashIP(t *testing.T) {
 				t.Errorf("Return code is %v, want %v", returnCode, ReturnKeep)
 			}
 		})
+	}
+}
+
+func TestUserPrivacy_HashIP_BinaryIngestionLeak(t *testing.T) {
+	// Reproduce Bug B.1:
+	// A binary collector (dnstap, afpacket, xdp, etc.) sets IP via SetQueryIPBytes.
+	// QueryIPBuf is filled, QueryIPLen is 4, and QueryIP is "-".
+	// The hashQueryIP transformer hashes dm.NetworkInfo.GetQueryIP(), writes the hash
+	// string into dm.NetworkInfo.QueryIP, BUT fails to clear QueryIPBuf / QueryIPLen.
+	// When ToJSON() or ToText() is called, WriteQueryIPJSON prioritizes QueryIPBuf:
+	// The RAW unhashed IP leaks into the logs!
+	cfg := config.GetFakeConfigTransformers()
+	cfg.UserPrivacy.Enable = true
+	cfg.UserPrivacy.HashQueryIP = true
+
+	userPrivacy := NewUserPrivacyTransform(&cfg.UserPrivacy, logger.New(false), "test", 0, nil)
+	userPrivacy.GetTransforms()
+
+	dm := dnsutils.GetFakeDNSMessage()
+	// Simulate real ingress from dnstap/afpacket/xdp:
+	dm.NetworkInfo.SetQueryIPBytes([]byte{1, 2, 3, 4})
+
+	_, err := userPrivacy.hashQueryIP(&dm)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expectedHash := "09c35807ba47a82592ef88e5d6304ea699b8cbe2"
+	if dm.NetworkInfo.QueryIP != expectedHash {
+		t.Fatalf("expected hash in QueryIP, got: %s", dm.NetworkInfo.QueryIP)
+	}
+
+	// Now check what gets logged:
+	jsonOutput := dm.ToJSON()
+	if strings.Contains(jsonOutput, `"query-ip":"1.2.3.4"`) {
+		t.Errorf("PRIVACY LEAK: raw IP 1.2.3.4 leaked in JSON output instead of hash! Output: %s", jsonOutput)
+	}
+	if !strings.Contains(jsonOutput, fmt.Sprintf(`"query-ip":"%s"`, expectedHash)) {
+		t.Errorf("expected hashed IP %s in JSON output, got: %s", expectedHash, jsonOutput)
 	}
 }
 

@@ -63,6 +63,22 @@ func (net *DNSNetInfo) GetResponseIP() string {
 	return net.ResponseIP
 }
 
+// SetQueryIP sets the query IP as a string and invalidates the binary buffer
+// (QueryIPLen = 0) so that subsequent GetQueryIP(), WriteQueryIPJSON(), and
+// WriteQueryIPText() calls use this string instead of any prior binary IP.
+func (net *DNSNetInfo) SetQueryIP(ip string) {
+	net.QueryIP = ip
+	net.QueryIPLen = 0
+}
+
+// SetResponseIP sets the response IP as a string and invalidates the binary buffer
+// (ResponseIPLen = 0) so that subsequent GetResponseIP(), WriteResponseIPJSON(), and
+// WriteResponseIPText() calls use this string instead of any prior binary IP.
+func (net *DNSNetInfo) SetResponseIP(ip string) {
+	net.ResponseIP = ip
+	net.ResponseIPLen = 0
+}
+
 func (net *DNSNetInfo) SetQueryIPBytes(ip []byte) {
 	n := copy(net.QueryIPBuf[:], ip)
 	net.QueryIPLen = uint8(n)

@@ -180,8 +180,11 @@ func (w *TopN) StartCollect() {
 			if w.topQnames != nil && len(dm.DNS.Qname) > 0 && dm.DNS.Qname != "-" {
 				w.RecordQname(dm.DNS.Qname)
 			}
-			if w.topClients != nil && len(dm.NetworkInfo.QueryIP) > 0 && dm.NetworkInfo.QueryIP != "-" {
-				w.RecordClient(dm.NetworkInfo.QueryIP)
+			if w.topClients != nil {
+				clientIP := dm.NetworkInfo.GetQueryIP()
+				if len(clientIP) > 0 && clientIP != "-" {
+					w.RecordClient(clientIP)
+				}
 			}
 			if w.topRcodes != nil && len(dm.DNS.Rcode) > 0 && dm.DNS.Rcode != "-" {
 				w.RecordRcode(dm.DNS.Rcode)
