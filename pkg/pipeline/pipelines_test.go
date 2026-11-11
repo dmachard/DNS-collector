@@ -548,4 +548,3 @@ func TestPipelines_ReloadConfig_DevNullDeadlock(t *testing.T) {
 		t.Fatal("DEADLOCK DETECTED: ReloadPipelines blocked on unread GenericWorker.configChan for DevNull worker")
 	}
 }
-

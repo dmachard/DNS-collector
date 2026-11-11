@@ -169,7 +169,6 @@ func (w *GenericWorker) Loggers() ([]chan *dnsutils.DNSMessageBatch, []string) {
 
 func (w *GenericWorker) ReloadConfig(cfg *config.Config) {
 	w.LogInfo("reload configuration...")
-	w.config = cfg
 
 	select {
 	case <-w.ctx.Done():
