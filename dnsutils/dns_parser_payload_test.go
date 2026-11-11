@@ -1292,4 +1292,3 @@ func TestDecodePayload_TruncatedCountOOMAmplification(t *testing.T) {
 		t.Fatalf("unexpected error on negative ancount: %v", err)
 	}
 }
-

@@ -619,4 +619,3 @@ func TestDNSMessage_Init_ClearsAndCapsSlices(t *testing.T) {
 		)
 	}
 }
-
