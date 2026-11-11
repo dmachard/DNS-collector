@@ -79,7 +79,7 @@ func NewGenericWorker(cfg *config.Config, logger *logger.Logger, name string, de
 		monitorDone:   make(chan struct{}),
 		monitor:       monitor,
 		config:        cfg,
-		configChan:    make(chan *config.Config),
+		configChan:    make(chan *config.Config, 1),
 		logger:        logger,
 		name:          name,
 		descr:         descr,
@@ -169,7 +169,22 @@ func (w *GenericWorker) Loggers() ([]chan *dnsutils.DNSMessageBatch, []string) {
 
 func (w *GenericWorker) ReloadConfig(cfg *config.Config) {
 	w.LogInfo("reload configuration...")
-	w.configChan <- cfg
+	w.config = cfg
+
+	select {
+	case <-w.ctx.Done():
+		return
+	case w.configChan <- cfg:
+	default:
+		select {
+		case <-w.configChan:
+		default:
+		}
+		select {
+		case w.configChan <- cfg:
+		default:
+		}
+	}
 }
 
 func (w *GenericWorker) LogInfo(msg string, v ...interface{}) {
