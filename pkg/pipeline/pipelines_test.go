@@ -508,3 +508,43 @@ func TestPipelines_GetStanzaConfig_LokiRelabelConfigsInvalid(t *testing.T) {
 		})
 	}
 }
+
+func TestPipelines_ReloadConfig_DevNullDeadlock(t *testing.T) {
+	cfg := config.GetDefaultConfig()
+	cfg.Pipelines = []config.ConfigPipelines{
+		{
+			Name: "devnull-logger",
+			Params: map[string]interface{}{
+				"devnull": map[string]interface{}{
+					"enable": true,
+				},
+			},
+			RoutingPolicy: config.PipelinesRouting{
+				Forward: []string{},
+				Dropped: []string{},
+			},
+		},
+	}
+
+	mapLoggers := make(map[string]workers.Worker)
+	mapCollectors := make(map[string]workers.Worker)
+
+	devnull := workers.NewDevNull(cfg, logger.New(false), "devnull-logger")
+	go devnull.StartCollect()
+	defer devnull.Stop()
+
+	mapLoggers["devnull-logger"] = devnull
+
+	done := make(chan struct{})
+	go func() {
+		ReloadPipelines(mapLoggers, mapCollectors, cfg, logger.New(false))
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		t.Log("ReloadPipelines completed successfully (no deadlock)")
+	case <-time.After(2 * time.Second):
+		t.Fatal("DEADLOCK DETECTED: ReloadPipelines blocked on unread GenericWorker.configChan for DevNull worker")
+	}
+}
