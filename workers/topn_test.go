@@ -148,3 +148,47 @@ func TestTopN_StartCollect(t *testing.T) {
 		t.Fatalf("expected background report loop to output domain, got: %s", buf.String())
 	}
 }
+
+func TestTopN_BinaryIngestion_ClientsIgnored(t *testing.T) {
+	// Reproduce Bug B.3:
+	// A binary collector sets IP via SetQueryIPBytes (QueryIPBuf populated, QueryIP == "-").
+	// TopN checks:
+	//   if w.topClients != nil && len(dm.NetworkInfo.QueryIP) > 0 && dm.NetworkInfo.QueryIP != "-"
+	// Because it reads dm.NetworkInfo.QueryIP directly instead of GetQueryIP(),
+	// dm.NetworkInfo.QueryIP is "-", so the check evaluates to false!
+	// Real client IPs from binary collectors are COMPLETELY DROPPED from Top-N.
+	cfg := &config.Config{}
+	cfg.SetDefault()
+	cfg.Loggers.TopN.Enable = true
+	cfg.Loggers.TopN.Mode = "json"
+
+	log := logger.New(false)
+	w := NewTopN(cfg, log, "test-topn")
+
+	var buf bytes.Buffer
+	w.SetWriter(&buf)
+
+	done := make(chan struct{})
+	go func() {
+		w.StartCollect()
+		close(done)
+	}()
+
+	dm := dnsutils.GetFakeDNSMessage()
+	dm.DNS.Qname = "example.com"
+	dm.NetworkInfo.SetQueryIPBytes([]byte{192, 168, 1, 100}) // Binary ingress
+
+	w.GetInputChannel() <- dnsutils.NewDNSMessageBatch(&dm)
+
+	time.Sleep(200 * time.Millisecond)
+
+	w.GenerateReport(60)
+	w.Stop()
+	<-done
+
+	output := buf.String()
+	if !strings.Contains(output, "192.168.1.100") {
+		t.Errorf("TOP-N CLIENTS BROKEN FOR BINARY COLLECTORS: expected client 192.168.1.100 in Top-N report, got: %s", output)
+	}
+}
+

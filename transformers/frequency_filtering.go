@@ -71,7 +71,7 @@ func (t *FrequencyFilteringTransform) filterFrequency(dm *dnsutils.DNSMessage) (
 			key = dm.DNS.Qname
 		}
 	case "client-ip", "query-ip":
-		key = dm.NetworkInfo.QueryIP
+		key = dm.NetworkInfo.GetQueryIP()
 	case "qname":
 		fallthrough
 	default:

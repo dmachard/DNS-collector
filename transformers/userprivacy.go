@@ -130,12 +130,12 @@ func (t *UserPrivacyTransform) anonymizeQueryIP(dm *dnsutils.DNSMessage) (int, e
 }
 
 func (t *UserPrivacyTransform) hashQueryIP(dm *dnsutils.DNSMessage) (int, error) {
-	dm.NetworkInfo.QueryIP = HashIP(dm.NetworkInfo.GetQueryIP(), t.config.HashIPAlgo)
+	dm.NetworkInfo.SetQueryIP(HashIP(dm.NetworkInfo.GetQueryIP(), t.config.HashIPAlgo))
 	return ReturnKeep, nil
 }
 
 func (t *UserPrivacyTransform) hashReplyIP(dm *dnsutils.DNSMessage) (int, error) {
-	dm.NetworkInfo.ResponseIP = HashIP(dm.NetworkInfo.GetResponseIP(), t.config.HashIPAlgo)
+	dm.NetworkInfo.SetResponseIP(HashIP(dm.NetworkInfo.GetResponseIP(), t.config.HashIPAlgo))
 	return ReturnKeep, nil
 }
 

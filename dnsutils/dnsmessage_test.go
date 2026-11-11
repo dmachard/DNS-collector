@@ -429,3 +429,66 @@ func TestDNSMessage_Clone(t *testing.T) {
 		t.Errorf("mutating clone mutated original DNS.Payload")
 	}
 }
+
+func TestDNSNetInfo_SetQueryIP_OverridesBinaryBuffer(t *testing.T) {
+	dm := DNSMessage{}
+	dm.Init()
+
+	// 1. Initial binary ingress
+	dm.NetworkInfo.SetQueryIPBytes([]byte{192, 168, 1, 50})
+	dm.NetworkInfo.SetResponseIPBytes([]byte{8, 8, 8, 8})
+
+	if dm.NetworkInfo.GetQueryIP() != "192.168.1.50" {
+		t.Fatalf("setup failed: expected 192.168.1.50, got %s", dm.NetworkInfo.GetQueryIP())
+	}
+	if dm.NetworkInfo.GetResponseIP() != "8.8.8.8" {
+		t.Fatalf("setup failed: expected 8.8.8.8, got %s", dm.NetworkInfo.GetResponseIP())
+	}
+
+	// 2. Override with string (e.g., hash SHA or rewrite)
+	dm.NetworkInfo.SetQueryIP("hash-sha-query-ip")
+	dm.NetworkInfo.SetResponseIP("10.0.0.1")
+
+	// Ensure binary length is reset
+	if dm.NetworkInfo.QueryIPLen != 0 {
+		t.Errorf("expected QueryIPLen 0, got %d", dm.NetworkInfo.QueryIPLen)
+	}
+	if dm.NetworkInfo.ResponseIPLen != 0 {
+		t.Errorf("expected ResponseIPLen 0, got %d", dm.NetworkInfo.ResponseIPLen)
+	}
+
+	// Ensure getters return updated string
+	if dm.NetworkInfo.GetQueryIP() != "hash-sha-query-ip" {
+		t.Errorf("expected QueryIP 'hash-sha-query-ip', got %s", dm.NetworkInfo.GetQueryIP())
+	}
+	if dm.NetworkInfo.GetResponseIP() != "10.0.0.1" {
+		t.Errorf("expected ResponseIP '10.0.0.1', got %s", dm.NetworkInfo.GetResponseIP())
+	}
+
+	// Ensure JSON serializer uses the string
+	var jsonBuf bytes.Buffer
+	dm.NetworkInfo.WriteQueryIPJSON(&jsonBuf)
+	if jsonBuf.String() != `"hash-sha-query-ip"` {
+		t.Errorf("expected JSON `\"hash-sha-query-ip\"`, got %s", jsonBuf.String())
+	}
+
+	jsonBuf.Reset()
+	dm.NetworkInfo.WriteResponseIPJSON(&jsonBuf)
+	if jsonBuf.String() != `"10.0.0.1"` {
+		t.Errorf("expected JSON `\"10.0.0.1\"`, got %s", jsonBuf.String())
+	}
+
+	// Ensure Text serializer uses the string
+	var textBuf bytes.Buffer
+	dm.NetworkInfo.WriteQueryIPText(&textBuf)
+	if textBuf.String() != "hash-sha-query-ip" {
+		t.Errorf("expected Text 'hash-sha-query-ip', got %s", textBuf.String())
+	}
+
+	textBuf.Reset()
+	dm.NetworkInfo.WriteResponseIPText(&textBuf)
+	if textBuf.String() != "10.0.0.1" {
+		t.Errorf("expected Text '10.0.0.1', got %s", textBuf.String())
+	}
+}
+

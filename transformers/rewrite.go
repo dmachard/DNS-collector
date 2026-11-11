@@ -40,11 +40,11 @@ func getMutator(nestedKeys string, val interface{}) MutatorFunc {
 	switch nestedKeys {
 	case "network.query-ip":
 		if s, ok := val.(string); ok {
-			return func(dm *dnsutils.DNSMessage) error { dm.NetworkInfo.QueryIP = s; return nil }
+			return func(dm *dnsutils.DNSMessage) error { dm.NetworkInfo.SetQueryIP(s); return nil }
 		}
 	case "network.response-ip":
 		if s, ok := val.(string); ok {
-			return func(dm *dnsutils.DNSMessage) error { dm.NetworkInfo.ResponseIP = s; return nil }
+			return func(dm *dnsutils.DNSMessage) error { dm.NetworkInfo.SetResponseIP(s); return nil }
 		}
 	case "dns.qname":
 		if s, ok := val.(string); ok {
