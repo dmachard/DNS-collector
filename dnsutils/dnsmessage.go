@@ -396,20 +396,110 @@ func (dm *DNSMessage) Clone() *DNSMessage {
 	newDm.DNS = dm.DNS
 	newDm.EDNS = dm.EDNS
 	newDm.DNSTap = dm.DNSTap
-	newDm.PowerDNS = dm.PowerDNS
-	newDm.OpenTelemetry = dm.OpenTelemetry
-	newDm.Geo = dm.Geo
-	newDm.BGP = dm.BGP
-	newDm.Suspicious = dm.Suspicious
-	newDm.PublicSuffix = dm.PublicSuffix
-	newDm.Extracted = dm.Extracted
-	newDm.Reducer = dm.Reducer
-	newDm.MachineLearning = dm.MachineLearning
-	newDm.Filtering = dm.Filtering
-	newDm.Frequency = dm.Frequency
-	newDm.ATags = dm.ATags
-	newDm.Rest = dm.Rest
-	newDm.Relabeling = dm.Relabeling
+
+	if dm.PowerDNS != nil {
+		pdns := *dm.PowerDNS
+		if len(dm.PowerDNS.Tags) > 0 {
+			pdns.Tags = make([]string, len(dm.PowerDNS.Tags))
+			copy(pdns.Tags, dm.PowerDNS.Tags)
+		}
+		if len(dm.PowerDNS.Metadata) > 0 {
+			pdns.Metadata = make(map[string]string, len(dm.PowerDNS.Metadata))
+			for k, v := range dm.PowerDNS.Metadata {
+				pdns.Metadata[k] = v
+			}
+		}
+		newDm.PowerDNS = &pdns
+	}
+
+	if dm.OpenTelemetry != nil {
+		otel := *dm.OpenTelemetry
+		newDm.OpenTelemetry = &otel
+	}
+
+	if dm.Geo != nil {
+		geo := *dm.Geo
+		newDm.Geo = &geo
+	}
+
+	if dm.BGP != nil {
+		bgp := *dm.BGP
+		newDm.BGP = &bgp
+	}
+
+	if dm.Suspicious != nil {
+		suspicious := *dm.Suspicious
+		newDm.Suspicious = &suspicious
+	}
+
+	if dm.PublicSuffix != nil {
+		ps := *dm.PublicSuffix
+		newDm.PublicSuffix = &ps
+	}
+
+	if dm.Extracted != nil {
+		ext := *dm.Extracted
+		if len(dm.Extracted.Base64Payload) > 0 {
+			ext.Base64Payload = make([]byte, len(dm.Extracted.Base64Payload))
+			copy(ext.Base64Payload, dm.Extracted.Base64Payload)
+		}
+		if len(dm.Extracted.Base64Fields) > 0 {
+			ext.Base64Fields = make(map[string]interface{}, len(dm.Extracted.Base64Fields))
+			for k, v := range dm.Extracted.Base64Fields {
+				ext.Base64Fields[k] = v
+			}
+		}
+		if len(dm.Extracted.HexFields) > 0 {
+			ext.HexFields = make(map[string]interface{}, len(dm.Extracted.HexFields))
+			for k, v := range dm.Extracted.HexFields {
+				ext.HexFields[k] = v
+			}
+		}
+		newDm.Extracted = &ext
+	}
+
+	if dm.Reducer != nil {
+		red := *dm.Reducer
+		newDm.Reducer = &red
+	}
+
+	if dm.MachineLearning != nil {
+		ml := *dm.MachineLearning
+		newDm.MachineLearning = &ml
+	}
+
+	if dm.Filtering != nil {
+		filt := *dm.Filtering
+		newDm.Filtering = &filt
+	}
+
+	if dm.Frequency != nil {
+		freq := *dm.Frequency
+		newDm.Frequency = &freq
+	}
+
+	if dm.ATags != nil {
+		atags := *dm.ATags
+		if len(dm.ATags.Tags) > 0 {
+			atags.Tags = make([]string, len(dm.ATags.Tags))
+			copy(atags.Tags, dm.ATags.Tags)
+		}
+		newDm.ATags = &atags
+	}
+
+	if dm.Rest != nil {
+		rest := *dm.Rest
+		newDm.Rest = &rest
+	}
+
+	if dm.Relabeling != nil {
+		rel := *dm.Relabeling
+		if len(dm.Relabeling.Rules) > 0 {
+			rel.Rules = make([]RelabelingRule, len(dm.Relabeling.Rules))
+			copy(rel.Rules, dm.Relabeling.Rules)
+		}
+		newDm.Relabeling = &rel
+	}
 
 	if len(dm.DNS.Payload) > 0 {
 		newDm.DNS.Payload = make([]byte, len(dm.DNS.Payload))
