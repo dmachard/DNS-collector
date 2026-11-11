@@ -191,4 +191,3 @@ func TestTopN_BinaryIngestion_ClientsIgnored(t *testing.T) {
 		t.Errorf("TOP-N CLIENTS BROKEN FOR BINARY COLLECTORS: expected client 192.168.1.100 in Top-N report, got: %s", output)
 	}
 }
-

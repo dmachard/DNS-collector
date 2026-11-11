@@ -259,4 +259,3 @@ func TestFrequencyFiltering_BinaryIngestion_TargetIP(t *testing.T) {
 		t.Errorf("expected count 1, got: %d", dm.Frequency.Count)
 	}
 }
-

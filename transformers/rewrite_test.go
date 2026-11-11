@@ -104,4 +104,3 @@ func TestRewrite_QueryIP_BinaryIngestionIgnored(t *testing.T) {
 		t.Errorf("expected rewritten IP 10.0.0.99 in JSON output, got: %s", jsonOutput)
 	}
 }
-

@@ -491,4 +491,3 @@ func TestDNSNetInfo_SetQueryIP_OverridesBinaryBuffer(t *testing.T) {
 		t.Errorf("expected Text '10.0.0.1', got %s", textBuf.String())
 	}
 }
-
