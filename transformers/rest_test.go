@@ -56,3 +56,4 @@ func TestRest_Request(t *testing.T) {
 		t.Errorf("REST body mismatch, want: restbody got: %s", dm.Rest.Response)
 	}
 }
+

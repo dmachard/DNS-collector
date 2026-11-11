@@ -35,3 +35,24 @@ func TestDnsMessage_ToJinjaFormat(t *testing.T) {
 		t.Errorf("Want qname in template, got: %s", text)
 	}
 }
+
+func TestDnsMessage_ToJinjaFormat_BinaryIP(t *testing.T) {
+	dm := DNSMessage{}
+	dm.Init()
+	// Simulate binary collectors (dnstap, afpacket, xdp, powerdns, pcap, tzsp):
+	// SetQueryIPBytes stores the IP in QueryIPBuf and sets QueryIP = "-".
+	dm.NetworkInfo.SetQueryIPBytes([]byte{192, 0, 2, 10})
+	dm.NetworkInfo.SetResponseIPBytes([]byte{198, 51, 100, 20})
+
+	template := `client={{ dm.NetworkInfo.QueryIP }} resolver={{ dm.NetworkInfo.ResponseIP }}`
+	text, err := dm.ToTextTemplate(template)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	want := "client=192.0.2.10 resolver=198.51.100.20"
+	if text != want {
+		t.Fatalf("Jinja template failed to resolve binary IPs: got %q, want %q", text, want)
+	}
+}
+
