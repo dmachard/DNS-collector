@@ -575,3 +575,47 @@ func TestDNSNetInfo_SetQueryIP_OverridesBinaryBuffer(t *testing.T) {
 		t.Errorf("expected Text '10.0.0.1', got %s", textBuf.String())
 	}
 }
+
+func TestDNSMessage_Init_ClearsAndCapsSlices(t *testing.T) {
+	dm := DNSMessage{}
+	dm.Init()
+
+	// 1. Small slices (cap <= maxPooledSliceCap): backing array is reused and elements are zeroed
+	answers := make([]DNSAnswer, 1, 16)
+	answers[0] = DNSAnswer{Name: "leaked.example.com", Rdata: "1.2.3.4"}
+	options := make([]DNSOption, 1, 8)
+	options[0] = DNSOption{Code: 8, Name: "CSUBNET", Data: "1.2.3.0/24"}
+
+	dm.DNS.DNSRRs.Answers = answers
+	dm.EDNS.Options = options
+
+	dm.Init()
+
+	if cap(dm.DNS.DNSRRs.Answers) != 16 || len(dm.DNS.DNSRRs.Answers) != 0 {
+		t.Fatalf("expected Answers cap=16 len=0, got cap=%d len=%d", cap(dm.DNS.DNSRRs.Answers), len(dm.DNS.DNSRRs.Answers))
+	}
+	if answers[0] != (DNSAnswer{}) {
+		t.Errorf("expected backing array element to be cleared, got %+v", answers[0])
+	}
+	if cap(dm.EDNS.Options) != 8 || len(dm.EDNS.Options) != 0 {
+		t.Fatalf("expected Options cap=8 len=0, got cap=%d len=%d", cap(dm.EDNS.Options), len(dm.EDNS.Options))
+	}
+	if options[0] != (DNSOption{}) {
+		t.Errorf("expected Options backing array element to be cleared, got %+v", options[0])
+	}
+
+	// 2. Oversized slices (cap > maxPooledSliceCap): backing array is dropped so pool cannot stay bloated
+	dm.DNS.DNSRRs.Answers = make([]DNSAnswer, 100, 1024)
+	dm.DNS.DNSRRs.Nameservers = make([]DNSAnswer, 100, 1024)
+	dm.DNS.DNSRRs.Records = make([]DNSAnswer, 100, 1024)
+	dm.EDNS.Options = make([]DNSOption, 100, 1024)
+
+	dm.Init()
+
+	if cap(dm.DNS.DNSRRs.Answers) != 0 || cap(dm.DNS.DNSRRs.Nameservers) != 0 || cap(dm.DNS.DNSRRs.Records) != 0 || cap(dm.EDNS.Options) != 0 {
+		t.Fatalf(
+			"expected oversized slices to be released (cap=0), got Answers=%d Nameservers=%d Records=%d Options=%d",
+			cap(dm.DNS.DNSRRs.Answers), cap(dm.DNS.DNSRRs.Nameservers), cap(dm.DNS.DNSRRs.Records), cap(dm.EDNS.Options),
+		)
+	}
+}

@@ -586,23 +586,29 @@ var (
 	emptyOptions = []DNSOption{}
 )
 
+const maxPooledSliceCap = 64
+
 func (dm *DNSMessage) Init() {
-	if dm.DNS.DNSRRs.Answers != nil {
+	if dm.DNS.DNSRRs.Answers != nil && cap(dm.DNS.DNSRRs.Answers) <= maxPooledSliceCap {
+		clear(dm.DNS.DNSRRs.Answers)
 		dm.DNS.DNSRRs.Answers = dm.DNS.DNSRRs.Answers[:0]
 	} else {
 		dm.DNS.DNSRRs.Answers = emptyAnswers
 	}
-	if dm.DNS.DNSRRs.Nameservers != nil {
+	if dm.DNS.DNSRRs.Nameservers != nil && cap(dm.DNS.DNSRRs.Nameservers) <= maxPooledSliceCap {
+		clear(dm.DNS.DNSRRs.Nameservers)
 		dm.DNS.DNSRRs.Nameservers = dm.DNS.DNSRRs.Nameservers[:0]
 	} else {
 		dm.DNS.DNSRRs.Nameservers = emptyAnswers
 	}
-	if dm.DNS.DNSRRs.Records != nil {
+	if dm.DNS.DNSRRs.Records != nil && cap(dm.DNS.DNSRRs.Records) <= maxPooledSliceCap {
+		clear(dm.DNS.DNSRRs.Records)
 		dm.DNS.DNSRRs.Records = dm.DNS.DNSRRs.Records[:0]
 	} else {
 		dm.DNS.DNSRRs.Records = emptyAnswers
 	}
-	if dm.EDNS.Options != nil {
+	if dm.EDNS.Options != nil && cap(dm.EDNS.Options) <= maxPooledSliceCap {
+		clear(dm.EDNS.Options)
 		dm.EDNS.Options = dm.EDNS.Options[:0]
 	} else {
 		dm.EDNS.Options = emptyOptions
