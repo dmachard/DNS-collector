@@ -195,8 +195,13 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 				}
 			}
 		} else {
+			raw := frame.Data()
+			if len(raw) < 4 {
+				w.LogError("conn #%d - invalid compressed frame received", connID)
+				continue
+			}
 			// ignore first 4 bytes
-			data := frame.Data()[4:]
+			data := raw[4:]
 			validFrame := true
 			for len(data) >= 4 {
 				// get frame size

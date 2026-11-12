@@ -1125,6 +1125,68 @@ func Test_DnstapServer_Telemetry_DiscardedCountOnBufferFull(t *testing.T) {
 	}
 }
 
+func Test_DnstapServer_CompressedFrameShortPayload_NoPanic(t *testing.T) {
+	fl := GetWorkerForTest(config.DefaultBufferSize)
+	cfg := config.GetDefaultConfig()
+	cfg.Collectors.Dnstap.Compression = config.CompressGzip
+
+	logBuf := new(safeLogBuffer)
+	lg := logger.New(true)
+	lg.SetOutput(logBuf)
+
+	server := NewDnstapServer([]Worker{fl}, cfg, lg, "dnstap-listener")
+	serverConn, clientConn := net.Pipe()
+	defer clientConn.Close()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	forceClose := make(chan bool)
+	panicCh := make(chan interface{}, 1)
+
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				panicCh <- r
+			}
+		}()
+		server.HandleConn(serverConn, 1, forceClose, &wg)
+	}()
+
+	r := bufio.NewReader(clientConn)
+	w := bufio.NewWriter(clientConn)
+	fs := framestream.NewFstrm(r, w, clientConn, 5*time.Second, []byte("protobuf:dnstap.Dnstap"), true)
+	if err := fs.InitSender(); err != nil {
+		t.Fatalf("framestream init error: %v", err)
+	}
+
+	// Send a compressed frame whose decompressed payload is only 2 bytes (< 4 bytes).
+	shortFrame := &framestream.Frame{}
+	_ = shortFrame.AppendData([]byte{0x01, 0x02})
+	if err := fs.SendCompressedFrame(&compress.GzipCodec, shortFrame); err != nil {
+		t.Fatalf("send compressed frame error: %v", err)
+	}
+	_ = clientConn.Close()
+
+	select {
+	case p := <-panicCh:
+		t.Fatalf("HandleConn panicked on short compressed frame (< 4 bytes): %v", p)
+	case <-time.After(2 * time.Second):
+		t.Fatalf("HandleConn timed out")
+	case <-func() chan struct{} {
+		ch := make(chan struct{})
+		go func() {
+			wg.Wait()
+			close(ch)
+		}()
+		return ch
+	}():
+	}
+
+	if !strings.Contains(logBuf.String(), "invalid compressed frame received") {
+		t.Errorf("expected 'invalid compressed frame received' error log, got:\n%s", logBuf.String())
+	}
+}
+
 func Test_DnstapServer_InitReceiverFailure_ClosesConn(t *testing.T) {
 	fl := GetWorkerForTest(config.DefaultBufferSize)
 	cfg := config.GetDefaultConfig()
