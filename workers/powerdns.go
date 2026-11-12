@@ -168,12 +168,13 @@ func (w *PdnsServer) StartCollect() {
 				return
 			}
 
-			if w.GetConfig().Collectors.Dnstap.RcvBufSize > 0 {
+			if cfg.RcvBufSize > 0 {
 				before, actual, err := netutils.SetSockRCVBUF(conn, cfg.RcvBufSize, cfg.TLSSupport)
 				if err != nil {
-					w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"] unable to set SO_RCVBUF: ", err)
+					w.LogError("unable to set SO_RCVBUF: %s", err)
+				} else {
+					w.LogInfo("set SO_RCVBUF option, value before: %d, desired: %d, actual: %d", before, cfg.RcvBufSize, actual)
 				}
-				w.LogInfo("set SO_RCVBUF option, value before: %d, desired: %d, actual: %d", before, cfg.RcvBufSize, actual)
 			}
 
 			// handle the connection

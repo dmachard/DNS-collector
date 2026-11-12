@@ -1186,3 +1186,39 @@ func Test_DnstapServer_CompressedFrameShortPayload_NoPanic(t *testing.T) {
 		t.Errorf("expected 'invalid compressed frame received' error log, got:\n%s", logBuf.String())
 	}
 }
+
+func Test_DnstapServer_InitReceiverFailure_ClosesConn(t *testing.T) {
+	fl := GetWorkerForTest(config.DefaultBufferSize)
+	cfg := config.GetDefaultConfig()
+	logBuf := new(safeLogBuffer)
+	lg := logger.New(true)
+	lg.SetOutput(logBuf)
+
+	server := NewDnstapServer([]Worker{fl}, cfg, lg, "dnstap-listener")
+	serverConn, clientConn := net.Pipe()
+	defer clientConn.Close()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	forceClose := make(chan bool)
+
+	doneCh := make(chan struct{})
+	go func() {
+		server.HandleConn(serverConn, 1, forceClose, &wg)
+		close(doneCh)
+	}()
+
+	// Send invalid garbage instead of a valid framestream handshake
+	_, _ = clientConn.Write([]byte("invalid-framestream-handshake-bytes"))
+
+	select {
+	case <-doneCh:
+		// HandleConn terminated and exited as expected
+	case <-time.After(2 * time.Second):
+		t.Fatalf("HandleConn hung or failed to terminate upon InitReceiver failure")
+	}
+
+	if !strings.Contains(logBuf.String(), "stream initialization") {
+		t.Errorf("expected 'stream initialization' error log, got:\n%s", logBuf.String())
+	}
+}
