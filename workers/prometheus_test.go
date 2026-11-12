@@ -71,6 +71,15 @@ func TestPrometheus_GetMetrics(t *testing.T) {
 	t.Run("TwoLabelsStreamIDResolver", getMetricsTestCase(cfg, map[string]string{"resolver": "4.3.2.1", "stream_id": "collector"}))
 }
 
+func TestPrometheus_GetResolverIP_BinaryIP(t *testing.T) {
+	dm := dnsutils.GetFakeDNSMessage()
+	dm.NetworkInfo.SetResponseIPBytes([]byte{198, 51, 100, 53})
+
+	if got := GetResolverIP(&dm); got != "198.51.100.53" {
+		t.Fatalf("GetResolverIP failed on binary IP: got %q, want %q", got, "198.51.100.53")
+	}
+}
+
 // This helper generates a set of DNS packets for logger to count
 // It then collects Prometheus metrics to verify they exist and have expected labels/values
 // func getMetricsHelper(config *config.Config, labels map[string]string, t *testing.T) {

@@ -10,9 +10,10 @@ import (
 var templateCache sync.Map
 
 func (dm *DNSMessage) ToTextTemplate(template string) (string, error) {
-	dm.NetworkInfo.GetQueryIP()
-	dm.NetworkInfo.GetResponseIP()
-	context := pongo2.Context{"dm": dm}
+	dmCopy := *dm
+	dmCopy.NetworkInfo.QueryIP = dm.NetworkInfo.GetQueryIP()
+	dmCopy.NetworkInfo.ResponseIP = dm.NetworkInfo.GetResponseIP()
+	context := pongo2.Context{"dm": &dmCopy}
 
 	// Parse once, reuse for every message
 	var tmpl *pongo2.Template

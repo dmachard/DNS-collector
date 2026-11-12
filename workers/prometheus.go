@@ -193,7 +193,7 @@ func GetStreamID(dm *dnsutils.DNSMessage) string {
 }
 
 func GetResolverIP(dm *dnsutils.DNSMessage) string {
-	return dm.NetworkInfo.ResponseIP
+	return dm.NetworkInfo.GetResponseIP()
 }
 
 type Prometheus struct {
