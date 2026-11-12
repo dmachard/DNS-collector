@@ -365,7 +365,7 @@ func DecodePayload(dm *DNSMessage, header *DNSHeader, cfg *config.Config) error 
 		} else if dm.DNS.Flags.TC && (errors.Is(err, ErrDecodeDNSAnswerTooShort) || errors.Is(err, ErrDecodeDNSAnswerRdataTooShort) || errors.Is(err, ErrDecodeDNSLabelTooShort)) {
 			dm.DNS.MalformedPacket = true
 			dm.DNS.DNSRRs.Answers = answers
-			payloadOffset = offset
+			return nil
 		} else {
 			dm.DNS.MalformedPacket = true
 			return &decodingError{part: "answer records", err: err}
@@ -381,7 +381,7 @@ func DecodePayload(dm *DNSMessage, header *DNSHeader, cfg *config.Config) error 
 		} else if dm.DNS.Flags.TC && (errors.Is(err, ErrDecodeDNSAnswerTooShort) || errors.Is(err, ErrDecodeDNSAnswerRdataTooShort) || errors.Is(err, ErrDecodeDNSLabelTooShort)) {
 			dm.DNS.MalformedPacket = true
 			dm.DNS.DNSRRs.Nameservers = answers
-			payloadOffset = offsetrr
+			return nil
 		} else {
 			dm.DNS.MalformedPacket = true
 			return &decodingError{part: "authority records", err: err}
@@ -575,11 +575,18 @@ func DecodeAnswer(ancount int, startOffset int, payload []byte) ([]DNSAnswer, in
 
 func DecodeAnswerInto(buf []DNSAnswer, ancount int, startOffset int, payload []byte) ([]DNSAnswer, int, error) {
 	offset := startOffset
+	maxPossible := 0
+	if ancount > 0 && startOffset >= 0 && startOffset < len(payload) {
+		// Minimum wire size of a DNS RR is 11 bytes (1B root name + 2B type + 2B class + 4B ttl + 2B rdlength).
+		maxPossible = (len(payload) - startOffset) / 11
+	}
+	// Cap initial pre-allocation to 64 RRs; append grows naturally if a valid packet carries more.
+	allocCap := min(max(ancount, 0), maxPossible, 64)
 	var answers []DNSAnswer
-	if cap(buf) >= ancount {
+	if buf != nil && cap(buf) >= allocCap {
 		answers = buf[:0]
 	} else {
-		answers = make([]DNSAnswer, 0, ancount)
+		answers = make([]DNSAnswer, 0, allocCap)
 	}
 	var rdataString string
 
