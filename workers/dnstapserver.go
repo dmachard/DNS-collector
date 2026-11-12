@@ -79,13 +79,13 @@ func (w *DnstapServer) HandleConn(conn net.Conn, connID uint64, forceClose chan 
 	// framestream as receiver
 	if err := fs.InitReceiver(); err != nil {
 		w.LogError("conn #%d - stream initialization: %s", connID, err)
-	} else {
-		w.LogInfo("conn #%d - receiver framestream initialized (data-frame-max-length: %d, control-frame-max-length: %d)",
-			connID,
-			w.GetConfig().Global.Framestream.DataFrameMaxLength,
-			w.GetConfig().Global.Framestream.ControlFrameMaxLength,
-		)
+		return
 	}
+	w.LogInfo("conn #%d - receiver framestream initialized (data-frame-max-length: %d, control-frame-max-length: %d)",
+		connID,
+		w.GetConfig().Global.Framestream.DataFrameMaxLength,
+		w.GetConfig().Global.Framestream.ControlFrameMaxLength,
+	)
 
 	// process incoming frame and send it to dnstap consumer channel
 	var err error
@@ -283,9 +283,10 @@ func (w *DnstapServer) StartCollect() {
 			if len(cfg.SockPath) == 0 && cfg.RcvBufSize > 0 {
 				before, actual, err := netutils.SetSockRCVBUF(conn, cfg.RcvBufSize, cfg.TLSSupport)
 				if err != nil {
-					w.LogFatal(config.PrefixLogWorker+"["+w.GetName()+"] unable to set SO_RCVBUF: ", err)
+					w.LogError("unable to set SO_RCVBUF: %s", err)
+				} else {
+					w.LogInfo("set SO_RCVBUF option, value before: %d, desired: %d, actual: %d", before, cfg.RcvBufSize, actual)
 				}
-				w.LogInfo("set SO_RCVBUF option, value before: %d, desired: %d, actual: %d", before, cfg.RcvBufSize, actual)
 			}
 
 			// handle the connection

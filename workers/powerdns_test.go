@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -378,5 +379,39 @@ func Test_PowerDNSProcessor_NewFields_AuthRequest_Ede_TraceID(t *testing.T) {
 	}
 	if msg.PowerDNS.OpenTelemetryTraceID != "4bf92f3577b34da6a3ce929d0e0e4736" {
 		t.Errorf("expected OpenTelemetryTraceID '4bf92f3577b34da6a3ce929d0e0e4736', got %s", msg.PowerDNS.OpenTelemetryTraceID)
+	}
+}
+
+func TestPowerDNS_RcvBufSize_NoFatal(t *testing.T) {
+	g := GetWorkerForTest(config.DefaultBufferSize)
+	cfg := config.GetDefaultConfig()
+	cfg.Collectors.PowerDNS.ListenIP = "127.0.0.1"
+	cfg.Collectors.PowerDNS.ListenPort = 6003
+	cfg.Collectors.PowerDNS.RcvBufSize = 65536
+	// Ensure Collectors.Dnstap.RcvBufSize is left to default (0) to verify
+	// that PowerDNS uses its own Collectors.PowerDNS.RcvBufSize config.
+
+	logBuf := new(safeLogBuffer)
+	lg := logger.New(true)
+	lg.SetOutput(logBuf)
+
+	c := NewPdnsServer([]Worker{g}, cfg, lg, "test_rcvbuf")
+	go c.StartCollect()
+	defer c.Stop()
+
+	// Wait for listener to be active
+	time.Sleep(100 * time.Millisecond)
+
+	conn, err := net.Dial("tcp", "127.0.0.1:6003")
+	if err != nil {
+		t.Fatalf("could not connect to powerdns: %v", err)
+	}
+	defer conn.Close()
+
+	// Give enough time for accept and SO_RCVBUF call
+	time.Sleep(100 * time.Millisecond)
+
+	if !strings.Contains(logBuf.String(), "set SO_RCVBUF option") {
+		t.Errorf("expected 'set SO_RCVBUF option' in logs, got:\n%s", logBuf.String())
 	}
 }
