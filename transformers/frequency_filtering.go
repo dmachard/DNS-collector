@@ -22,11 +22,13 @@ func NewFrequencyFilteringTransform(cfg *config.TransformFrequencyFiltering, log
 	t := &FrequencyFilteringTransform{
 		GenericTransformer: NewTransformer(logger, "frequency-filtering", name, instance, nextWorkers),
 		config:             cfg,
-		cuckooFilter:       cuckoo.NewCountingCuckooFilter(cfg.MaxCapacity),
 		stopChan:           make(chan struct{}),
 	}
-	if cfg.Enable && cfg.TTL > 0 {
-		go t.decayLoop()
+	if cfg.Enable {
+		t.cuckooFilter = cuckoo.NewCountingCuckooFilter(cfg.MaxCapacity)
+		if cfg.TTL > 0 {
+			go t.decayLoop()
+		}
 	}
 	return t
 }
@@ -51,6 +53,10 @@ func (t *FrequencyFilteringTransform) Stop() {
 	default:
 		close(t.stopChan)
 	}
+}
+
+func (t *FrequencyFilteringTransform) Reset() {
+	t.Stop()
 }
 
 func (t *FrequencyFilteringTransform) GetTransforms() ([]Subtransform, error) {
