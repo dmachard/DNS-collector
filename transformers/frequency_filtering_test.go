@@ -1,6 +1,7 @@
 package transformers
 
 import (
+	"runtime"
 	"testing"
 	"time"
 
@@ -257,5 +258,64 @@ func TestFrequencyFiltering_BinaryIngestion_TargetIP(t *testing.T) {
 	}
 	if dm.Frequency.Count != 1 {
 		t.Errorf("expected count 1, got: %d", dm.Frequency.Count)
+	}
+}
+
+func TestFrequencyFiltering_MemoryAllocationAndGoroutineLeakOnReset(t *testing.T) {
+	// 1. Verify memory allocation: When FrequencyFiltering is disabled,
+	// NewFrequencyFilteringTransform should NOT allocate the 4.19MB CountingCuckooFilter.
+	var m1, m2 runtime.MemStats
+	runtime.GC()
+	runtime.ReadMemStats(&m1)
+
+	cfgDisabled := &config.TransformFrequencyFiltering{
+		Enable:      false,
+		MaxCapacity: 500000,
+	}
+	log := logger.New(false)
+	tfDisabled := NewFrequencyFilteringTransform(cfgDisabled, log, "test", 0, nil)
+	defer tfDisabled.Stop()
+
+	runtime.ReadMemStats(&m2)
+	allocBytes := m2.TotalAlloc - m1.TotalAlloc
+	allocMB := float64(allocBytes) / (1024 * 1024)
+	if tfDisabled.cuckooFilter != nil {
+		t.Errorf("expected cuckooFilter to be nil when Enable=false, but was allocated")
+	}
+	if allocMB > 1.0 {
+		t.Errorf("expected minimal allocation (<1MB) when disabled, got %.2f MB", allocMB)
+	}
+
+	// 2. Verify goroutine lifecycle on Reset():
+	// When enabled with TTL > 0, NewFrequencyFilteringTransform starts decayLoop().
+	// On worker/connection teardown, subprocessors.Reset() must call transform.Reset()
+	// and terminate decayLoop without leaks.
+	cfgEnabled := &config.TransformFrequencyFiltering{
+		Enable:      true,
+		TTL:         10,
+		MaxCapacity: 1000,
+	}
+
+	cfgTransforms := config.GetFakeConfigTransformers()
+	cfgTransforms.Order = []string{"frequency-filtering"}
+	cfgTransforms.FrequencyFiltering = *cfgEnabled
+
+	sub := NewTransforms(cfgTransforms, log, "test", nil, 0)
+	time.Sleep(20 * time.Millisecond)
+
+	// Call Reset as done on connection close / worker stop
+	sub.Reset()
+	time.Sleep(50 * time.Millisecond)
+
+	// Verify if the stopChan was signaled
+	ft, ok := sub.activeTransforms[0].Transformation.(*FrequencyFilteringTransform)
+	if !ok {
+		t.Fatalf("expected *FrequencyFilteringTransform")
+	}
+	select {
+	case <-ft.stopChan:
+		// Reset stopped decayLoop properly
+	default:
+		t.Errorf("LEAK: FrequencyFiltering decayLoop was not stopped after sub.Reset()")
 	}
 }

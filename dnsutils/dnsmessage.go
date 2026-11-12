@@ -711,6 +711,11 @@ func (dm *DNSMessage) InitTransforms() {
 	} else {
 		*dm.Relabeling = TransformRelabeling{}
 	}
+	if dm.Frequency == nil {
+		dm.Frequency = &TransformFrequency{}
+	} else {
+		*dm.Frequency = TransformFrequency{}
+	}
 	if dm.PowerDNS == nil {
 		dm.PowerDNS = &CollectorPowerDNS{}
 	} else {
