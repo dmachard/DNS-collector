@@ -49,6 +49,7 @@ type KeyHit struct {
 type RestAPI struct {
 	*GenericWorker
 	doneAPI    chan bool
+	listenerMu sync.RWMutex
 	httpserver net.Listener
 	httpmux    *http.ServeMux
 
@@ -89,6 +90,7 @@ func (w *RestAPI) newSearchBy() SearchBy {
 func NewRestAPI(cfg *config.Config, logger *logger.Logger, name string) *RestAPI {
 	bufSize := cfg.Global.Worker.ChannelBufferSize
 	w := &RestAPI{GenericWorker: NewGenericWorker(cfg, logger, name, "restapi", bufSize, config.DefaultMonitor)}
+	w.doneAPI = make(chan bool)
 	w.HitsStream = HitsStream{
 		Streams: make(map[string]SearchBy),
 	}
@@ -613,11 +615,13 @@ func (w *RestAPI) ListenAndServe() {
 		w.LogFatal("listening failed:", err)
 	}
 
+	w.listenerMu.Lock()
 	w.httpserver = listener
 	w.httpmux = mux
+	w.listenerMu.Unlock()
 	w.LogInfo("is listening on %s", listener.Addr())
 
-	http.Serve(w.httpserver, w.httpmux)
+	http.Serve(listener, mux)
 
 	w.LogInfo("http server terminated")
 	w.doneAPI <- true
@@ -647,8 +651,13 @@ func (w *RestAPI) StartCollect() {
 			w.StopLogger()
 			subprocessors.Reset()
 
-			w.httpserver.Close()
-			<-w.doneAPI
+			w.listenerMu.RLock()
+			srv := w.httpserver
+			w.listenerMu.RUnlock()
+			if srv != nil {
+				srv.Close()
+				<-w.doneAPI
+			}
 
 			return
 
