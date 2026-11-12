@@ -55,4 +55,3 @@ func TestDnsMessage_ToJinjaFormat_BinaryIP(t *testing.T) {
 		t.Fatalf("Jinja template failed to resolve binary IPs: got %q, want %q", text, want)
 	}
 }
-
