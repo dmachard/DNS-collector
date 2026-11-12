@@ -355,3 +355,26 @@ func TestRestAPI_TTLExpiration(t *testing.T) {
 		t.Errorf("Expected domain to be expired after TTL")
 	}
 }
+
+func TestRestAPI_ShutdownDeadlock(t *testing.T) {
+	cfg := config.GetDefaultConfig()
+	cfg.Loggers.RestAPI.ListenIP = "127.0.0.1"
+	cfg.Loggers.RestAPI.ListenPort = 0 // use free port
+	api := NewRestAPI(cfg, logger.New(false), "test_deadlock")
+
+	go api.StartCollect()
+	time.Sleep(100 * time.Millisecond)
+
+	stopped := make(chan struct{})
+	go func() {
+		api.Stop()
+		close(stopped)
+	}()
+
+	select {
+	case <-stopped:
+		// shutdown cleanly
+	case <-time.After(2 * time.Second):
+		t.Fatalf("DEADLOCK: RestAPI.Stop() blocked on uninitialized doneAPI channel")
+	}
+}
