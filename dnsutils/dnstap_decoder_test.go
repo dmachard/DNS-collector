@@ -217,3 +217,38 @@ func BenchmarkDecodeDNSTapStandardProtobuf(b *testing.B) {
 		dmDecoded.DNS.Length = len(dmDecoded.DNS.Payload)
 	}
 }
+
+func TestDecodeDNSTapWire_LengthOverflow_NoPanic(t *testing.T) {
+	// Length varint for 2^63 encoded in 10 bytes: 0x80 ... 0x01
+	// Tag 0x0A is field 1 (identity), wire type 2 (length-delimited).
+	frameTopLevel := []byte{0x0A, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x01}
+	dm := &DNSMessage{}
+	dm.Init()
+
+	err := DecodeDNSTapWire(frameTopLevel, dm)
+	if err == nil {
+		t.Fatalf("expected error on top-level length overflow, got nil")
+	}
+
+	// Tag 0x72 is field 14 (message), wire type 2.
+	// Inside message, sub-field tag 0x22 is field 4 (query_address), wire type 2 with 2^63 length varint.
+	frameSubMessage := []byte{
+		0x72, 11, // field 14 length 11
+		0x22, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x01,
+	}
+	err = DecodeDNSTapWire(frameSubMessage, dm)
+	if err == nil {
+		t.Fatalf("expected error on sub-message length overflow, got nil")
+	}
+
+	// Policy sub-message field 15 (0x7A) -> inside policy, field 1 (type, tag 0x0A) with 2^63 length varint.
+	framePolicy := []byte{
+		0x72, 15, // field 14 length 15
+		0x7A, 13, // sub-field 15 (policy) length 13
+		0x0A, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x01,
+	}
+	err = DecodeDNSTapWire(framePolicy, dm)
+	if err == nil {
+		t.Fatalf("expected error on policy sub-message length overflow, got nil")
+	}
+}

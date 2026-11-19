@@ -90,7 +90,7 @@ func DecodeDNSTapWire(buf []byte, dm *DNSMessage) error {
 			buf = buf[n:]
 		case 2: // Length-delimited
 			length, n := inlineUvarint(buf)
-			if n <= 0 || int(length) > len(buf[n:]) {
+			if n <= 0 || length > uint64(len(buf[n:])) {
 				return ErrInvalidDNSTapProtobuf
 			}
 			val := buf[n : n+int(length)]
@@ -142,7 +142,7 @@ func DecodeDNSTapWire(buf []byte, dm *DNSMessage) error {
 						}
 					case 2: // Length-delimited
 						slen, sn := inlineUvarint(sub)
-						if sn <= 0 || int(slen) > len(sub[sn:]) {
+						if sn <= 0 || slen > uint64(len(sub[sn:])) {
 							return ErrInvalidDNSTapProtobuf
 						}
 						sval := sub[sn : sn+int(slen)]
@@ -185,7 +185,7 @@ func DecodeDNSTapWire(buf []byte, dm *DNSMessage) error {
 									}
 								case 2: // Length-delimited (Type, Rule, Value)
 									plen, pn := inlineUvarint(pol)
-									if pn <= 0 || int(plen) > len(pol[pn:]) {
+									if pn <= 0 || plen > uint64(len(pol[pn:])) {
 										return ErrInvalidDNSTapProtobuf
 									}
 									pval := pol[pn : pn+int(plen)]
